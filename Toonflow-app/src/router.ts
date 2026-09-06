@@ -183,6 +183,19 @@ import route172 from "./routes/task/getTaskApi";
 import route173 from "./routes/task/getTaskCategories";
 import route174 from "./routes/task/taskDetails";
 import route175 from "./routes/test/test";
+import route183 from "./routes/quickVideo/addShot";
+import route184 from "./routes/quickVideo/confirmStage";
+import route185 from "./routes/quickVideo/createProject";
+import route186 from "./routes/quickVideo/getMediaUrls";
+import route187 from "./routes/quickVideo/getMetrics";
+import route188 from "./routes/quickVideo/getTimeline";
+import route189 from "./routes/quickVideo/getWorkbench";
+import route190 from "./routes/quickVideo/removeShot";
+import route191 from "./routes/quickVideo/resolveAssets";
+import route192 from "./routes/quickVideo/retryShot";
+import route193 from "./routes/quickVideo/updateBrief";
+import route194 from "./routes/quickVideo/updateConfig";
+import route195 from "./routes/quickVideo/updateShot";
 
 export default async (app: Express) => {
   app.use("/api/agents/clearMemory", route1);
@@ -367,4 +380,17 @@ export default async (app: Express) => {
   app.use("/api/library/folders/:id", route178);
   app.use("/api/library-assets", route179);
   app.use("/api/library-assets/:id", route180);
+  app.use("/api/quickVideo/addShot", route183);
+  app.use("/api/quickVideo/confirmStage", route184);
+  app.use("/api/quickVideo/createProject", route185);
+  app.use("/api/quickVideo/getMediaUrls", route186);
+  app.use("/api/quickVideo/getMetrics", route187);
+  app.use("/api/quickVideo/getTimeline", route188);
+  app.use("/api/quickVideo/getWorkbench", route189);
+  app.use("/api/quickVideo/removeShot", route190);
+  app.use("/api/quickVideo/resolveAssets", route191);
+  app.use("/api/quickVideo/retryShot", route192);
+  app.use("/api/quickVideo/updateBrief", route193);
+  app.use("/api/quickVideo/updateConfig", route194);
+  app.use("/api/quickVideo/updateShot", route195);
 }

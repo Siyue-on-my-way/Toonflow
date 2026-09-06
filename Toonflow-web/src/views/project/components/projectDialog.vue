@@ -17,50 +17,71 @@
               <t-select v-model="formState.projectType" :placeholder="$t('workbench.project.dialog.selectType')">
                 <t-option key="基于小说原文" :label="$t('workbench.project.dialog.basedOnNovel')" value="novel" />
                 <t-option key="基于剧本" :label="$t('workbench.project.dialog.basedOnScript')" value="script" />
+                <t-option key="单视频快创" :label="$t('workbench.project.dialog.quickVideo')" value="quick_video" />
               </t-select>
             </t-form-item>
             <t-form-item :label="$t('workbench.project.dialog.projectName')">
               <t-input v-model="formState.name" :placeholder="$t('workbench.project.dialog.projectNamePh')" />
             </t-form-item>
-            <t-form-item :label="$t('workbench.project.dialog.novelType')">
-              <t-input v-model="formState.type" :placeholder="$t('workbench.project.dialog.novelTypePh')" />
-            </t-form-item>
-            <t-form-item :label="$t('workbench.project.dialog.textModelData')">
-              <modelSelect v-model="formState.textModel" type="text" />
-            </t-form-item>
-            <t-form-item :label="$t('workbench.project.dialog.modelData')">
-              <div class="ac" style="gap: 5px; width: 100%">
-                <modelSelect v-model="formState.imageModel" type="image" @change="handleImageModelChange" :changeConfig="true" />
-                <t-select v-model="formState.imageQuality" class="paramSelect ml-5" :placeholder="$t('workbench.production.editImage.quality')">
-                  <t-option v-for="resolution in imageResolutionOptions" :key="resolution" :value="resolution" :label="resolution" />
+            <template v-if="formState.projectType === 'quick_video'">
+              <t-form-item :label="$t('workbench.project.dialog.quickArtStyle')">
+                <t-input v-model="formState.artStyle" :placeholder="$t('workbench.project.dialog.quickArtStylePh')" />
+              </t-form-item>
+              <t-form-item :label="$t('workbench.project.dialog.targetDuration')">
+                <t-select v-model="formState.targetDuration">
+                  <t-option :value="15" label="15s" />
+                  <t-option :value="30" label="30s" />
+                  <t-option :value="60" label="60s" />
                 </t-select>
-              </div>
-              <t-alert
-                v-if="imageModelDetail?.resolutionNote"
-                class="resolutionAlert"
-                theme="warning"
-                :message="imageModelDetail.resolutionNote" />
-            </t-form-item>
-            <t-form-item :label="$t('workbench.project.dialog.videoModelData')">
-              <div class="ac" style="gap: 5px; width: 100%">
-                <modelSelect v-model="formState.videoModel" type="video" @change="changeFn" :changeConfig="true" />
-                <t-select v-model="formState.mode" class="paramSelect ml-5" :placeholder="$t('workbench.production.editImage.mode')">
-                  <t-option v-for="value in mode" :key="value.value" :value="value.value" :label="value.label" />
-                </t-select>
-              </div>
-            </t-form-item>
-            <t-form-item :label="$t('workbench.project.dialog.videoRatio')">
-              <t-select v-model="formState.videoRatio" :options="videoRatioOptions" />
-            </t-form-item>
-            <t-form-item :label="$t('workbench.project.dialog.novelIntro')">
-              <t-textarea
-                v-model="formState.intro"
-                :autosize="{ minRows: 3, maxRows: 6 }"
-                :placeholder="$t('workbench.project.dialog.novelIntroPh')" />
-            </t-form-item>
+              </t-form-item>
+              <t-form-item :label="$t('workbench.project.dialog.videoRatio')">
+                <t-select v-model="formState.videoRatio" :options="QUICK_RATIO_OPTIONS" />
+              </t-form-item>
+              <t-form-item :label="$t('workbench.project.dialog.novelIntro')">
+                <t-textarea
+                  v-model="formState.intro"
+                  :autosize="{ minRows: 3, maxRows: 6 }"
+                  :placeholder="$t('workbench.project.dialog.quickIntroPh')" />
+              </t-form-item>
+            </template>
+            <template v-else>
+              <t-form-item :label="$t('workbench.project.dialog.novelType')">
+                <t-input v-model="formState.type" :placeholder="$t('workbench.project.dialog.novelTypePh')" />
+              </t-form-item>
+              <t-form-item :label="$t('workbench.project.dialog.textModelData')">
+                <modelSelect v-model="formState.textModel" type="text" />
+              </t-form-item>
+              <t-form-item :label="$t('workbench.project.dialog.modelData')">
+                <div class="ac" style="gap: 5px; width: 100%">
+                  <modelSelect v-model="formState.imageModel" type="image" />
+                  <t-select v-model="formState.imageQuality" class="paramSelect ml-5" :placeholder="$t('workbench.production.editImage.quality')">
+                    <t-option value="1K" label="1K" />
+                    <t-option value="2K" label="2K" />
+                    <t-option value="4K" label="4K" />
+                  </t-select>
+                </div>
+              </t-form-item>
+              <t-form-item :label="$t('workbench.project.dialog.videoModelData')">
+                <div class="ac" style="gap: 5px; width: 100%">
+                  <modelSelect v-model="formState.videoModel" type="video" @change="changeFn" :changeConfig="true" />
+                  <t-select v-model="formState.mode" class="paramSelect ml-5" :placeholder="$t('workbench.production.editImage.mode')">
+                    <t-option v-for="value in mode" :key="value.value" :value="value.value" :label="value.label" />
+                  </t-select>
+                </div>
+              </t-form-item>
+              <t-form-item :label="$t('workbench.project.dialog.videoRatio')">
+                <t-select v-model="formState.videoRatio" :options="videoRatioOptions" />
+              </t-form-item>
+              <t-form-item :label="$t('workbench.project.dialog.novelIntro')">
+                <t-textarea
+                  v-model="formState.intro"
+                  :autosize="{ minRows: 3, maxRows: 6 }"
+                  :placeholder="$t('workbench.project.dialog.novelIntroPh')" />
+              </t-form-item>
+            </template>
           </t-form>
         </div>
-        <div class="formRight">
+        <div class="formRight" v-if="formState.projectType !== 'quick_video'">
           <t-form label-align="top">
             <t-form-item>
               <div class="artStylePicker">
@@ -319,6 +340,7 @@ const emit = defineEmits<{
       projectType: string;
       imageQuality: "1K" | "2K" | "4K" | "";
       mode: string;
+      targetDuration: 15 | 30 | 60;
     },
   ): void;
 }>();
@@ -354,6 +376,7 @@ interface ProjectFormData {
   textModel: string;
   imageQuality: "1K" | "2K" | "4K" | "";
   mode: string;
+  targetDuration: 15 | 30 | 60;
 }
 interface VisualManualItem {
   name: string;
@@ -398,6 +421,12 @@ const DEFAULT_VIDEO_RATIO_OPTIONS = [
 ];
 const videoRatioOptions = ref([...DEFAULT_VIDEO_RATIO_OPTIONS]);
 
+const QUICK_RATIO_OPTIONS = [
+  { value: "9:16", label: "9:16" },
+  { value: "16:9", label: "16:9" },
+  { value: "1:1", label: "1:1" },
+];
+
 const DEFAULT_FORM: () => ProjectFormData & { id: number; era: string; createTime: number; userId: number } = () => ({
   id: 0,
   projectType: "novel",
@@ -415,6 +444,7 @@ const DEFAULT_FORM: () => ProjectFormData & { id: number; era: string; createTim
   imageQuality: "",
   mode: "",
   directorManual: "",
+  targetDuration: 15,
 });
 
 // ===== 表单 =====
@@ -442,6 +472,48 @@ function handleOk() {
     if (director) formState.value.directorManual = director.directorManual;
   }
   if (!formState.value.name) return window.$message.warning($t("workbench.project.msg.enterProjectName"));
+  if (formState.value.projectType === "quick_video") {
+    // 单视频快创：画风/比例/目标时长必填，图片/视频模型可后续在设置中补充
+    if (!formState.value.artStyle) return window.$message.warning($t("workbench.project.msg.enterArtStyle"));
+    if (!formState.value.videoRatio) return window.$message.warning($t("workbench.project.msg.enterVideoRatio"));
+    if (isEdit.value) {
+      emit("edit", {
+        id: formState.value.id as unknown as string,
+        name: formState.value.name,
+        intro: formState.value.intro,
+        type: "",
+        artStyle: formState.value.artStyle,
+        videoRatio: formState.value.videoRatio,
+        imageModel: "",
+        videoModel: "",
+        textModel: "",
+        projectType: "quick_video",
+        directorManual: "",
+        imageQuality: "",
+        mode: "",
+        targetDuration: formState.value.targetDuration,
+      });
+    } else {
+      emit("add", {
+        projectType: "quick_video",
+        name: formState.value.name,
+        intro: formState.value.intro,
+        type: "",
+        artStyle: formState.value.artStyle,
+        videoRatio: formState.value.videoRatio || "9:16",
+        imageModel: "",
+        videoModel: "",
+        textModel: "",
+        imageQuality: "",
+        directorManual: "",
+        mode: "",
+        targetDuration: formState.value.targetDuration,
+      });
+    }
+    resetForm();
+    addProjectShow.value = false;
+    return;
+  }
   if (!formState.value.type) return window.$message.warning($t("workbench.project.msg.enterProjectType"));
   if (!formState.value.imageModel) return window.$message.warning($t("workbench.project.msg.enterImageModel"));
   if (!formState.value.videoModel) return window.$message.warning($t("workbench.project.msg.enterVideoModel"));
@@ -466,6 +538,7 @@ function handleOk() {
       directorManual: formState.value.directorManual,
       imageQuality: formState.value.imageQuality,
       mode: formState.value.mode,
+      targetDuration: formState.value.targetDuration,
     });
   } else {
     emit("add", {
@@ -481,6 +554,7 @@ function handleOk() {
       imageQuality: formState.value.imageQuality,
       directorManual: formState.value.directorManual,
       mode: formState.value.mode,
+      targetDuration: formState.value.targetDuration,
     });
   }
   resetForm();

@@ -19341,11 +19341,11 @@ var require_mime_types = __commonJS({
       }
       return exts[0];
     }
-    function lookup2(path25) {
-      if (!path25 || typeof path25 !== "string") {
+    function lookup2(path26) {
+      if (!path26 || typeof path26 !== "string") {
         return false;
       }
-      var extension2 = extname("x." + path25).toLowerCase().slice(1);
+      var extension2 = extname("x." + path26).toLowerCase().slice(1);
       if (!extension2) {
         return false;
       }
@@ -22819,13 +22819,13 @@ var require_view = __commonJS({
   "node_modules/express/lib/view.js"(exports2, module2) {
     "use strict";
     var debug = require_src()("express:view");
-    var path25 = require("node:path");
-    var fs21 = require("node:fs");
-    var dirname2 = path25.dirname;
-    var basename = path25.basename;
-    var extname = path25.extname;
-    var join = path25.join;
-    var resolve3 = path25.resolve;
+    var path26 = require("node:path");
+    var fs22 = require("node:fs");
+    var dirname2 = path26.dirname;
+    var basename = path26.basename;
+    var extname = path26.extname;
+    var join = path26.join;
+    var resolve3 = path26.resolve;
     module2.exports = View;
     function View(name28, options) {
       var opts = options || {};
@@ -22854,17 +22854,17 @@ var require_view = __commonJS({
       this.path = this.lookup(fileName);
     }
     View.prototype.lookup = function lookup2(name28) {
-      var path26;
+      var path27;
       var roots = [].concat(this.root);
       debug('lookup "%s"', name28);
-      for (var i = 0; i < roots.length && !path26; i++) {
+      for (var i = 0; i < roots.length && !path27; i++) {
         var root = roots[i];
         var loc = resolve3(root, name28);
         var dir = dirname2(loc);
         var file3 = basename(loc);
-        path26 = this.resolve(dir, file3);
+        path27 = this.resolve(dir, file3);
       }
-      return path26;
+      return path27;
     };
     View.prototype.render = function render(options, callback) {
       var sync = true;
@@ -22886,21 +22886,21 @@ var require_view = __commonJS({
     };
     View.prototype.resolve = function resolve4(dir, file3) {
       var ext = this.ext;
-      var path26 = join(dir, file3);
-      var stat = tryStat(path26);
+      var path27 = join(dir, file3);
+      var stat = tryStat(path27);
       if (stat && stat.isFile()) {
-        return path26;
+        return path27;
       }
-      path26 = join(dir, basename(file3, ext), "index" + ext);
-      stat = tryStat(path26);
+      path27 = join(dir, basename(file3, ext), "index" + ext);
+      stat = tryStat(path27);
       if (stat && stat.isFile()) {
-        return path26;
+        return path27;
       }
     };
-    function tryStat(path26) {
-      debug('stat "%s"', path26);
+    function tryStat(path27) {
+      debug('stat "%s"', path27);
       try {
-        return fs21.statSync(path26);
+        return fs22.statSync(path27);
       } catch (e) {
         return void 0;
       }
@@ -24090,15 +24090,15 @@ var require_dist = __commonJS({
           if (token.type === endType)
             break;
           if (token.type === "char" || token.type === "escape") {
-            let path25 = token.value;
+            let path26 = token.value;
             let cur = tokens[pos];
             while (cur.type === "char" || cur.type === "escape") {
-              path25 += cur.value;
+              path26 += cur.value;
               cur = tokens[++pos];
             }
             output.push({
               type: "text",
-              value: encodePath(path25)
+              value: encodePath(path26)
             });
             continue;
           }
@@ -24122,16 +24122,16 @@ var require_dist = __commonJS({
       }
       return new TokenData(consumeUntil("end"), str);
     }
-    function compile(path25, options = {}) {
+    function compile(path26, options = {}) {
       const { encode: encode6 = encodeURIComponent, delimiter = DEFAULT_DELIMITER } = options;
-      const data = typeof path25 === "object" ? path25 : parse4(path25, options);
+      const data = typeof path26 === "object" ? path26 : parse4(path26, options);
       const fn = tokensToFunction(data.tokens, delimiter, encode6);
-      return function path26(params = {}) {
-        const [path27, ...missing] = fn(params);
+      return function path27(params = {}) {
+        const [path28, ...missing] = fn(params);
         if (missing.length) {
           throw new TypeError(`Missing parameters: ${missing.join(", ")}`);
         }
-        return path27;
+        return path28;
       };
     }
     function tokensToFunction(tokens, delimiter, encode6) {
@@ -24187,9 +24187,9 @@ var require_dist = __commonJS({
         return [encodeValue(value)];
       };
     }
-    function match(path25, options = {}) {
+    function match(path26, options = {}) {
       const { decode: decode4 = decodeURIComponent, delimiter = DEFAULT_DELIMITER } = options;
-      const { regexp, keys } = pathToRegexp(path25, options);
+      const { regexp, keys } = pathToRegexp(path26, options);
       const decoders = keys.map((key) => {
         if (decode4 === false)
           return NOOP_VALUE;
@@ -24201,7 +24201,7 @@ var require_dist = __commonJS({
         const m = regexp.exec(input);
         if (!m)
           return false;
-        const path26 = m[0];
+        const path27 = m[0];
         const params = /* @__PURE__ */ Object.create(null);
         for (let i = 1; i < m.length; i++) {
           if (m[i] === void 0)
@@ -24210,22 +24210,22 @@ var require_dist = __commonJS({
           const decoder = decoders[i - 1];
           params[key.name] = decoder(m[i]);
         }
-        return { path: path26, params };
+        return { path: path27, params };
       };
     }
-    function pathToRegexp(path25, options = {}) {
+    function pathToRegexp(path26, options = {}) {
       const { delimiter = DEFAULT_DELIMITER, end = true, sensitive = false, trailing = true } = options;
       const keys = [];
       const sources = [];
-      const paths = [path25];
+      const paths = [path26];
       let combinations = 0;
       while (paths.length) {
-        const path26 = paths.shift();
-        if (Array.isArray(path26)) {
-          paths.push(...path26);
+        const path27 = paths.shift();
+        if (Array.isArray(path27)) {
+          paths.push(...path27);
           continue;
         }
-        const data = typeof path26 === "object" ? path26 : parse4(path26, options);
+        const data = typeof path27 === "object" ? path27 : parse4(path27, options);
         flatten(data.tokens, 0, [], (tokens) => {
           if (combinations++ >= 256) {
             throw new PathError("Too many path combinations", data.originalPath);
@@ -24370,18 +24370,18 @@ var require_layer = __commonJS({
     var TRAILING_SLASH_REGEXP = /\/+$/;
     var MATCHING_GROUP_REGEXP = /\((?:\?<(.*?)>)?(?!\?)/g;
     module2.exports = Layer;
-    function Layer(path25, options, fn) {
+    function Layer(path26, options, fn) {
       if (!(this instanceof Layer)) {
-        return new Layer(path25, options, fn);
+        return new Layer(path26, options, fn);
       }
-      debug("new %o", path25);
+      debug("new %o", path26);
       const opts = options || {};
       this.handle = fn;
       this.keys = [];
       this.name = fn.name || "<anonymous>";
       this.params = void 0;
       this.path = void 0;
-      this.slash = path25 === "/" && opts.end === false;
+      this.slash = path26 === "/" && opts.end === false;
       function matcher(_path) {
         if (_path instanceof RegExp) {
           const keys = [];
@@ -24420,7 +24420,7 @@ var require_layer = __commonJS({
           decode: decodeParam
         });
       }
-      this.matchers = Array.isArray(path25) ? path25.map(matcher) : [matcher(path25)];
+      this.matchers = Array.isArray(path26) ? path26.map(matcher) : [matcher(path26)];
     }
     Layer.prototype.handleError = function handleError(error69, req, res, next) {
       const fn = this.handle;
@@ -24460,9 +24460,9 @@ var require_layer = __commonJS({
         next(err);
       }
     };
-    Layer.prototype.match = function match(path25) {
+    Layer.prototype.match = function match(path26) {
       let match2;
-      if (path25 != null) {
+      if (path26 != null) {
         if (this.slash) {
           this.params = {};
           this.path = "";
@@ -24470,7 +24470,7 @@ var require_layer = __commonJS({
         }
         let i = 0;
         while (!match2 && i < this.matchers.length) {
-          match2 = this.matchers[i](path25);
+          match2 = this.matchers[i](path26);
           i++;
         }
       }
@@ -24498,13 +24498,13 @@ var require_layer = __commonJS({
         throw err;
       }
     }
-    function loosen(path25) {
-      if (path25 instanceof RegExp || path25 === "/") {
-        return path25;
+    function loosen(path26) {
+      if (path26 instanceof RegExp || path26 === "/") {
+        return path26;
       }
-      return Array.isArray(path25) ? path25.map(function(p3) {
+      return Array.isArray(path26) ? path26.map(function(p3) {
         return loosen(p3);
-      }) : String(path25).replace(TRAILING_SLASH_REGEXP, "");
+      }) : String(path26).replace(TRAILING_SLASH_REGEXP, "");
     }
   }
 });
@@ -24520,9 +24520,9 @@ var require_route = __commonJS({
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
     module2.exports = Route;
-    function Route(path25) {
-      debug("new %o", path25);
-      this.path = path25;
+    function Route(path26) {
+      debug("new %o", path26);
+      this.path = path26;
       this.stack = [];
       this.methods = /* @__PURE__ */ Object.create(null);
     }
@@ -24650,16 +24650,16 @@ var require_router = __commonJS({
         return new Router(options);
       }
       const opts = options || {};
-      function router183(req, res, next) {
-        router183.handle(req, res, next);
+      function router196(req, res, next) {
+        router196.handle(req, res, next);
       }
-      Object.setPrototypeOf(router183, this);
-      router183.caseSensitive = opts.caseSensitive;
-      router183.mergeParams = opts.mergeParams;
-      router183.params = {};
-      router183.strict = opts.strict;
-      router183.stack = [];
-      return router183;
+      Object.setPrototypeOf(router196, this);
+      router196.caseSensitive = opts.caseSensitive;
+      router196.mergeParams = opts.mergeParams;
+      router196.params = {};
+      router196.strict = opts.strict;
+      router196.stack = [];
+      return router196;
     }
     Router.prototype = function() {
     };
@@ -24730,8 +24730,8 @@ var require_router = __commonJS({
         if (++sync > 100) {
           return setImmediate(next, err);
         }
-        const path25 = getPathname(req);
-        if (path25 == null) {
+        const path26 = getPathname(req);
+        if (path26 == null) {
           return done(layerError);
         }
         let layer;
@@ -24739,7 +24739,7 @@ var require_router = __commonJS({
         let route;
         while (match !== true && idx < stack.length) {
           layer = stack[idx++];
-          match = matchLayer(layer, path25);
+          match = matchLayer(layer, path26);
           route = layer.route;
           if (typeof match !== "boolean") {
             layerError = layerError || match;
@@ -24777,18 +24777,18 @@ var require_router = __commonJS({
           } else if (route) {
             layer.handleRequest(req, res, next);
           } else {
-            trimPrefix(layer, layerError, layerPath, path25);
+            trimPrefix(layer, layerError, layerPath, path26);
           }
           sync = 0;
         });
       }
-      function trimPrefix(layer, layerError, layerPath, path25) {
+      function trimPrefix(layer, layerError, layerPath, path26) {
         if (layerPath.length !== 0) {
-          if (layerPath !== path25.substring(0, layerPath.length)) {
+          if (layerPath !== path26.substring(0, layerPath.length)) {
             next(layerError);
             return;
           }
-          const c = path25[layerPath.length];
+          const c = path26[layerPath.length];
           if (c && c !== "/") {
             next(layerError);
             return;
@@ -24812,7 +24812,7 @@ var require_router = __commonJS({
     };
     Router.prototype.use = function use(handler) {
       let offset = 0;
-      let path25 = "/";
+      let path26 = "/";
       if (typeof handler !== "function") {
         let arg = handler;
         while (Array.isArray(arg) && arg.length !== 0) {
@@ -24820,7 +24820,7 @@ var require_router = __commonJS({
         }
         if (typeof arg !== "function") {
           offset = 1;
-          path25 = handler;
+          path26 = handler;
         }
       }
       const callbacks = flatten.call(slice.call(arguments, offset), Infinity);
@@ -24832,8 +24832,8 @@ var require_router = __commonJS({
         if (typeof fn !== "function") {
           throw new TypeError("argument handler must be a function");
         }
-        debug("use %o %s", path25, fn.name || "<anonymous>");
-        const layer = new Layer(path25, {
+        debug("use %o %s", path26, fn.name || "<anonymous>");
+        const layer = new Layer(path26, {
           sensitive: this.caseSensitive,
           strict: false,
           end: false
@@ -24843,9 +24843,9 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router.prototype.route = function route(path25) {
-      const route2 = new Route(path25);
-      const layer = new Layer(path25, {
+    Router.prototype.route = function route(path26) {
+      const route2 = new Route(path26);
+      const layer = new Layer(path26, {
         sensitive: this.caseSensitive,
         strict: this.strict,
         end: true
@@ -24858,8 +24858,8 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router.prototype[method] = function(path25) {
-        const route = this.route(path25);
+      Router.prototype[method] = function(path26) {
+        const route = this.route(path26);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
       };
@@ -24888,9 +24888,9 @@ var require_router = __commonJS({
       const fqdnIndex = url4.substring(0, pathLength).indexOf("://");
       return fqdnIndex !== -1 ? url4.substring(0, url4.indexOf("/", 3 + fqdnIndex)) : void 0;
     }
-    function matchLayer(layer, path25) {
+    function matchLayer(layer, path26) {
       try {
-        return layer.match(path25);
+        return layer.match(path26);
       } catch (err) {
         return err;
       }
@@ -25047,7 +25047,7 @@ var require_application = __commonJS({
     var app2 = exports2 = module2.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router183 = null;
+      var router196 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -25056,13 +25056,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router183 === null) {
-            router183 = new Router({
+          if (router196 === null) {
+            router196 = new Router({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router183;
+          return router196;
         }
       });
     };
@@ -25118,7 +25118,7 @@ var require_application = __commonJS({
     };
     app2.use = function use(fn) {
       var offset = 0;
-      var path25 = "/";
+      var path26 = "/";
       if (typeof fn !== "function") {
         var arg = fn;
         while (Array.isArray(arg) && arg.length !== 0) {
@@ -25126,22 +25126,22 @@ var require_application = __commonJS({
         }
         if (typeof arg !== "function") {
           offset = 1;
-          path25 = fn;
+          path26 = fn;
         }
       }
       var fns = flatten.call(slice.call(arguments, offset), Infinity);
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router183 = this.router;
+      var router196 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router183.use(path25, fn2);
+          return router196.use(path26, fn2);
         }
-        debug(".use app under %s", path25);
-        fn2.mountpath = path25;
+        debug(".use app under %s", path26);
+        fn2.mountpath = path26;
         fn2.parent = this;
-        router183.use(path25, function mounted_app(req, res, next) {
+        router196.use(path26, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -25153,8 +25153,8 @@ var require_application = __commonJS({
       }, this);
       return this;
     };
-    app2.route = function route(path25) {
-      return this.router.route(path25);
+    app2.route = function route(path26) {
+      return this.router.route(path26);
     };
     app2.engine = function engine(ext, fn) {
       if (typeof fn !== "function") {
@@ -25197,7 +25197,7 @@ var require_application = __commonJS({
       }
       return this;
     };
-    app2.path = function path25() {
+    app2.path = function path26() {
       return this.parent ? this.parent.path() + this.mountpath : "";
     };
     app2.enabled = function enabled(setting) {
@@ -25213,17 +25213,17 @@ var require_application = __commonJS({
       return this.set(setting, false);
     };
     methods.forEach(function(method) {
-      app2[method] = function(path25) {
+      app2[method] = function(path26) {
         if (method === "get" && arguments.length === 1) {
-          return this.set(path25);
+          return this.set(path26);
         }
-        var route = this.route(path25);
+        var route = this.route(path26);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
       };
     });
-    app2.all = function all3(path25) {
-      var route = this.route(path25);
+    app2.all = function all3(path26) {
+      var route = this.route(path26);
       var args = slice.call(arguments, 1);
       for (var i = 0; i < methods.length; i++) {
         route[methods[i]].apply(route, args);
@@ -25288,9 +25288,9 @@ var require_application = __commonJS({
   }
 });
 
-// node_modules/negotiator/lib/charset.js
+// node_modules/express/node_modules/negotiator/lib/charset.js
 var require_charset = __commonJS({
-  "node_modules/negotiator/lib/charset.js"(exports2, module2) {
+  "node_modules/express/node_modules/negotiator/lib/charset.js"(exports2, module2) {
     "use strict";
     module2.exports = preferredCharsets;
     module2.exports.preferredCharsets = preferredCharsets;
@@ -25375,9 +25375,9 @@ var require_charset = __commonJS({
   }
 });
 
-// node_modules/negotiator/lib/encoding.js
+// node_modules/express/node_modules/negotiator/lib/encoding.js
 var require_encoding = __commonJS({
-  "node_modules/negotiator/lib/encoding.js"(exports2, module2) {
+  "node_modules/express/node_modules/negotiator/lib/encoding.js"(exports2, module2) {
     "use strict";
     module2.exports = preferredEncodings;
     module2.exports.preferredEncodings = preferredEncodings;
@@ -25488,9 +25488,9 @@ var require_encoding = __commonJS({
   }
 });
 
-// node_modules/negotiator/lib/language.js
+// node_modules/express/node_modules/negotiator/lib/language.js
 var require_language = __commonJS({
-  "node_modules/negotiator/lib/language.js"(exports2, module2) {
+  "node_modules/express/node_modules/negotiator/lib/language.js"(exports2, module2) {
     "use strict";
     module2.exports = preferredLanguages;
     module2.exports.preferredLanguages = preferredLanguages;
@@ -25583,9 +25583,9 @@ var require_language = __commonJS({
   }
 });
 
-// node_modules/negotiator/lib/mediaType.js
+// node_modules/express/node_modules/negotiator/lib/mediaType.js
 var require_mediaType = __commonJS({
-  "node_modules/negotiator/lib/mediaType.js"(exports2, module2) {
+  "node_modules/express/node_modules/negotiator/lib/mediaType.js"(exports2, module2) {
     "use strict";
     module2.exports = preferredMediaTypes;
     module2.exports.preferredMediaTypes = preferredMediaTypes;
@@ -25745,9 +25745,9 @@ var require_mediaType = __commonJS({
   }
 });
 
-// node_modules/negotiator/index.js
+// node_modules/express/node_modules/negotiator/index.js
 var require_negotiator = __commonJS({
-  "node_modules/negotiator/index.js"(exports2, module2) {
+  "node_modules/express/node_modules/negotiator/index.js"(exports2, module2) {
     "use strict";
     var preferredCharsets = require_charset();
     var preferredEncodings = require_encoding();
@@ -26133,7 +26133,7 @@ var require_request = __commonJS({
       var subdomains2 = !isIP(hostname4) ? hostname4.split(".").reverse() : [hostname4];
       return subdomains2.slice(offset);
     });
-    defineGetter(req, "path", function path25() {
+    defineGetter(req, "path", function path26() {
       return parse4(this).pathname;
     });
     defineGetter(req, "host", function host() {
@@ -26541,32 +26541,32 @@ var require_send = __commonJS({
     var escapeHtml = require_escape_html();
     var etag = require_etag();
     var fresh = require_fresh();
-    var fs21 = require("fs");
+    var fs22 = require("fs");
     var mime2 = require_mime_types();
     var ms = require_ms();
     var onFinished = require_on_finished();
     var parseRange = require_range_parser();
-    var path25 = require("path");
+    var path26 = require("path");
     var statuses = require_statuses();
     var Stream = require("stream");
     var util4 = require("util");
-    var extname = path25.extname;
-    var join = path25.join;
-    var normalize = path25.normalize;
-    var resolve3 = path25.resolve;
-    var sep2 = path25.sep;
+    var extname = path26.extname;
+    var join = path26.join;
+    var normalize = path26.normalize;
+    var resolve3 = path26.resolve;
+    var sep2 = path26.sep;
     var BYTES_RANGE_REGEXP = /^ *bytes=/;
     var MAX_MAXAGE = 60 * 60 * 24 * 365 * 1e3;
     var UP_PATH_REGEXP = /(?:^|[\\/])\.\.(?:[\\/]|$)/;
     module2.exports = send;
-    function send(req, path26, options) {
-      return new SendStream(req, path26, options);
+    function send(req, path27, options) {
+      return new SendStream(req, path27, options);
     }
-    function SendStream(req, path26, options) {
+    function SendStream(req, path27, options) {
       Stream.call(this);
       var opts = options || {};
       this.options = opts;
-      this.path = path26;
+      this.path = path27;
       this.req = req;
       this._acceptRanges = opts.acceptRanges !== void 0 ? Boolean(opts.acceptRanges) : true;
       this._cacheControl = opts.cacheControl !== void 0 ? Boolean(opts.cacheControl) : true;
@@ -26680,10 +26680,10 @@ var require_send = __commonJS({
       var lastModified = this.res.getHeader("Last-Modified");
       return parseHttpDate(lastModified) <= parseHttpDate(ifRange);
     };
-    SendStream.prototype.redirect = function redirect(path26) {
+    SendStream.prototype.redirect = function redirect(path27) {
       var res = this.res;
       if (hasListeners(this, "directory")) {
-        this.emit("directory", res, path26);
+        this.emit("directory", res, path27);
         return;
       }
       if (this.hasTrailingSlash()) {
@@ -26703,38 +26703,38 @@ var require_send = __commonJS({
     SendStream.prototype.pipe = function pipe3(res) {
       var root = this._root;
       this.res = res;
-      var path26 = decode4(this.path);
-      if (path26 === -1) {
+      var path27 = decode4(this.path);
+      if (path27 === -1) {
         this.error(400);
         return res;
       }
-      if (~path26.indexOf("\0")) {
+      if (~path27.indexOf("\0")) {
         this.error(400);
         return res;
       }
       var parts;
       if (root !== null) {
-        if (path26) {
-          path26 = normalize("." + sep2 + path26);
+        if (path27) {
+          path27 = normalize("." + sep2 + path27);
         }
-        if (UP_PATH_REGEXP.test(path26)) {
-          debug('malicious path "%s"', path26);
+        if (UP_PATH_REGEXP.test(path27)) {
+          debug('malicious path "%s"', path27);
           this.error(403);
           return res;
         }
-        parts = path26.split(sep2);
-        path26 = normalize(join(root, path26));
+        parts = path27.split(sep2);
+        path27 = normalize(join(root, path27));
       } else {
-        if (UP_PATH_REGEXP.test(path26)) {
-          debug('malicious path "%s"', path26);
+        if (UP_PATH_REGEXP.test(path27)) {
+          debug('malicious path "%s"', path27);
           this.error(403);
           return res;
         }
-        parts = normalize(path26).split(sep2);
-        path26 = resolve3(path26);
+        parts = normalize(path27).split(sep2);
+        path27 = resolve3(path27);
       }
       if (containsDotFile(parts)) {
-        debug('%s dotfile "%s"', this._dotfiles, path26);
+        debug('%s dotfile "%s"', this._dotfiles, path27);
         switch (this._dotfiles) {
           case "allow":
             break;
@@ -26748,13 +26748,13 @@ var require_send = __commonJS({
         }
       }
       if (this._index.length && this.hasTrailingSlash()) {
-        this.sendIndex(path26);
+        this.sendIndex(path27);
         return res;
       }
-      this.sendFile(path26);
+      this.sendFile(path27);
       return res;
     };
-    SendStream.prototype.send = function send2(path26, stat) {
+    SendStream.prototype.send = function send2(path27, stat) {
       var len = stat.size;
       var options = this.options;
       var opts = {};
@@ -26766,9 +26766,9 @@ var require_send = __commonJS({
         this.headersAlreadySent();
         return;
       }
-      debug('pipe "%s"', path26);
-      this.setHeader(path26, stat);
-      this.type(path26);
+      debug('pipe "%s"', path27);
+      this.setHeader(path27, stat);
+      this.type(path27);
       if (this.isConditionalGET()) {
         if (this.isPreconditionFailure()) {
           this.error(412);
@@ -26817,30 +26817,30 @@ var require_send = __commonJS({
         res.end();
         return;
       }
-      this.stream(path26, opts);
+      this.stream(path27, opts);
     };
-    SendStream.prototype.sendFile = function sendFile(path26) {
+    SendStream.prototype.sendFile = function sendFile(path27) {
       var i = 0;
       var self2 = this;
-      debug('stat "%s"', path26);
-      fs21.stat(path26, function onstat(err, stat) {
-        var pathEndsWithSep = path26[path26.length - 1] === sep2;
-        if (err && err.code === "ENOENT" && !extname(path26) && !pathEndsWithSep) {
+      debug('stat "%s"', path27);
+      fs22.stat(path27, function onstat(err, stat) {
+        var pathEndsWithSep = path27[path27.length - 1] === sep2;
+        if (err && err.code === "ENOENT" && !extname(path27) && !pathEndsWithSep) {
           return next(err);
         }
         if (err) return self2.onStatError(err);
-        if (stat.isDirectory()) return self2.redirect(path26);
+        if (stat.isDirectory()) return self2.redirect(path27);
         if (pathEndsWithSep) return self2.error(404);
-        self2.emit("file", path26, stat);
-        self2.send(path26, stat);
+        self2.emit("file", path27, stat);
+        self2.send(path27, stat);
       });
       function next(err) {
         if (self2._extensions.length <= i) {
           return err ? self2.onStatError(err) : self2.error(404);
         }
-        var p3 = path26 + "." + self2._extensions[i++];
+        var p3 = path27 + "." + self2._extensions[i++];
         debug('stat "%s"', p3);
-        fs21.stat(p3, function(err2, stat) {
+        fs22.stat(p3, function(err2, stat) {
           if (err2) return next(err2);
           if (stat.isDirectory()) return next();
           self2.emit("file", p3, stat);
@@ -26848,7 +26848,7 @@ var require_send = __commonJS({
         });
       }
     };
-    SendStream.prototype.sendIndex = function sendIndex(path26) {
+    SendStream.prototype.sendIndex = function sendIndex(path27) {
       var i = -1;
       var self2 = this;
       function next(err) {
@@ -26856,9 +26856,9 @@ var require_send = __commonJS({
           if (err) return self2.onStatError(err);
           return self2.error(404);
         }
-        var p3 = join(path26, self2._index[i]);
+        var p3 = join(path27, self2._index[i]);
         debug('stat "%s"', p3);
-        fs21.stat(p3, function(err2, stat) {
+        fs22.stat(p3, function(err2, stat) {
           if (err2) return next(err2);
           if (stat.isDirectory()) return next();
           self2.emit("file", p3, stat);
@@ -26867,10 +26867,10 @@ var require_send = __commonJS({
       }
       next();
     };
-    SendStream.prototype.stream = function stream8(path26, options) {
+    SendStream.prototype.stream = function stream8(path27, options) {
       var self2 = this;
       var res = this.res;
-      var stream9 = fs21.createReadStream(path26, options);
+      var stream9 = fs22.createReadStream(path27, options);
       this.emit("stream", stream9);
       stream9.pipe(res);
       function cleanup() {
@@ -26885,17 +26885,17 @@ var require_send = __commonJS({
         self2.emit("end");
       });
     };
-    SendStream.prototype.type = function type(path26) {
+    SendStream.prototype.type = function type(path27) {
       var res = this.res;
       if (res.getHeader("Content-Type")) return;
-      var ext = extname(path26);
+      var ext = extname(path27);
       var type2 = mime2.contentType(ext) || "application/octet-stream";
       debug("content-type %s", type2);
       res.setHeader("Content-Type", type2);
     };
-    SendStream.prototype.setHeader = function setHeader(path26, stat) {
+    SendStream.prototype.setHeader = function setHeader(path27, stat) {
       var res = this.res;
-      this.emit("headers", res, path26, stat);
+      this.emit("headers", res, path27, stat);
       if (this._acceptRanges && !res.getHeader("Accept-Ranges")) {
         debug("accept ranges");
         res.setHeader("Accept-Ranges", "bytes");
@@ -26953,9 +26953,9 @@ var require_send = __commonJS({
       }
       return err instanceof Error ? createError(status, err, { expose: false }) : createError(status, err);
     }
-    function decode4(path26) {
+    function decode4(path27) {
       try {
-        return decodeURIComponent(path26);
+        return decodeURIComponent(path27);
       } catch (err) {
         return -1;
       }
@@ -27099,7 +27099,7 @@ var require_response = __commonJS({
     var http5 = require("node:http");
     var onFinished = require_on_finished();
     var mime2 = require_mime_types();
-    var path25 = require("node:path");
+    var path26 = require("node:path");
     var pathIsAbsolute = require("node:path").isAbsolute;
     var statuses = require_statuses();
     var sign = require_cookie_signature().sign;
@@ -27108,8 +27108,8 @@ var require_response = __commonJS({
     var setCharset = require_utils3().setCharset;
     var cookie = require_cookie();
     var send = require_send();
-    var extname = path25.extname;
-    var resolve3 = path25.resolve;
+    var extname = path26.extname;
+    var resolve3 = path26.resolve;
     var vary = require_vary();
     var { Buffer: Buffer2 } = require("node:buffer");
     var res = Object.create(http5.ServerResponse.prototype);
@@ -27255,26 +27255,26 @@ var require_response = __commonJS({
       this.type("txt");
       return this.send(body);
     };
-    res.sendFile = function sendFile(path26, options, callback) {
+    res.sendFile = function sendFile(path27, options, callback) {
       var done = callback;
       var req = this.req;
       var res2 = this;
       var next = req.next;
       var opts = options || {};
-      if (!path26) {
+      if (!path27) {
         throw new TypeError("path argument is required to res.sendFile");
       }
-      if (typeof path26 !== "string") {
+      if (typeof path27 !== "string") {
         throw new TypeError("path must be a string to res.sendFile");
       }
       if (typeof options === "function") {
         done = options;
         opts = {};
       }
-      if (!opts.root && !pathIsAbsolute(path26)) {
+      if (!opts.root && !pathIsAbsolute(path27)) {
         throw new TypeError("path must be absolute or specify root to res.sendFile");
       }
-      var pathname = encodeURI(path26);
+      var pathname = encodeURI(path27);
       opts.etag = this.app.enabled("etag");
       var file3 = send(req, pathname, opts);
       sendfile(res2, file3, opts, function(err) {
@@ -27285,7 +27285,7 @@ var require_response = __commonJS({
         }
       });
     };
-    res.download = function download2(path26, filename, options, callback) {
+    res.download = function download2(path27, filename, options, callback) {
       var done = callback;
       var name28 = filename;
       var opts = options || null;
@@ -27302,7 +27302,7 @@ var require_response = __commonJS({
         opts = filename;
       }
       var headers = {
-        "Content-Disposition": contentDisposition(name28 || path26)
+        "Content-Disposition": contentDisposition(name28 || path27)
       };
       if (opts && opts.headers) {
         var keys = Object.keys(opts.headers);
@@ -27315,7 +27315,7 @@ var require_response = __commonJS({
       }
       opts = Object.create(opts);
       opts.headers = headers;
-      var fullPath = !opts.root ? resolve3(path26) : path26;
+      var fullPath = !opts.root ? resolve3(path27) : path27;
       return this.sendFile(fullPath, opts, done);
     };
     res.contentType = res.type = function contentType(type) {
@@ -27598,11 +27598,11 @@ var require_serve_static = __commonJS({
         }
         var forwardError = !fallthrough;
         var originalUrl = parseUrl2.original(req);
-        var path25 = parseUrl2(req).pathname;
-        if (path25 === "/" && originalUrl.pathname.substr(-1) !== "/") {
-          path25 = "";
+        var path26 = parseUrl2(req).pathname;
+        if (path26 === "/" && originalUrl.pathname.substr(-1) !== "/") {
+          path26 = "";
         }
-        var stream8 = send(req, path25, opts);
+        var stream8 = send(req, path26, opts);
         stream8.on("directory", onDirectory);
         if (setHeaders) {
           stream8.on("headers", setHeaders);
@@ -36794,11 +36794,11 @@ var require_mime_types2 = __commonJS({
       }
       return exts[0];
     }
-    function lookup2(path25) {
-      if (!path25 || typeof path25 !== "string") {
+    function lookup2(path26) {
+      if (!path26 || typeof path26 !== "string") {
         return false;
       }
-      var extension2 = extname("x." + path25).toLowerCase().substr(1);
+      var extension2 = extname("x." + path26).toLowerCase().substr(1);
       if (!extension2) {
         return false;
       }
@@ -42777,11 +42777,11 @@ var require_server = __commonJS({
        * @protected
        */
       _computePath(options) {
-        let path25 = (options.path || "/engine.io").replace(/\/$/, "");
+        let path26 = (options.path || "/engine.io").replace(/\/$/, "");
         if (options.addTrailingSlash !== false) {
-          path25 += "/";
+          path26 += "/";
         }
-        return path25;
+        return path26;
       }
       /**
        * Returns a list of available transports for upgrade given a certain transport.
@@ -43280,10 +43280,10 @@ var require_server = __commonJS({
        * @param {Object} options
        */
       attach(server2, options = {}) {
-        const path25 = this._computePath(options);
+        const path26 = this._computePath(options);
         const destroyUpgradeTimeout = options.destroyUpgradeTimeout || 1e3;
         function check3(req) {
-          return path25 === req.url.slice(0, path25.length);
+          return path26 === req.url.slice(0, path26.length);
         }
         const listeners = server2.listeners("request").slice(0);
         server2.removeAllListeners("request");
@@ -43291,7 +43291,7 @@ var require_server = __commonJS({
         server2.on("listening", this.init.bind(this));
         server2.on("request", (req, res) => {
           if (check3(req)) {
-            debug('intercepting request for path "%s"', path25);
+            debug('intercepting request for path "%s"', path26);
             this.handleRequest(req, res);
           } else {
             let i = 0;
@@ -44130,8 +44130,8 @@ var require_userver = __commonJS({
        * @param options
        */
       attach(app2, options = {}) {
-        const path25 = this._computePath(options);
-        app2.any(path25, this.handleRequest.bind(this)).ws(path25, {
+        const path26 = this._computePath(options);
+        app2.any(path26, this.handleRequest.bind(this)).ws(path26, {
           compression: options.compression,
           idleTimeout: options.idleTimeout,
           maxBackpressure: options.maxBackpressure,
@@ -48557,7 +48557,7 @@ var require_dist3 = __commonJS({
     var zlib_1 = require("zlib");
     var accepts = require_accepts2();
     var stream_1 = require("stream");
-    var path25 = require("path");
+    var path26 = require("path");
     var engine_io_1 = require_engine_io();
     var client_1 = require_client();
     var events_1 = require("events");
@@ -48752,7 +48752,7 @@ var require_dist3 = __commonJS({
             res.writeHeader("cache-control", "public, max-age=0");
             res.writeHeader("content-type", "application/" + (isMap ? "json" : "javascript") + "; charset=utf-8");
             res.writeHeader("etag", expectedEtag);
-            const filepath = path25.join(__dirname, "../client-dist/", filename);
+            const filepath = path26.join(__dirname, "../client-dist/", filename);
             (0, uws_1.serveFile)(res, filepath);
           });
         }
@@ -48834,7 +48834,7 @@ var require_dist3 = __commonJS({
        * @private
        */
       static sendFile(filename, req, res) {
-        const readStream2 = (0, fs_1.createReadStream)(path25.join(__dirname, "../client-dist/", filename));
+        const readStream2 = (0, fs_1.createReadStream)(path26.join(__dirname, "../client-dist/", filename));
         const encoding = accepts(req).encodings(["br", "gzip", "deflate"]);
         const onError = (err) => {
           if (err) {
@@ -52548,8 +52548,8 @@ var require_lib5 = __commonJS({
         getWss: function getWss() {
           return wsServer;
         },
-        applyTo: function applyTo(router183) {
-          (0, _addWsMethod2.default)(router183);
+        applyTo: function applyTo(router196) {
+          (0, _addWsMethod2.default)(router196);
         }
       };
     }
@@ -53051,8 +53051,8 @@ var require_node2 = __commonJS({
           }
           break;
         case "FILE":
-          var fs21 = require("fs");
-          stream9 = new fs21.SyncWriteStream(fd2, { autoClose: false });
+          var fs22 = require("fs");
+          stream9 = new fs22.SyncWriteStream(fd2, { autoClose: false });
           stream9._type = "fs";
           break;
         case "PIPE":
@@ -53507,6 +53507,1200 @@ var require_morgan = __commonJS({
   }
 });
 
+// node_modules/negotiator/lib/charset.js
+var require_charset3 = __commonJS({
+  "node_modules/negotiator/lib/charset.js"(exports2, module2) {
+    "use strict";
+    module2.exports = preferredCharsets;
+    module2.exports.preferredCharsets = preferredCharsets;
+    var simpleCharsetRegExp = /^\s*([^\s;]+)\s*(?:;(.*))?$/;
+    function parseAcceptCharset(accept) {
+      var accepts = accept.split(",");
+      for (var i = 0, j = 0; i < accepts.length; i++) {
+        var charset = parseCharset(accepts[i].trim(), i);
+        if (charset) {
+          accepts[j++] = charset;
+        }
+      }
+      accepts.length = j;
+      return accepts;
+    }
+    function parseCharset(str, i) {
+      var match = simpleCharsetRegExp.exec(str);
+      if (!match) return null;
+      var charset = match[1];
+      var q = 1;
+      if (match[2]) {
+        var params = match[2].split(";");
+        for (var j = 0; j < params.length; j++) {
+          var p3 = params[j].trim().split("=");
+          if (p3[0] === "q") {
+            q = parseFloat(p3[1]);
+            break;
+          }
+        }
+      }
+      return {
+        charset,
+        q,
+        i
+      };
+    }
+    function getCharsetPriority(charset, accepted, index2) {
+      var priority = { o: -1, q: 0, s: 0 };
+      for (var i = 0; i < accepted.length; i++) {
+        var spec = specify(charset, accepted[i], index2);
+        if (spec && (priority.s - spec.s || priority.q - spec.q || priority.o - spec.o) < 0) {
+          priority = spec;
+        }
+      }
+      return priority;
+    }
+    function specify(charset, spec, index2) {
+      var s = 0;
+      if (spec.charset.toLowerCase() === charset.toLowerCase()) {
+        s |= 1;
+      } else if (spec.charset !== "*") {
+        return null;
+      }
+      return {
+        i: index2,
+        o: spec.i,
+        q: spec.q,
+        s
+      };
+    }
+    function preferredCharsets(accept, provided) {
+      var accepts = parseAcceptCharset(accept === void 0 ? "*" : accept || "");
+      if (!provided) {
+        return accepts.filter(isQuality).sort(compareSpecs).map(getFullCharset);
+      }
+      var priorities = provided.map(function getPriority(type, index2) {
+        return getCharsetPriority(type, accepts, index2);
+      });
+      return priorities.filter(isQuality).sort(compareSpecs).map(function getCharset(priority) {
+        return provided[priorities.indexOf(priority)];
+      });
+    }
+    function compareSpecs(a, b) {
+      return b.q - a.q || b.s - a.s || a.o - b.o || a.i - b.i || 0;
+    }
+    function getFullCharset(spec) {
+      return spec.charset;
+    }
+    function isQuality(spec) {
+      return spec.q > 0;
+    }
+  }
+});
+
+// node_modules/negotiator/lib/encoding.js
+var require_encoding3 = __commonJS({
+  "node_modules/negotiator/lib/encoding.js"(exports2, module2) {
+    "use strict";
+    module2.exports = preferredEncodings;
+    module2.exports.preferredEncodings = preferredEncodings;
+    var simpleEncodingRegExp = /^\s*([^\s;]+)\s*(?:;(.*))?$/;
+    function parseAcceptEncoding(accept) {
+      var accepts = accept.split(",");
+      var hasIdentity = false;
+      var minQuality = 1;
+      for (var i = 0, j = 0; i < accepts.length; i++) {
+        var encoding = parseEncoding(accepts[i].trim(), i);
+        if (encoding) {
+          accepts[j++] = encoding;
+          hasIdentity = hasIdentity || specify("identity", encoding);
+          minQuality = Math.min(minQuality, encoding.q || 1);
+        }
+      }
+      if (!hasIdentity) {
+        accepts[j++] = {
+          encoding: "identity",
+          q: minQuality,
+          i
+        };
+      }
+      accepts.length = j;
+      return accepts;
+    }
+    function parseEncoding(str, i) {
+      var match = simpleEncodingRegExp.exec(str);
+      if (!match) return null;
+      var encoding = match[1];
+      var q = 1;
+      if (match[2]) {
+        var params = match[2].split(";");
+        for (var j = 0; j < params.length; j++) {
+          var p3 = params[j].trim().split("=");
+          if (p3[0] === "q") {
+            q = parseFloat(p3[1]);
+            break;
+          }
+        }
+      }
+      return {
+        encoding,
+        q,
+        i
+      };
+    }
+    function getEncodingPriority(encoding, accepted, index2) {
+      var priority = { encoding, o: -1, q: 0, s: 0 };
+      for (var i = 0; i < accepted.length; i++) {
+        var spec = specify(encoding, accepted[i], index2);
+        if (spec && (priority.s - spec.s || priority.q - spec.q || priority.o - spec.o) < 0) {
+          priority = spec;
+        }
+      }
+      return priority;
+    }
+    function specify(encoding, spec, index2) {
+      var s = 0;
+      if (spec.encoding.toLowerCase() === encoding.toLowerCase()) {
+        s |= 1;
+      } else if (spec.encoding !== "*") {
+        return null;
+      }
+      return {
+        encoding,
+        i: index2,
+        o: spec.i,
+        q: spec.q,
+        s
+      };
+    }
+    function preferredEncodings(accept, provided, preferred) {
+      var accepts = parseAcceptEncoding(accept || "");
+      var comparator = preferred ? function comparator2(a, b) {
+        if (a.q !== b.q) {
+          return b.q - a.q;
+        }
+        var aPreferred = preferred.indexOf(a.encoding);
+        var bPreferred = preferred.indexOf(b.encoding);
+        if (aPreferred === -1 && bPreferred === -1) {
+          return b.s - a.s || a.o - b.o || a.i - b.i;
+        }
+        if (aPreferred !== -1 && bPreferred !== -1) {
+          return aPreferred - bPreferred;
+        }
+        return aPreferred === -1 ? 1 : -1;
+      } : compareSpecs;
+      if (!provided) {
+        return accepts.filter(isQuality).sort(comparator).map(getFullEncoding);
+      }
+      var priorities = provided.map(function getPriority(type, index2) {
+        return getEncodingPriority(type, accepts, index2);
+      });
+      return priorities.filter(isQuality).sort(comparator).map(function getEncoding(priority) {
+        return provided[priorities.indexOf(priority)];
+      });
+    }
+    function compareSpecs(a, b) {
+      return b.q - a.q || b.s - a.s || a.o - b.o || a.i - b.i;
+    }
+    function getFullEncoding(spec) {
+      return spec.encoding;
+    }
+    function isQuality(spec) {
+      return spec.q > 0;
+    }
+  }
+});
+
+// node_modules/negotiator/lib/language.js
+var require_language3 = __commonJS({
+  "node_modules/negotiator/lib/language.js"(exports2, module2) {
+    "use strict";
+    module2.exports = preferredLanguages;
+    module2.exports.preferredLanguages = preferredLanguages;
+    var simpleLanguageRegExp = /^\s*([^\s\-;]+)(?:-([^\s;]+))?\s*(?:;(.*))?$/;
+    function parseAcceptLanguage(accept) {
+      var accepts = accept.split(",");
+      for (var i = 0, j = 0; i < accepts.length; i++) {
+        var language = parseLanguage(accepts[i].trim(), i);
+        if (language) {
+          accepts[j++] = language;
+        }
+      }
+      accepts.length = j;
+      return accepts;
+    }
+    function parseLanguage(str, i) {
+      var match = simpleLanguageRegExp.exec(str);
+      if (!match) return null;
+      var prefix = match[1];
+      var suffix = match[2];
+      var full = prefix;
+      if (suffix) full += "-" + suffix;
+      var q = 1;
+      if (match[3]) {
+        var params = match[3].split(";");
+        for (var j = 0; j < params.length; j++) {
+          var p3 = params[j].split("=");
+          if (p3[0] === "q") q = parseFloat(p3[1]);
+        }
+      }
+      return {
+        prefix,
+        suffix,
+        q,
+        i,
+        full
+      };
+    }
+    function getLanguagePriority(language, accepted, index2) {
+      var priority = { o: -1, q: 0, s: 0 };
+      for (var i = 0; i < accepted.length; i++) {
+        var spec = specify(language, accepted[i], index2);
+        if (spec && (priority.s - spec.s || priority.q - spec.q || priority.o - spec.o) < 0) {
+          priority = spec;
+        }
+      }
+      return priority;
+    }
+    function specify(language, spec, index2) {
+      var p3 = parseLanguage(language);
+      if (!p3) return null;
+      var s = 0;
+      if (spec.full.toLowerCase() === p3.full.toLowerCase()) {
+        s |= 4;
+      } else if (spec.prefix.toLowerCase() === p3.full.toLowerCase()) {
+        s |= 2;
+      } else if (spec.full.toLowerCase() === p3.prefix.toLowerCase()) {
+        s |= 1;
+      } else if (spec.full !== "*") {
+        return null;
+      }
+      return {
+        i: index2,
+        o: spec.i,
+        q: spec.q,
+        s
+      };
+    }
+    function preferredLanguages(accept, provided) {
+      var accepts = parseAcceptLanguage(accept === void 0 ? "*" : accept || "");
+      if (!provided) {
+        return accepts.filter(isQuality).sort(compareSpecs).map(getFullLanguage);
+      }
+      var priorities = provided.map(function getPriority(type, index2) {
+        return getLanguagePriority(type, accepts, index2);
+      });
+      return priorities.filter(isQuality).sort(compareSpecs).map(function getLanguage(priority) {
+        return provided[priorities.indexOf(priority)];
+      });
+    }
+    function compareSpecs(a, b) {
+      return b.q - a.q || b.s - a.s || a.o - b.o || a.i - b.i || 0;
+    }
+    function getFullLanguage(spec) {
+      return spec.full;
+    }
+    function isQuality(spec) {
+      return spec.q > 0;
+    }
+  }
+});
+
+// node_modules/negotiator/lib/mediaType.js
+var require_mediaType3 = __commonJS({
+  "node_modules/negotiator/lib/mediaType.js"(exports2, module2) {
+    "use strict";
+    module2.exports = preferredMediaTypes;
+    module2.exports.preferredMediaTypes = preferredMediaTypes;
+    var simpleMediaTypeRegExp = /^\s*([^\s\/;]+)\/([^;\s]+)\s*(?:;(.*))?$/;
+    function parseAccept(accept) {
+      var accepts = splitMediaTypes(accept);
+      for (var i = 0, j = 0; i < accepts.length; i++) {
+        var mediaType = parseMediaType(accepts[i].trim(), i);
+        if (mediaType) {
+          accepts[j++] = mediaType;
+        }
+      }
+      accepts.length = j;
+      return accepts;
+    }
+    function parseMediaType(str, i) {
+      var match = simpleMediaTypeRegExp.exec(str);
+      if (!match) return null;
+      var params = /* @__PURE__ */ Object.create(null);
+      var q = 1;
+      var subtype = match[2];
+      var type = match[1];
+      if (match[3]) {
+        var kvps = splitParameters(match[3]).map(splitKeyValuePair);
+        for (var j = 0; j < kvps.length; j++) {
+          var pair = kvps[j];
+          var key = pair[0].toLowerCase();
+          var val = pair[1];
+          var value = val && val[0] === '"' && val[val.length - 1] === '"' ? val.slice(1, -1) : val;
+          if (key === "q") {
+            q = parseFloat(value);
+            break;
+          }
+          params[key] = value;
+        }
+      }
+      return {
+        type,
+        subtype,
+        params,
+        q,
+        i
+      };
+    }
+    function getMediaTypePriority(type, accepted, index2) {
+      var priority = { o: -1, q: 0, s: 0 };
+      for (var i = 0; i < accepted.length; i++) {
+        var spec = specify(type, accepted[i], index2);
+        if (spec && (priority.s - spec.s || priority.q - spec.q || priority.o - spec.o) < 0) {
+          priority = spec;
+        }
+      }
+      return priority;
+    }
+    function specify(type, spec, index2) {
+      var p3 = parseMediaType(type);
+      var s = 0;
+      if (!p3) {
+        return null;
+      }
+      if (spec.type.toLowerCase() == p3.type.toLowerCase()) {
+        s |= 4;
+      } else if (spec.type != "*") {
+        return null;
+      }
+      if (spec.subtype.toLowerCase() == p3.subtype.toLowerCase()) {
+        s |= 2;
+      } else if (spec.subtype != "*") {
+        return null;
+      }
+      var keys = Object.keys(spec.params);
+      if (keys.length > 0) {
+        if (keys.every(function(k) {
+          return spec.params[k] == "*" || (spec.params[k] || "").toLowerCase() == (p3.params[k] || "").toLowerCase();
+        })) {
+          s |= 1;
+        } else {
+          return null;
+        }
+      }
+      return {
+        i: index2,
+        o: spec.i,
+        q: spec.q,
+        s
+      };
+    }
+    function preferredMediaTypes(accept, provided) {
+      var accepts = parseAccept(accept === void 0 ? "*/*" : accept || "");
+      if (!provided) {
+        return accepts.filter(isQuality).sort(compareSpecs).map(getFullType);
+      }
+      var priorities = provided.map(function getPriority(type, index2) {
+        return getMediaTypePriority(type, accepts, index2);
+      });
+      return priorities.filter(isQuality).sort(compareSpecs).map(function getType(priority) {
+        return provided[priorities.indexOf(priority)];
+      });
+    }
+    function compareSpecs(a, b) {
+      return b.q - a.q || b.s - a.s || a.o - b.o || a.i - b.i || 0;
+    }
+    function getFullType(spec) {
+      return spec.type + "/" + spec.subtype;
+    }
+    function isQuality(spec) {
+      return spec.q > 0;
+    }
+    function quoteCount(string5) {
+      var count = 0;
+      var index2 = 0;
+      while ((index2 = string5.indexOf('"', index2)) !== -1) {
+        count++;
+        index2++;
+      }
+      return count;
+    }
+    function splitKeyValuePair(str) {
+      var index2 = str.indexOf("=");
+      var key;
+      var val;
+      if (index2 === -1) {
+        key = str;
+      } else {
+        key = str.slice(0, index2);
+        val = str.slice(index2 + 1);
+      }
+      return [key, val];
+    }
+    function splitMediaTypes(accept) {
+      var accepts = accept.split(",");
+      for (var i = 1, j = 0; i < accepts.length; i++) {
+        if (quoteCount(accepts[j]) % 2 == 0) {
+          accepts[++j] = accepts[i];
+        } else {
+          accepts[j] += "," + accepts[i];
+        }
+      }
+      accepts.length = j + 1;
+      return accepts;
+    }
+    function splitParameters(str) {
+      var parameters = str.split(";");
+      for (var i = 1, j = 0; i < parameters.length; i++) {
+        if (quoteCount(parameters[j]) % 2 == 0) {
+          parameters[++j] = parameters[i];
+        } else {
+          parameters[j] += ";" + parameters[i];
+        }
+      }
+      parameters.length = j + 1;
+      for (var i = 0; i < parameters.length; i++) {
+        parameters[i] = parameters[i].trim();
+      }
+      return parameters;
+    }
+  }
+});
+
+// node_modules/negotiator/index.js
+var require_negotiator3 = __commonJS({
+  "node_modules/negotiator/index.js"(exports2, module2) {
+    "use strict";
+    var preferredCharsets = require_charset3();
+    var preferredEncodings = require_encoding3();
+    var preferredLanguages = require_language3();
+    var preferredMediaTypes = require_mediaType3();
+    module2.exports = Negotiator;
+    module2.exports.Negotiator = Negotiator;
+    function Negotiator(request2) {
+      if (!(this instanceof Negotiator)) {
+        return new Negotiator(request2);
+      }
+      this.request = request2;
+    }
+    Negotiator.prototype.charset = function charset(available) {
+      var set3 = this.charsets(available);
+      return set3 && set3[0];
+    };
+    Negotiator.prototype.charsets = function charsets(available) {
+      return preferredCharsets(this.request.headers["accept-charset"], available);
+    };
+    Negotiator.prototype.encoding = function encoding(available, preferred) {
+      var set3 = this.encodings(available, preferred);
+      return set3 && set3[0];
+    };
+    Negotiator.prototype.encodings = function encodings(available, preferred) {
+      return preferredEncodings(this.request.headers["accept-encoding"], available, preferred);
+    };
+    Negotiator.prototype.language = function language(available) {
+      var set3 = this.languages(available);
+      return set3 && set3[0];
+    };
+    Negotiator.prototype.languages = function languages(available) {
+      return preferredLanguages(this.request.headers["accept-language"], available);
+    };
+    Negotiator.prototype.mediaType = function mediaType(available) {
+      var set3 = this.mediaTypes(available);
+      return set3 && set3[0];
+    };
+    Negotiator.prototype.mediaTypes = function mediaTypes(available) {
+      return preferredMediaTypes(this.request.headers.accept, available);
+    };
+    Negotiator.prototype.preferredCharset = Negotiator.prototype.charset;
+    Negotiator.prototype.preferredCharsets = Negotiator.prototype.charsets;
+    Negotiator.prototype.preferredEncoding = Negotiator.prototype.encoding;
+    Negotiator.prototype.preferredEncodings = Negotiator.prototype.encodings;
+    Negotiator.prototype.preferredLanguage = Negotiator.prototype.language;
+    Negotiator.prototype.preferredLanguages = Negotiator.prototype.languages;
+    Negotiator.prototype.preferredMediaType = Negotiator.prototype.mediaType;
+    Negotiator.prototype.preferredMediaTypes = Negotiator.prototype.mediaTypes;
+  }
+});
+
+// node_modules/safe-buffer/index.js
+var require_safe_buffer2 = __commonJS({
+  "node_modules/safe-buffer/index.js"(exports2, module2) {
+    "use strict";
+    var buffer = require("buffer");
+    var Buffer2 = buffer.Buffer;
+    function copyProps(src, dst) {
+      for (var key in src) {
+        dst[key] = src[key];
+      }
+    }
+    if (Buffer2.from && Buffer2.alloc && Buffer2.allocUnsafe && Buffer2.allocUnsafeSlow) {
+      module2.exports = buffer;
+    } else {
+      copyProps(buffer, exports2);
+      exports2.Buffer = SafeBuffer;
+    }
+    function SafeBuffer(arg, encodingOrOffset, length) {
+      return Buffer2(arg, encodingOrOffset, length);
+    }
+    SafeBuffer.prototype = Object.create(Buffer2.prototype);
+    copyProps(Buffer2, SafeBuffer);
+    SafeBuffer.from = function(arg, encodingOrOffset, length) {
+      if (typeof arg === "number") {
+        throw new TypeError("Argument must not be a number");
+      }
+      return Buffer2(arg, encodingOrOffset, length);
+    };
+    SafeBuffer.alloc = function(size, fill, encoding) {
+      if (typeof size !== "number") {
+        throw new TypeError("Argument must be a number");
+      }
+      var buf = Buffer2(size);
+      if (fill !== void 0) {
+        if (typeof encoding === "string") {
+          buf.fill(fill, encoding);
+        } else {
+          buf.fill(fill);
+        }
+      } else {
+        buf.fill(0);
+      }
+      return buf;
+    };
+    SafeBuffer.allocUnsafe = function(size) {
+      if (typeof size !== "number") {
+        throw new TypeError("Argument must be a number");
+      }
+      return Buffer2(size);
+    };
+    SafeBuffer.allocUnsafeSlow = function(size) {
+      if (typeof size !== "number") {
+        throw new TypeError("Argument must be a number");
+      }
+      return buffer.SlowBuffer(size);
+    };
+  }
+});
+
+// node_modules/compressible/index.js
+var require_compressible = __commonJS({
+  "node_modules/compressible/index.js"(exports2, module2) {
+    "use strict";
+    var db2 = require_mime_db();
+    var COMPRESSIBLE_TYPE_REGEXP = /^text\/|\+(?:json|text|xml)$/i;
+    var EXTRACT_TYPE_REGEXP = /^\s*([^;\s]*)(?:;|\s|$)/;
+    module2.exports = compressible;
+    function compressible(type) {
+      if (!type || typeof type !== "string") {
+        return false;
+      }
+      var match = EXTRACT_TYPE_REGEXP.exec(type);
+      var mime2 = match && match[1].toLowerCase();
+      var data = db2[mime2];
+      if (data && data.compressible !== void 0) {
+        return data.compressible;
+      }
+      return COMPRESSIBLE_TYPE_REGEXP.test(mime2) || void 0;
+    }
+  }
+});
+
+// node_modules/compression/node_modules/ms/index.js
+var require_ms3 = __commonJS({
+  "node_modules/compression/node_modules/ms/index.js"(exports2, module2) {
+    "use strict";
+    var s = 1e3;
+    var m = s * 60;
+    var h = m * 60;
+    var d = h * 24;
+    var y = d * 365.25;
+    module2.exports = function(val, options) {
+      options = options || {};
+      var type = typeof val;
+      if (type === "string" && val.length > 0) {
+        return parse4(val);
+      } else if (type === "number" && isNaN(val) === false) {
+        return options.long ? fmtLong(val) : fmtShort(val);
+      }
+      throw new Error(
+        "val is not a non-empty string or a valid number. val=" + JSON.stringify(val)
+      );
+    };
+    function parse4(str) {
+      str = String(str);
+      if (str.length > 100) {
+        return;
+      }
+      var match = /^((?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|years?|yrs?|y)?$/i.exec(
+        str
+      );
+      if (!match) {
+        return;
+      }
+      var n = parseFloat(match[1]);
+      var type = (match[2] || "ms").toLowerCase();
+      switch (type) {
+        case "years":
+        case "year":
+        case "yrs":
+        case "yr":
+        case "y":
+          return n * y;
+        case "days":
+        case "day":
+        case "d":
+          return n * d;
+        case "hours":
+        case "hour":
+        case "hrs":
+        case "hr":
+        case "h":
+          return n * h;
+        case "minutes":
+        case "minute":
+        case "mins":
+        case "min":
+        case "m":
+          return n * m;
+        case "seconds":
+        case "second":
+        case "secs":
+        case "sec":
+        case "s":
+          return n * s;
+        case "milliseconds":
+        case "millisecond":
+        case "msecs":
+        case "msec":
+        case "ms":
+          return n;
+        default:
+          return void 0;
+      }
+    }
+    function fmtShort(ms) {
+      if (ms >= d) {
+        return Math.round(ms / d) + "d";
+      }
+      if (ms >= h) {
+        return Math.round(ms / h) + "h";
+      }
+      if (ms >= m) {
+        return Math.round(ms / m) + "m";
+      }
+      if (ms >= s) {
+        return Math.round(ms / s) + "s";
+      }
+      return ms + "ms";
+    }
+    function fmtLong(ms) {
+      return plural(ms, d, "day") || plural(ms, h, "hour") || plural(ms, m, "minute") || plural(ms, s, "second") || ms + " ms";
+    }
+    function plural(ms, n, name28) {
+      if (ms < n) {
+        return;
+      }
+      if (ms < n * 1.5) {
+        return Math.floor(ms / n) + " " + name28;
+      }
+      return Math.ceil(ms / n) + " " + name28 + "s";
+    }
+  }
+});
+
+// node_modules/compression/node_modules/debug/src/debug.js
+var require_debug2 = __commonJS({
+  "node_modules/compression/node_modules/debug/src/debug.js"(exports2, module2) {
+    "use strict";
+    exports2 = module2.exports = createDebug.debug = createDebug["default"] = createDebug;
+    exports2.coerce = coerce;
+    exports2.disable = disable;
+    exports2.enable = enable;
+    exports2.enabled = enabled;
+    exports2.humanize = require_ms3();
+    exports2.names = [];
+    exports2.skips = [];
+    exports2.formatters = {};
+    var prevTime;
+    function selectColor(namespace) {
+      var hash3 = 0, i;
+      for (i in namespace) {
+        hash3 = (hash3 << 5) - hash3 + namespace.charCodeAt(i);
+        hash3 |= 0;
+      }
+      return exports2.colors[Math.abs(hash3) % exports2.colors.length];
+    }
+    function createDebug(namespace) {
+      function debug() {
+        if (!debug.enabled) return;
+        var self2 = debug;
+        var curr = +/* @__PURE__ */ new Date();
+        var ms = curr - (prevTime || curr);
+        self2.diff = ms;
+        self2.prev = prevTime;
+        self2.curr = curr;
+        prevTime = curr;
+        var args = new Array(arguments.length);
+        for (var i = 0; i < args.length; i++) {
+          args[i] = arguments[i];
+        }
+        args[0] = exports2.coerce(args[0]);
+        if ("string" !== typeof args[0]) {
+          args.unshift("%O");
+        }
+        var index2 = 0;
+        args[0] = args[0].replace(/%([a-zA-Z%])/g, function(match, format) {
+          if (match === "%%") return match;
+          index2++;
+          var formatter = exports2.formatters[format];
+          if ("function" === typeof formatter) {
+            var val = args[index2];
+            match = formatter.call(self2, val);
+            args.splice(index2, 1);
+            index2--;
+          }
+          return match;
+        });
+        exports2.formatArgs.call(self2, args);
+        var logFn = debug.log || exports2.log || console.log.bind(console);
+        logFn.apply(self2, args);
+      }
+      debug.namespace = namespace;
+      debug.enabled = exports2.enabled(namespace);
+      debug.useColors = exports2.useColors();
+      debug.color = selectColor(namespace);
+      if ("function" === typeof exports2.init) {
+        exports2.init(debug);
+      }
+      return debug;
+    }
+    function enable(namespaces) {
+      exports2.save(namespaces);
+      exports2.names = [];
+      exports2.skips = [];
+      var split = (typeof namespaces === "string" ? namespaces : "").split(/[\s,]+/);
+      var len = split.length;
+      for (var i = 0; i < len; i++) {
+        if (!split[i]) continue;
+        namespaces = split[i].replace(/\*/g, ".*?");
+        if (namespaces[0] === "-") {
+          exports2.skips.push(new RegExp("^" + namespaces.substr(1) + "$"));
+        } else {
+          exports2.names.push(new RegExp("^" + namespaces + "$"));
+        }
+      }
+    }
+    function disable() {
+      exports2.enable("");
+    }
+    function enabled(name28) {
+      var i, len;
+      for (i = 0, len = exports2.skips.length; i < len; i++) {
+        if (exports2.skips[i].test(name28)) {
+          return false;
+        }
+      }
+      for (i = 0, len = exports2.names.length; i < len; i++) {
+        if (exports2.names[i].test(name28)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    function coerce(val) {
+      if (val instanceof Error) return val.stack || val.message;
+      return val;
+    }
+  }
+});
+
+// node_modules/compression/node_modules/debug/src/browser.js
+var require_browser3 = __commonJS({
+  "node_modules/compression/node_modules/debug/src/browser.js"(exports2, module2) {
+    "use strict";
+    exports2 = module2.exports = require_debug2();
+    exports2.log = log;
+    exports2.formatArgs = formatArgs;
+    exports2.save = save;
+    exports2.load = load;
+    exports2.useColors = useColors;
+    exports2.storage = "undefined" != typeof chrome && "undefined" != typeof chrome.storage ? chrome.storage.local : localstorage();
+    exports2.colors = [
+      "lightseagreen",
+      "forestgreen",
+      "goldenrod",
+      "dodgerblue",
+      "darkorchid",
+      "crimson"
+    ];
+    function useColors() {
+      if (typeof window !== "undefined" && window.process && window.process.type === "renderer") {
+        return true;
+      }
+      return typeof document !== "undefined" && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance || // is firebug? http://stackoverflow.com/a/398120/376773
+      typeof window !== "undefined" && window.console && (window.console.firebug || window.console.exception && window.console.table) || // is firefox >= v31?
+      // https://developer.mozilla.org/en-US/docs/Tools/Web_Console#Styling_messages
+      typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/) && parseInt(RegExp.$1, 10) >= 31 || // double check webkit in userAgent just in case we are in a worker
+      typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/);
+    }
+    exports2.formatters.j = function(v) {
+      try {
+        return JSON.stringify(v);
+      } catch (err) {
+        return "[UnexpectedJSONParseError]: " + err.message;
+      }
+    };
+    function formatArgs(args) {
+      var useColors2 = this.useColors;
+      args[0] = (useColors2 ? "%c" : "") + this.namespace + (useColors2 ? " %c" : " ") + args[0] + (useColors2 ? "%c " : " ") + "+" + exports2.humanize(this.diff);
+      if (!useColors2) return;
+      var c = "color: " + this.color;
+      args.splice(1, 0, c, "color: inherit");
+      var index2 = 0;
+      var lastC = 0;
+      args[0].replace(/%[a-zA-Z%]/g, function(match) {
+        if ("%%" === match) return;
+        index2++;
+        if ("%c" === match) {
+          lastC = index2;
+        }
+      });
+      args.splice(lastC, 0, c);
+    }
+    function log() {
+      return "object" === typeof console && console.log && Function.prototype.apply.call(console.log, console, arguments);
+    }
+    function save(namespaces) {
+      try {
+        if (null == namespaces) {
+          exports2.storage.removeItem("debug");
+        } else {
+          exports2.storage.debug = namespaces;
+        }
+      } catch (e) {
+      }
+    }
+    function load() {
+      var r;
+      try {
+        r = exports2.storage.debug;
+      } catch (e) {
+      }
+      if (!r && typeof process !== "undefined" && "env" in process) {
+        r = process.env.DEBUG;
+      }
+      return r;
+    }
+    exports2.enable(load());
+    function localstorage() {
+      try {
+        return window.localStorage;
+      } catch (e) {
+      }
+    }
+  }
+});
+
+// node_modules/compression/node_modules/debug/src/node.js
+var require_node3 = __commonJS({
+  "node_modules/compression/node_modules/debug/src/node.js"(exports2, module2) {
+    "use strict";
+    var tty = require("tty");
+    var util4 = require("util");
+    exports2 = module2.exports = require_debug2();
+    exports2.init = init;
+    exports2.log = log;
+    exports2.formatArgs = formatArgs;
+    exports2.save = save;
+    exports2.load = load;
+    exports2.useColors = useColors;
+    exports2.colors = [6, 2, 3, 4, 5, 1];
+    exports2.inspectOpts = Object.keys(process.env).filter(function(key) {
+      return /^debug_/i.test(key);
+    }).reduce(function(obj, key) {
+      var prop = key.substring(6).toLowerCase().replace(/_([a-z])/g, function(_3, k) {
+        return k.toUpperCase();
+      });
+      var val = process.env[key];
+      if (/^(yes|on|true|enabled)$/i.test(val)) val = true;
+      else if (/^(no|off|false|disabled)$/i.test(val)) val = false;
+      else if (val === "null") val = null;
+      else val = Number(val);
+      obj[prop] = val;
+      return obj;
+    }, {});
+    var fd = parseInt(process.env.DEBUG_FD, 10) || 2;
+    if (1 !== fd && 2 !== fd) {
+      util4.deprecate(function() {
+      }, "except for stderr(2) and stdout(1), any other usage of DEBUG_FD is deprecated. Override debug.log if you want to use a different log function (https://git.io/debug_fd)")();
+    }
+    var stream8 = 1 === fd ? process.stdout : 2 === fd ? process.stderr : createWritableStdioStream(fd);
+    function useColors() {
+      return "colors" in exports2.inspectOpts ? Boolean(exports2.inspectOpts.colors) : tty.isatty(fd);
+    }
+    exports2.formatters.o = function(v) {
+      this.inspectOpts.colors = this.useColors;
+      return util4.inspect(v, this.inspectOpts).split("\n").map(function(str) {
+        return str.trim();
+      }).join(" ");
+    };
+    exports2.formatters.O = function(v) {
+      this.inspectOpts.colors = this.useColors;
+      return util4.inspect(v, this.inspectOpts);
+    };
+    function formatArgs(args) {
+      var name28 = this.namespace;
+      var useColors2 = this.useColors;
+      if (useColors2) {
+        var c = this.color;
+        var prefix = "  \x1B[3" + c + ";1m" + name28 + " \x1B[0m";
+        args[0] = prefix + args[0].split("\n").join("\n" + prefix);
+        args.push("\x1B[3" + c + "m+" + exports2.humanize(this.diff) + "\x1B[0m");
+      } else {
+        args[0] = (/* @__PURE__ */ new Date()).toUTCString() + " " + name28 + " " + args[0];
+      }
+    }
+    function log() {
+      return stream8.write(util4.format.apply(util4, arguments) + "\n");
+    }
+    function save(namespaces) {
+      if (null == namespaces) {
+        delete process.env.DEBUG;
+      } else {
+        process.env.DEBUG = namespaces;
+      }
+    }
+    function load() {
+      return process.env.DEBUG;
+    }
+    function createWritableStdioStream(fd2) {
+      var stream9;
+      var tty_wrap = process.binding("tty_wrap");
+      switch (tty_wrap.guessHandleType(fd2)) {
+        case "TTY":
+          stream9 = new tty.WriteStream(fd2);
+          stream9._type = "tty";
+          if (stream9._handle && stream9._handle.unref) {
+            stream9._handle.unref();
+          }
+          break;
+        case "FILE":
+          var fs22 = require("fs");
+          stream9 = new fs22.SyncWriteStream(fd2, { autoClose: false });
+          stream9._type = "fs";
+          break;
+        case "PIPE":
+        case "TCP":
+          var net = require("net");
+          stream9 = new net.Socket({
+            fd: fd2,
+            readable: false,
+            writable: true
+          });
+          stream9.readable = false;
+          stream9.read = null;
+          stream9._type = "pipe";
+          if (stream9._handle && stream9._handle.unref) {
+            stream9._handle.unref();
+          }
+          break;
+        default:
+          throw new Error("Implement me. Unknown stream file type!");
+      }
+      stream9.fd = fd2;
+      stream9._isStdio = true;
+      return stream9;
+    }
+    function init(debug) {
+      debug.inspectOpts = {};
+      var keys = Object.keys(exports2.inspectOpts);
+      for (var i = 0; i < keys.length; i++) {
+        debug.inspectOpts[keys[i]] = exports2.inspectOpts[keys[i]];
+      }
+    }
+    exports2.enable(load());
+  }
+});
+
+// node_modules/compression/node_modules/debug/src/index.js
+var require_src3 = __commonJS({
+  "node_modules/compression/node_modules/debug/src/index.js"(exports2, module2) {
+    "use strict";
+    if (typeof process !== "undefined" && process.type === "renderer") {
+      module2.exports = require_browser3();
+    } else {
+      module2.exports = require_node3();
+    }
+  }
+});
+
+// node_modules/compression/index.js
+var require_compression = __commonJS({
+  "node_modules/compression/index.js"(exports2, module2) {
+    "use strict";
+    var Negotiator = require_negotiator3();
+    var Buffer2 = require_safe_buffer2().Buffer;
+    var bytes = require_bytes();
+    var compressible = require_compressible();
+    var debug = require_src3()("compression");
+    var onHeaders = require_on_headers();
+    var vary = require_vary();
+    var zlib2 = require("zlib");
+    module2.exports = compression2;
+    module2.exports.filter = shouldCompress;
+    var hasBrotliSupport = "createBrotliCompress" in zlib2;
+    var cacheControlNoTransformRegExp = /(?:^|,)\s*?no-transform\s*?(?:,|$)/;
+    var SUPPORTED_ENCODING = hasBrotliSupport ? ["br", "gzip", "deflate", "identity"] : ["gzip", "deflate", "identity"];
+    var PREFERRED_ENCODING = hasBrotliSupport ? ["br", "gzip"] : ["gzip"];
+    var encodingSupported = ["gzip", "deflate", "identity", "br"];
+    function compression2(options) {
+      var opts = options || {};
+      var optsBrotli = {};
+      if (hasBrotliSupport) {
+        Object.assign(optsBrotli, opts.brotli);
+        var brotliParams = {};
+        brotliParams[zlib2.constants.BROTLI_PARAM_QUALITY] = 4;
+        optsBrotli.params = Object.assign(brotliParams, optsBrotli.params);
+      }
+      var filter6 = opts.filter || shouldCompress;
+      var threshold = bytes.parse(opts.threshold);
+      var enforceEncoding = opts.enforceEncoding || "identity";
+      if (threshold == null) {
+        threshold = 1024;
+      }
+      return function compression3(req, res, next) {
+        var ended = false;
+        var length;
+        var listeners = [];
+        var stream8;
+        var _end = res.end;
+        var _on = res.on;
+        var _write = res.write;
+        res.flush = function flush() {
+          if (stream8) {
+            stream8.flush();
+          }
+        };
+        res.write = function write(chunk, encoding) {
+          if (ended) {
+            return false;
+          }
+          if (!headersSent(res)) {
+            this.writeHead(this.statusCode);
+          }
+          return stream8 ? stream8.write(toBuffer(chunk, encoding)) : _write.call(this, chunk, encoding);
+        };
+        res.end = function end(chunk, encoding) {
+          if (ended) {
+            return false;
+          }
+          if (!headersSent(res)) {
+            if (!this.getHeader("Content-Length")) {
+              length = chunkLength(chunk, encoding);
+            }
+            this.writeHead(this.statusCode);
+          }
+          if (!stream8) {
+            return _end.call(this, chunk, encoding);
+          }
+          ended = true;
+          return chunk ? stream8.end(toBuffer(chunk, encoding)) : stream8.end();
+        };
+        res.on = function on(type, listener) {
+          if (!listeners || type !== "drain") {
+            return _on.call(this, type, listener);
+          }
+          if (stream8) {
+            return stream8.on(type, listener);
+          }
+          listeners.push([type, listener]);
+          return this;
+        };
+        function nocompress(msg) {
+          debug("no compression: %s", msg);
+          addListeners(res, _on, listeners);
+          listeners = null;
+        }
+        onHeaders(res, function onResponseHeaders() {
+          if (!filter6(req, res)) {
+            nocompress("filtered");
+            return;
+          }
+          if (!shouldTransform(req, res)) {
+            nocompress("no transform");
+            return;
+          }
+          vary(res, "Accept-Encoding");
+          if (Number(res.getHeader("Content-Length")) < threshold || length < threshold) {
+            nocompress("size below threshold");
+            return;
+          }
+          var encoding = res.getHeader("Content-Encoding") || "identity";
+          if (encoding !== "identity") {
+            nocompress("already encoded");
+            return;
+          }
+          if (req.method === "HEAD") {
+            nocompress("HEAD request");
+            return;
+          }
+          var negotiator = new Negotiator(req);
+          var method = negotiator.encoding(SUPPORTED_ENCODING, PREFERRED_ENCODING);
+          if (!req.headers["accept-encoding"] && encodingSupported.indexOf(enforceEncoding) !== -1) {
+            method = enforceEncoding;
+          }
+          if (!method || method === "identity") {
+            nocompress("not acceptable");
+            return;
+          }
+          debug("%s compression", method);
+          stream8 = method === "gzip" ? zlib2.createGzip(opts) : method === "br" ? zlib2.createBrotliCompress(optsBrotli) : zlib2.createDeflate(opts);
+          addListeners(stream8, stream8.on, listeners);
+          res.setHeader("Content-Encoding", method);
+          res.removeHeader("Content-Length");
+          stream8.on("data", function onStreamData(chunk) {
+            if (_write.call(res, chunk) === false) {
+              stream8.pause();
+            }
+          });
+          stream8.on("end", function onStreamEnd() {
+            _end.call(res);
+          });
+          _on.call(res, "drain", function onResponseDrain() {
+            stream8.resume();
+          });
+        });
+        next();
+      };
+    }
+    function addListeners(stream8, on, listeners) {
+      for (var i = 0; i < listeners.length; i++) {
+        on.apply(stream8, listeners[i]);
+      }
+    }
+    function chunkLength(chunk, encoding) {
+      if (!chunk) {
+        return 0;
+      }
+      return Buffer2.isBuffer(chunk) ? chunk.length : Buffer2.byteLength(chunk, encoding);
+    }
+    function shouldCompress(req, res) {
+      var type = res.getHeader("Content-Type");
+      if (type === void 0 || !compressible(type)) {
+        debug("%s not compressible", type);
+        return false;
+      }
+      return true;
+    }
+    function shouldTransform(req, res) {
+      var cacheControl = res.getHeader("Cache-Control");
+      return !cacheControl || !cacheControlNoTransformRegExp.test(cacheControl);
+    }
+    function toBuffer(chunk, encoding) {
+      return Buffer2.isBuffer(chunk) ? chunk : Buffer2.from(chunk, encoding);
+    }
+    function headersSent(res) {
+      return typeof res.headersSent !== "boolean" ? Boolean(res._header) : res.headersSent;
+    }
+  }
+});
+
 // node_modules/fast-glob/out/utils/array.js
 var require_array = __commonJS({
   "node_modules/fast-glob/out/utils/array.js"(exports2) {
@@ -53579,7 +54773,7 @@ var require_path = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.convertPosixPathToPattern = exports2.convertWindowsPathToPattern = exports2.convertPathToPattern = exports2.escapePosixPath = exports2.escapeWindowsPath = exports2.escape = exports2.removeLeadingDotSegment = exports2.makeAbsolute = exports2.unixify = void 0;
     var os = require("os");
-    var path25 = require("path");
+    var path26 = require("path");
     var IS_WINDOWS_PLATFORM = os.platform() === "win32";
     var LEADING_DOT_SEGMENT_CHARACTERS_COUNT = 2;
     var POSIX_UNESCAPED_GLOB_SYMBOLS_RE = /(\\?)([()*?[\]{|}]|^!|[!+@](?=\()|\\(?![!()*+?@[\]{|}]))/g;
@@ -53591,7 +54785,7 @@ var require_path = __commonJS({
     }
     exports2.unixify = unixify;
     function makeAbsolute(cwd, filepath) {
-      return path25.resolve(cwd, filepath);
+      return path26.resolve(cwd, filepath);
     }
     exports2.makeAbsolute = makeAbsolute;
     function removeLeadingDotSegment(entry) {
@@ -54890,7 +56084,7 @@ var require_braces = __commonJS({
 var require_constants4 = __commonJS({
   "node_modules/picomatch/lib/constants.js"(exports2, module2) {
     "use strict";
-    var path25 = require("path");
+    var path26 = require("path");
     var WIN_SLASH = "\\\\/";
     var WIN_NO_SLASH = `[^${WIN_SLASH}]`;
     var DEFAULT_MAX_EXTGLOB_RECURSION = 0;
@@ -55064,7 +56258,7 @@ var require_constants4 = __commonJS({
       /* | */
       CHAR_ZERO_WIDTH_NOBREAK_SPACE: 65279,
       /* \uFEFF */
-      SEP: path25.sep,
+      SEP: path26.sep,
       /**
        * Create EXTGLOB_CHARS
        */
@@ -55091,7 +56285,7 @@ var require_constants4 = __commonJS({
 var require_utils5 = __commonJS({
   "node_modules/picomatch/lib/utils.js"(exports2) {
     "use strict";
-    var path25 = require("path");
+    var path26 = require("path");
     var win32 = process.platform === "win32";
     var {
       REGEX_BACKSLASH,
@@ -55120,7 +56314,7 @@ var require_utils5 = __commonJS({
       if (options && typeof options.windows === "boolean") {
         return options.windows;
       }
-      return win32 === true || path25.sep === "\\";
+      return win32 === true || path26.sep === "\\";
     };
     exports2.escapeLast = (input, char, lastIdx) => {
       const idx = input.lastIndexOf(char, lastIdx);
@@ -56484,7 +57678,7 @@ var require_parse3 = __commonJS({
 var require_picomatch = __commonJS({
   "node_modules/picomatch/lib/picomatch.js"(exports2, module2) {
     "use strict";
-    var path25 = require("path");
+    var path26 = require("path");
     var scan = require_scan();
     var parse4 = require_parse3();
     var utils = require_utils5();
@@ -56569,7 +57763,7 @@ var require_picomatch = __commonJS({
     };
     picomatch.matchBase = (input, glob, options, posix = utils.isWindows(options)) => {
       const regex = glob instanceof RegExp ? glob : picomatch.makeRe(glob, options);
-      return regex.test(path25.basename(input));
+      return regex.test(path26.basename(input));
     };
     picomatch.isMatch = (str, patterns, options) => picomatch(patterns, options)(str);
     picomatch.parse = (pattern, options) => {
@@ -56796,7 +57990,7 @@ var require_pattern = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.isAbsolute = exports2.partitionAbsoluteAndRelative = exports2.removeDuplicateSlashes = exports2.matchAny = exports2.convertPatternsToRe = exports2.makeRe = exports2.getPatternParts = exports2.expandBraceExpansion = exports2.expandPatternsWithBraceExpansion = exports2.isAffectDepthOfReadingPattern = exports2.endsWithSlashGlobStar = exports2.hasGlobStar = exports2.getBaseDirectory = exports2.isPatternRelatedToParentDirectory = exports2.getPatternsOutsideCurrentDirectory = exports2.getPatternsInsideCurrentDirectory = exports2.getPositivePatterns = exports2.getNegativePatterns = exports2.isPositivePattern = exports2.isNegativePattern = exports2.convertToNegativePattern = exports2.convertToPositivePattern = exports2.isDynamicPattern = exports2.isStaticPattern = void 0;
-    var path25 = require("path");
+    var path26 = require("path");
     var globParent = require_glob_parent();
     var micromatch = require_micromatch();
     var GLOBSTAR = "**";
@@ -56891,7 +58085,7 @@ var require_pattern = __commonJS({
     }
     exports2.endsWithSlashGlobStar = endsWithSlashGlobStar;
     function isAffectDepthOfReadingPattern(pattern) {
-      const basename = path25.basename(pattern);
+      const basename = path26.basename(pattern);
       return endsWithSlashGlobStar(pattern) || isStaticPattern(basename);
     }
     exports2.isAffectDepthOfReadingPattern = isAffectDepthOfReadingPattern;
@@ -56949,7 +58143,7 @@ var require_pattern = __commonJS({
     }
     exports2.partitionAbsoluteAndRelative = partitionAbsoluteAndRelative;
     function isAbsolute(pattern) {
-      return path25.isAbsolute(pattern);
+      return path26.isAbsolute(pattern);
     }
     exports2.isAbsolute = isAbsolute;
   }
@@ -57124,10 +58318,10 @@ var require_utils6 = __commonJS({
     exports2.array = array4;
     var errno = require_errno();
     exports2.errno = errno;
-    var fs21 = require_fs();
-    exports2.fs = fs21;
-    var path25 = require_path();
-    exports2.path = path25;
+    var fs22 = require_fs();
+    exports2.fs = fs22;
+    var path26 = require_path();
+    exports2.path = path26;
     var pattern = require_pattern();
     exports2.pattern = pattern;
     var stream8 = require_stream3();
@@ -57239,8 +58433,8 @@ var require_async = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.read = void 0;
-    function read(path25, settings, callback) {
-      settings.fs.lstat(path25, (lstatError, lstat) => {
+    function read(path26, settings, callback) {
+      settings.fs.lstat(path26, (lstatError, lstat) => {
         if (lstatError !== null) {
           callFailureCallback(callback, lstatError);
           return;
@@ -57249,7 +58443,7 @@ var require_async = __commonJS({
           callSuccessCallback(callback, lstat);
           return;
         }
-        settings.fs.stat(path25, (statError, stat) => {
+        settings.fs.stat(path26, (statError, stat) => {
           if (statError !== null) {
             if (settings.throwErrorOnBrokenSymbolicLink) {
               callFailureCallback(callback, statError);
@@ -57281,13 +58475,13 @@ var require_sync = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.read = void 0;
-    function read(path25, settings) {
-      const lstat = settings.fs.lstatSync(path25);
+    function read(path26, settings) {
+      const lstat = settings.fs.lstatSync(path26);
       if (!lstat.isSymbolicLink() || !settings.followSymbolicLink) {
         return lstat;
       }
       try {
-        const stat = settings.fs.statSync(path25);
+        const stat = settings.fs.statSync(path26);
         if (settings.markSymbolicLink) {
           stat.isSymbolicLink = () => true;
         }
@@ -57309,12 +58503,12 @@ var require_fs2 = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.createFileSystemAdapter = exports2.FILE_SYSTEM_ADAPTER = void 0;
-    var fs21 = require("fs");
+    var fs22 = require("fs");
     exports2.FILE_SYSTEM_ADAPTER = {
-      lstat: fs21.lstat,
-      stat: fs21.stat,
-      lstatSync: fs21.lstatSync,
-      statSync: fs21.statSync
+      lstat: fs22.lstat,
+      stat: fs22.stat,
+      lstatSync: fs22.lstatSync,
+      statSync: fs22.statSync
     };
     function createFileSystemAdapter(fsMethods) {
       if (fsMethods === void 0) {
@@ -57331,12 +58525,12 @@ var require_settings = __commonJS({
   "node_modules/@nodelib/fs.stat/out/settings.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    var fs21 = require_fs2();
+    var fs22 = require_fs2();
     var Settings = class {
       constructor(_options = {}) {
         this._options = _options;
         this.followSymbolicLink = this._getValue(this._options.followSymbolicLink, true);
-        this.fs = fs21.createFileSystemAdapter(this._options.fs);
+        this.fs = fs22.createFileSystemAdapter(this._options.fs);
         this.markSymbolicLink = this._getValue(this._options.markSymbolicLink, false);
         this.throwErrorOnBrokenSymbolicLink = this._getValue(this._options.throwErrorOnBrokenSymbolicLink, true);
       }
@@ -57358,17 +58552,17 @@ var require_out = __commonJS({
     var sync = require_sync();
     var settings_1 = require_settings();
     exports2.Settings = settings_1.default;
-    function stat(path25, optionsOrSettingsOrCallback, callback) {
+    function stat(path26, optionsOrSettingsOrCallback, callback) {
       if (typeof optionsOrSettingsOrCallback === "function") {
-        async2.read(path25, getSettings(), optionsOrSettingsOrCallback);
+        async2.read(path26, getSettings(), optionsOrSettingsOrCallback);
         return;
       }
-      async2.read(path25, getSettings(optionsOrSettingsOrCallback), callback);
+      async2.read(path26, getSettings(optionsOrSettingsOrCallback), callback);
     }
     exports2.stat = stat;
-    function statSync(path25, optionsOrSettings) {
+    function statSync(path26, optionsOrSettings) {
       const settings = getSettings(optionsOrSettings);
-      return sync.read(path25, settings);
+      return sync.read(path26, settings);
     }
     exports2.statSync = statSync;
     function getSettings(settingsOrOptions = {}) {
@@ -57493,8 +58687,8 @@ var require_utils7 = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.fs = void 0;
-    var fs21 = require_fs3();
-    exports2.fs = fs21;
+    var fs22 = require_fs3();
+    exports2.fs = fs22;
   }
 });
 
@@ -57586,16 +58780,16 @@ var require_async2 = __commonJS({
           return;
         }
         const tasks = names.map((name28) => {
-          const path25 = common.joinPathSegments(directory, name28, settings.pathSegmentSeparator);
+          const path26 = common.joinPathSegments(directory, name28, settings.pathSegmentSeparator);
           return (done) => {
-            fsStat.stat(path25, settings.fsStatSettings, (error69, stats) => {
+            fsStat.stat(path26, settings.fsStatSettings, (error69, stats) => {
               if (error69 !== null) {
                 done(error69);
                 return;
               }
               const entry = {
                 name: name28,
-                path: path25,
+                path: path26,
                 dirent: utils.fs.createDirentFromStats(name28, stats)
               };
               if (settings.stats) {
@@ -57689,14 +58883,14 @@ var require_fs4 = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.createFileSystemAdapter = exports2.FILE_SYSTEM_ADAPTER = void 0;
-    var fs21 = require("fs");
+    var fs22 = require("fs");
     exports2.FILE_SYSTEM_ADAPTER = {
-      lstat: fs21.lstat,
-      stat: fs21.stat,
-      lstatSync: fs21.lstatSync,
-      statSync: fs21.statSync,
-      readdir: fs21.readdir,
-      readdirSync: fs21.readdirSync
+      lstat: fs22.lstat,
+      stat: fs22.stat,
+      lstatSync: fs22.lstatSync,
+      statSync: fs22.statSync,
+      readdir: fs22.readdir,
+      readdirSync: fs22.readdirSync
     };
     function createFileSystemAdapter(fsMethods) {
       if (fsMethods === void 0) {
@@ -57713,15 +58907,15 @@ var require_settings2 = __commonJS({
   "node_modules/@nodelib/fs.scandir/out/settings.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    var path25 = require("path");
+    var path26 = require("path");
     var fsStat = require_out();
-    var fs21 = require_fs4();
+    var fs22 = require_fs4();
     var Settings = class {
       constructor(_options = {}) {
         this._options = _options;
         this.followSymbolicLinks = this._getValue(this._options.followSymbolicLinks, false);
-        this.fs = fs21.createFileSystemAdapter(this._options.fs);
-        this.pathSegmentSeparator = this._getValue(this._options.pathSegmentSeparator, path25.sep);
+        this.fs = fs22.createFileSystemAdapter(this._options.fs);
+        this.pathSegmentSeparator = this._getValue(this._options.pathSegmentSeparator, path26.sep);
         this.stats = this._getValue(this._options.stats, false);
         this.throwErrorOnBrokenSymbolicLink = this._getValue(this._options.throwErrorOnBrokenSymbolicLink, true);
         this.fsStatSettings = new fsStat.Settings({
@@ -57748,17 +58942,17 @@ var require_out2 = __commonJS({
     var sync = require_sync2();
     var settings_1 = require_settings2();
     exports2.Settings = settings_1.default;
-    function scandir(path25, optionsOrSettingsOrCallback, callback) {
+    function scandir(path26, optionsOrSettingsOrCallback, callback) {
       if (typeof optionsOrSettingsOrCallback === "function") {
-        async2.read(path25, getSettings(), optionsOrSettingsOrCallback);
+        async2.read(path26, getSettings(), optionsOrSettingsOrCallback);
         return;
       }
-      async2.read(path25, getSettings(optionsOrSettingsOrCallback), callback);
+      async2.read(path26, getSettings(optionsOrSettingsOrCallback), callback);
     }
     exports2.scandir = scandir;
-    function scandirSync(path25, optionsOrSettings) {
+    function scandirSync(path26, optionsOrSettings) {
       const settings = getSettings(optionsOrSettings);
-      return sync.read(path25, settings);
+      return sync.read(path26, settings);
     }
     exports2.scandirSync = scandirSync;
     function getSettings(settingsOrOptions = {}) {
@@ -58405,7 +59599,7 @@ var require_settings3 = __commonJS({
   "node_modules/@nodelib/fs.walk/out/settings.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    var path25 = require("path");
+    var path26 = require("path");
     var fsScandir = require_out2();
     var Settings = class {
       constructor(_options = {}) {
@@ -58415,7 +59609,7 @@ var require_settings3 = __commonJS({
         this.deepFilter = this._getValue(this._options.deepFilter, null);
         this.entryFilter = this._getValue(this._options.entryFilter, null);
         this.errorFilter = this._getValue(this._options.errorFilter, null);
-        this.pathSegmentSeparator = this._getValue(this._options.pathSegmentSeparator, path25.sep);
+        this.pathSegmentSeparator = this._getValue(this._options.pathSegmentSeparator, path26.sep);
         this.fsScandirSettings = new fsScandir.Settings({
           followSymbolicLinks: this._options.followSymbolicLinks,
           fs: this._options.fs,
@@ -58477,7 +59671,7 @@ var require_reader2 = __commonJS({
   "node_modules/fast-glob/out/readers/reader.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    var path25 = require("path");
+    var path26 = require("path");
     var fsStat = require_out();
     var utils = require_utils6();
     var Reader = class {
@@ -58490,7 +59684,7 @@ var require_reader2 = __commonJS({
         });
       }
       _getFullEntryPath(filepath) {
-        return path25.resolve(this._settings.cwd, filepath);
+        return path26.resolve(this._settings.cwd, filepath);
       }
       _makeEntry(stats, pattern) {
         const entry = {
@@ -58906,7 +60100,7 @@ var require_provider = __commonJS({
   "node_modules/fast-glob/out/providers/provider.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    var path25 = require("path");
+    var path26 = require("path");
     var deep_1 = require_deep();
     var entry_1 = require_entry();
     var error_1 = require_error();
@@ -58920,7 +60114,7 @@ var require_provider = __commonJS({
         this.entryTransformer = new entry_2.default(this._settings);
       }
       _getRootDirectory(task) {
-        return path25.resolve(this._settings.cwd, task.base);
+        return path26.resolve(this._settings.cwd, task.base);
       }
       _getReaderOptions(task) {
         const basePath = task.base === "." ? "" : task.base;
@@ -59101,16 +60295,16 @@ var require_settings4 = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.DEFAULT_FILE_SYSTEM_ADAPTER = void 0;
-    var fs21 = require("fs");
+    var fs22 = require("fs");
     var os = require("os");
     var CPU_COUNT = Math.max(os.cpus().length, 1);
     exports2.DEFAULT_FILE_SYSTEM_ADAPTER = {
-      lstat: fs21.lstat,
-      lstatSync: fs21.lstatSync,
-      stat: fs21.stat,
-      statSync: fs21.statSync,
-      readdir: fs21.readdir,
-      readdirSync: fs21.readdirSync
+      lstat: fs22.lstat,
+      lstatSync: fs22.lstatSync,
+      stat: fs22.stat,
+      statSync: fs22.statSync,
+      readdir: fs22.readdir,
+      readdirSync: fs22.readdirSync
     };
     var Settings = class {
       constructor(_options = {}) {
@@ -59593,6 +60787,15 @@ var init_initDB = __esm({
                 key: "universalAi",
                 name: "\u901A\u7528AI",
                 desc: "\u7528\u4E8E\u5C0F\u8BF4\u4E8B\u4EF6\u63D0\u53D6\u3001\u8D44\u4EA7\u63D0\u793A\u8BCD\u751F\u6210\u3001\u53F0\u8BCD\u63D0\u53D6\u7B49\u8FB9\u7F18\u529F\u80FD\uFF0C\u5EFA\u8BAE\u4F7F\u7528\u5177\u5907\u8F83\u5F3A\u6587\u672C\u5904\u7406\u80FD\u529B\u7684\u6A21\u578B",
+                disabled: false
+              },
+              {
+                model: "",
+                modelName: "",
+                vendorId: null,
+                key: "quickVideoAgent",
+                name: "\u5FEB\u521BAgent",
+                desc: "\u5355\u89C6\u9891\u5FEB\u521B\u6A21\u5F0F\u7684\u521B\u4F5CAgent\uFF0C\u8D1F\u8D23\u7B80\u62A5\u68B3\u7406\u4E0E\u5206\u955C\u751F\u6210\uFF0C\u5EFA\u8BAE\u4F7F\u7528\u5177\u5907\u8F83\u5F3A\u6587\u672C\u7406\u89E3\u548C\u7ED3\u6784\u5316\u8F93\u51FA\u80FD\u529B\u7684\u6A21\u578B",
                 disabled: false
               },
               {
@@ -62334,15 +63537,15 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path25) {
-  if (!path25)
+function getElementAtPath(obj, path26) {
+  if (!path26)
     return obj;
-  return path25.reduce((acc, key) => acc?.[key], obj);
+  return path26.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
-  const promises7 = keys.map((key) => promisesObj[key]);
-  return Promise.all(promises7).then((results) => {
+  const promises8 = keys.map((key) => promisesObj[key]);
+  return Promise.all(promises8).then((results) => {
     const resolvedObj = {};
     for (let i = 0; i < keys.length; i++) {
       resolvedObj[keys[i]] = results[i];
@@ -62649,11 +63852,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path25, issues) {
+function prefixIssues(path26, issues) {
   return issues.map((iss) => {
     var _a31;
     (_a31 = iss).path ?? (_a31.path = []);
-    iss.path.unshift(path25);
+    iss.path.unshift(path26);
     return iss;
   });
 }
@@ -62896,7 +64099,7 @@ function formatError(error69, mapper = (issue3) => issue3.message) {
 }
 function treeifyError(error69, mapper = (issue3) => issue3.message) {
   const result = { errors: [] };
-  const processError = (error70, path25 = []) => {
+  const processError = (error70, path26 = []) => {
     var _a31, _b27;
     for (const issue3 of error70.issues) {
       if (issue3.code === "invalid_union" && issue3.errors.length) {
@@ -62906,7 +64109,7 @@ function treeifyError(error69, mapper = (issue3) => issue3.message) {
       } else if (issue3.code === "invalid_element") {
         processError({ issues: issue3.issues }, issue3.path);
       } else {
-        const fullpath = [...path25, ...issue3.path];
+        const fullpath = [...path26, ...issue3.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue3));
           continue;
@@ -62938,8 +64141,8 @@ function treeifyError(error69, mapper = (issue3) => issue3.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path25 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path25) {
+  const path26 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path26) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -75703,13 +76906,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path25 = ref.slice(1).split("/").filter(Boolean);
-  if (path25.length === 0) {
+  const path26 = ref.slice(1).split("/").filter(Boolean);
+  if (path26.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path25[0] === defsKey) {
-    const key = path25[1];
+  if (path26[0] === defsKey) {
+    const key = path26[1];
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -76891,8 +78094,8 @@ var init_parseUtil = __esm({
     init_errors3();
     init_en2();
     makeIssue = (params) => {
-      const { data, path: path25, errorMaps, issueData } = params;
-      const fullPath = [...path25, ...issueData.path || []];
+      const { data, path: path26, errorMaps, issueData } = params;
+      const fullPath = [...path26, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -77055,11 +78258,11 @@ function isValidIP(ip, version3) {
   }
   return false;
 }
-function isValidJWT2(jwt7, alg) {
-  if (!jwtRegex.test(jwt7))
+function isValidJWT2(jwt8, alg) {
+  if (!jwtRegex.test(jwt8))
     return false;
   try {
-    const [header] = jwt7.split(".");
+    const [header] = jwt8.split(".");
     if (!header)
       return false;
     const base644 = header.replace(/-/g, "+").replace(/_/g, "/").padEnd(header.length + (4 - header.length % 4) % 4, "=");
@@ -77175,11 +78378,11 @@ var init_types = __esm({
     init_parseUtil();
     init_util2();
     ParseInputLazyPath = class {
-      constructor(parent, value, path25, key) {
+      constructor(parent, value, path26, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path25;
+        this._path = path26;
         this._key = key;
       }
       get path() {
@@ -84482,37 +85685,37 @@ function createOpenAI(options = {}) {
   );
   const createChatModel = (modelId) => new OpenAIChatLanguageModel(modelId, {
     provider: `${providerName}.chat`,
-    url: ({ path: path25 }) => `${baseURL}${path25}`,
+    url: ({ path: path26 }) => `${baseURL}${path26}`,
     headers: getHeaders,
     fetch: options.fetch
   });
   const createCompletionModel = (modelId) => new OpenAICompletionLanguageModel(modelId, {
     provider: `${providerName}.completion`,
-    url: ({ path: path25 }) => `${baseURL}${path25}`,
+    url: ({ path: path26 }) => `${baseURL}${path26}`,
     headers: getHeaders,
     fetch: options.fetch
   });
   const createEmbeddingModel = (modelId) => new OpenAIEmbeddingModel(modelId, {
     provider: `${providerName}.embedding`,
-    url: ({ path: path25 }) => `${baseURL}${path25}`,
+    url: ({ path: path26 }) => `${baseURL}${path26}`,
     headers: getHeaders,
     fetch: options.fetch
   });
   const createImageModel = (modelId) => new OpenAIImageModel(modelId, {
     provider: `${providerName}.image`,
-    url: ({ path: path25 }) => `${baseURL}${path25}`,
+    url: ({ path: path26 }) => `${baseURL}${path26}`,
     headers: getHeaders,
     fetch: options.fetch
   });
   const createTranscriptionModel = (modelId) => new OpenAITranscriptionModel(modelId, {
     provider: `${providerName}.transcription`,
-    url: ({ path: path25 }) => `${baseURL}${path25}`,
+    url: ({ path: path26 }) => `${baseURL}${path26}`,
     headers: getHeaders,
     fetch: options.fetch
   });
   const createSpeechModel = (modelId) => new OpenAISpeechModel(modelId, {
     provider: `${providerName}.speech`,
-    url: ({ path: path25 }) => `${baseURL}${path25}`,
+    url: ({ path: path26 }) => `${baseURL}${path26}`,
     headers: getHeaders,
     fetch: options.fetch
   });
@@ -84527,7 +85730,7 @@ function createOpenAI(options = {}) {
   const createResponsesModel = (modelId) => {
     return new OpenAIResponsesLanguageModel(modelId, {
       provider: `${providerName}.responses`,
-      url: ({ path: path25 }) => `${baseURL}${path25}`,
+      url: ({ path: path26 }) => `${baseURL}${path26}`,
       headers: getHeaders,
       fetch: options.fetch,
       fileIdPrefixes: ["file-"]
@@ -98772,11 +99975,11 @@ var require_mime_types3 = __commonJS({
       }
       return exts[0];
     }
-    function lookup2(path25) {
-      if (!path25 || typeof path25 !== "string") {
+    function lookup2(path26) {
+      if (!path26 || typeof path26 !== "string") {
         return false;
       }
-      var extension2 = extname("x." + path25).toLowerCase().substr(1);
+      var extension2 = extname("x." + path26).toLowerCase().substr(1);
       if (!extension2) {
         return false;
       }
@@ -99088,11 +100291,11 @@ var require_form_data = __commonJS({
     "use strict";
     var CombinedStream = require_combined_stream();
     var util4 = require("util");
-    var path25 = require("path");
+    var path26 = require("path");
     var http5 = require("http");
     var https3 = require("https");
     var parseUrl2 = require("url").parse;
-    var fs21 = require("fs");
+    var fs22 = require("fs");
     var Stream = require("stream").Stream;
     var crypto10 = require("crypto");
     var mime2 = require_mime_types3();
@@ -99159,7 +100362,7 @@ var require_form_data = __commonJS({
         if (value.end != void 0 && value.end != Infinity && value.start != void 0) {
           callback(null, value.end + 1 - (value.start ? value.start : 0));
         } else {
-          fs21.stat(value.path, function(err, stat) {
+          fs22.stat(value.path, function(err, stat) {
             if (err) {
               callback(err);
               return;
@@ -99216,11 +100419,11 @@ var require_form_data = __commonJS({
     FormData5.prototype._getContentDisposition = function(value, options) {
       var filename;
       if (typeof options.filepath === "string") {
-        filename = path25.normalize(options.filepath).replace(/\\/g, "/");
+        filename = path26.normalize(options.filepath).replace(/\\/g, "/");
       } else if (options.filename || value && (value.name || value.path)) {
-        filename = path25.basename(options.filename || value && (value.name || value.path));
+        filename = path26.basename(options.filename || value && (value.name || value.path));
       } else if (value && value.readable && hasOwn(value, "httpVersion")) {
-        filename = path25.basename(value.client._httpMessage.path || "");
+        filename = path26.basename(value.client._httpMessage.path || "");
       }
       if (filename) {
         return 'filename="' + filename + '"';
@@ -99946,9 +101149,9 @@ function isVisitable(thing) {
 function removeBrackets(key) {
   return utils_default.endsWith(key, "[]") ? key.slice(0, -2) : key;
 }
-function renderKey(path25, key, dots) {
-  if (!path25) return key;
-  return path25.concat(key).map(function each(token, i) {
+function renderKey(path26, key, dots) {
+  if (!path26) return key;
+  return path26.concat(key).map(function each(token, i) {
     token = removeBrackets(token);
     return !dots && i ? "[" + token + "]" : token;
   }).join(dots ? "." : "");
@@ -99998,13 +101201,13 @@ function toFormData(obj, formData, options) {
     }
     return value;
   }
-  function defaultVisitor(value, key, path25) {
+  function defaultVisitor(value, key, path26) {
     let arr = value;
     if (utils_default.isReactNative(formData) && utils_default.isReactNativeBlob(value)) {
-      formData.append(renderKey(path25, key, dots), convertValue(value));
+      formData.append(renderKey(path26, key, dots), convertValue(value));
       return false;
     }
-    if (value && !path25 && typeof value === "object") {
+    if (value && !path26 && typeof value === "object") {
       if (utils_default.endsWith(key, "{}")) {
         key = metaTokens ? key : key.slice(0, -2);
         value = JSON.stringify(value);
@@ -100023,7 +101226,7 @@ function toFormData(obj, formData, options) {
     if (isVisitable(value)) {
       return true;
     }
-    formData.append(renderKey(path25, key, dots), convertValue(value));
+    formData.append(renderKey(path26, key, dots), convertValue(value));
     return false;
   }
   const stack = [];
@@ -100032,16 +101235,16 @@ function toFormData(obj, formData, options) {
     convertValue,
     isVisitable
   });
-  function build(value, path25) {
+  function build(value, path26) {
     if (utils_default.isUndefined(value)) return;
     if (stack.indexOf(value) !== -1) {
-      throw Error("Circular reference detected in " + path25.join("."));
+      throw Error("Circular reference detected in " + path26.join("."));
     }
     stack.push(value);
     utils_default.forEach(value, function each(el, key) {
-      const result = !(utils_default.isUndefined(el) || el === null) && visitor.call(formData, el, utils_default.isString(key) ? key.trim() : key, path25, exposedHelpers);
+      const result = !(utils_default.isUndefined(el) || el === null) && visitor.call(formData, el, utils_default.isString(key) ? key.trim() : key, path26, exposedHelpers);
       if (result === true) {
-        build(el, path25 ? path25.concat(key) : [key]);
+        build(el, path26 ? path26.concat(key) : [key]);
       }
     });
     stack.pop();
@@ -100318,7 +101521,7 @@ var init_platform = __esm({
 // node_modules/axios/lib/helpers/toURLEncodedForm.js
 function toURLEncodedForm(data, options) {
   return toFormData_default(data, new platform_default.classes.URLSearchParams(), {
-    visitor: function(value, key, path25, helpers) {
+    visitor: function(value, key, path26, helpers) {
       if (platform_default.isNode && utils_default.isBuffer(value)) {
         this.append(key, value.toString("base64"));
         return false;
@@ -100356,11 +101559,11 @@ function arrayToObject(arr) {
   return obj;
 }
 function formDataToJSON(formData) {
-  function buildPath(path25, value, target, index2) {
-    let name28 = path25[index2++];
+  function buildPath(path26, value, target, index2) {
+    let name28 = path26[index2++];
     if (name28 === "__proto__") return true;
     const isNumericKey = Number.isFinite(+name28);
-    const isLast = index2 >= path25.length;
+    const isLast = index2 >= path26.length;
     name28 = !name28 && utils_default.isArray(target) ? target.length : name28;
     if (isLast) {
       if (utils_default.hasOwnProp(target, name28)) {
@@ -100373,7 +101576,7 @@ function formDataToJSON(formData) {
     if (!target[name28] || !utils_default.isObject(target[name28])) {
       target[name28] = [];
     }
-    const result = buildPath(path25, value, target[name28], index2);
+    const result = buildPath(path26, value, target[name28], index2);
     if (result && utils_default.isArray(target[name28])) {
       target[name28] = arrayToObject(target[name28]);
     }
@@ -101013,7 +102216,7 @@ var init_proxy_from_env = __esm({
 });
 
 // node_modules/follow-redirects/debug.js
-var require_debug2 = __commonJS({
+var require_debug3 = __commonJS({
   "node_modules/follow-redirects/debug.js"(exports2, module2) {
     "use strict";
     var debug;
@@ -101043,7 +102246,7 @@ var require_follow_redirects = __commonJS({
     var https3 = require("https");
     var Writable = require("stream").Writable;
     var assert3 = require("assert");
-    var debug = require_debug2();
+    var debug = require_debug3();
     (function detectUnsupportedEnvironment() {
       var looksLikeNode = typeof process !== "undefined";
       var looksLikeBrowser = typeof window !== "undefined" && typeof document !== "undefined";
@@ -102521,9 +103724,9 @@ var init_http = __esm({
           auth = urlUsername + ":" + urlPassword;
         }
         auth && headers.delete("authorization");
-        let path25;
+        let path26;
         try {
-          path25 = buildURL(
+          path26 = buildURL(
             parsed.pathname + parsed.search,
             config3.params,
             config3.paramsSerializer
@@ -102541,7 +103744,7 @@ var init_http = __esm({
           false
         );
         const options = {
-          path: path25,
+          path: path26,
           method,
           headers: headers.toJSON(),
           agents: { http: config3.httpAgent, https: config3.httpsAgent },
@@ -102805,14 +104008,14 @@ var init_cookies = __esm({
     cookies_default = platform_default.hasStandardBrowserEnv ? (
       // Standard browser envs support document.cookie
       {
-        write(name28, value, expires, path25, domain3, secure, sameSite) {
+        write(name28, value, expires, path26, domain3, secure, sameSite) {
           if (typeof document === "undefined") return;
           const cookie = [`${name28}=${encodeURIComponent(value)}`];
           if (utils_default.isNumber(expires)) {
             cookie.push(`expires=${new Date(expires).toUTCString()}`);
           }
-          if (utils_default.isString(path25)) {
-            cookie.push(`path=${path25}`);
+          if (utils_default.isString(path26)) {
+            cookie.push(`path=${path26}`);
           }
           if (utils_default.isString(domain3)) {
             cookie.push(`domain=${domain3}`);
@@ -104184,8 +105387,8 @@ var init_axios = __esm({
     axios.toFormData = toFormData_default;
     axios.AxiosError = AxiosError_default;
     axios.Cancel = axios.CanceledError;
-    axios.all = function all(promises7) {
-      return Promise.all(promises7);
+    axios.all = function all(promises8) {
+      return Promise.all(promises8);
     };
     axios.spread = spread;
     axios.isAxiosError = isAxiosError;
@@ -104511,7 +105714,7 @@ function createDeepSeek(options = {}) {
   const createLanguageModel = (modelId) => {
     return new DeepSeekChatLanguageModel(modelId, {
       provider: `deepseek.chat`,
-      url: ({ path: path25 }) => `${baseURL}${path25}`,
+      url: ({ path: path26 }) => `${baseURL}${path26}`,
       headers: getHeaders,
       fetch: options.fetch
     });
@@ -106029,15 +107232,15 @@ function mergeDefs2(...defs) {
 function cloneDef2(schema) {
   return mergeDefs2(schema._zod.def);
 }
-function getElementAtPath2(obj, path25) {
-  if (!path25)
+function getElementAtPath2(obj, path26) {
+  if (!path26)
     return obj;
-  return path25.reduce((acc, key) => acc == null ? void 0 : acc[key], obj);
+  return path26.reduce((acc, key) => acc == null ? void 0 : acc[key], obj);
 }
 function promiseAllObject2(promisesObj) {
   const keys = Object.keys(promisesObj);
-  const promises7 = keys.map((key) => promisesObj[key]);
-  return Promise.all(promises7).then((results) => {
+  const promises8 = keys.map((key) => promisesObj[key]);
+  return Promise.all(promises8).then((results) => {
     const resolvedObj = {};
     for (let i = 0; i < keys.length; i++) {
       resolvedObj[keys[i]] = results[i];
@@ -106345,12 +107548,12 @@ function aborted2(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues2(path25, issues) {
+function prefixIssues2(path26, issues) {
   return issues.map((iss) => {
     var _a47;
     var _a37;
     (_a47 = (_a37 = iss).path) != null ? _a47 : _a37.path = [];
-    iss.path.unshift(path25);
+    iss.path.unshift(path26);
     return iss;
   });
 }
@@ -106510,7 +107713,7 @@ function formatError2(error482, mapper = (issue22) => issue22.message) {
 }
 function treeifyError2(error482, mapper = (issue22) => issue22.message) {
   const result = { errors: [] };
-  const processError = (error492, path25 = []) => {
+  const processError = (error492, path26 = []) => {
     var _a47, _b27, _c, _d;
     var _a37, _b28;
     for (const issue22 of error492.issues) {
@@ -106521,7 +107724,7 @@ function treeifyError2(error482, mapper = (issue22) => issue22.message) {
       } else if (issue22.code === "invalid_element") {
         processError({ issues: issue22.issues }, issue22.path);
       } else {
-        const fullpath = [...path25, ...issue22.path];
+        const fullpath = [...path26, ...issue22.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue22));
           continue;
@@ -106553,8 +107756,8 @@ function treeifyError2(error482, mapper = (issue22) => issue22.message) {
 }
 function toDotPath2(_path) {
   const segs = [];
-  const path25 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path25) {
+  const path26 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path26) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -109174,13 +110377,13 @@ function resolveRef2(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path25 = ref.slice(1).split("/").filter(Boolean);
-  if (path25.length === 0) {
+  const path26 = ref.slice(1).split("/").filter(Boolean);
+  if (path26.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path25[0] === defsKey) {
-    const key = path25[1];
+  if (path26[0] === defsKey) {
+    const key = path26[1];
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -109745,7 +110948,7 @@ function createZhipu(options = {}) {
   });
   const createImageModel = (modelId) => new ZhipuImageModel(modelId, {
     provider: "zhipu.image",
-    url: ({ path: path25 }) => `${baseURL}${path25}`,
+    url: ({ path: path26 }) => `${baseURL}${path26}`,
     headers: getHeaders,
     fetch: options.fetch,
     _internal: {
@@ -121282,15 +122485,15 @@ var require_util = __commonJS({
     function cloneDef3(schema) {
       return mergeDefs3(schema._zod.def);
     }
-    function getElementAtPath3(obj, path25) {
-      if (!path25)
+    function getElementAtPath3(obj, path26) {
+      if (!path26)
         return obj;
-      return path25.reduce((acc, key) => acc?.[key], obj);
+      return path26.reduce((acc, key) => acc?.[key], obj);
     }
     function promiseAllObject3(promisesObj) {
       const keys = Object.keys(promisesObj);
-      const promises7 = keys.map((key) => promisesObj[key]);
-      return Promise.all(promises7).then((results) => {
+      const promises8 = keys.map((key) => promisesObj[key]);
+      return Promise.all(promises8).then((results) => {
         const resolvedObj = {};
         for (let i = 0; i < keys.length; i++) {
           resolvedObj[keys[i]] = results[i];
@@ -121669,11 +122872,11 @@ var require_util = __commonJS({
       }
       return false;
     }
-    function prefixIssues3(path25, issues) {
+    function prefixIssues3(path26, issues) {
       return issues.map((iss) => {
         var _a31;
         (_a31 = iss).path ?? (_a31.path = []);
-        iss.path.unshift(path25);
+        iss.path.unshift(path26);
         return iss;
       });
     }
@@ -121898,7 +123101,7 @@ var require_errors = __commonJS({
     }
     function treeifyError3(error69, mapper = (issue3) => issue3.message) {
       const result = { errors: [] };
-      const processError = (error70, path25 = []) => {
+      const processError = (error70, path26 = []) => {
         var _a31, _b27;
         for (const issue3 of error70.issues) {
           if (issue3.code === "invalid_union" && issue3.errors.length) {
@@ -121908,7 +123111,7 @@ var require_errors = __commonJS({
           } else if (issue3.code === "invalid_element") {
             processError({ issues: issue3.issues }, issue3.path);
           } else {
-            const fullpath = [...path25, ...issue3.path];
+            const fullpath = [...path26, ...issue3.path];
             if (fullpath.length === 0) {
               result.errors.push(mapper(issue3));
               continue;
@@ -121940,8 +123143,8 @@ var require_errors = __commonJS({
     }
     function toDotPath3(_path) {
       const segs = [];
-      const path25 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-      for (const seg of path25) {
+      const path26 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+      for (const seg of path26) {
         if (typeof seg === "number")
           segs.push(`[${seg}]`);
         else if (typeof seg === "symbol")
@@ -129169,7 +130372,7 @@ var require_mk = __commonJS({
 });
 
 // node_modules/zod/v4/locales/ms.cjs
-var require_ms3 = __commonJS({
+var require_ms4 = __commonJS({
   "node_modules/zod/v4/locales/ms.cjs"(exports2, module2) {
     "use strict";
     var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
@@ -132269,7 +133472,7 @@ var require_locales = __commonJS({
     Object.defineProperty(exports2, "mk", { enumerable: true, get: function() {
       return __importDefault(mk_js_1).default;
     } });
-    var ms_js_1 = require_ms3();
+    var ms_js_1 = require_ms4();
     Object.defineProperty(exports2, "ms", { enumerable: true, get: function() {
       return __importDefault(ms_js_1).default;
     } });
@@ -135084,7 +136287,7 @@ var require_schemas2 = __commonJS({
     exports2.base64 = base644;
     exports2.base64url = base64url4;
     exports2.e164 = e1644;
-    exports2.jwt = jwt7;
+    exports2.jwt = jwt8;
     exports2.stringFormat = stringFormat3;
     exports2.hostname = hostname4;
     exports2.hex = hex4;
@@ -135459,7 +136662,7 @@ var require_schemas2 = __commonJS({
       core.$ZodJWT.init(inst, def);
       exports2.ZodStringFormat.init(inst, def);
     });
-    function jwt7(params) {
+    function jwt8(params) {
       return core._jwt(exports2.ZodJWT, params);
     }
     exports2.ZodCustomStringFormat = core.$constructor("ZodCustomStringFormat", (inst, def) => {
@@ -136442,13 +137645,13 @@ var require_from_json_schema = __commonJS({
       if (!ref.startsWith("#")) {
         throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
       }
-      const path25 = ref.slice(1).split("/").filter(Boolean);
-      if (path25.length === 0) {
+      const path26 = ref.slice(1).split("/").filter(Boolean);
+      if (path26.length === 0) {
         return ctx.rootSchema;
       }
       const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-      if (path25[0] === defsKey) {
-        const key = path25[1];
+      if (path26[0] === defsKey) {
+        const key = path26[1];
         if (!key || !ctx.defs[key]) {
           throw new Error(`Reference not found: ${ref}`);
         }
@@ -137493,8 +138696,8 @@ var require_parseUtil = __commonJS({
     var errors_js_1 = require_errors3();
     var en_js_1 = __importDefault(require_en2());
     var makeIssue2 = (params) => {
-      const { data, path: path25, errorMaps, issueData } = params;
-      const fullPath = [...path25, ...issueData.path || []];
+      const { data, path: path26, errorMaps, issueData } = params;
+      const fullPath = [...path26, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -137648,11 +138851,11 @@ var require_types = __commonJS({
     var parseUtil_js_1 = require_parseUtil();
     var util_js_1 = require_util2();
     var ParseInputLazyPath2 = class {
-      constructor(parent, value, path25, key) {
+      constructor(parent, value, path26, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path25;
+        this._path = path26;
         this._key = key;
       }
       get path() {
@@ -138043,11 +139246,11 @@ var require_types = __commonJS({
       }
       return false;
     }
-    function isValidJWT4(jwt7, alg) {
-      if (!jwtRegex2.test(jwt7))
+    function isValidJWT4(jwt8, alg) {
+      if (!jwtRegex2.test(jwt8))
         return false;
       try {
-        const [header] = jwt7.split(".");
+        const [header] = jwt8.split(".");
         if (!header)
           return false;
         const base644 = header.replace(/-/g, "+").replace(/_/g, "/").padEnd(header.length + (4 - header.length % 4) % 4, "=");
@@ -144272,13 +145475,13 @@ var require_dist7 = __commonJS({
       };
     }
     var import_provider_utils210 = require_dist6();
-    var import_zod163 = require_zod();
-    var qwenErrorDataSchema = import_zod163.z.object({
-      object: import_zod163.z.literal("error"),
-      message: import_zod163.z.string(),
-      type: import_zod163.z.string(),
-      param: import_zod163.z.string().nullable(),
-      code: import_zod163.z.string().nullable()
+    var import_zod178 = require_zod();
+    var qwenErrorDataSchema = import_zod178.z.object({
+      object: import_zod178.z.literal("error"),
+      message: import_zod178.z.string(),
+      type: import_zod178.z.string(),
+      param: import_zod178.z.string().nullable(),
+      code: import_zod178.z.string().nullable()
     });
     var qwenFailedResponseHandler = (0, import_provider_utils210.createJsonErrorResponseHandler)({
       errorSchema: qwenErrorDataSchema,
@@ -145647,8 +146850,8 @@ ${user}:`]
       });
       const getCommonModelConfig = (modelType) => ({
         provider: `qwen.${modelType}`,
-        url: ({ path: path25 }) => {
-          const url4 = new URL(`${baseURL}${path25}`);
+        url: ({ path: path26 }) => {
+          const url4 = new URL(`${baseURL}${path26}`);
           if (options.queryParams) {
             url4.search = new URLSearchParams(options.queryParams).toString();
           }
@@ -153714,8 +154917,8 @@ function createOpenAICompatible(options) {
   const getHeaders = () => withUserAgentSuffix(headers, `ai-sdk/openai-compatible/${VERSION10}`);
   const getCommonModelConfig = (modelType) => ({
     provider: `${providerName}.${modelType}`,
-    url: ({ path: path25 }) => {
-      const url4 = new URL(`${baseURL}${path25}`);
+    url: ({ path: path26 }) => {
+      const url4 = new URL(`${baseURL}${path26}`);
       if (options.queryParams) {
         url4.search = new URLSearchParams(options.queryParams).toString();
       }
@@ -166299,7 +167502,7 @@ function createMinimax(options = {}) {
   const createLanguageModel = (modelId) => {
     return new MinimaxChatLanguageModel(modelId, {
       provider: `minimax.chat`,
-      url: ({ path: path25 }) => `${baseURL}${path25}`,
+      url: ({ path: path26 }) => `${baseURL}${path26}`,
       headers: getHeaders,
       fetch: options.fetch
     });
@@ -166887,65 +168090,6 @@ var init_dist18 = __esm({
     createOpenAICompatibleChatChunkSchema2 = (errorSchema) => external_exports.union([chunkBaseSchema2, errorSchema]);
     minimax = createMinimax();
     minimaxOpenAI = createMinimax();
-  }
-});
-
-// node_modules/safe-buffer/index.js
-var require_safe_buffer2 = __commonJS({
-  "node_modules/safe-buffer/index.js"(exports2, module2) {
-    "use strict";
-    var buffer = require("buffer");
-    var Buffer2 = buffer.Buffer;
-    function copyProps(src, dst) {
-      for (var key in src) {
-        dst[key] = src[key];
-      }
-    }
-    if (Buffer2.from && Buffer2.alloc && Buffer2.allocUnsafe && Buffer2.allocUnsafeSlow) {
-      module2.exports = buffer;
-    } else {
-      copyProps(buffer, exports2);
-      exports2.Buffer = SafeBuffer;
-    }
-    function SafeBuffer(arg, encodingOrOffset, length) {
-      return Buffer2(arg, encodingOrOffset, length);
-    }
-    SafeBuffer.prototype = Object.create(Buffer2.prototype);
-    copyProps(Buffer2, SafeBuffer);
-    SafeBuffer.from = function(arg, encodingOrOffset, length) {
-      if (typeof arg === "number") {
-        throw new TypeError("Argument must not be a number");
-      }
-      return Buffer2(arg, encodingOrOffset, length);
-    };
-    SafeBuffer.alloc = function(size, fill, encoding) {
-      if (typeof size !== "number") {
-        throw new TypeError("Argument must be a number");
-      }
-      var buf = Buffer2(size);
-      if (fill !== void 0) {
-        if (typeof encoding === "string") {
-          buf.fill(fill, encoding);
-        } else {
-          buf.fill(fill);
-        }
-      } else {
-        buf.fill(0);
-      }
-      return buf;
-    };
-    SafeBuffer.allocUnsafe = function(size) {
-      if (typeof size !== "number") {
-        throw new TypeError("Argument must be a number");
-      }
-      return Buffer2(size);
-    };
-    SafeBuffer.allocUnsafeSlow = function(size) {
-      if (typeof size !== "number") {
-        throw new TypeError("Argument must be a number");
-      }
-      return buffer.SlowBuffer(size);
-    };
   }
 });
 
@@ -167667,9 +168811,9 @@ var require_decode = __commonJS({
   "node_modules/jsonwebtoken/decode.js"(exports2, module2) {
     "use strict";
     var jws = require_jws();
-    module2.exports = function(jwt7, options) {
+    module2.exports = function(jwt8, options) {
       options = options || {};
-      var decoded = jws.decode(jwt7, options);
+      var decoded = jws.decode(jwt8, options);
       if (!decoded) {
         return null;
       }
@@ -167801,7 +168945,7 @@ var require_constants6 = __commonJS({
 });
 
 // node_modules/semver/internal/debug.js
-var require_debug3 = __commonJS({
+var require_debug4 = __commonJS({
   "node_modules/semver/internal/debug.js"(exports2, module2) {
     "use strict";
     var debug = typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG) ? (...args) => console.error("SEMVER", ...args) : () => {
@@ -167819,7 +168963,7 @@ var require_re = __commonJS({
       MAX_SAFE_BUILD_LENGTH,
       MAX_LENGTH
     } = require_constants6();
-    var debug = require_debug3();
+    var debug = require_debug4();
     exports2 = module2.exports = {};
     var re2 = exports2.re = [];
     var safeRe = exports2.safeRe = [];
@@ -167946,7 +169090,7 @@ var require_identifiers = __commonJS({
 var require_semver = __commonJS({
   "node_modules/semver/classes/semver.js"(exports2, module2) {
     "use strict";
-    var debug = require_debug3();
+    var debug = require_debug4();
     var { MAX_LENGTH, MAX_SAFE_INTEGER } = require_constants6();
     var { safeRe: re2, t } = require_re();
     var parseOptions = require_parse_options();
@@ -168786,7 +169930,7 @@ var require_range2 = __commonJS({
     var cache = new LRU();
     var parseOptions = require_parse_options();
     var Comparator = require_comparator();
-    var debug = require_debug3();
+    var debug = require_debug4();
     var SemVer = require_semver();
     var {
       safeRe: re2,
@@ -169122,7 +170266,7 @@ var require_comparator = __commonJS({
     var parseOptions = require_parse_options();
     var { safeRe: re2, t } = require_re();
     var cmp = require_cmp();
-    var debug = require_debug3();
+    var debug = require_debug4();
     var SemVer = require_semver();
     var Range = require_range2();
   }
@@ -171603,6 +172747,19 @@ var init_fixDB = __esm({
       }
       if (knex2.client.config.client === "mysql2") {
         await alterColumnType("o_tasks", "relatedObjects", "text");
+      }
+      const quickVideoBaseAgent = { key: "quickVideoAgent", name: "\u5FEB\u521BAgent", desc: "\u5355\u89C6\u9891\u5FEB\u521B\u6A21\u5F0F\u7684\u521B\u4F5CAgent\uFF0C\u8D1F\u8D23\u7B80\u62A5\u68B3\u7406\u4E0E\u5206\u955C\u751F\u6210\uFF0C\u5EFA\u8BAE\u4F7F\u7528\u5177\u5907\u8F83\u5F3A\u6587\u672C\u7406\u89E3\u548C\u7ED3\u6784\u5316\u8F93\u51FA\u80FD\u529B\u7684\u6A21\u578B" };
+      const existsQuickVideoAgent = await db_default("o_agentDeploy").where("key", quickVideoBaseAgent.key).select("*").first();
+      if (!existsQuickVideoAgent) {
+        await db_default("o_agentDeploy").insert({
+          model: "",
+          modelName: "",
+          vendorId: null,
+          key: quickVideoBaseAgent.key,
+          name: quickVideoBaseAgent.name,
+          desc: quickVideoBaseAgent.desc,
+          disabled: false
+        });
       }
       if (knex2.client.config.client === "mysql2" && !await knex2.schema.hasColumn("o_assets2Storyboard", "id")) {
         await knex2.raw(
@@ -174693,7 +175850,7 @@ var require_state2 = __commonJS({
 });
 
 // node_modules/util-deprecate/node.js
-var require_node3 = __commonJS({
+var require_node4 = __commonJS({
   "node_modules/util-deprecate/node.js"(exports2, module2) {
     "use strict";
     module2.exports = require("util").deprecate;
@@ -174716,7 +175873,7 @@ var require_stream_writable = __commonJS({
     var Duplex;
     Writable.WritableState = WritableState;
     var internalUtil = {
-      deprecate: require_node3()
+      deprecate: require_node4()
     };
     var Stream = require_stream8();
     var Buffer2 = require("buffer").Buffer;
@@ -178269,11 +179426,11 @@ var require_lodash8 = __commonJS({
             return isFunction4(object4[key]);
           });
         }
-        function baseGet(object4, path25) {
-          path25 = castPath(path25, object4);
-          var index2 = 0, length = path25.length;
+        function baseGet(object4, path26) {
+          path26 = castPath(path26, object4);
+          var index2 = 0, length = path26.length;
           while (object4 != null && index2 < length) {
-            object4 = object4[toKey(path25[index2++])];
+            object4 = object4[toKey(path26[index2++])];
           }
           return index2 && index2 == length ? object4 : undefined2;
         }
@@ -178337,10 +179494,10 @@ var require_lodash8 = __commonJS({
           });
           return accumulator;
         }
-        function baseInvoke(object4, path25, args) {
-          path25 = castPath(path25, object4);
-          object4 = parent(object4, path25);
-          var func = object4 == null ? object4 : object4[toKey(last(path25))];
+        function baseInvoke(object4, path26, args) {
+          path26 = castPath(path26, object4);
+          object4 = parent(object4, path26);
+          var func = object4 == null ? object4 : object4[toKey(last(path26))];
           return func == null ? undefined2 : apply(func, object4, args);
         }
         function baseIsArguments(value) {
@@ -178496,13 +179653,13 @@ var require_lodash8 = __commonJS({
             return object4 === source || baseIsMatch(object4, source, matchData);
           };
         }
-        function baseMatchesProperty(path25, srcValue) {
-          if (isKey(path25) && isStrictComparable(srcValue)) {
-            return matchesStrictComparable(toKey(path25), srcValue);
+        function baseMatchesProperty(path26, srcValue) {
+          if (isKey(path26) && isStrictComparable(srcValue)) {
+            return matchesStrictComparable(toKey(path26), srcValue);
           }
           return function(object4) {
-            var objValue = get(object4, path25);
-            return objValue === undefined2 && objValue === srcValue ? hasIn(object4, path25) : baseIsEqual(srcValue, objValue, COMPARE_PARTIAL_FLAG | COMPARE_UNORDERED_FLAG);
+            var objValue = get(object4, path26);
+            return objValue === undefined2 && objValue === srcValue ? hasIn(object4, path26) : baseIsEqual(srcValue, objValue, COMPARE_PARTIAL_FLAG | COMPARE_UNORDERED_FLAG);
           };
         }
         function baseMerge(object4, source, srcIndex, customizer, stack) {
@@ -178599,23 +179756,23 @@ var require_lodash8 = __commonJS({
           });
         }
         function basePick(object4, paths) {
-          return basePickBy(object4, paths, function(value, path25) {
-            return hasIn(object4, path25);
+          return basePickBy(object4, paths, function(value, path26) {
+            return hasIn(object4, path26);
           });
         }
         function basePickBy(object4, paths, predicate) {
           var index2 = -1, length = paths.length, result2 = {};
           while (++index2 < length) {
-            var path25 = paths[index2], value = baseGet(object4, path25);
-            if (predicate(value, path25)) {
-              baseSet(result2, castPath(path25, object4), value);
+            var path26 = paths[index2], value = baseGet(object4, path26);
+            if (predicate(value, path26)) {
+              baseSet(result2, castPath(path26, object4), value);
             }
           }
           return result2;
         }
-        function basePropertyDeep(path25) {
+        function basePropertyDeep(path26) {
           return function(object4) {
-            return baseGet(object4, path25);
+            return baseGet(object4, path26);
           };
         }
         function basePullAll(array4, values2, iteratee2, comparator) {
@@ -178689,14 +179846,14 @@ var require_lodash8 = __commonJS({
           var array4 = values(collection);
           return shuffleSelf(array4, baseClamp(n, 0, array4.length));
         }
-        function baseSet(object4, path25, value, customizer) {
+        function baseSet(object4, path26, value, customizer) {
           if (!isObject5(object4)) {
             return object4;
           }
-          path25 = castPath(path25, object4);
-          var index2 = -1, length = path25.length, lastIndex = length - 1, nested = object4;
+          path26 = castPath(path26, object4);
+          var index2 = -1, length = path26.length, lastIndex = length - 1, nested = object4;
           while (nested != null && ++index2 < length) {
-            var key = toKey(path25[index2]), newValue = value;
+            var key = toKey(path26[index2]), newValue = value;
             if (key === "__proto__" || key === "constructor" || key === "prototype") {
               return object4;
             }
@@ -178704,7 +179861,7 @@ var require_lodash8 = __commonJS({
               var objValue = nested[key];
               newValue = customizer ? customizer(objValue, key, nested) : undefined2;
               if (newValue === undefined2) {
-                newValue = isObject5(objValue) ? objValue : isIndex(path25[index2 + 1]) ? [] : {};
+                newValue = isObject5(objValue) ? objValue : isIndex(path26[index2 + 1]) ? [] : {};
               }
             }
             assignValue(nested, key, newValue);
@@ -178870,33 +180027,33 @@ var require_lodash8 = __commonJS({
             }
           return result2;
         }
-        function baseUnset(object4, path25) {
-          path25 = castPath(path25, object4);
-          var index2 = -1, length = path25.length;
+        function baseUnset(object4, path26) {
+          path26 = castPath(path26, object4);
+          var index2 = -1, length = path26.length;
           if (!length) {
             return true;
           }
           var isRootPrimitive = object4 == null || typeof object4 !== "object" && typeof object4 !== "function";
           while (++index2 < length) {
-            var key = path25[index2];
+            var key = path26[index2];
             if (typeof key !== "string") {
               continue;
             }
             if (key === "__proto__" && !hasOwnProperty2.call(object4, "__proto__")) {
               return false;
             }
-            if (key === "constructor" && index2 + 1 < length && typeof path25[index2 + 1] === "string" && path25[index2 + 1] === "prototype") {
+            if (key === "constructor" && index2 + 1 < length && typeof path26[index2 + 1] === "string" && path26[index2 + 1] === "prototype") {
               if (isRootPrimitive && index2 === 0) {
                 continue;
               }
               return false;
             }
           }
-          var obj = parent(object4, path25);
-          return obj == null || delete obj[toKey(last(path25))];
+          var obj = parent(object4, path26);
+          return obj == null || delete obj[toKey(last(path26))];
         }
-        function baseUpdate(object4, path25, updater, customizer) {
-          return baseSet(object4, path25, updater(baseGet(object4, path25)), customizer);
+        function baseUpdate(object4, path26, updater, customizer) {
+          return baseSet(object4, path26, updater(baseGet(object4, path26)), customizer);
         }
         function baseWhile(array4, predicate, isDrop, fromRight) {
           var length = array4.length, index2 = fromRight ? length : -1;
@@ -179779,11 +180936,11 @@ var require_lodash8 = __commonJS({
           var match = source.match(reWrapDetails);
           return match ? match[1].split(reSplitDetails) : [];
         }
-        function hasPath(object4, path25, hasFunc) {
-          path25 = castPath(path25, object4);
-          var index2 = -1, length = path25.length, result2 = false;
+        function hasPath(object4, path26, hasFunc) {
+          path26 = castPath(path26, object4);
+          var index2 = -1, length = path26.length, result2 = false;
           while (++index2 < length) {
-            var key = toKey(path25[index2]);
+            var key = toKey(path26[index2]);
             if (!(result2 = object4 != null && hasFunc(object4, key))) {
               break;
             }
@@ -179985,8 +181142,8 @@ var require_lodash8 = __commonJS({
             return apply(func, this, otherArgs);
           };
         }
-        function parent(object4, path25) {
-          return path25.length < 2 ? object4 : baseGet(object4, baseSlice(path25, 0, -1));
+        function parent(object4, path26) {
+          return path26.length < 2 ? object4 : baseGet(object4, baseSlice(path26, 0, -1));
         }
         function reorder(array4, indexes) {
           var arrLength = array4.length, length = nativeMin(indexes.length, arrLength), oldArray = copyArray(array4);
@@ -180621,10 +181778,10 @@ var require_lodash8 = __commonJS({
           }
           return isString3(collection) ? fromIndex <= length && collection.indexOf(value, fromIndex) > -1 : !!length && baseIndexOf(collection, value, fromIndex) > -1;
         }
-        var invokeMap = baseRest(function(collection, path25, args) {
-          var index2 = -1, isFunc = typeof path25 == "function", result2 = isArrayLike(collection) ? Array2(collection.length) : [];
+        var invokeMap = baseRest(function(collection, path26, args) {
+          var index2 = -1, isFunc = typeof path26 == "function", result2 = isArrayLike(collection) ? Array2(collection.length) : [];
           baseEach(collection, function(value) {
-            result2[++index2] = isFunc ? apply(path25, value, args) : baseInvoke(value, path25, args);
+            result2[++index2] = isFunc ? apply(path26, value, args) : baseInvoke(value, path26, args);
           });
           return result2;
         });
@@ -181276,15 +182433,15 @@ var require_lodash8 = __commonJS({
         function functionsIn(object4) {
           return object4 == null ? [] : baseFunctions(object4, keysIn(object4));
         }
-        function get(object4, path25, defaultValue) {
-          var result2 = object4 == null ? undefined2 : baseGet(object4, path25);
+        function get(object4, path26, defaultValue) {
+          var result2 = object4 == null ? undefined2 : baseGet(object4, path26);
           return result2 === undefined2 ? defaultValue : result2;
         }
-        function has(object4, path25) {
-          return object4 != null && hasPath(object4, path25, baseHas);
+        function has(object4, path26) {
+          return object4 != null && hasPath(object4, path26, baseHas);
         }
-        function hasIn(object4, path25) {
-          return object4 != null && hasPath(object4, path25, baseHasIn);
+        function hasIn(object4, path26) {
+          return object4 != null && hasPath(object4, path26, baseHasIn);
         }
         var invert = createInverter(function(result2, value, key) {
           if (value != null && typeof value.toString != "function") {
@@ -181337,10 +182494,10 @@ var require_lodash8 = __commonJS({
             return result2;
           }
           var isDeep = false;
-          paths = arrayMap(paths, function(path25) {
-            path25 = castPath(path25, object4);
-            isDeep || (isDeep = path25.length > 1);
-            return path25;
+          paths = arrayMap(paths, function(path26) {
+            path26 = castPath(path26, object4);
+            isDeep || (isDeep = path26.length > 1);
+            return path26;
           });
           copyObject(object4, getAllKeysIn(object4), result2);
           if (isDeep) {
@@ -181366,19 +182523,19 @@ var require_lodash8 = __commonJS({
             return [prop];
           });
           predicate = getIteratee(predicate);
-          return basePickBy(object4, props, function(value, path25) {
-            return predicate(value, path25[0]);
+          return basePickBy(object4, props, function(value, path26) {
+            return predicate(value, path26[0]);
           });
         }
-        function result(object4, path25, defaultValue) {
-          path25 = castPath(path25, object4);
-          var index2 = -1, length = path25.length;
+        function result(object4, path26, defaultValue) {
+          path26 = castPath(path26, object4);
+          var index2 = -1, length = path26.length;
           if (!length) {
             length = 1;
             object4 = undefined2;
           }
           while (++index2 < length) {
-            var value = object4 == null ? undefined2 : object4[toKey(path25[index2])];
+            var value = object4 == null ? undefined2 : object4[toKey(path26[index2])];
             if (value === undefined2) {
               index2 = length;
               value = defaultValue;
@@ -181387,12 +182544,12 @@ var require_lodash8 = __commonJS({
           }
           return object4;
         }
-        function set3(object4, path25, value) {
-          return object4 == null ? object4 : baseSet(object4, path25, value);
+        function set3(object4, path26, value) {
+          return object4 == null ? object4 : baseSet(object4, path26, value);
         }
-        function setWith(object4, path25, value, customizer) {
+        function setWith(object4, path26, value, customizer) {
           customizer = typeof customizer == "function" ? customizer : undefined2;
-          return object4 == null ? object4 : baseSet(object4, path25, value, customizer);
+          return object4 == null ? object4 : baseSet(object4, path26, value, customizer);
         }
         var toPairs = createToPairs(keys);
         var toPairsIn = createToPairs(keysIn);
@@ -181414,15 +182571,15 @@ var require_lodash8 = __commonJS({
           });
           return accumulator;
         }
-        function unset(object4, path25) {
-          return object4 == null ? true : baseUnset(object4, path25);
+        function unset(object4, path26) {
+          return object4 == null ? true : baseUnset(object4, path26);
         }
-        function update(object4, path25, updater) {
-          return object4 == null ? object4 : baseUpdate(object4, path25, castFunction(updater));
+        function update(object4, path26, updater) {
+          return object4 == null ? object4 : baseUpdate(object4, path26, castFunction(updater));
         }
-        function updateWith(object4, path25, updater, customizer) {
+        function updateWith(object4, path26, updater, customizer) {
           customizer = typeof customizer == "function" ? customizer : undefined2;
-          return object4 == null ? object4 : baseUpdate(object4, path25, castFunction(updater), customizer);
+          return object4 == null ? object4 : baseUpdate(object4, path26, castFunction(updater), customizer);
         }
         function values(object4) {
           return object4 == null ? [] : baseValues(object4, keys(object4));
@@ -181803,17 +182960,17 @@ var require_lodash8 = __commonJS({
         function matches(source) {
           return baseMatches(baseClone(source, CLONE_DEEP_FLAG));
         }
-        function matchesProperty(path25, srcValue) {
-          return baseMatchesProperty(path25, baseClone(srcValue, CLONE_DEEP_FLAG));
+        function matchesProperty(path26, srcValue) {
+          return baseMatchesProperty(path26, baseClone(srcValue, CLONE_DEEP_FLAG));
         }
-        var method = baseRest(function(path25, args) {
+        var method = baseRest(function(path26, args) {
           return function(object4) {
-            return baseInvoke(object4, path25, args);
+            return baseInvoke(object4, path26, args);
           };
         });
         var methodOf = baseRest(function(object4, args) {
-          return function(path25) {
-            return baseInvoke(object4, path25, args);
+          return function(path26) {
+            return baseInvoke(object4, path26, args);
           };
         });
         function mixin(object4, source, options) {
@@ -181860,12 +183017,12 @@ var require_lodash8 = __commonJS({
         var over = createOver(arrayMap);
         var overEvery = createOver(arrayEvery);
         var overSome = createOver(arraySome);
-        function property(path25) {
-          return isKey(path25) ? baseProperty(toKey(path25)) : basePropertyDeep(path25);
+        function property(path26) {
+          return isKey(path26) ? baseProperty(toKey(path26)) : basePropertyDeep(path26);
         }
         function propertyOf(object4) {
-          return function(path25) {
-            return object4 == null ? undefined2 : baseGet(object4, path25);
+          return function(path26) {
+            return object4 == null ? undefined2 : baseGet(object4, path26);
           };
         }
         var range = createRange();
@@ -182318,12 +183475,12 @@ var require_lodash8 = __commonJS({
         LazyWrapper.prototype.findLast = function(predicate) {
           return this.reverse().find(predicate);
         };
-        LazyWrapper.prototype.invokeMap = baseRest(function(path25, args) {
-          if (typeof path25 == "function") {
+        LazyWrapper.prototype.invokeMap = baseRest(function(path26, args) {
+          if (typeof path26 == "function") {
             return new LazyWrapper(this);
           }
           return this.map(function(value) {
-            return baseInvoke(value, path25, args);
+            return baseInvoke(value, path26, args);
           });
         });
         LazyWrapper.prototype.reject = function(predicate) {
@@ -191294,16 +192451,16 @@ var init_Matcher = __esm({
        * @returns {string|undefined}
        */
       getCurrentTag() {
-        const path25 = this._matcher.path;
-        return path25.length > 0 ? path25[path25.length - 1].tag : void 0;
+        const path26 = this._matcher.path;
+        return path26.length > 0 ? path26[path26.length - 1].tag : void 0;
       }
       /**
        * Get current namespace.
        * @returns {string|undefined}
        */
       getCurrentNamespace() {
-        const path25 = this._matcher.path;
-        return path25.length > 0 ? path25[path25.length - 1].namespace : void 0;
+        const path26 = this._matcher.path;
+        return path26.length > 0 ? path26[path26.length - 1].namespace : void 0;
       }
       /**
        * Get current node's attribute value.
@@ -191311,9 +192468,9 @@ var init_Matcher = __esm({
        * @returns {*}
        */
       getAttrValue(attrName) {
-        const path25 = this._matcher.path;
-        if (path25.length === 0) return void 0;
-        return path25[path25.length - 1].values?.[attrName];
+        const path26 = this._matcher.path;
+        if (path26.length === 0) return void 0;
+        return path26[path26.length - 1].values?.[attrName];
       }
       /**
        * Check if current node has an attribute.
@@ -191321,9 +192478,9 @@ var init_Matcher = __esm({
        * @returns {boolean}
        */
       hasAttr(attrName) {
-        const path25 = this._matcher.path;
-        if (path25.length === 0) return false;
-        const current = path25[path25.length - 1];
+        const path26 = this._matcher.path;
+        if (path26.length === 0) return false;
+        const current = path26[path26.length - 1];
         return current.values !== void 0 && attrName in current.values;
       }
       /**
@@ -191349,18 +192506,18 @@ var init_Matcher = __esm({
        * @returns {number}
        */
       getPosition() {
-        const path25 = this._matcher.path;
-        if (path25.length === 0) return -1;
-        return path25[path25.length - 1].position ?? 0;
+        const path26 = this._matcher.path;
+        if (path26.length === 0) return -1;
+        return path26[path26.length - 1].position ?? 0;
       }
       /**
        * Get current node's repeat counter (occurrence count of this tag name).
        * @returns {number}
        */
       getCounter() {
-        const path25 = this._matcher.path;
-        if (path25.length === 0) return -1;
-        return path25[path25.length - 1].counter ?? 0;
+        const path26 = this._matcher.path;
+        if (path26.length === 0) return -1;
+        return path26[path26.length - 1].counter ?? 0;
       }
       /**
        * Get current node's sibling index (alias for getPosition).
@@ -202814,11 +203971,11 @@ var require_mime_types4 = __commonJS({
       }
       return exts[0];
     }
-    function lookup2(path25) {
-      if (!path25 || typeof path25 !== "string") {
+    function lookup2(path26) {
+      if (!path26 || typeof path26 !== "string") {
         return false;
       }
-      var extension2 = extname("x." + path25).toLowerCase().substr(1);
+      var extension2 = extname("x." + path26).toLowerCase().substr(1);
       if (!extension2) {
         return false;
       }
@@ -202950,8 +204107,8 @@ function isValidDomain(host) {
   }
   return true;
 }
-function probeContentType(path25) {
-  let contentType = mime.lookup(path25);
+function probeContentType(path26) {
+  let contentType = mime.lookup(path26);
   if (!contentType) {
     contentType = "application/octet-stream";
   }
@@ -203955,11 +205112,11 @@ var init_notification = __esm({
 });
 
 // node_modules/minio/dist/esm/signing.mjs
-function getCanonicalRequest(method, path25, headers, signedHeaders, hashedPayload) {
+function getCanonicalRequest(method, path26, headers, signedHeaders, hashedPayload) {
   if (!isString2(method)) {
     throw new TypeError('method should be of type "string"');
   }
-  if (!isString2(path25)) {
+  if (!isString2(path26)) {
     throw new TypeError('path should be of type "string"');
   }
   if (!isObject4(headers)) {
@@ -203976,8 +205133,8 @@ function getCanonicalRequest(method, path25, headers, signedHeaders, hashedPaylo
     acc.push(`${i.toLowerCase()}:${val}`);
     return acc;
   }, []);
-  const requestResource = path25.split("?")[0];
-  let requestQuery = path25.split("?")[1];
+  const requestResource = path26.split("?")[0];
+  let requestQuery = path26.split("?")[1];
   if (!requestQuery) {
     requestQuery = "";
   }
@@ -204126,12 +205283,12 @@ function presignSignatureV4(request2, accessKey, secretKey, sessionToken, region
   } else {
     query = requestQuery.join("&");
   }
-  const path25 = resource + "?" + query;
-  const canonicalRequest = getCanonicalRequest(request2.method, path25, request2.headers, signedHeaders, hashedPayload);
+  const path26 = resource + "?" + query;
+  const canonicalRequest = getCanonicalRequest(request2.method, path26, request2.headers, signedHeaders, hashedPayload);
   const stringToSign = getStringToSign(canonicalRequest, requestDate, region);
   const signingKey = getSigningKey(requestDate, region, secretKey);
   const signature = crypto7.createHmac("sha256", signingKey).update(stringToSign).digest("hex").toLowerCase();
-  return request2.protocol + "//" + request2.headers.host + path25 + `&X-Amz-Signature=${signature}`;
+  return request2.protocol + "//" + request2.headers.host + path26 + `&X-Amz-Signature=${signature}`;
 }
 var crypto7, signV4Algorithm;
 var init_signing = __esm({
@@ -205838,7 +206995,7 @@ var init_client = __esm({
         if (bucketName) {
           virtualHostStyle = isVirtualHostStyle(this.host, this.protocol, bucketName, this.pathStyle);
         }
-        let path25 = "/";
+        let path26 = "/";
         let host = this.host;
         let port;
         if (this.port) {
@@ -205860,18 +207017,18 @@ var init_client = __esm({
             host = `${bucketName}.${host}`;
           }
           if (objectName) {
-            path25 = `/${objectName}`;
+            path26 = `/${objectName}`;
           }
         } else {
           if (bucketName) {
-            path25 = `/${bucketName}`;
+            path26 = `/${bucketName}`;
           }
           if (objectName) {
-            path25 = `/${bucketName}/${objectName}`;
+            path26 = `/${bucketName}/${objectName}`;
           }
         }
         if (query) {
-          path25 += `?${query}`;
+          path26 += `?${query}`;
         }
         reqOptions.headers.host = host;
         if (reqOptions.protocol === "http:" && port !== 80 || reqOptions.protocol === "https:" && port !== 443) {
@@ -205889,7 +207046,7 @@ var init_client = __esm({
           headers: import_lodash2.default.mapValues(import_lodash2.default.pickBy(reqOptions.headers, isDefined), (v) => v.toString()),
           host,
           port,
-          path: path25
+          path: path26
         };
       }
       async setCredentialsProvider(credentialsProvider) {
@@ -208548,6 +209705,8 @@ var init_oss = __esm({
           if (!exists) {
             await this.client.makeBucket(this.bucket);
           }
+        }).catch((err) => {
+          console.warn(`[OSS] MinIO \u521D\u59CB\u5316\u5931\u8D25\uFF08\u670D\u52A1\u7EE7\u7EED\u542F\u52A8\uFF0C\u6587\u4EF6\u64CD\u4F5C\u5C06\u5728\u4F7F\u7528\u65F6\u62A5\u9519\uFF09: ${err?.message ?? err}`);
         });
       }
       /**
@@ -209064,19 +210223,19 @@ var require_token_io = __commonJS({
       getUserDataDir: () => getUserDataDir
     });
     module2.exports = __toCommonJS2(token_io_exports);
-    var import_path21 = __toESM2(require("path"));
+    var import_path22 = __toESM2(require("path"));
     var import_fs7 = __toESM2(require("fs"));
     var import_os = __toESM2(require("os"));
     var import_token_error = require_token_error();
     function findRootDir() {
       try {
         let dir = process.cwd();
-        while (dir !== import_path21.default.dirname(dir)) {
-          const pkgPath = import_path21.default.join(dir, ".vercel");
+        while (dir !== import_path22.default.dirname(dir)) {
+          const pkgPath = import_path22.default.join(dir, ".vercel");
           if (import_fs7.default.existsSync(pkgPath)) {
             return dir;
           }
-          dir = import_path21.default.dirname(dir);
+          dir = import_path22.default.dirname(dir);
         }
       } catch (e) {
         throw new import_token_error.VercelOidcTokenError(
@@ -209091,9 +210250,9 @@ var require_token_io = __commonJS({
       }
       switch (import_os.default.platform()) {
         case "darwin":
-          return import_path21.default.join(import_os.default.homedir(), "Library/Application Support");
+          return import_path22.default.join(import_os.default.homedir(), "Library/Application Support");
         case "linux":
-          return import_path21.default.join(import_os.default.homedir(), ".local/share");
+          return import_path22.default.join(import_os.default.homedir(), ".local/share");
         case "win32":
           if (process.env.LOCALAPPDATA) {
             return process.env.LOCALAPPDATA;
@@ -209144,8 +210303,8 @@ var require_auth_config = __commonJS({
       writeAuthConfig: () => writeAuthConfig
     });
     module2.exports = __toCommonJS2(auth_config_exports);
-    var fs21 = __toESM2(require("fs"));
-    var path25 = __toESM2(require("path"));
+    var fs22 = __toESM2(require("fs"));
+    var path26 = __toESM2(require("path"));
     var import_token_util = require_token_util();
     function getAuthConfigPath() {
       const dataDir = (0, import_token_util.getVercelDataDir)();
@@ -209154,15 +210313,15 @@ var require_auth_config = __commonJS({
           `Unable to find Vercel CLI data directory. Your platform: ${process.platform}. Supported: darwin, linux, win32.`
         );
       }
-      return path25.join(dataDir, "auth.json");
+      return path26.join(dataDir, "auth.json");
     }
     function readAuthConfig() {
       try {
         const authPath = getAuthConfigPath();
-        if (!fs21.existsSync(authPath)) {
+        if (!fs22.existsSync(authPath)) {
           return null;
         }
-        const content = fs21.readFileSync(authPath, "utf8");
+        const content = fs22.readFileSync(authPath, "utf8");
         if (!content) {
           return null;
         }
@@ -209173,11 +210332,11 @@ var require_auth_config = __commonJS({
     }
     function writeAuthConfig(config3) {
       const authPath = getAuthConfigPath();
-      const authDir = path25.dirname(authPath);
-      if (!fs21.existsSync(authDir)) {
-        fs21.mkdirSync(authDir, { mode: 504, recursive: true });
+      const authDir = path26.dirname(authPath);
+      if (!fs22.existsSync(authDir)) {
+        fs22.mkdirSync(authDir, { mode: 504, recursive: true });
       }
-      fs21.writeFileSync(authPath, JSON.stringify(config3, null, 2), { mode: 384 });
+      fs22.writeFileSync(authPath, JSON.stringify(config3, null, 2), { mode: 384 });
     }
     function isValidAccessToken(authConfig) {
       if (!authConfig.token)
@@ -209323,8 +210482,8 @@ var require_token_util = __commonJS({
       saveToken: () => saveToken
     });
     module2.exports = __toCommonJS2(token_util_exports);
-    var path25 = __toESM2(require("path"));
-    var fs21 = __toESM2(require("fs"));
+    var path26 = __toESM2(require("path"));
+    var fs22 = __toESM2(require("fs"));
     var import_token_error = require_token_error();
     var import_token_io = require_token_io();
     var import_auth_config = require_auth_config();
@@ -209335,7 +210494,7 @@ var require_token_util = __commonJS({
       if (!dataDir) {
         return null;
       }
-      return path25.join(dataDir, vercelFolder);
+      return path26.join(dataDir, vercelFolder);
     }
     async function getVercelCliToken() {
       const authConfig = (0, import_auth_config.readAuthConfig)();
@@ -209408,13 +210567,13 @@ var require_token_util = __commonJS({
           "Unable to find project root directory. Have you linked your project with `vc link?`"
         );
       }
-      const prjPath = path25.join(dir, ".vercel", "project.json");
-      if (!fs21.existsSync(prjPath)) {
+      const prjPath = path26.join(dir, ".vercel", "project.json");
+      if (!fs22.existsSync(prjPath)) {
         throw new import_token_error.VercelOidcTokenError(
           "project.json not found, have you linked your project with `vc link?`"
         );
       }
-      const prj = JSON.parse(fs21.readFileSync(prjPath, "utf8"));
+      const prj = JSON.parse(fs22.readFileSync(prjPath, "utf8"));
       if (typeof prj.projectId !== "string" && typeof prj.orgId !== "string") {
         throw new TypeError(
           "Expected a string-valued projectId property. Try running `vc link` to re-link your project."
@@ -209429,11 +210588,11 @@ var require_token_util = __commonJS({
           "Unable to find user data directory. Please reach out to Vercel support."
         );
       }
-      const tokenPath = path25.join(dir, "com.vercel.token", `${projectId}.json`);
+      const tokenPath = path26.join(dir, "com.vercel.token", `${projectId}.json`);
       const tokenJson = JSON.stringify(token);
-      fs21.mkdirSync(path25.dirname(tokenPath), { mode: 504, recursive: true });
-      fs21.writeFileSync(tokenPath, tokenJson);
-      fs21.chmodSync(tokenPath, 432);
+      fs22.mkdirSync(path26.dirname(tokenPath), { mode: 504, recursive: true });
+      fs22.writeFileSync(tokenPath, tokenJson);
+      fs22.chmodSync(tokenPath, 432);
       return;
     }
     function loadToken(projectId) {
@@ -209443,11 +210602,11 @@ var require_token_util = __commonJS({
           "Unable to find user data directory. Please reach out to Vercel support."
         );
       }
-      const tokenPath = path25.join(dir, "com.vercel.token", `${projectId}.json`);
-      if (!fs21.existsSync(tokenPath)) {
+      const tokenPath = path26.join(dir, "com.vercel.token", `${projectId}.json`);
+      if (!fs22.existsSync(tokenPath)) {
         return null;
       }
-      const token = JSON.parse(fs21.readFileSync(tokenPath, "utf8"));
+      const token = JSON.parse(fs22.readFileSync(tokenPath, "utf8"));
       assertVercelOidcTokenResponse(token);
       return token;
     }
@@ -220159,7 +221318,7 @@ var init_dist22 = __esm({
       signalHandlersRegistered = true;
       const cleanup = async () => {
         if (activeSteps.size === 0) return;
-        const promises7 = Array.from(activeSteps.entries()).map(
+        const promises8 = Array.from(activeSteps.entries()).map(
           async ([stepId, data]) => {
             const durationMs = Date.now() - data.startTime;
             await updateStepResult(stepId, {
@@ -220173,7 +221332,7 @@ var init_dist22 = __esm({
             });
           }
         );
-        await Promise.all(promises7);
+        await Promise.all(promises8);
         await notifyServerAsync("step-update");
       };
       process.on("SIGINT", () => {
@@ -220562,6 +221721,7 @@ var init_ai = __esm({
     AiTypeValues = [
       "scriptAgent",
       "productionAgent",
+      "quickVideoAgent",
       "universalAi",
       "scriptAgent:decisionAgent",
       "scriptAgent:supervisionAgent",
@@ -220649,8 +221809,8 @@ var init_ai = __esm({
         await exec2(modelName);
         return this;
       }
-      async save(path25) {
-        await utils_default2.oss.writeFile(path25, this.result);
+      async save(path26) {
+        await utils_default2.oss.writeFile(path26, this.result);
         return this;
       }
     };
@@ -220681,8 +221841,8 @@ var init_ai = __esm({
           throw e;
         }
       }
-      async save(path25) {
-        await utils_default2.oss.writeFile(path25, this.result);
+      async save(path26) {
+        await utils_default2.oss.writeFile(path26, this.result);
         return this;
       }
     };
@@ -220711,8 +221871,8 @@ var init_ai = __esm({
         }
         return await exec2(modelName);
       }
-      async save(path25) {
-        await utils_default2.oss.writeFile(path25, this.result);
+      async save(path26) {
+        await utils_default2.oss.writeFile(path26, this.result);
         return this;
       }
     };
@@ -221000,7 +222160,7 @@ __export(atlascloud_exports, {
 function createVendorAPI3(inputValues) {
   const getChatBaseUrl = () => inputValues.chatBaseUrl.replace(/\/+$/, "");
   const getMediaBaseUrl = () => inputValues.mediaBaseUrl.replace(/\/+$/, "");
-  const joinUrl = (base, path25) => `${base}${path25.startsWith("/") ? "" : "/"}${path25}`;
+  const joinUrl = (base, path26) => `${base}${path26.startsWith("/") ? "" : "/"}${path26}`;
   const getHeaders = () => {
     if (!inputValues.apiKey) throw new Error("\u7F3A\u5C11 API Key");
     return {
@@ -221008,14 +222168,14 @@ function createVendorAPI3(inputValues) {
       Authorization: `Bearer ${inputValues.apiKey.replace(/^Bearer\s+/i, "")}`
     };
   };
-  const readByPath = (obj, path25) => {
-    if (!obj || !path25) return void 0;
-    const normalizedPath = path25.replace(/\[(\d+)\]/g, ".$1");
+  const readByPath = (obj, path26) => {
+    if (!obj || !path26) return void 0;
+    const normalizedPath = path26.replace(/\[(\d+)\]/g, ".$1");
     return normalizedPath.split(".").reduce((acc, key) => acc == null ? void 0 : acc[key], obj);
   };
   const pickFirstPath = (obj, paths) => {
-    for (const path25 of paths) {
-      const value = readByPath(obj, path25);
+    for (const path26 of paths) {
+      const value = readByPath(obj, path26);
       if (value !== void 0 && value !== null && value !== "") return value;
     }
     return void 0;
@@ -224484,6 +225644,964 @@ var init_utils3 = __esm({
   }
 });
 
+// src/lib/quickVideo/contract.ts
+function canTransitionStage(from, to) {
+  return STAGE_TRANSITIONS[from]?.includes(to) ?? false;
+}
+function shotCountBounds(targetDuration) {
+  const max = Math.max(1, Math.min(SHOT_COUNT_MAX, Math.floor(targetDuration / SHOT_DURATION_MIN)));
+  const min = Math.max(1, Math.min(5, Math.floor(targetDuration / SHOT_DURATION_MAX) || 1));
+  return { min, max };
+}
+function validateStoryboard(targetDuration, shots) {
+  const errors = [];
+  const { min, max } = shotCountBounds(targetDuration);
+  if (shots.length < min || shots.length > max) {
+    errors.push(`\u955C\u5934\u6570\u91CF\u9700\u5728 ${min}-${max} \u4E2A\u4E4B\u95F4\uFF08\u76EE\u6807\u65F6\u957F ${targetDuration} \u79D2\uFF0C\u5F53\u524D ${shots.length} \u4E2A\uFF09`);
+  }
+  const total = shots.reduce((sum, s) => sum + s.duration, 0);
+  const tolerance = Math.max(3, Math.round(targetDuration * 0.2));
+  if (Math.abs(total - targetDuration) > tolerance) {
+    errors.push(`\u955C\u5934\u603B\u65F6\u957F ${total} \u79D2\u4E0E\u76EE\u6807\u65F6\u957F ${targetDuration} \u79D2\u504F\u5DEE\u8D85\u8FC7 ${tolerance} \u79D2`);
+  }
+  const ids = /* @__PURE__ */ new Set();
+  shots.forEach((shot, i) => {
+    if (ids.has(shot.id)) errors.push(`\u955C\u5934 ID \u91CD\u590D\uFF1A${shot.id}`);
+    ids.add(shot.id);
+    if (shot.duration < SHOT_DURATION_MIN || shot.duration > SHOT_DURATION_MAX) {
+      errors.push(`\u955C\u5934 ${i + 1} \u65F6\u957F\u9700\u5728 ${SHOT_DURATION_MIN}-${SHOT_DURATION_MAX} \u79D2`);
+    }
+  });
+  return errors;
+}
+function computeGenerationEstimate(shots, materials) {
+  const toGenerateCount = materials.filter((m) => m.source === "to_generate").length;
+  const imageCount = shots.length + toGenerateCount;
+  const videoCount = shots.length;
+  const totalVideoSeconds = shots.reduce((sum, s) => sum + s.duration, 0);
+  const estimatedCostYuan = Math.round((imageCount * ESTIMATE_IMAGE_COST_YUAN + totalVideoSeconds * ESTIMATE_VIDEO_COST_PER_SECOND_YUAN) * 100) / 100;
+  const estimatedSeconds = imageCount * ESTIMATE_IMAGE_SECONDS + totalVideoSeconds * ESTIMATE_VIDEO_SECONDS;
+  return { estimatedImageCount: imageCount, estimatedVideoCount: videoCount, estimatedCostYuan, estimatedSeconds };
+}
+function recordIdempotencyKey(state, key) {
+  if (!key) return true;
+  if (state.appliedKeys[key] != null) return false;
+  const next = { ...state.appliedKeys, [key]: Date.now() };
+  const keys = Object.keys(next);
+  if (keys.length > IDEMPOTENCY_MAX_KEYS) {
+    keys.sort((a, b) => next[a] - next[b]);
+    for (const k of keys.slice(0, keys.length - IDEMPOTENCY_MAX_KEYS)) delete next[k];
+  }
+  state.appliedKeys = next;
+  return true;
+}
+var QUICK_VIDEO_AGENT_KEY, QUICK_VIDEO_SCHEMA_VERSION, QUICK_VIDEO_PROJECT_TYPE, QUICK_VIDEO_RATIOS, SHOT_DURATION_MIN, SHOT_DURATION_MAX, SHOT_COUNT_MAX, QUICK_VIDEO_STAGES, STAGE_TRANSITIONS, SHOT_GEN_STATES, shotAssetRefSchema, quickVideoShotSchema, quickVideoBriefSchema, quickVideoStoryboardSchema, materialItemSchema, snapshotShotSchema, generationSnapshotSchema, TIMELINE_TRANSITION_DURATION_S, TIMELINE_MAX_SPEED, TIMELINE_MIN_SPEED, QUICK_VIDEO_DIMENSIONS, timelineClipPlanSchema, timelineTransitionSchema, timelineTailPadSchema, timelinePlanSchema, timelineMetaSchema, quickVideoExportInfoSchema, quickVideoGenerationSchema, GENERATION_CONCURRENCY, GENERATION_IMAGE_TIMEOUT_MS, GENERATION_VIDEO_TIMEOUT_MS, ESTIMATE_IMAGE_COST_YUAN, ESTIMATE_VIDEO_COST_PER_SECOND_YUAN, ESTIMATE_IMAGE_SECONDS, ESTIMATE_VIDEO_SECONDS, quickVideoStateSchema, IDEMPOTENCY_MAX_KEYS;
+var init_contract = __esm({
+  "src/lib/quickVideo/contract.ts"() {
+    "use strict";
+    init_zod();
+    QUICK_VIDEO_AGENT_KEY = "quickVideoAgent";
+    QUICK_VIDEO_SCHEMA_VERSION = 1;
+    QUICK_VIDEO_PROJECT_TYPE = "quick_video";
+    QUICK_VIDEO_RATIOS = ["16:9", "9:16", "1:1"];
+    SHOT_DURATION_MIN = 5;
+    SHOT_DURATION_MAX = 15;
+    SHOT_COUNT_MAX = 12;
+    QUICK_VIDEO_STAGES = [
+      "collect_brief",
+      "brief_confirmed",
+      "storyboard_draft",
+      "storyboard_confirmed",
+      "generating",
+      "ready_to_assemble",
+      "completed"
+    ];
+    STAGE_TRANSITIONS = {
+      collect_brief: ["brief_confirmed"],
+      brief_confirmed: ["storyboard_draft", "collect_brief"],
+      storyboard_draft: ["storyboard_confirmed", "brief_confirmed"],
+      storyboard_confirmed: ["generating", "storyboard_draft"],
+      generating: ["ready_to_assemble", "storyboard_confirmed"],
+      ready_to_assemble: ["completed", "generating"],
+      completed: []
+    };
+    SHOT_GEN_STATES = ["pending", "generating", "done", "failed"];
+    shotAssetRefSchema = external_exports.object({
+      type: external_exports.enum(["role", "scene", "tool"]).describe("\u8D44\u4EA7\u7C7B\u578B\uFF1Arole=\u89D2\u8272 / scene=\u573A\u666F / tool=\u9053\u5177"),
+      name: external_exports.string().min(1).max(60).describe("\u8D44\u4EA7\u540D\u79F0"),
+      desc: external_exports.string().max(300).default("").describe("\u8D44\u4EA7\u5916\u89C2/\u89C6\u89C9\u63CF\u8FF0")
+    });
+    quickVideoShotSchema = external_exports.object({
+      id: external_exports.string().min(1).max(40).describe("\u955C\u5934\u7A33\u5B9A ID\uFF0C\u5982 shot-1"),
+      index: external_exports.number().int().min(1).describe("\u955C\u5934\u5E8F\u53F7\uFF081 \u5F00\u59CB\uFF0C\u6309\u64AD\u653E\u987A\u5E8F\uFF09"),
+      duration: external_exports.number().int().min(SHOT_DURATION_MIN).max(SHOT_DURATION_MAX).describe(`\u955C\u5934\u65F6\u957F\uFF08\u79D2\uFF09\uFF0C${SHOT_DURATION_MIN}-${SHOT_DURATION_MAX} \u79D2`),
+      description: external_exports.string().min(1).max(2e3).describe("\u753B\u9762\u63CF\u8FF0\uFF08\u955C\u5934\u5185\u5BB9\u3001\u52A8\u4F5C\u3001\u6C1B\u56F4\uFF09"),
+      dialogue: external_exports.string().max(500).default("").describe("\u53F0\u8BCD/\u65C1\u767D\uFF08\u7528\u4F5C\u5B57\u5E55\uFF0C\u53EF\u4E3A\u7A7A\uFF09"),
+      camera: external_exports.string().max(200).default("").describe("\u666F\u522B/\u8FD0\u955C\uFF08\u5982 \u5168\u666F\u3001\u7F13\u6162\u63A8\u8FDB\uFF09"),
+      assetRefs: external_exports.array(shotAssetRefSchema).max(10).default([]).describe("\u8BE5\u955C\u5934\u5F15\u7528\u7684\u8D44\u4EA7\u5217\u8868"),
+      imageState: external_exports.enum(SHOT_GEN_STATES).default("pending").describe("\u5206\u955C\u56FE\u751F\u6210\u72B6\u6001"),
+      videoState: external_exports.enum(SHOT_GEN_STATES).default("pending").describe("\u89C6\u9891\u7247\u6BB5\u751F\u6210\u72B6\u6001"),
+      imageRef: external_exports.string().max(500).nullable().default(null).describe("\u5206\u955C\u56FE\u6587\u4EF6\u5F15\u7528\uFF08OSS key\uFF09"),
+      videoRef: external_exports.string().max(500).nullable().default(null).describe("\u89C6\u9891\u7247\u6BB5\u6587\u4EF6\u5F15\u7528\uFF08OSS key\uFF09"),
+      errorReason: external_exports.string().max(1e3).nullable().default(null).describe("\u6700\u8FD1\u4E00\u6B21\u751F\u6210\u5931\u8D25\u539F\u56E0")
+    });
+    quickVideoBriefSchema = external_exports.object({
+      theme: external_exports.string().min(1).max(500).describe("\u4E3B\u9898/\u6838\u5FC3\u521B\u610F"),
+      hook: external_exports.string().max(500).default("").describe("\u5F00\u573A\u94A9\u5B50"),
+      narrative: external_exports.string().max(3e3).describe("\u53D9\u4E8B\u5927\u7EB2\uFF08\u6309\u65F6\u95F4\u7EBF\u7684\u4E00\u6BB5\u8BDD\uFF09"),
+      cta: external_exports.string().max(500).default("").describe("\u7ED3\u5C3E/\u884C\u52A8\u53F7\u53EC"),
+      keywords: external_exports.array(external_exports.string().min(1).max(60)).max(20).default([]).describe("\u98CE\u683C/\u5185\u5BB9\u5173\u952E\u8BCD"),
+      confirmed: external_exports.boolean().default(false).describe("\u7528\u6237\u662F\u5426\u5DF2\u786E\u8BA4\u8BE5\u7B80\u62A5"),
+      confirmedAt: external_exports.number().nullable().default(null).describe("\u786E\u8BA4\u65F6\u95F4\u6233")
+    });
+    quickVideoStoryboardSchema = external_exports.object({
+      version: external_exports.number().int().min(1).describe("\u5206\u955C\u7248\u672C\u53F7\uFF0C\u6BCF\u6B21 propose \u81EA\u589E"),
+      status: external_exports.enum(["draft", "confirmed"]).describe("\u5206\u955C\u786E\u8BA4\u72B6\u6001"),
+      confirmedAt: external_exports.number().nullable().default(null).describe("\u786E\u8BA4\u65F6\u95F4\u6233"),
+      summary: external_exports.string().max(1e3).default("").describe("\u672C\u7248\u5206\u955C\u7684\u6574\u4F53\u8BF4\u660E"),
+      shots: external_exports.array(quickVideoShotSchema).min(1).max(SHOT_COUNT_MAX).describe("\u955C\u5934\u5217\u8868\uFF08\u6309\u64AD\u653E\u987A\u5E8F\uFF09")
+    });
+    materialItemSchema = external_exports.object({
+      type: external_exports.enum(["role", "scene", "tool"]).describe("\u8D44\u4EA7\u7C7B\u578B"),
+      name: external_exports.string().min(1).max(60).describe("\u8D44\u4EA7\u540D\u79F0"),
+      desc: external_exports.string().max(300).default("").describe("\u8D44\u4EA7\u5916\u89C2/\u89C6\u89C9\u63CF\u8FF0"),
+      source: external_exports.enum(["matched", "to_generate"]).describe("\u89E3\u6790\u7ED3\u679C"),
+      assetId: external_exports.number().int().nullable().default(null).describe("\u547D\u4E2D\u7684 o_assets.id"),
+      imageId: external_exports.number().int().nullable().default(null).describe("\u547D\u4E2D\u7684 o_image.id"),
+      filePath: external_exports.string().max(500).nullable().default(null).describe("\u547D\u4E2D\u8D44\u4EA7\u56FE\u7684 OSS \u8DEF\u5F84")
+    });
+    snapshotShotSchema = external_exports.object({
+      id: external_exports.string().min(1).max(40),
+      index: external_exports.number().int().min(1),
+      duration: external_exports.number().int().min(SHOT_DURATION_MIN).max(SHOT_DURATION_MAX),
+      description: external_exports.string().min(1).max(2e3),
+      dialogue: external_exports.string().max(500).default(""),
+      camera: external_exports.string().max(200).default(""),
+      assetRefs: external_exports.array(shotAssetRefSchema).max(10).default([])
+    });
+    generationSnapshotSchema = external_exports.object({
+      storyboardVersion: external_exports.number().int().min(1).describe("\u5FEB\u7167\u5BF9\u5E94\u7684\u5206\u955C\u7248\u672C"),
+      targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]),
+      videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS),
+      artStyle: external_exports.string().max(500).default(""),
+      shots: external_exports.array(snapshotShotSchema).min(1).max(SHOT_COUNT_MAX),
+      materials: external_exports.array(materialItemSchema).max(30).default([]),
+      estimatedImageCount: external_exports.number().int().min(0).default(0).describe("\u9884\u8BA1\u56FE\u7247\u4EFB\u52A1\u6570\uFF08\u5206\u955C\u56FE + \u9700\u8865\u751F\u6210\u7684\u7D20\u6750\u56FE\uFF09"),
+      estimatedVideoCount: external_exports.number().int().min(0).default(0).describe("\u9884\u8BA1\u89C6\u9891\u4EFB\u52A1\u6570"),
+      estimatedCostYuan: external_exports.number().min(0).default(0).describe("\u9884\u4F30\u8D39\u7528\uFF08\u5143\uFF0C\u7C97\u4F30\u503C\uFF09"),
+      estimatedSeconds: external_exports.number().int().min(0).default(0).describe("\u9884\u4F30\u603B\u8017\u65F6\uFF08\u79D2\uFF0C\u7C97\u4F30\u503C\uFF09")
+    });
+    TIMELINE_TRANSITION_DURATION_S = 0.5;
+    TIMELINE_MAX_SPEED = 1.5;
+    TIMELINE_MIN_SPEED = 0.75;
+    QUICK_VIDEO_DIMENSIONS = {
+      "16:9": { width: 1280, height: 720 },
+      "9:16": { width: 720, height: 1280 },
+      "1:1": { width: 960, height: 960 }
+    };
+    timelineClipPlanSchema = external_exports.object({
+      shotId: external_exports.string().min(1).max(40),
+      index: external_exports.number().int().min(1),
+      /** 镜头规划源时长（秒） */
+      sourceDuration: external_exports.number().min(SHOT_DURATION_MIN).max(SHOT_DURATION_MAX),
+      /** 源视频使用窗口 [trimStart, trimEnd]（秒，不超过源时长） */
+      trimStart: external_exports.number().min(0).default(0),
+      trimEnd: external_exports.number().min(0),
+      /** 播放速率（1 = 原速） */
+      playbackRate: external_exports.number().min(0.1).max(4),
+      /** 时间线上的起止时间（秒，相邻片段在转场处重叠） */
+      start: external_exports.number().min(0),
+      end: external_exports.number().min(0),
+      /** 字幕文本（台词/旁白，可为空） */
+      subtitleText: external_exports.string().max(500).default("")
+    });
+    timelineTransitionSchema = external_exports.object({
+      afterShotId: external_exports.string().min(1).max(40).describe("\u4E0E\u4E0B\u4E00\u955C\u5934\u4E4B\u95F4\u7684\u8F6C\u573A\uFF0C\u4F4D\u4E8E\u8BE5\u955C\u5934\u4E4B\u540E"),
+      type: external_exports.literal("crossfade"),
+      duration: external_exports.number().min(0)
+    });
+    timelineTailPadSchema = external_exports.object({
+      type: external_exports.literal("endcard"),
+      duration: external_exports.number().min(0),
+      text: external_exports.string().max(500).default("")
+    });
+    timelinePlanSchema = external_exports.object({
+      targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]),
+      videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS),
+      width: external_exports.number().int().min(1),
+      height: external_exports.number().int().min(1),
+      /** 成片总时长（秒，含片尾补齐） */
+      totalDuration: external_exports.number().min(1),
+      clips: external_exports.array(timelineClipPlanSchema).min(1).max(SHOT_COUNT_MAX),
+      transitions: external_exports.array(timelineTransitionSchema).max(SHOT_COUNT_MAX).default([]),
+      tailPad: timelineTailPadSchema.nullable().default(null)
+    });
+    timelineMetaSchema = external_exports.object({
+      storyboardVersion: external_exports.number().int().min(1),
+      assembledAt: external_exports.number().int().min(1),
+      clipCount: external_exports.number().int().min(1),
+      totalDuration: external_exports.number().min(1),
+      trackIds: external_exports.array(external_exports.number().int()).default([])
+    });
+    quickVideoExportInfoSchema = external_exports.object({
+      exportedAt: external_exports.number().int().min(1),
+      fileName: external_exports.string().min(1).max(200),
+      sizeBytes: external_exports.number().int().min(0),
+      durationSeconds: external_exports.number().min(0)
+    });
+    quickVideoGenerationSchema = external_exports.object({
+      /** 最近一次素材解析快照（素材确认前可反复刷新） */
+      snapshot: generationSnapshotSchema.nullable().default(null),
+      materialsConfirmed: external_exports.boolean().default(false).describe("\u7D20\u6750/\u6210\u672C\u786E\u8BA4\u95E8\u662F\u5426\u5DF2\u901A\u8FC7"),
+      materialsConfirmedAt: external_exports.number().nullable().default(null),
+      /** 最近一次生成运行 ID */
+      runId: external_exports.string().max(64).nullable().default(null),
+      startedAt: external_exports.number().nullable().default(null),
+      finishedAt: external_exports.number().nullable().default(null),
+      /** 运行期产物：需补生成的素材图 名称 -> OSS 路径（生成引擎写入） */
+      materialImages: external_exports.record(external_exports.string(), external_exports.string().max(500)).default({}),
+      /** 最近一次时间线装配元数据（getTimeline 落库，SIY-111） */
+      timeline: timelineMetaSchema.nullable().default(null),
+      /** 最近一次导出结果（导出确认门通过后回写，SIY-111） */
+      exportInfo: quickVideoExportInfoSchema.nullable().default(null)
+    });
+    GENERATION_CONCURRENCY = 2;
+    GENERATION_IMAGE_TIMEOUT_MS = 10 * 60 * 1e3;
+    GENERATION_VIDEO_TIMEOUT_MS = 15 * 60 * 1e3;
+    ESTIMATE_IMAGE_COST_YUAN = 0.3;
+    ESTIMATE_VIDEO_COST_PER_SECOND_YUAN = 0.5;
+    ESTIMATE_IMAGE_SECONDS = 30;
+    ESTIMATE_VIDEO_SECONDS = 90;
+    quickVideoStateSchema = external_exports.object({
+      schemaVersion: external_exports.literal(QUICK_VIDEO_SCHEMA_VERSION).default(QUICK_VIDEO_SCHEMA_VERSION),
+      /** 乐观锁版本号，每次成功写入自增 */
+      version: external_exports.number().int().min(1),
+      stage: external_exports.enum(QUICK_VIDEO_STAGES),
+      targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]),
+      videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS),
+      artStyle: external_exports.string().max(500).default(""),
+      /** 创建幂等键（createProject 用，防重复建项目） */
+      createIdempotencyKey: external_exports.string().min(8).max(64),
+      brief: quickVideoBriefSchema.nullable().default(null),
+      storyboard: quickVideoStoryboardSchema.nullable().default(null),
+      /** 素材/成本确认门与生成运行态（存量状态行缺该字段时补默认值） */
+      generation: external_exports.preprocess((v) => v ?? {}, quickVideoGenerationSchema),
+      /** 已确认完成的幂等键记录（key -> 应用时间），写入去重用，最多保留 IDEMPOTENCY_MAX_KEYS 条 */
+      appliedKeys: external_exports.record(external_exports.string(), external_exports.number()).default({}),
+      /** 最近的聊天时间，用于工作台展示 */
+      lastChatAt: external_exports.number().nullable().default(null),
+      updateTime: external_exports.number()
+    });
+    IDEMPOTENCY_MAX_KEYS = 50;
+  }
+});
+
+// src/lib/quickVideo/state.ts
+var state_exports = {};
+__export(state_exports, {
+  QuickVideoError: () => QuickVideoError,
+  findProjectByCreateIdempotencyKey: () => findProjectByCreateIdempotencyKey,
+  getQuickVideoStateRow: () => getQuickVideoStateRow,
+  initQuickVideoStateRow: () => initQuickVideoStateRow,
+  loadQuickVideoState: () => loadQuickVideoState,
+  mutateQuickVideoState: () => mutateQuickVideoState
+});
+function parseState(row) {
+  let raw = {};
+  try {
+    raw = JSON.parse(row.data ?? "{}");
+  } catch {
+    throw new QuickVideoError("STATE_CORRUPTED", "quickVideoAgent \u72B6\u6001\u6570\u636E\u635F\u574F\uFF0C\u65E0\u6CD5\u89E3\u6790");
+  }
+  const parsed = quickVideoStateSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new QuickVideoError("STATE_INVALID", `quickVideoAgent \u72B6\u6001\u6570\u636E\u4E0D\u6EE1\u8DB3\u5951\u7EA6\uFF1A${parsed.error.issues.map((i) => i.path.join(".")).join(", ")}`);
+  }
+  return parsed.data;
+}
+async function getQuickVideoStateRow(projectId) {
+  return utils_default2.db("o_agentWorkData").where({ projectId: String(projectId), key: QUICK_VIDEO_AGENT_KEY }).first();
+}
+async function loadQuickVideoState(projectId) {
+  const row = await getQuickVideoStateRow(projectId);
+  return row ? parseState(row) : null;
+}
+async function mutateQuickVideoState(projectId, opts, mutator) {
+  return db.transaction(async (trx) => {
+    const row = await trx("o_agentWorkData").where({ projectId: String(projectId), key: QUICK_VIDEO_AGENT_KEY }).first();
+    if (!row) throw new QuickVideoError("STATE_NOT_FOUND", "\u672A\u627E\u5230 quickVideoAgent \u72B6\u6001\uFF0C\u8BF7\u5148\u521B\u5EFA quick_video \u9879\u76EE");
+    const current = parseState(row);
+    if (opts.idempotencyKey && current.appliedKeys[opts.idempotencyKey] != null) {
+      return { state: current, idempotentHit: true };
+    }
+    if (opts.expectedVersion != null && opts.expectedVersion !== current.version) {
+      throw new QuickVideoError(
+        "VERSION_CONFLICT",
+        `\u72B6\u6001\u7248\u672C\u51B2\u7A81\uFF1A\u670D\u52A1\u7AEF\u5F53\u524D\u7248\u672C ${current.version}\uFF0C\u8BF7\u6C42\u57FA\u4E8E\u7248\u672C ${opts.expectedVersion}\uFF0C\u8BF7\u5237\u65B0\u540E\u91CD\u8BD5`,
+        current.version
+      );
+    }
+    const state = JSON.parse(JSON.stringify(current));
+    if (opts.stageTransition) {
+      const { from, to } = opts.stageTransition;
+      if (state.stage !== from) {
+        throw new QuickVideoError("STAGE_MISMATCH", `\u9636\u6BB5\u4E0D\u7B26\uFF1A\u5F53\u524D\u5904\u4E8E ${state.stage}\uFF0C\u8BE5\u64CD\u4F5C\u8981\u6C42 ${from}`, state.version);
+      }
+      if (!canTransitionStage(from, to)) {
+        throw new QuickVideoError("STAGE_FORBIDDEN", `\u4E0D\u5141\u8BB8\u7684\u9636\u6BB5\u8F6C\u79FB\uFF1A${from} -> ${to}`, state.version);
+      }
+    }
+    await mutator(state, trx);
+    if (state.stage !== current.stage && !canTransitionStage(current.stage, state.stage)) {
+      throw new QuickVideoError("STAGE_FORBIDDEN", `\u4E0D\u5141\u8BB8\u7684\u9636\u6BB5\u8F6C\u79FB\uFF1A${current.stage} -> ${state.stage}`, current.version);
+    }
+    if (!QUICK_VIDEO_STAGES.includes(state.stage)) {
+      throw new QuickVideoError("STAGE_INVALID", `\u672A\u77E5\u9636\u6BB5\uFF1A${state.stage}`, current.version);
+    }
+    if (opts.idempotencyKey && !recordIdempotencyKey(state, opts.idempotencyKey)) {
+      return { state: current, idempotentHit: true };
+    }
+    state.schemaVersion = QUICK_VIDEO_SCHEMA_VERSION;
+    state.updateTime = Date.now();
+    state.version = current.version + 1;
+    const parsed = quickVideoStateSchema.safeParse(state);
+    if (!parsed.success) {
+      throw new QuickVideoError(
+        "STATE_INVALID",
+        `\u5199\u5165\u88AB\u62D2\u7EDD\uFF0C\u72B6\u6001\u4E0D\u6EE1\u8DB3\u5951\u7EA6\uFF1A${parsed.error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`,
+        current.version
+      );
+    }
+    await trx("o_agentWorkData").where({ id: row.id }).update({ data: JSON.stringify(parsed.data), updateTime: Date.now() });
+    return { state: parsed.data, idempotentHit: false };
+  });
+}
+async function findProjectByCreateIdempotencyKey(idempotencyKey) {
+  if (!idempotencyKey) return null;
+  const rows = await utils_default2.db("o_agentWorkData").where("key", QUICK_VIDEO_AGENT_KEY).andWhere("data", "like", `%${idempotencyKey}%`).orderBy("id", "desc").limit(20).select("projectId", "data");
+  for (const row of rows) {
+    try {
+      const data = JSON.parse(row.data ?? "{}");
+      if (data?.createIdempotencyKey === idempotencyKey && Number(row.projectId)) {
+        return Number(row.projectId);
+      }
+    } catch {
+    }
+  }
+  return null;
+}
+async function initQuickVideoStateRow(trx, { projectId, idempotencyKey, targetDuration, videoRatio, artStyle }) {
+  const now2 = Date.now();
+  const state = quickVideoStateSchema.parse({
+    version: 1,
+    stage: "collect_brief",
+    targetDuration,
+    videoRatio,
+    artStyle,
+    createIdempotencyKey: idempotencyKey,
+    brief: null,
+    storyboard: null,
+    appliedKeys: {},
+    lastChatAt: null,
+    updateTime: now2
+  });
+  const maxRow = await trx("o_agentWorkData").max("id as maxId").first();
+  const id = Number(maxRow?.maxId ?? 0) + 1;
+  await trx("o_agentWorkData").insert({
+    id,
+    projectId,
+    key: QUICK_VIDEO_AGENT_KEY,
+    data: JSON.stringify(state),
+    createTime: now2,
+    updateTime: now2
+  });
+  return state;
+}
+var QuickVideoError;
+var init_state = __esm({
+  "src/lib/quickVideo/state.ts"() {
+    "use strict";
+    init_db();
+    init_utils3();
+    init_contract();
+    QuickVideoError = class extends Error {
+      code;
+      currentVersion;
+      constructor(code, message, currentVersion) {
+        super(message);
+        this.code = code;
+        this.currentVersion = currentVersion;
+      }
+    };
+  }
+});
+
+// src/lib/quickVideo/shots.ts
+function ensureStoryboardEditable(state) {
+  if (!state.storyboard) throw new QuickVideoError("NO_STORYBOARD", "\u6682\u65E0\u5206\u955C\uFF0C\u8BF7\u5148\u786E\u8BA4\u7B80\u62A5\u540E\u7531 Agent \u751F\u6210\u6216\u63D0\u4EA4\u5206\u955C", state.version);
+  if (state.storyboard.status !== "draft") {
+    throw new QuickVideoError("STORYBOARD_LOCKED", "\u5206\u955C\u5DF2\u786E\u8BA4\u9501\u5B9A\uFF0C\u8BF7\u5148\u64A4\u9500\u786E\u8BA4\u518D\u7F16\u8F91", state.version);
+  }
+  if (!["storyboard_draft"].includes(state.stage)) {
+    throw new QuickVideoError("STAGE_FORBIDDEN", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u7F16\u8F91\u5206\u955C`, state.version);
+  }
+}
+function findShot(state, shotId) {
+  const shot = state.storyboard?.shots.find((s) => s.id === shotId);
+  if (!shot) throw new QuickVideoError("SHOT_NOT_FOUND", `\u672A\u627E\u5230\u955C\u5934 ${shotId}`, state.version);
+  return shot;
+}
+function normalizeShotDuration(duration4) {
+  const d = Math.round(Number(duration4));
+  if (!Number.isFinite(d) || d < SHOT_DURATION_MIN || d > SHOT_DURATION_MAX) {
+    throw new QuickVideoError("SHOT_DURATION_INVALID", `\u955C\u5934\u65F6\u957F\u9700\u4E3A ${SHOT_DURATION_MIN}-${SHOT_DURATION_MAX} \u7684\u6574\u6570\u79D2`, void 0);
+  }
+  return d;
+}
+function reindexShots(state) {
+  state.storyboard?.shots.forEach((shot, i) => shot.index = i + 1);
+}
+function nextShotId(state) {
+  const existing = new Set(state.storyboard?.shots.map((s) => s.id) ?? []);
+  let i = state.storyboard?.shots.length ?? 0;
+  let id = `shot-${i + 1}`;
+  while (existing.has(id)) {
+    i += 1;
+    id = `shot-${i + 1}`;
+  }
+  return id;
+}
+var init_shots = __esm({
+  "src/lib/quickVideo/shots.ts"() {
+    "use strict";
+    init_contract();
+    init_state();
+  }
+});
+
+// src/lib/quickVideo/metrics.ts
+function recordEvent(name28) {
+  counters[name28] = (counters[name28] ?? 0) + 1;
+}
+function recordDuration(name28, ms) {
+  const slot = durations[name28] ??= { count: 0, totalMs: 0 };
+  slot.count += 1;
+  slot.totalMs += Math.max(0, Math.round(ms));
+}
+function qvLog(event, fields = {}) {
+  console.log(JSON.stringify({ ts: (/* @__PURE__ */ new Date()).toISOString(), module: "quickVideo", event, ...fields }));
+}
+function snapshotMetrics() {
+  const genDone = counters["generationShotDone"] ?? 0;
+  const genFailed = counters["generationShotFailed"] ?? 0;
+  const durationSlots = Object.fromEntries(
+    Object.entries(durations).map(([name28, slot]) => [
+      name28,
+      { count: slot.count, totalMs: slot.totalMs, avgMs: slot.count ? Math.round(slot.totalMs / slot.count) : 0 }
+    ])
+  );
+  return {
+    counters: { ...counters },
+    durations: durationSlots,
+    derived: {
+      generationShotFailureRate: genDone + genFailed > 0 ? Math.round(genFailed / (genDone + genFailed) * 1e4) / 1e4 : 0,
+      generationShotTotal: genDone + genFailed
+    }
+  };
+}
+var counters, durations;
+var init_metrics = __esm({
+  "src/lib/quickVideo/metrics.ts"() {
+    "use strict";
+    counters = {};
+    durations = {};
+  }
+});
+
+// src/lib/quickVideo/generate.ts
+function isGenerationActive(projectId) {
+  if (runningGenerations.has(projectId)) return true;
+  for (const key of runningShots.keys()) {
+    if (key.startsWith(`${projectId}:`)) return true;
+  }
+  return false;
+}
+async function resolveMaterialsSnapshot(projectId, opts = {}) {
+  const state = await loadQuickVideoState(projectId);
+  if (!state) throw new QuickVideoError("STATE_NOT_FOUND", "\u672A\u627E\u5230 quickVideoAgent \u72B6\u6001\uFF0C\u8BF7\u5148\u521B\u5EFA quick_video \u9879\u76EE");
+  if (!state.storyboard) throw new QuickVideoError("NO_STORYBOARD", "\u6682\u65E0\u5206\u955C\uFF0C\u65E0\u6CD5\u89E3\u6790\u7D20\u6750", state.version);
+  if (!["storyboard_draft", "storyboard_confirmed"].includes(state.stage)) {
+    throw new QuickVideoError("STAGE_FORBIDDEN", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u89E3\u6790\u7D20\u6750`, state.version);
+  }
+  const { materials, estimate, snapshotShots } = await buildSnapshot(projectId, state);
+  const { state: next, idempotentHit } = await mutateQuickVideoState(projectId, opts, (s) => {
+    if (!s.storyboard) throw new QuickVideoError("NO_STORYBOARD", "\u6682\u65E0\u5206\u955C\uFF0C\u65E0\u6CD5\u89E3\u6790\u7D20\u6750", s.version);
+    applySnapshotToState(s, s.storyboard.version, snapshotShots, materials, estimate);
+  });
+  return { state: next, materials, estimate, idempotentHit };
+}
+async function buildSnapshot(projectId, state) {
+  if (!state.storyboard) throw new QuickVideoError("NO_STORYBOARD", "\u6682\u65E0\u5206\u955C\uFF0C\u65E0\u6CD5\u89E3\u6790\u7D20\u6750", state.version);
+  const materials = await buildMaterials(projectId, state.storyboard.shots);
+  const snapshotShots = state.storyboard.shots.map((s) => ({
+    id: s.id,
+    index: s.index,
+    duration: s.duration,
+    description: s.description,
+    dialogue: s.dialogue,
+    camera: s.camera,
+    assetRefs: s.assetRefs
+  }));
+  const estimate = computeGenerationEstimate(snapshotShots, materials);
+  return { materials, estimate, snapshotShots };
+}
+function applySnapshotToState(s, storyboardVersion, snapshotShots, materials, estimate) {
+  s.generation.snapshot = {
+    storyboardVersion,
+    targetDuration: s.targetDuration,
+    videoRatio: s.videoRatio,
+    artStyle: s.artStyle,
+    shots: snapshotShots,
+    materials,
+    ...estimate
+  };
+  s.generation.materialsConfirmed = false;
+  s.generation.materialsConfirmedAt = null;
+}
+async function buildMaterials(projectId, shots) {
+  const refs = /* @__PURE__ */ new Map();
+  for (const shot of shots) {
+    for (const ref of shot.assetRefs ?? []) {
+      refs.set(`${ref.type}:${ref.name}`, { type: ref.type, name: ref.name, desc: ref.desc ?? "" });
+    }
+  }
+  const materials = [];
+  for (const ref of refs.values()) {
+    const matched = await matchProjectAsset(projectId, ref);
+    materials.push({
+      type: ref.type,
+      name: ref.name,
+      desc: ref.desc,
+      source: matched ? "matched" : "to_generate",
+      assetId: matched?.assetId ?? null,
+      imageId: matched?.imageId ?? null,
+      filePath: matched?.filePath ?? null
+    });
+  }
+  return materials;
+}
+async function matchProjectAsset(projectId, ref) {
+  const rows = await utils_default2.db("o_assets").leftJoin("o_image", "o_assets.imageId", "o_image.id").where("o_assets.projectId", projectId).andWhere("o_assets.name", ref.name).select("o_assets.id as assetId", "o_assets.type as assetType", "o_image.id as imageId", "o_image.filePath as filePath");
+  const hit = rows.find((r) => r.assetType === ref.type && r.filePath) ?? rows.find((r) => r.filePath);
+  if (!hit?.filePath) return null;
+  return { assetId: hit.assetId, imageId: hit.imageId, filePath: hit.filePath };
+}
+async function findFirstAvailableModel(type) {
+  const vendorRows = await utils_default2.db("o_vendorConfig").select("id").where("enable", 1);
+  for (const row of vendorRows) {
+    try {
+      const models = await utils_default2.vendor.getModelList(row.id) ?? [];
+      const hit = models.find((m) => m.type === type);
+      if (!hit) continue;
+      const enabled = await utils_default2.vendor.getEnabledModelNames(row.id);
+      if (enabled.length === 0 || enabled.includes(hit.modelName)) {
+        return `${row.id}:${hit.modelName}`;
+      }
+    } catch {
+    }
+  }
+  return "";
+}
+async function resolveGenerationModels(projectId) {
+  const project = await utils_default2.db("o_project").where("id", projectId).first();
+  let imageModel = String(project?.imageModel ?? "");
+  let videoModel = String(project?.videoModel ?? "");
+  if (!imageModel) imageModel = await findFirstAvailableModel("image");
+  if (!videoModel) videoModel = await findFirstAvailableModel("video");
+  if (!imageModel || !videoModel) {
+    throw new QuickVideoError("MODEL_NOT_CONFIGURED", "\u672A\u627E\u5230\u53EF\u7528\u7684\u56FE\u7247/\u89C6\u9891\u751F\u6210\u6A21\u578B\uFF0C\u8BF7\u5148\u5728\u8BBE\u7F6E\u9875\u914D\u7F6E\u6216\u542F\u7528\u5BF9\u5E94\u6A21\u578B");
+  }
+  return { imageModel, videoModel };
+}
+async function startQuickVideoGeneration(projectId, userId2) {
+  const active = runningGenerations.get(projectId);
+  if (active) return { started: false, alreadyRunning: true, runId: active.runId };
+  const state = await loadQuickVideoState(projectId);
+  if (!state) throw new QuickVideoError("STATE_NOT_FOUND", "\u672A\u627E\u5230 quickVideoAgent \u72B6\u6001");
+  if (state.stage !== "generating") {
+    throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u5F00\u59CB\u751F\u6210\uFF0C\u8BF7\u5148\u901A\u8FC7\u786E\u8BA4\u95E8`, state.version);
+  }
+  if (!state.generation?.materialsConfirmed || !state.generation?.snapshot) {
+    throw new QuickVideoError("MATERIALS_NOT_CONFIRMED", "\u7D20\u6750/\u6210\u672C\u786E\u8BA4\u95E8\u5C1A\u672A\u901A\u8FC7\uFF0C\u65E0\u6CD5\u5F00\u59CB\u751F\u6210", state.version);
+  }
+  const runId = `run-${utils_default2.uuid().slice(0, 8)}`;
+  runningGenerations.set(projectId, { runId });
+  try {
+    await mutateQuickVideoState(projectId, {}, (s) => {
+      s.generation.runId = runId;
+      s.generation.startedAt = Date.now();
+      s.generation.finishedAt = null;
+    });
+  } catch (err) {
+    console.error(`[quickVideo] \u5199\u5165\u8FD0\u884C ID \u5931\u8D25:`, utils_default2.error(err).message);
+  }
+  runGeneration(projectId, userId2, runId).catch((err) => console.error(`[quickVideo] \u751F\u6210\u8FD0\u884C ${runId} \u5F02\u5E38\u7EC8\u6B62:`, utils_default2.error(err).message)).finally(() => {
+    if (runningGenerations.get(projectId)?.runId === runId) runningGenerations.delete(projectId);
+    maybeFinishGeneration(projectId).catch(() => {
+    });
+  });
+  return { started: true, alreadyRunning: false, runId };
+}
+async function retryQuickVideoShots(projectId, userId2, shotIds) {
+  const state = await loadQuickVideoState(projectId);
+  if (!state) throw new QuickVideoError("STATE_NOT_FOUND", "\u672A\u627E\u5230 quickVideoAgent \u72B6\u6001");
+  if (state.stage !== "generating") {
+    throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u91CD\u8BD5\uFF0C\u4EC5\u751F\u6210\u9636\u6BB5\u53EF\u91CD\u8BD5\u5931\u8D25\u955C\u5934`, state.version);
+  }
+  if (!state.generation?.materialsConfirmed) {
+    throw new QuickVideoError("MATERIALS_NOT_CONFIRMED", "\u7D20\u6750/\u6210\u672C\u786E\u8BA4\u95E8\u5C1A\u672A\u901A\u8FC7", state.version);
+  }
+  if (runningGenerations.has(projectId)) {
+    throw new QuickVideoError("GENERATION_RUNNING", "\u6574\u6279\u751F\u6210\u6B63\u5728\u8FDB\u884C\u4E2D\uFF0C\u8BF7\u7B49\u5F85\u7ED3\u675F\u540E\u518D\u91CD\u8BD5\u5931\u8D25\u955C\u5934", state.version);
+  }
+  for (const shotId of shotIds) {
+    const shot = state.storyboard?.shots.find((s) => s.id === shotId);
+    if (!shot) throw new QuickVideoError("SHOT_NOT_FOUND", `\u672A\u627E\u5230\u955C\u5934 ${shotId}`, state.version);
+    if (runningShots.has(`${projectId}:${shotId}`)) {
+      throw new QuickVideoError("SHOT_RUNNING", `\u955C\u5934 ${shotId} \u6B63\u5728\u751F\u6210\u4E2D\uFF0C\u8BF7\u7A0D\u5019`, state.version);
+    }
+    if (shot.imageState === "done" && shot.videoState === "done") {
+      throw new QuickVideoError("SHOT_ALREADY_DONE", `\u955C\u5934 ${shotId} \u5DF2\u751F\u6210\u5B8C\u6210\uFF0C\u65E0\u9700\u91CD\u8BD5`, state.version);
+    }
+  }
+  const runId = `retry-${utils_default2.uuid().slice(0, 8)}`;
+  const { state: next } = await mutateQuickVideoState(projectId, {}, (s) => {
+    s.generation.runId = runId;
+    for (const shotId of shotIds) {
+      const shot = s.storyboard?.shots.find((x) => x.id === shotId);
+      if (!shot) continue;
+      if (shot.imageState !== "done") shot.imageState = "pending";
+      if (shot.videoState !== "done") shot.videoState = "pending";
+      shot.errorReason = null;
+    }
+  });
+  for (const shotId of shotIds) {
+    launchShotPipeline(projectId, userId2, runId, shotId);
+  }
+  return { state: next, retried: shotIds, runId };
+}
+function launchShotPipeline(projectId, userId2, runId, shotId) {
+  const key = `${projectId}:${shotId}`;
+  if (runningShots.has(key)) return;
+  runningShots.set(key, { runId });
+  runShotPipeline(projectId, userId2, shotId).catch((err) => console.error(`[quickVideo] \u955C\u5934 ${shotId} \u7BA1\u7EBF\u5F02\u5E38:`, utils_default2.error(err).message)).finally(() => {
+    runningShots.delete(key);
+    maybeFinishGeneration(projectId).catch(() => {
+    });
+  });
+}
+async function ensureGenerationRecovery(projectId) {
+  try {
+    if (isGenerationActive(projectId)) return;
+    const state = await loadQuickVideoState(projectId);
+    if (!state || state.stage !== "generating" || !state.generation?.materialsConfirmed) return;
+    const shots = state.storyboard?.shots ?? [];
+    if (!shots.length) return;
+    if (shots.every((s) => s.imageState === "done" && s.videoState === "done")) {
+      await mutateQuickVideoState(
+        projectId,
+        { stageTransition: { from: "generating", to: "ready_to_assemble" } },
+        (s) => {
+          s.stage = "ready_to_assemble";
+          s.generation.finishedAt = Date.now();
+        }
+      );
+      return;
+    }
+    const stuck = shots.some((s) => s.imageState === "generating" || s.videoState === "generating");
+    if (!stuck) return;
+    await mutateQuickVideoState(projectId, {}, (s) => {
+      for (const shot of s.storyboard?.shots ?? []) {
+        if (shot.imageState === "generating") {
+          shot.imageState = "failed";
+          shot.errorReason = "\u751F\u6210\u4E2D\u65AD\uFF08\u670D\u52A1\u91CD\u542F\u6216\u8F6E\u8BE2\u4E2D\u65AD\uFF09\uFF0C\u8BF7\u91CD\u8BD5\u8BE5\u955C\u5934";
+        }
+        if (shot.videoState === "generating") {
+          shot.videoState = "failed";
+          shot.errorReason = "\u751F\u6210\u4E2D\u65AD\uFF08\u670D\u52A1\u91CD\u542F\u6216\u8F6E\u8BE2\u4E2D\u65AD\uFF09\uFF0C\u8BF7\u91CD\u8BD5\u8BE5\u955C\u5934";
+        }
+      }
+    });
+  } catch (err) {
+    console.error(`[quickVideo] \u9879\u76EE ${projectId} \u751F\u6210\u6062\u590D\u68C0\u67E5\u5931\u8D25:`, utils_default2.error(err).message);
+  }
+}
+async function runGeneration(projectId, userId2, runId) {
+  const state = await loadQuickVideoState(projectId);
+  const snapshot = state?.generation?.snapshot;
+  if (!snapshot) {
+    console.error(`[quickVideo] \u8FD0\u884C ${runId} \u7F3A\u5C11\u751F\u6210\u5FEB\u7167\uFF0C\u7EC8\u6B62`);
+    return;
+  }
+  let models;
+  try {
+    models = await resolveGenerationModels(projectId);
+  } catch (err) {
+    await markShotsFailed(projectId, snapshot.shots.map((s) => s.id), utils_default2.error(err).message);
+    return;
+  }
+  const ctx = { projectId, userId: userId2, runId, snapshot, ...models };
+  await ensureMaterialImages(ctx);
+  const shotIds = snapshot.shots.map((s) => s.id);
+  for (let i = 0; i < shotIds.length; i += GENERATION_CONCURRENCY) {
+    const batch = shotIds.slice(i, i + GENERATION_CONCURRENCY);
+    await Promise.all(batch.map((shotId) => runShotPipeline(projectId, userId2, shotId, ctx).catch((err) => {
+      console.error(`[quickVideo] \u8FD0\u884C ${runId} \u955C\u5934 ${shotId} \u7BA1\u7EBF\u5F02\u5E38:`, utils_default2.error(err).message);
+    })));
+  }
+}
+async function markShotsFailed(projectId, shotIds, reason) {
+  try {
+    await mutateQuickVideoState(projectId, {}, (s) => {
+      for (const shotId of shotIds) {
+        const shot = s.storyboard?.shots.find((x) => x.id === shotId);
+        if (!shot) continue;
+        if (shot.imageState !== "done") shot.imageState = "failed";
+        if (shot.videoState !== "done") shot.videoState = "failed";
+        shot.errorReason = reason;
+      }
+    });
+  } catch (err) {
+    console.error(`[quickVideo] \u6807\u8BB0\u955C\u5934\u5931\u8D25\u65F6\u51FA\u9519:`, utils_default2.error(err).message);
+  }
+}
+async function ensureMaterialImages(ctx) {
+  const state = await loadQuickVideoState(ctx.projectId);
+  const cached3 = state?.generation?.materialImages ?? {};
+  const toGenerate = ctx.snapshot.materials.filter((m) => m.source === "to_generate" && !cached3[m.name]);
+  for (const material of toGenerate) {
+    try {
+      const prompt = [
+        ctx.snapshot.artStyle ? `\u753B\u9762\u98CE\u683C\uFF1A${ctx.snapshot.artStyle}` : "",
+        `${materialLabel(material.type)}\u300C${material.name}\u300D\u7684\u5B9A\u5986\u56FE/\u7A7A\u955C\u56FE`,
+        material.desc,
+        "\u6784\u56FE\u5E72\u51C0\uFF0C\u4E3B\u4F53\u6E05\u6670\uFF0C\u65E0\u6587\u5B57\u6C34\u5370"
+      ].filter(Boolean).join("\uFF1B");
+      const imageCls = utils_default2.Ai.Image(ctx.imageModel, ctx.userId);
+      await withTimeout(
+        imageCls.run(
+          {
+            prompt,
+            referenceList: [],
+            size: "1K",
+            aspectRatio: castAspectRatio(ctx.snapshot.videoRatio)
+          },
+          {
+            taskClass: "\u5FEB\u521B\u7D20\u6750\u56FE",
+            describe: `\u7D20\u6750\u300C${material.name}\u300D\u53C2\u8003\u56FE\u751F\u6210`,
+            relatedObjects: JSON.stringify({ projectId: ctx.projectId, material: material.name, runId: ctx.runId }),
+            projectId: ctx.projectId
+          }
+        ),
+        GENERATION_IMAGE_TIMEOUT_MS,
+        `\u7D20\u6750\u300C${material.name}\u300D\u53C2\u8003\u56FE\u751F\u6210\u8D85\u65F6`
+      );
+      const savePath = `/${ctx.projectId}/quickVideo/material-${utils_default2.uuid().slice(0, 8)}.jpg`;
+      await imageCls.save(savePath);
+      await mutateQuickVideoState(ctx.projectId, {}, (s) => {
+        s.generation.materialImages[material.name] = savePath;
+      });
+    } catch (err) {
+      console.error(`[quickVideo] \u7D20\u6750\u300C${material.name}\u300D\u53C2\u8003\u56FE\u751F\u6210\u5931\u8D25:`, utils_default2.error(err).message);
+    }
+  }
+}
+async function runShotPipeline(projectId, userId2, shotId, presetCtx) {
+  const state = await loadQuickVideoState(projectId);
+  const snapshot = state?.generation?.snapshot;
+  const liveShot = state?.storyboard?.shots.find((s) => s.id === shotId);
+  if (!snapshot || !liveShot) return;
+  const shotContent = snapshot.shots.find((s) => s.id === shotId);
+  if (!shotContent) return;
+  const ctx = presetCtx ?? await (async () => {
+    const models = await resolveGenerationModels(projectId);
+    return { projectId, userId: userId2, runId: `retry-${utils_default2.uuid().slice(0, 8)}`, snapshot, ...models };
+  })();
+  let imageRef = liveShot.imageRef;
+  if (liveShot.imageState !== "done" || !imageRef) {
+    await updateShotState(projectId, shotId, { imageState: "generating", errorReason: null });
+    try {
+      const referenceList = await buildShotImageReferences(ctx, shotContent);
+      const imageCls = utils_default2.Ai.Image(ctx.imageModel, ctx.userId);
+      await withTimeout(
+        imageCls.run(
+          {
+            prompt: buildShotImagePrompt(ctx.snapshot, shotContent),
+            referenceList,
+            size: "1K",
+            aspectRatio: castAspectRatio(ctx.snapshot.videoRatio)
+          },
+          {
+            taskClass: "\u5FEB\u521B\u5206\u955C\u56FE\u7247",
+            describe: `\u955C\u5934${shotContent.index} \u5206\u955C\u56FE\u751F\u6210`,
+            relatedObjects: JSON.stringify({ projectId, shotId, runId: ctx.runId }),
+            projectId
+          }
+        ),
+        GENERATION_IMAGE_TIMEOUT_MS,
+        "\u5206\u955C\u56FE\u751F\u6210\u8D85\u65F6"
+      );
+      imageRef = `/${projectId}/quickVideo/${shotId}-${utils_default2.uuid().slice(0, 8)}.jpg`;
+      await imageCls.save(imageRef);
+      await updateShotState(projectId, shotId, { imageState: "done", imageRef, errorReason: null });
+      recordEvent("generationShotImageDone");
+    } catch (err) {
+      const reason = utils_default2.error(err).message;
+      await updateShotState(projectId, shotId, { imageState: "failed", errorReason: reason });
+      recordEvent("generationShotFailed");
+      qvLog("shot_failed", { projectId, shotId, stage: "image", reason });
+      return;
+    }
+  }
+  const liveAfterImage = (await loadQuickVideoState(projectId))?.storyboard?.shots.find((s) => s.id === shotId);
+  if (liveAfterImage?.videoState === "done" && liveAfterImage.videoRef) return;
+  await updateShotState(projectId, shotId, { videoState: "generating", errorReason: null });
+  try {
+    const imageBase64 = await utils_default2.oss.getImageBase64(imageRef);
+    const videoAi = utils_default2.Ai.Video(ctx.videoModel, ctx.userId);
+    await withTimeout(
+      videoAi.run(
+        {
+          prompt: buildShotVideoPrompt(shotContent),
+          referenceList: [{ type: "image", base64: imageBase64 }],
+          mode: ["singleImage"],
+          duration: shotContent.duration,
+          aspectRatio: castAspectRatio(ctx.snapshot.videoRatio),
+          resolution: "720p"
+        },
+        {
+          taskClass: "\u5FEB\u521B\u955C\u5934\u89C6\u9891",
+          describe: `\u955C\u5934${shotContent.index} \u89C6\u9891\u7247\u6BB5\u751F\u6210\uFF08${shotContent.duration} \u79D2\uFF09`,
+          relatedObjects: JSON.stringify({ projectId, shotId, runId: ctx.runId }),
+          projectId
+        }
+      ),
+      GENERATION_VIDEO_TIMEOUT_MS,
+      "\u955C\u5934\u89C6\u9891\u751F\u6210\u8D85\u65F6"
+    );
+    const videoRef = `/${projectId}/quickVideo/${shotId}-${utils_default2.uuid().slice(0, 8)}.mp4`;
+    await videoAi.save(videoRef);
+    await updateShotState(projectId, shotId, { videoState: "done", videoRef, errorReason: null });
+    recordEvent("generationShotDone");
+    qvLog("shot_done", { projectId, shotId, duration: shotContent.duration });
+  } catch (err) {
+    const reason = utils_default2.error(err).message;
+    await updateShotState(projectId, shotId, { videoState: "failed", errorReason: reason });
+    recordEvent("generationShotFailed");
+    qvLog("shot_failed", { projectId, shotId, stage: "video", reason });
+  }
+}
+async function maybeFinishGeneration(projectId) {
+  try {
+    if (isGenerationActive(projectId)) return;
+    const state = await loadQuickVideoState(projectId);
+    if (!state || state.stage !== "generating" || !state.generation?.materialsConfirmed) return;
+    const shots = state.storyboard?.shots ?? [];
+    if (!shots.length || !shots.every((s) => s.imageState === "done" && s.videoState === "done")) return;
+    await mutateQuickVideoState(
+      projectId,
+      { stageTransition: { from: "generating", to: "ready_to_assemble" } },
+      (s) => {
+        s.stage = "ready_to_assemble";
+        s.generation.finishedAt = Date.now();
+      }
+    );
+  } catch {
+  }
+}
+async function updateShotState(projectId, shotId, patch) {
+  try {
+    await mutateQuickVideoState(projectId, {}, (s) => {
+      const shot = s.storyboard?.shots.find((x) => x.id === shotId);
+      if (!shot) return;
+      if (patch.imageState != null) shot.imageState = patch.imageState;
+      if (patch.videoState != null) shot.videoState = patch.videoState;
+      if (patch.imageRef !== void 0) shot.imageRef = patch.imageRef;
+      if (patch.videoRef !== void 0) shot.videoRef = patch.videoRef;
+      if (patch.errorReason !== void 0) shot.errorReason = patch.errorReason;
+    });
+  } catch (err) {
+    console.error(`[quickVideo] \u56DE\u5199\u955C\u5934 ${shotId} \u72B6\u6001\u5931\u8D25:`, utils_default2.error(err).message);
+  }
+}
+function materialLabel(type) {
+  return type === "role" ? "\u89D2\u8272" : type === "scene" ? "\u573A\u666F" : "\u9053\u5177";
+}
+function buildShotImagePrompt(snapshot, shot) {
+  const parts = [
+    snapshot.artStyle ? `\u6574\u4F53\u753B\u9762\u98CE\u683C\uFF1A${snapshot.artStyle}` : "",
+    `\u753B\u9762\u6BD4\u4F8B ${snapshot.videoRatio}`,
+    shot.description,
+    shot.camera ? `\u666F\u522B/\u8FD0\u955C\uFF1A${shot.camera}` : "",
+    shot.assetRefs?.length ? `\u753B\u9762\u9700\u4FDD\u6301\u4EE5\u4E0B\u8981\u7D20\u7684\u89C6\u89C9\u4E00\u81F4\u6027\uFF1A${shot.assetRefs.map((a) => `${materialLabel(a.type)}\u300C${a.name}\u300D${a.desc ? `\uFF08${a.desc}\uFF09` : ""}`).join("\uFF1B")}` : "",
+    "\u5355\u5E45\u5B8C\u6574\u753B\u9762\uFF0C\u65E0\u6587\u5B57\u3001\u65E0\u6C34\u5370\u3001\u65E0\u5206\u5C4F"
+  ];
+  return parts.filter(Boolean).join("\uFF1B");
+}
+function buildShotVideoPrompt(shot) {
+  return [
+    `\u4EE5\u53C2\u8003\u56FE\u4E3A\u9996\u5E27\uFF0C\u751F\u6210 ${shot.duration} \u79D2\u7684\u8FDE\u7EED\u955C\u5934`,
+    shot.description,
+    shot.camera ? `\u8FD0\u955C\uFF1A${shot.camera}` : "",
+    shot.dialogue ? `\u753B\u9762\u4EBA\u7269\u53E3\u578B\u5BF9\u9F50\u53F0\u8BCD\uFF1A${shot.dialogue}` : "",
+    "\u52A8\u4F5C\u81EA\u7136\u8FDE\u8D2F\uFF0C\u4FDD\u6301\u4EBA\u7269\u4E0E\u73AF\u5883\u4E00\u81F4"
+  ].filter(Boolean).join("\uFF1B");
+}
+async function buildShotImageReferences(ctx, shot) {
+  const state = await loadQuickVideoState(ctx.projectId);
+  const materialImages = state?.generation?.materialImages ?? {};
+  const refs = [];
+  for (const ref of shot.assetRefs ?? []) {
+    const material = ctx.snapshot.materials.find((m) => m.type === ref.type && m.name === ref.name);
+    if (!material) continue;
+    const path26 = material.source === "matched" ? material.filePath : materialImages[material.name];
+    if (!path26) continue;
+    try {
+      refs.push({ type: "image", base64: await utils_default2.oss.getImageBase64(path26) });
+    } catch {
+    }
+  }
+  return refs.slice(0, 4);
+}
+function castAspectRatio(ratio) {
+  return ratio === "9:16" ? "9:16" : "16:9";
+}
+async function withTimeout(promise3, ms, message) {
+  let timer;
+  try {
+    return await Promise.race([
+      promise3,
+      new Promise((_3, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), ms);
+      })
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+var runningGenerations, runningShots;
+var init_generate = __esm({
+  "src/lib/quickVideo/generate.ts"() {
+    "use strict";
+    init_utils3();
+    init_contract();
+    init_state();
+    init_metrics();
+    runningGenerations = /* @__PURE__ */ new Map();
+    runningShots = /* @__PURE__ */ new Map();
+  }
+});
+
 // src/lib/responseFormat.ts
 function success3(data = null, message = "\u6210\u529F") {
   return {
@@ -225986,8 +228104,8 @@ function pLimit(concurrency) {
     },
     map: {
       async value(iterable, function_) {
-        const promises7 = Array.from(iterable, (value, index2) => this(function_, value, index2));
-        return Promise.all(promises7);
+        const promises8 = Array.from(iterable, (value, index2) => this(function_, value, index2));
+        return Promise.all(promises8);
       }
     }
   });
@@ -226387,9 +228505,9 @@ var init_generateAssets = __esm({
           model: model.split(/:(.+)/)[1],
           resolution
         });
-        const path25 = await utils_default2.oss.getSmallImageUrl(imagePath);
+        const path26 = await utils_default2.oss.getSmallImageUrl(imagePath);
         await utils_default2.db("o_assets").where("id", id).update({ imageId });
-        return res.status(200).send(success3({ path: path25, assetsId: id }));
+        return res.status(200).send(success3({ path: path26, assetsId: id }));
       } catch (e) {
         await utils_default2.db("o_image").where("id", imageId).update({ state: "\u751F\u6210\u5931\u8D25", errorReason: utils_default2.error(e).message });
         return res.status(400).send(error50(utils_default2.error(e).message || "\u56FE\u7247\u751F\u6210\u5931\u8D25"));
@@ -226826,15 +228944,15 @@ function setToken(payload, expiresIn, secret) {
   if (!payload || typeof secret !== "string" || !secret) {
     throw new Error("\u53C2\u6570\u4E0D\u5408\u6CD5");
   }
-  return import_jsonwebtoken5.default.sign(payload, secret, { expiresIn });
+  return import_jsonwebtoken6.default.sign(payload, secret, { expiresIn });
 }
-var import_express41, import_jsonwebtoken5, router41, login_default;
+var import_express41, import_jsonwebtoken6, router41, login_default;
 var init_login = __esm({
   "src/routes/login/login.ts"() {
     "use strict";
     import_express41 = __toESM(require_express2());
     init_utils3();
-    import_jsonwebtoken5 = __toESM(require_jsonwebtoken());
+    import_jsonwebtoken6 = __toESM(require_jsonwebtoken());
     init_responseFormat();
     init_middleware();
     init_zod();
@@ -229069,7 +231187,7 @@ var init_addTrack = __esm({
 });
 
 // src/routes/production/workbench/batchGeneratePrompt.ts
-var import_express86, import_promises2, import_path9, router86, batchGeneratePrompt_default;
+var import_express86, import_promises2, import_path10, router86, batchGeneratePrompt_default;
 var init_batchGeneratePrompt = __esm({
   "src/routes/production/workbench/batchGeneratePrompt.ts"() {
     "use strict";
@@ -229081,7 +231199,7 @@ var init_batchGeneratePrompt = __esm({
     init_responseFormat();
     init_middleware();
     import_promises2 = __toESM(require("fs/promises"));
-    import_path9 = __toESM(require("path"));
+    import_path10 = __toESM(require("path"));
     init_projectModel();
     router86 = import_express86.default.Router();
     batchGeneratePrompt_default = router86.post(
@@ -229117,7 +231235,7 @@ var init_batchGeneratePrompt = __esm({
           if (modelPromptData) {
             const modelPromptRoot = utils_default2.getPath(["modelPrompt"]);
             try {
-              const fullPath = import_path9.default.join(modelPromptRoot, modelPromptData?.path);
+              const fullPath = import_path10.default.join(modelPromptRoot, modelPromptData?.path);
               const content = await import_promises2.default.readFile(fullPath, "utf-8");
               videoPromptGeneration = content ?? "";
             } catch {
@@ -229125,7 +231243,7 @@ var init_batchGeneratePrompt = __esm({
           }
           if (!videoPromptGeneration) {
             const modelPromptRoot = utils_default2.getPath(["modelPrompt"]);
-            const videoPromptDir = import_path9.default.join(modelPromptRoot, "video");
+            const videoPromptDir = import_path10.default.join(modelPromptRoot, "video");
             const modelLower = (modelData ?? "").toLowerCase();
             let fileName = null;
             if (modelLower.includes("wan") && modelLower.includes("2.6")) {
@@ -229139,7 +231257,7 @@ var init_batchGeneratePrompt = __esm({
             }
             if (fileName) {
               try {
-                const fullPath = import_path9.default.join(videoPromptDir, fileName);
+                const fullPath = import_path10.default.join(videoPromptDir, fileName);
                 videoPromptGeneration = await import_promises2.default.readFile(fullPath, "utf-8");
               } catch {
               }
@@ -229593,7 +231711,7 @@ var init_generateVideo = __esm({
 });
 
 // src/routes/production/workbench/generateVideoPrompt.ts
-var import_express93, import_promises3, import_path10, router93, generateVideoPrompt_default;
+var import_express93, import_promises3, import_path11, router93, generateVideoPrompt_default;
 var init_generateVideoPrompt = __esm({
   "src/routes/production/workbench/generateVideoPrompt.ts"() {
     "use strict";
@@ -229604,7 +231722,7 @@ var init_generateVideoPrompt = __esm({
     init_responseFormat();
     init_middleware();
     import_promises3 = __toESM(require("fs/promises"));
-    import_path10 = __toESM(require("path"));
+    import_path11 = __toESM(require("path"));
     init_projectModel();
     router93 = import_express93.default.Router();
     generateVideoPrompt_default = router93.post(
@@ -229686,7 +231804,7 @@ var init_generateVideoPrompt = __esm({
         if (modelPromptData) {
           const modelPromptRoot = utils_default2.getPath(["modelPrompt"]);
           try {
-            const fullPath = import_path10.default.join(modelPromptRoot, modelPromptData?.path);
+            const fullPath = import_path11.default.join(modelPromptRoot, modelPromptData?.path);
             const content2 = await import_promises3.default.readFile(fullPath, "utf-8");
             videoPromptGeneration = content2 ?? "";
           } catch {
@@ -229694,7 +231812,7 @@ var init_generateVideoPrompt = __esm({
         }
         if (!videoPromptGeneration) {
           const modelPromptRoot = utils_default2.getPath(["modelPrompt"]);
-          const videoPromptDir = import_path10.default.join(modelPromptRoot, "video");
+          const videoPromptDir = import_path11.default.join(modelPromptRoot, "video");
           const modelLower = (modelData ?? "").toLowerCase();
           let fileName = null;
           if (modelLower.includes("wan") && modelLower.includes("2.6")) {
@@ -229708,7 +231826,7 @@ var init_generateVideoPrompt = __esm({
           }
           if (fileName) {
             try {
-              const fullPath = import_path10.default.join(videoPromptDir, fileName);
+              const fullPath = import_path11.default.join(videoPromptDir, fileName);
               videoPromptGeneration = await import_promises3.default.readFile(fullPath, "utf-8");
             } catch {
             }
@@ -230970,13 +233088,13 @@ var init_delScript = __esm({
 var require_utils8 = __commonJS({
   "node_modules/compressing/lib/utils.js"(exports2) {
     "use strict";
-    var fs21 = require("fs");
-    var path25 = require("path");
+    var fs22 = require("fs");
+    var path26 = require("path");
     var { pipeline: pump } = require("stream");
     function isPathWithinParent(childPath, parentPath) {
-      const normalizedChild = path25.resolve(childPath);
-      const normalizedParent = path25.resolve(parentPath);
-      const parentWithSep = normalizedParent.endsWith(path25.sep) ? normalizedParent : normalizedParent + path25.sep;
+      const normalizedChild = path26.resolve(childPath);
+      const normalizedParent = path26.resolve(parentPath);
+      const parentWithSep = normalizedParent.endsWith(path26.sep) ? normalizedParent : normalizedParent + path26.sep;
       return normalizedChild === normalizedParent || normalizedChild.startsWith(parentWithSep);
     }
     exports2.sourceType = (source) => {
@@ -231020,14 +233138,14 @@ var require_utils8 = __commonJS({
       return (source, dest, opts) => {
         opts = opts || {};
         opts.source = source;
-        const destStream = destType(dest) === "path" ? fs21.createWriteStream(dest) : dest;
+        const destStream = destType(dest) === "path" ? fs22.createWriteStream(dest) : dest;
         const compressStream = new StreamClass(opts);
         return safePipe([compressStream, destStream]);
       };
     };
     exports2.makeCompressDirFn = (StreamClass) => {
       return (dir, dest, opts) => {
-        const destStream = destType(dest) === "path" ? fs21.createWriteStream(dest) : dest;
+        const destStream = destType(dest) === "path" ? fs22.createWriteStream(dest) : dest;
         const compressStream = new StreamClass();
         compressStream.addEntry(dir, opts);
         return safePipe([compressStream, destStream]);
@@ -231050,9 +233168,9 @@ var require_utils8 = __commonJS({
         const strip = opts.strip ? Number(opts.strip) : 0;
         delete opts.strip;
         return new Promise((resolve3, reject) => {
-          fs21.mkdir(destDir, { recursive: true }, (err) => {
+          fs22.mkdir(destDir, { recursive: true }, (err) => {
             if (err) return reject(err);
-            const resolvedDestDir = path25.resolve(destDir);
+            const resolvedDestDir = path26.resolve(destDir);
             let entryCount = 0;
             let successCount = 0;
             let isFinish = false;
@@ -231064,44 +233182,44 @@ var require_utils8 = __commonJS({
               done();
             }).on("error", reject).on("entry", (header, stream8, next) => {
               stream8.on("end", next);
-              const destFilePath = path25.join(resolvedDestDir, stripFileName(strip, header.name, header.type));
-              const resolvedDestPath = path25.resolve(destFilePath);
+              const destFilePath = path26.join(resolvedDestDir, stripFileName(strip, header.name, header.type));
+              const resolvedDestPath = path26.resolve(destFilePath);
               if (!isPathWithinParent(resolvedDestPath, resolvedDestDir)) {
                 console.warn(`[compressing] Skipping entry with path traversal: "${header.name}" -> "${resolvedDestPath}"`);
                 stream8.resume();
                 return;
               }
               if (header.type === "file") {
-                const dir = path25.dirname(destFilePath);
-                fs21.mkdir(dir, { recursive: true }, (err2) => {
+                const dir = path26.dirname(destFilePath);
+                fs22.mkdir(dir, { recursive: true }, (err2) => {
                   if (err2) return reject(err2);
                   entryCount++;
-                  pump(stream8, fs21.createWriteStream(destFilePath, { mode: opts.mode || header.mode }), (err3) => {
+                  pump(stream8, fs22.createWriteStream(destFilePath, { mode: opts.mode || header.mode }), (err3) => {
                     if (err3) return reject(err3);
                     successCount++;
                     done();
                   });
                 });
               } else if (header.type === "symlink") {
-                const dir = path25.dirname(destFilePath);
-                const target = path25.resolve(dir, header.linkname);
+                const dir = path26.dirname(destFilePath);
+                const target = path26.resolve(dir, header.linkname);
                 if (!isPathWithinParent(target, resolvedDestDir)) {
                   console.warn(`[compressing] Skipping symlink "${header.name}": target "${target}" escapes extraction directory`);
                   stream8.resume();
                   return;
                 }
                 entryCount++;
-                fs21.mkdir(dir, { recursive: true }, (err2) => {
+                fs22.mkdir(dir, { recursive: true }, (err2) => {
                   if (err2) return reject(err2);
-                  const relativeTarget = path25.relative(dir, target);
-                  fs21.symlink(relativeTarget, destFilePath, (err3) => {
+                  const relativeTarget = path26.relative(dir, target);
+                  fs22.symlink(relativeTarget, destFilePath, (err3) => {
                     if (err3) return reject(err3);
                     successCount++;
                     stream8.resume();
                   });
                 });
               } else {
-                fs21.mkdir(destFilePath, { recursive: true }, (err2) => {
+                fs22.mkdir(destFilePath, { recursive: true }, (err2) => {
                   if (err2) return reject(err2);
                   stream8.resume();
                 });
@@ -231130,7 +233248,7 @@ var require_utils8 = __commonJS({
     }
     exports2.safePipe = safePipe;
     function normalizePath(fileName) {
-      fileName = path25.normalize(fileName);
+      fileName = path26.normalize(fileName);
       if (process.platform === "win32") fileName = fileName.replace(/\\+/g, "/");
       return fileName;
     }
@@ -231468,7 +233586,7 @@ var require_buffer_crc32 = __commonJS({
 var require_yazl = __commonJS({
   "node_modules/yazl/index.js"(exports2) {
     "use strict";
-    var fs21 = require("fs");
+    var fs22 = require("fs");
     var Transform = require("stream").Transform;
     var PassThrough = require("stream").PassThrough;
     var zlib2 = require("zlib");
@@ -231492,14 +233610,14 @@ var require_yazl = __commonJS({
       if (options == null) options = {};
       var entry = new Entry(metadataPath, false, options);
       self2.entries.push(entry);
-      fs21.stat(realPath, function(err, stats) {
+      fs22.stat(realPath, function(err, stats) {
         if (err) return self2.emit("error", err);
         if (!stats.isFile()) return self2.emit("error", new Error("not a file: " + realPath));
         entry.uncompressedSize = stats.size;
         if (options.mtime == null) entry.setLastModDate(stats.mtime);
         if (options.mode == null) entry.setFileAttributesMode(stats.mode);
         entry.setFileDataPumpFunction(function() {
-          var readStream2 = fs21.createReadStream(realPath);
+          var readStream2 = fs22.createReadStream(realPath);
           entry.state = Entry.FILE_DATA_IN_PROGRESS;
           readStream2.on("error", function(err2) {
             self2.emit("error", err2);
@@ -232409,7 +234527,7 @@ var require_stream_writable2 = __commonJS({
     var util4 = Object.create(require_util3());
     util4.inherits = require_inherits();
     var internalUtil = {
-      deprecate: require_node3()
+      deprecate: require_node4()
     };
     var Stream = require_stream9();
     var Buffer2 = require_safe_buffer3().Buffer;
@@ -235436,7 +237554,7 @@ var require_stream_writable3 = __commonJS({
     var util4 = Object.create(require_util3());
     util4.inherits = require_inherits();
     var internalUtil = {
-      deprecate: require_node3()
+      deprecate: require_node4()
     };
     var Stream = require_stream10();
     var Buffer2 = require_safe_buffer4().Buffer;
@@ -237566,8 +239684,8 @@ var require_base_stream = __commonJS({
 var require_stream11 = __commonJS({
   "node_modules/compressing/lib/tar/stream.js"(exports2, module2) {
     "use strict";
-    var fs21 = require("fs");
-    var path25 = require("path");
+    var fs22 = require("fs");
+    var path26 = require("path");
     var stream8 = require("stream");
     var tar = require_tar_stream();
     var utils = require_utils8();
@@ -237602,7 +239720,7 @@ var require_stream11 = __commonJS({
         }
       }
       _addFileOrDirEntry(entry, opts) {
-        fs21.stat(entry, (err, stat) => {
+        fs22.stat(entry, (err, stat) => {
           if (err) return this.emit("error", err);
           if (stat.isDirectory()) return this._addDirEntry(entry, opts);
           if (stat.isFile()) return this._addFileEntry(entry, opts);
@@ -237612,27 +239730,27 @@ var require_stream11 = __commonJS({
         });
       }
       _addFileEntry(entry, opts) {
-        fs21.stat(entry, (err, stat) => {
+        fs22.stat(entry, (err, stat) => {
           if (err) return this.emit("error", err);
-          const entryStream = this._pack.entry({ name: opts.relativePath || path25.basename(entry), size: stat.size, mode: stat.mode & 511 }, this._onEntryFinish.bind(this));
-          const stream9 = fs21.createReadStream(entry, opts.fs);
+          const entryStream = this._pack.entry({ name: opts.relativePath || path26.basename(entry), size: stat.size, mode: stat.mode & 511 }, this._onEntryFinish.bind(this));
+          const stream9 = fs22.createReadStream(entry, opts.fs);
           stream9.on("error", (err2) => this.emit("error", err2));
           stream9.pipe(entryStream);
         });
       }
       _addDirEntry(entry, opts) {
-        fs21.readdir(entry, (err, files) => {
+        fs22.readdir(entry, (err, files) => {
           if (err) return this.emit("error", err);
           const relativePath = opts.relativePath || "";
           files.forEach((fileOrDir) => {
             const newOpts = utils.clone(opts);
             if (opts.ignoreBase) {
-              newOpts.relativePath = path25.posix.join(relativePath, fileOrDir);
+              newOpts.relativePath = path26.posix.join(relativePath, fileOrDir);
             } else {
-              newOpts.relativePath = path25.posix.join(relativePath, path25.basename(entry), fileOrDir);
+              newOpts.relativePath = path26.posix.join(relativePath, path26.basename(entry), fileOrDir);
             }
             newOpts.ignoreBase = true;
-            this.addEntry(path25.posix.join(entry, fileOrDir), newOpts);
+            this.addEntry(path26.posix.join(entry, fileOrDir), newOpts);
           });
           this._onEntryFinish();
         });
@@ -237689,7 +239807,7 @@ var require_stream11 = __commonJS({
 var require_stream12 = __commonJS({
   "node_modules/compressing/lib/zip/stream.js"(exports2, module2) {
     "use strict";
-    var path25 = require("path");
+    var path26 = require("path");
     var yazl = require_yazl();
     var TarStream = require_stream11();
     var ZipStream = class extends TarStream {
@@ -237701,7 +239819,7 @@ var require_stream12 = __commonJS({
         stream8.on("error", (err) => this.emit("error", err));
       }
       _addFileEntry(entry, opts) {
-        this._zipfile.addFile(entry, opts.relativePath || path25.basename(entry), opts);
+        this._zipfile.addFile(entry, opts.relativePath || path26.basename(entry), opts);
         this._onEntryFinish();
       }
       _addBufferEntry(entry, opts) {
@@ -237760,7 +239878,7 @@ var require_get_ready = __commonJS({
 var require_file_stream = __commonJS({
   "node_modules/compressing/lib/zip/file_stream.js"(exports2, module2) {
     "use strict";
-    var path25 = require("path");
+    var path26 = require("path");
     var yazl = require_yazl();
     var assert3 = require("assert");
     var stream8 = require("stream");
@@ -237782,7 +239900,7 @@ var require_file_stream = __commonJS({
           this.end();
         }
         if (sourceType === "file") {
-          zipfile.addFile(opts.source, opts.relativePath || path25.basename(opts.source), opts.yazl);
+          zipfile.addFile(opts.source, opts.relativePath || path26.basename(opts.source), opts.yazl);
         } else if (sourceType === "buffer") {
           zipfile.addBuffer(opts.source, opts.relativePath, opts.yazl);
         } else if (sourceType === "stream") {
@@ -237868,7 +239986,7 @@ var require_pend = __commonJS({
 var require_fd_slicer2 = __commonJS({
   "node_modules/fd-slicer2/index.js"(exports2) {
     "use strict";
-    var fs21 = require("fs");
+    var fs22 = require("fs");
     var { Readable: Readable5, Writable, PassThrough } = require("stream");
     var Pend = require_pend();
     var { EventEmitter: EventEmitter4 } = require("events");
@@ -237883,7 +240001,7 @@ var require_fd_slicer2 = __commonJS({
       }
       read(buffer, offset, length, position, callback) {
         this.pend.go((cb) => {
-          fs21.read(this.fd, buffer, offset, length, position, (err, bytesRead, buffer2) => {
+          fs22.read(this.fd, buffer, offset, length, position, (err, bytesRead, buffer2) => {
             cb();
             callback(err, bytesRead, buffer2);
           });
@@ -237891,7 +240009,7 @@ var require_fd_slicer2 = __commonJS({
       }
       write(buffer, offset, length, position, callback) {
         this.pend.go((cb) => {
-          fs21.write(this.fd, buffer, offset, length, position, (err, written, buffer2) => {
+          fs22.write(this.fd, buffer, offset, length, position, (err, written, buffer2) => {
             cb();
             callback(err, written, buffer2);
           });
@@ -237911,7 +240029,7 @@ var require_fd_slicer2 = __commonJS({
         if (this.refCount > 0) return;
         if (this.refCount < 0) throw new Error("invalid unref");
         if (this.autoClose) {
-          fs21.close(this.fd, (err) => {
+          fs22.close(this.fd, (err) => {
             if (err) {
               this.emit("error", err);
             } else {
@@ -237946,7 +240064,7 @@ var require_fd_slicer2 = __commonJS({
         this.context.pend.go((cb) => {
           if (this.destroyed) return cb();
           const buffer = Buffer.alloc(toRead);
-          fs21.read(this.context.fd, buffer, 0, toRead, this.pos, (err, bytesRead) => {
+          fs22.read(this.context.fd, buffer, 0, toRead, this.pos, (err, bytesRead) => {
             if (err) {
               this.destroy(err);
             } else if (bytesRead === 0) {
@@ -237992,7 +240110,7 @@ var require_fd_slicer2 = __commonJS({
         }
         this.context.pend.go((cb) => {
           if (this.destroyed) return cb();
-          fs21.write(this.context.fd, buffer, 0, buffer.length, this.pos, (err, bytes) => {
+          fs22.write(this.context.fd, buffer, 0, buffer.length, this.pos, (err, bytes) => {
             if (err) {
               this.destroy();
               cb();
@@ -238119,7 +240237,7 @@ var require_fd_slicer2 = __commonJS({
 var require_yauzl = __commonJS({
   "node_modules/@eggjs/yauzl/index.js"(exports2) {
     "use strict";
-    var fs21 = require("fs");
+    var fs22 = require("fs");
     var zlib2 = require("zlib");
     var fd_slicer = require_fd_slicer2();
     var crc322 = require_buffer_crc32();
@@ -238137,7 +240255,7 @@ var require_yauzl = __commonJS({
     exports2.ZipFile = ZipFile;
     exports2.Entry = Entry;
     exports2.RandomAccessReader = RandomAccessReader;
-    function open(path25, options, callback) {
+    function open(path26, options, callback) {
       if (typeof options === "function") {
         callback = options;
         options = null;
@@ -238149,10 +240267,10 @@ var require_yauzl = __commonJS({
       if (options.validateEntrySizes == null) options.validateEntrySizes = true;
       if (options.strictFileNames == null) options.strictFileNames = false;
       if (callback == null) callback = defaultCallback;
-      fs21.open(path25, "r", function(err, fd) {
+      fs22.open(path26, "r", function(err, fd) {
         if (err) return callback(err);
         fromFd(fd, options, function(err2, zipfile) {
-          if (err2) fs21.close(fd, defaultCallback);
+          if (err2) fs22.close(fd, defaultCallback);
           callback(err2, zipfile);
         });
       });
@@ -238169,7 +240287,7 @@ var require_yauzl = __commonJS({
       if (options.validateEntrySizes == null) options.validateEntrySizes = true;
       if (options.strictFileNames == null) options.strictFileNames = false;
       if (callback == null) callback = defaultCallback;
-      fs21.fstat(fd, function(err, stats) {
+      fs22.fstat(fd, function(err, stats) {
         if (err) return callback(err);
         var reader = fd_slicer.createFromFd(fd, { autoClose: true });
         fromRandomAccessReader(reader, stats.size, options, callback);
@@ -242489,7 +244607,7 @@ var require_lib9 = __commonJS({
 var require_file_stream2 = __commonJS({
   "node_modules/compressing/lib/gzip/file_stream.js"(exports2, module2) {
     "use strict";
-    var fs21 = require("fs");
+    var fs22 = require("fs");
     var zlib2 = require("zlib");
     var utils = require_utils8();
     var streamifier = require_lib9();
@@ -242499,7 +244617,7 @@ var require_file_stream2 = __commonJS({
         super(opts.zlib);
         const sourceType = utils.sourceType(opts.source);
         if (sourceType === "file") {
-          const stream8 = fs21.createReadStream(opts.source, opts.fs);
+          const stream8 = fs22.createReadStream(opts.source, opts.fs);
           stream8.on("error", (err) => this.emit("error", err));
           stream8.pipe(this);
           return;
@@ -242524,7 +244642,7 @@ var require_file_stream2 = __commonJS({
 var require_uncompress_stream2 = __commonJS({
   "node_modules/compressing/lib/gzip/uncompress_stream.js"(exports2, module2) {
     "use strict";
-    var fs21 = require("fs");
+    var fs22 = require("fs");
     var zlib2 = require("zlib");
     var utils = require_utils8();
     var streamifier = require_lib9();
@@ -242534,7 +244652,7 @@ var require_uncompress_stream2 = __commonJS({
         super(opts.zlib);
         const sourceType = utils.sourceType(opts.source);
         if (sourceType === "file") {
-          const stream8 = fs21.createReadStream(opts.source, opts.fs);
+          const stream8 = fs22.createReadStream(opts.source, opts.fs);
           stream8.on("error", (err) => this.emit("error", err));
           stream8.pipe(this);
           return;
@@ -242574,8 +244692,8 @@ var require_gzip = __commonJS({
 var require_file_stream3 = __commonJS({
   "node_modules/compressing/lib/tar/file_stream.js"(exports2, module2) {
     "use strict";
-    var fs21 = require("fs");
-    var path25 = require("path");
+    var fs22 = require("fs");
+    var path26 = require("path");
     var stream8 = require("stream");
     var tar = require_tar_stream();
     var utils = require_utils8();
@@ -242588,13 +244706,13 @@ var require_file_stream3 = __commonJS({
         pack.on("end", () => this.ready(true));
         const sourceType = utils.sourceType(opts.source);
         if (sourceType === "file") {
-          fs21.stat(opts.source, (err, stat) => {
+          fs22.stat(opts.source, (err, stat) => {
             if (err) return this.emit("error", err);
-            this.entry = pack.entry({ name: opts.relativePath || path25.basename(opts.source), size: stat.size, mode: stat.mode & 511 }, (err2) => {
+            this.entry = pack.entry({ name: opts.relativePath || path26.basename(opts.source), size: stat.size, mode: stat.mode & 511 }, (err2) => {
               if (err2) return this.emit("error", err2);
               pack.finalize();
             });
-            const stream9 = fs21.createReadStream(opts.source, opts.fs);
+            const stream9 = fs22.createReadStream(opts.source, opts.fs);
             stream9.on("error", (err2) => this.emit("error", err2));
             stream9.pipe(this);
           });
@@ -242653,7 +244771,7 @@ var require_file_stream3 = __commonJS({
 var require_uncompress_stream3 = __commonJS({
   "node_modules/compressing/lib/tar/uncompress_stream.js"(exports2, module2) {
     "use strict";
-    var fs21 = require("fs");
+    var fs22 = require("fs");
     var tar = require_tar_stream();
     var utils = require_utils8();
     var streamifier = require_lib9();
@@ -242663,7 +244781,7 @@ var require_uncompress_stream3 = __commonJS({
         super(opts);
         const sourceType = utils.sourceType(opts.source);
         if (sourceType === "file") {
-          const stream8 = fs21.createReadStream(opts.source, opts.fs);
+          const stream8 = fs22.createReadStream(opts.source, opts.fs);
           stream8.on("error", (err) => this.emit("error", err));
           stream8.pipe(this);
           return;
@@ -242805,7 +244923,7 @@ var require_FlushWritable = __commonJS({
 var require_uncompress_stream4 = __commonJS({
   "node_modules/compressing/lib/tgz/uncompress_stream.js"(exports2, module2) {
     "use strict";
-    var fs21 = require("fs");
+    var fs22 = require("fs");
     var utils = require_utils8();
     var ready = require_get_ready();
     var streamifier = require_lib9();
@@ -242823,7 +244941,7 @@ var require_uncompress_stream4 = __commonJS({
         this._gzipStream.pipe(tarStream);
         const sourceType = utils.sourceType(opts.source);
         if (sourceType === "file") {
-          const stream8 = fs21.createReadStream(opts.source, opts.fs);
+          const stream8 = fs22.createReadStream(opts.source, opts.fs);
           stream8.on("error", (err) => this.emit("error", err));
           stream8.pipe(this);
           return;
@@ -243424,7 +245542,7 @@ var init_updateData = __esm({
 });
 
 // src/routes/setting/about/checkUpdate.ts
-var import_express128, import_fs3, import_path11, router128, APP_VERSION2, checkUpdate_default;
+var import_express128, import_fs3, import_path12, router128, APP_VERSION2, checkUpdate_default;
 var init_checkUpdate = __esm({
   "src/routes/setting/about/checkUpdate.ts"() {
     "use strict";
@@ -243433,13 +245551,13 @@ var init_checkUpdate = __esm({
     init_middleware();
     init_zod();
     import_fs3 = __toESM(require("fs"));
-    import_path11 = __toESM(require("path"));
+    import_path12 = __toESM(require("path"));
     router128 = import_express128.default.Router();
     APP_VERSION2 = (() => {
       if (true) {
         return "1.1.8";
       }
-      const pkgPath = import_path11.default.resolve(process.cwd(), "package.json");
+      const pkgPath = import_path12.default.resolve(process.cwd(), "package.json");
       const pkg = JSON.parse(import_fs3.default.readFileSync(pkgPath, "utf8"));
       return pkg.version;
     })();
@@ -243485,7 +245603,7 @@ var init_checkUpdate = __esm({
 });
 
 // src/routes/setting/about/downloadApp.ts
-var import_express129, import_fs4, import_path12, import_compressing2, router129, downloadApp_default;
+var import_express129, import_fs4, import_path13, import_compressing2, router129, downloadApp_default;
 var init_downloadApp = __esm({
   "src/routes/setting/about/downloadApp.ts"() {
     "use strict";
@@ -243494,7 +245612,7 @@ var init_downloadApp = __esm({
     init_middleware();
     init_utils3();
     import_fs4 = __toESM(require("fs"));
-    import_path12 = __toESM(require("path"));
+    import_path13 = __toESM(require("path"));
     init_axios2();
     import_compressing2 = __toESM(require_compressing());
     init_responseFormat();
@@ -243513,7 +245631,7 @@ var init_downloadApp = __esm({
         } else {
           const tempRoot = utils_default2.getPath(["temp"]);
           import_fs4.default.mkdirSync(tempRoot, { recursive: true });
-          const extractDir = import_fs4.default.mkdtempSync(import_path12.default.join(tempRoot, "update-"));
+          const extractDir = import_fs4.default.mkdtempSync(import_path13.default.join(tempRoot, "update-"));
           try {
             const zip = await axios_default.get(url4, { responseType: "arraybuffer" }).then((response) => Buffer.from(response.data));
             await import_compressing2.default.zip.uncompress(zip, extractDir);
@@ -244175,15 +246293,15 @@ var init_bindingPrompt = __esm({
         fileName: external_exports.string()
       }),
       async (req, res) => {
-        const { vendorId, model, path: path25, fileName } = req.body;
+        const { vendorId, model, path: path26, fileName } = req.body;
         const data = await utils_default2.db("o_modelPrompt").where("model", model).andWhere("vendorId", vendorId).select("*").first();
         if (data) {
-          await utils_default2.db("o_modelPrompt").where("model", model).andWhere("vendorId", vendorId).update({ fileName, path: path25 });
+          await utils_default2.db("o_modelPrompt").where("model", model).andWhere("vendorId", vendorId).update({ fileName, path: path26 });
           res.status(200).send(success3("\u7ED1\u5B9A\u6210\u529F"));
         } else {
           const maxRow = await utils_default2.db("o_modelPrompt").max("id as maxId").first();
           const id = Number(maxRow?.maxId ?? 0) + 1;
-          await utils_default2.db("o_modelPrompt").insert({ id, vendorId, model, path: path25, fileName });
+          await utils_default2.db("o_modelPrompt").insert({ id, vendorId, model, path: path26, fileName });
           res.status(200).send(success3("\u7ED1\u5B9A\u6210\u529F"));
         }
       }
@@ -244192,7 +246310,7 @@ var init_bindingPrompt = __esm({
 });
 
 // src/routes/setting/modelMap/deletePrompt.ts
-var import_express151, import_promises4, import_path13, router151, deletePrompt_default;
+var import_express151, import_promises4, import_path14, router151, deletePrompt_default;
 var init_deletePrompt = __esm({
   "src/routes/setting/modelMap/deletePrompt.ts"() {
     "use strict";
@@ -244202,7 +246320,7 @@ var init_deletePrompt = __esm({
     init_zod();
     init_middleware();
     import_promises4 = __toESM(require("fs/promises"));
-    import_path13 = __toESM(require("path"));
+    import_path14 = __toESM(require("path"));
     router151 = import_express151.default.Router();
     deletePrompt_default = router151.post(
       "/",
@@ -244212,9 +246330,9 @@ var init_deletePrompt = __esm({
       async (req, res) => {
         const { path: filePath } = req.body;
         const modelPromptRoot = utils_default2.getPath(["modelPrompt"]);
-        const resolvedRoot = import_path13.default.resolve(modelPromptRoot);
-        const resolvedFile = import_path13.default.resolve(modelPromptRoot, filePath);
-        if (!resolvedFile.startsWith(resolvedRoot + import_path13.default.sep)) {
+        const resolvedRoot = import_path14.default.resolve(modelPromptRoot);
+        const resolvedFile = import_path14.default.resolve(modelPromptRoot, filePath);
+        if (!resolvedFile.startsWith(resolvedRoot + import_path14.default.sep)) {
           return res.status(400).send(error50("\u975E\u6CD5\u8DEF\u5F84"));
         }
         try {
@@ -244268,7 +246386,7 @@ var init_getImageAndVideoModel = __esm({
 });
 
 // src/routes/setting/modelMap/getPromptList.ts
-var import_express153, import_fast_glob3, import_promises5, import_path14, router153, getPromptList_default;
+var import_express153, import_fast_glob3, import_promises5, import_path15, router153, getPromptList_default;
 var init_getPromptList = __esm({
   "src/routes/setting/modelMap/getPromptList.ts"() {
     "use strict";
@@ -244277,7 +246395,7 @@ var init_getPromptList = __esm({
     init_utils3();
     import_fast_glob3 = __toESM(require_out4());
     import_promises5 = __toESM(require("fs/promises"));
-    import_path14 = __toESM(require("path"));
+    import_path15 = __toESM(require("path"));
     router153 = import_express153.default.Router();
     getPromptList_default = router153.get("/", async (req, res) => {
       const modelPromptRoot = utils_default2.getPath(["modelPrompt"]);
@@ -244287,9 +246405,9 @@ var init_getPromptList = __esm({
       });
       const result = await Promise.all(
         entries.map(async (entry) => {
-          const fullPath = import_path14.default.join(modelPromptRoot, entry);
+          const fullPath = import_path15.default.join(modelPromptRoot, entry);
           const content = await import_promises5.default.readFile(fullPath, "utf-8");
-          const name28 = import_path14.default.basename(entry, ".md");
+          const name28 = import_path15.default.basename(entry, ".md");
           const type = entry.includes("/") ? entry.split("/")[0] : "";
           return { path: entry, name: name28, type, data: content };
         })
@@ -244300,7 +246418,7 @@ var init_getPromptList = __esm({
 });
 
 // src/routes/setting/modelMap/savePrompt.ts
-var import_express154, import_promises6, import_path15, router154, savePrompt_default;
+var import_express154, import_promises6, import_path16, router154, savePrompt_default;
 var init_savePrompt = __esm({
   "src/routes/setting/modelMap/savePrompt.ts"() {
     "use strict";
@@ -244310,7 +246428,7 @@ var init_savePrompt = __esm({
     init_zod();
     init_middleware();
     import_promises6 = __toESM(require("fs/promises"));
-    import_path15 = __toESM(require("path"));
+    import_path16 = __toESM(require("path"));
     router154 = import_express154.default.Router();
     savePrompt_default = router154.post(
       "/",
@@ -244322,9 +246440,9 @@ var init_savePrompt = __esm({
       async (req, res) => {
         const { name: name28, data, type } = req.body;
         const modelPromptRoot = utils_default2.getPath(["modelPrompt"]);
-        const dir = import_path15.default.join(modelPromptRoot, type);
+        const dir = import_path16.default.join(modelPromptRoot, type);
         await import_promises6.default.mkdir(dir, { recursive: true });
-        const filePath = import_path15.default.join(dir, `${name28}.md`);
+        const filePath = import_path16.default.join(dir, `${name28}.md`);
         await import_promises6.default.writeFile(filePath, data, "utf-8");
         res.status(200).send(success3("\u4FDD\u5B58\u6210\u529F"));
       }
@@ -244333,7 +246451,7 @@ var init_savePrompt = __esm({
 });
 
 // src/routes/setting/modelMap/updatePrompt.ts
-var import_express155, import_promises7, import_path16, router155, updatePrompt_default;
+var import_express155, import_promises7, import_path17, router155, updatePrompt_default;
 var init_updatePrompt = __esm({
   "src/routes/setting/modelMap/updatePrompt.ts"() {
     "use strict";
@@ -244343,7 +246461,7 @@ var init_updatePrompt = __esm({
     init_zod();
     init_middleware();
     import_promises7 = __toESM(require("fs/promises"));
-    import_path16 = __toESM(require("path"));
+    import_path17 = __toESM(require("path"));
     router155 = import_express155.default.Router();
     updatePrompt_default = router155.post(
       "/",
@@ -244355,10 +246473,10 @@ var init_updatePrompt = __esm({
       async (req, res) => {
         const { name: name28, data, type } = req.body;
         const modelPromptRoot = utils_default2.getPath(["modelPrompt"]);
-        const filePath = import_path16.default.join(modelPromptRoot, type, `${name28}.md`);
-        const resolvedRoot = import_path16.default.resolve(modelPromptRoot);
-        const resolvedFile = import_path16.default.resolve(filePath);
-        if (!resolvedFile.startsWith(resolvedRoot + import_path16.default.sep)) {
+        const filePath = import_path17.default.join(modelPromptRoot, type, `${name28}.md`);
+        const resolvedRoot = import_path17.default.resolve(modelPromptRoot);
+        const resolvedFile = import_path17.default.resolve(filePath);
+        if (!resolvedFile.startsWith(resolvedRoot + import_path17.default.sep)) {
           return res.status(400).send(error50("\u975E\u6CD5\u8DEF\u5F84"));
         }
         try {
@@ -244425,7 +246543,7 @@ var init_updatePrompt2 = __esm({
 });
 
 // src/routes/setting/skillManagement/getSkillContent.ts
-var import_express158, import_path17, fs17, router158, getSkillContent_default;
+var import_express158, import_path18, fs18, router158, getSkillContent_default;
 var init_getSkillContent = __esm({
   "src/routes/setting/skillManagement/getSkillContent.ts"() {
     "use strict";
@@ -244435,8 +246553,8 @@ var init_getSkillContent = __esm({
     init_zod();
     init_is_path_inside();
     init_utils3();
-    import_path17 = __toESM(require("path"));
-    fs17 = __toESM(require("fs"));
+    import_path18 = __toESM(require("path"));
+    fs18 = __toESM(require("fs"));
     init_skillManual();
     router158 = import_express158.default.Router();
     getSkillContent_default = router158.post(
@@ -244445,19 +246563,19 @@ var init_getSkillContent = __esm({
         path: external_exports.string()
       }),
       async (req, res) => {
-        const { path: path25 } = req.body;
-        const manual = parseVirtualPath(path25);
+        const { path: path26 } = req.body;
+        const manual = parseVirtualPath(path26);
         if (manual) {
           const content = await getSection(manual.type, manual.styleName, manual.sectionKey);
           res.status(200).send(success3(content));
           return;
         }
         const skillsRoot = utils_default2.getPath(["skills"]);
-        const filePath = import_path17.default.join(skillsRoot, path25);
+        const filePath = import_path18.default.join(skillsRoot, path26);
         if (!isPathInside(filePath, skillsRoot)) {
           return res.status(400).send(error50("\u65E0\u6548\u7684\u8DEF\u5F84"));
         }
-        const raw = await fs17.promises.readFile(filePath, "utf-8");
+        const raw = await fs18.promises.readFile(filePath, "utf-8");
         res.status(200).send(success3(raw));
       }
     );
@@ -244491,7 +246609,7 @@ var init_getSkillList = __esm({
 });
 
 // src/routes/setting/skillManagement/saveSkillContent.ts
-var import_express160, import_path18, fs18, router160, saveSkillContent_default;
+var import_express160, import_path19, fs19, router160, saveSkillContent_default;
 var init_saveSkillContent = __esm({
   "src/routes/setting/skillManagement/saveSkillContent.ts"() {
     "use strict";
@@ -244501,8 +246619,8 @@ var init_saveSkillContent = __esm({
     init_zod();
     init_is_path_inside();
     init_utils3();
-    import_path18 = __toESM(require("path"));
-    fs18 = __toESM(require("fs"));
+    import_path19 = __toESM(require("path"));
+    fs19 = __toESM(require("fs"));
     init_skillManual();
     router160 = import_express160.default.Router();
     saveSkillContent_default = router160.post(
@@ -244512,8 +246630,8 @@ var init_saveSkillContent = __esm({
         content: external_exports.string()
       }),
       async (req, res) => {
-        const { path: path25, content } = req.body;
-        const manual = parseVirtualPath(path25);
+        const { path: path26, content } = req.body;
+        const manual = parseVirtualPath(path26);
         if (manual) {
           if (!await sectionExists(manual.type, manual.styleName, manual.sectionKey)) {
             return res.status(400).send(error50("\u6587\u4EF6\u4E0D\u5B58\u5728"));
@@ -244523,14 +246641,14 @@ var init_saveSkillContent = __esm({
           return;
         }
         const skillsRoot = utils_default2.getPath(["skills"]);
-        const filePath = import_path18.default.join(skillsRoot, path25);
+        const filePath = import_path19.default.join(skillsRoot, path26);
         if (!isPathInside(filePath, skillsRoot)) {
           return res.status(400).send(error50("\u65E0\u6548\u7684\u8DEF\u5F84"));
         }
-        if (!fs18.existsSync(filePath)) {
+        if (!fs19.existsSync(filePath)) {
           return res.status(400).send(error50("\u6587\u4EF6\u4E0D\u5B58\u5728"));
         }
-        const raw = await fs18.promises.writeFile(filePath, content, "utf-8");
+        const raw = await fs19.promises.writeFile(filePath, content, "utf-8");
         res.status(200).send(success3(raw));
       }
     );
@@ -244684,14 +246802,14 @@ var init_addVendorModelSpec = __esm({
 });
 
 // src/routes/setting/vendorConfig/deleteVendor.ts
-var import_express164, import_path19, import_fs5, router164, deleteVendor_default;
+var import_express164, import_path20, import_fs5, router164, deleteVendor_default;
 var init_deleteVendor = __esm({
   "src/routes/setting/vendorConfig/deleteVendor.ts"() {
     "use strict";
     import_express164 = __toESM(require_express2());
     init_responseFormat();
     init_middleware();
-    import_path19 = __toESM(require("path"));
+    import_path20 = __toESM(require("path"));
     import_fs5 = __toESM(require("fs"));
     init_utils3();
     init_zod();
@@ -244708,7 +246826,7 @@ var init_deleteVendor = __esm({
           model: null,
           vendorId: null
         });
-        import_fs5.default.rmSync(import_path19.default.join(utils_default2.getPath("vendor"), `${id}.ts`), { recursive: true, force: true });
+        import_fs5.default.rmSync(import_path20.default.join(utils_default2.getPath("vendor"), `${id}.ts`), { recursive: true, force: true });
         res.status(200).send(success3("\u5220\u9664\u6210\u529F"));
       }
     );
@@ -245431,6 +247549,865 @@ var init_test = __esm({
   }
 });
 
+// src/routes/quickVideo/addShot.ts
+var import_express183, router183, addShot_default;
+var init_addShot = __esm({
+  "src/routes/quickVideo/addShot.ts"() {
+    "use strict";
+    import_express183 = __toESM(require_express2());
+    init_zod();
+    init_responseFormat();
+    init_middleware();
+    init_contract();
+    init_state();
+    init_shots();
+    router183 = import_express183.default.Router();
+    addShot_default = router183.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        expectedVersion: external_exports.number().int().min(1),
+        idempotencyKey: external_exports.string().min(8).max(64),
+        shot: external_exports.object({
+          duration: external_exports.number().int().min(5).max(15),
+          description: external_exports.string().min(1).max(2e3),
+          dialogue: external_exports.string().max(500).optional().default(""),
+          camera: external_exports.string().max(200).optional().default(""),
+          assetRefs: external_exports.array(shotAssetRefSchema).max(10).optional().default([])
+        })
+      }),
+      async (req, res) => {
+        const { projectId, expectedVersion, idempotencyKey, shot } = req.body;
+        try {
+          const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, (state) => {
+            ensureStoryboardEditable(state);
+            if ((state.storyboard?.shots.length ?? 0) >= SHOT_COUNT_MAX) {
+              throw new QuickVideoError("SHOT_COUNT_EXCEEDED", `\u955C\u5934\u6570\u91CF\u5DF2\u8FBE\u4E0A\u9650 ${SHOT_COUNT_MAX}`, state.version);
+            }
+            state.storyboard.shots.push({
+              id: nextShotId(state),
+              index: (state.storyboard?.shots.length ?? 0) + 1,
+              duration: shot.duration,
+              description: shot.description,
+              dialogue: shot.dialogue ?? "",
+              camera: shot.camera ?? "",
+              assetRefs: shot.assetRefs ?? [],
+              imageState: "pending",
+              videoState: "pending",
+              imageRef: null,
+              videoRef: null,
+              errorReason: null
+            });
+            reindexShots(state);
+          });
+          res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/confirmStage.ts
+var import_express184, router184, confirmStage_default;
+var init_confirmStage = __esm({
+  "src/routes/quickVideo/confirmStage.ts"() {
+    "use strict";
+    import_express184 = __toESM(require_express2());
+    init_zod();
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    init_state();
+    init_contract();
+    init_generate();
+    init_metrics();
+    router184 = import_express184.default.Router();
+    confirmStage_default = router184.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        expectedVersion: external_exports.number().int().min(1),
+        idempotencyKey: external_exports.string().min(8).max(64),
+        gate: external_exports.enum(["brief", "storyboard", "materials", "export"]),
+        action: external_exports.enum(["confirm", "reject"]),
+        /** gate=export 时可选回写的导出结果（浏览器端 WebAV 编码成功后携带） */
+        exportInfo: external_exports.object({
+          fileName: external_exports.string().min(1).max(200),
+          sizeBytes: external_exports.number().int().min(0),
+          durationSeconds: external_exports.number().min(0)
+        }).optional()
+      }),
+      async (req, res) => {
+        const { projectId, expectedVersion, idempotencyKey, gate, action, exportInfo } = req.body;
+        let shouldStartGeneration = false;
+        try {
+          const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, async (state) => {
+            if (gate === "brief") {
+              if (!state.brief) throw new QuickVideoError("NO_BRIEF", "\u6682\u65E0\u7B80\u62A5\uFF0C\u65E0\u6CD5\u64CD\u4F5C", state.version);
+              if (action === "confirm") {
+                if (!["collect_brief", "storyboard_draft", "brief_confirmed"].includes(state.stage)) {
+                  throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u786E\u8BA4\u7B80\u62A5`, state.version);
+                }
+                state.stage = "brief_confirmed";
+                state.brief.confirmed = true;
+                state.brief.confirmedAt = Date.now();
+              } else {
+                if (state.stage !== "brief_confirmed" && state.stage !== "collect_brief") {
+                  throw new QuickVideoError("STAGE_MISMATCH", "\u7B80\u62A5\u5DF2\u8FDB\u5165\u540E\u7EED\u6D41\u7A0B\uFF0C\u8BF7\u6539\u4E3A\u76F4\u63A5\u7F16\u8F91\u7B80\u62A5", state.version);
+                }
+                state.stage = "collect_brief";
+                state.brief.confirmed = false;
+                state.brief.confirmedAt = null;
+              }
+              return;
+            }
+            if (gate === "storyboard") {
+              if (!state.storyboard) throw new QuickVideoError("NO_STORYBOARD", "\u6682\u65E0\u5206\u955C\uFF0C\u65E0\u6CD5\u64CD\u4F5C", state.version);
+              if (action === "confirm") {
+                if (state.stage !== "storyboard_draft") {
+                  throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u786E\u8BA4\u5206\u955C`, state.version);
+                }
+                const errors = validateStoryboard(state.targetDuration, state.storyboard.shots);
+                if (errors.length) throw new QuickVideoError("STORYBOARD_INVALID", errors.join("\uFF1B"), state.version);
+                state.stage = "storyboard_confirmed";
+                state.storyboard.status = "confirmed";
+                state.storyboard.confirmedAt = Date.now();
+              } else {
+                if (state.stage !== "storyboard_confirmed") {
+                  throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u9700\u8981\u64A4\u9500\u5206\u955C\u786E\u8BA4`, state.version);
+                }
+                state.stage = "storyboard_draft";
+                state.storyboard.status = "draft";
+                state.storyboard.confirmedAt = null;
+              }
+              return;
+            }
+            if (gate === "materials") {
+              if (!state.storyboard || state.storyboard.status !== "confirmed") {
+                throw new QuickVideoError("NO_STORYBOARD", "\u5206\u955C\u5C1A\u672A\u786E\u8BA4\uFF0C\u8BF7\u5148\u901A\u8FC7\u5206\u955C\u786E\u8BA4\u95E8", state.version);
+              }
+              if (action === "confirm") {
+                if (state.stage !== "storyboard_confirmed") {
+                  throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u7D20\u6750\u786E\u8BA4`, state.version);
+                }
+                const needResolve = !state.generation?.snapshot || state.generation.snapshot.storyboardVersion !== state.storyboard.version;
+                if (needResolve) {
+                  const { materials, estimate, snapshotShots } = await buildSnapshot(projectId, state);
+                  applySnapshotToState(state, state.storyboard.version, snapshotShots, materials, estimate);
+                }
+                if (!state.generation.snapshot) {
+                  throw new QuickVideoError("MATERIALS_RESOLVE_FAILED", "\u7D20\u6750\u89E3\u6790\u5931\u8D25\uFF0C\u65E0\u6CD5\u786E\u8BA4", state.version);
+                }
+                state.generation.materialsConfirmed = true;
+                state.generation.materialsConfirmedAt = Date.now();
+                state.generation.startedAt = Date.now();
+                state.generation.finishedAt = null;
+                state.stage = "generating";
+                shouldStartGeneration = true;
+              } else {
+                if (state.stage !== "storyboard_confirmed") {
+                  throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u64A4\u9500\u7D20\u6750\u786E\u8BA4`, state.version);
+                }
+                state.generation.materialsConfirmed = false;
+                state.generation.materialsConfirmedAt = null;
+              }
+              return;
+            }
+            if (action !== "confirm") {
+              throw new QuickVideoError("FORBIDDEN", "\u5BFC\u51FA\u65E0\u9700\u64A4\u9500\uFF0C\u672A\u5BFC\u51FA\u5373\u53EF\u7EE7\u7EED\u7F16\u8F91", state.version);
+            }
+            if (state.stage !== "ready_to_assemble" && state.stage !== "completed") {
+              throw new QuickVideoError("STAGE_MISMATCH", "\u5C1A\u672A\u5B8C\u6210\u5168\u90E8\u955C\u5934\u751F\u6210\uFF0C\u65E0\u6CD5\u5BFC\u51FA", state.version);
+            }
+            state.stage = "completed";
+            if (exportInfo) {
+              state.generation.exportInfo = { exportedAt: Date.now(), ...exportInfo };
+            }
+          });
+          if (gate === "export" && action === "confirm" && !result.idempotentHit) {
+            recordEvent("exportConfirmed");
+            qvLog("export_confirmed", { projectId, sizeBytes: exportInfo?.sizeBytes ?? null, durationSeconds: exportInfo?.durationSeconds ?? null });
+          }
+          res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
+          if (shouldStartGeneration && !result.idempotentHit) {
+            try {
+              const start = await startQuickVideoGeneration(projectId, req.user?.id ?? 1);
+              if (start.started) console.log(`[quickVideo] \u9879\u76EE ${projectId} \u751F\u6210\u5DF2\u542F\u52A8\uFF08${start.runId}\uFF09`);
+            } catch (err) {
+              console.error(`[quickVideo] \u9879\u76EE ${projectId} \u786E\u8BA4\u540E\u542F\u52A8\u751F\u6210\u5931\u8D25:`, utils_default2.error(err).message);
+            }
+          }
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/createProject.ts
+var import_express185, router185, createProject_default;
+var init_createProject = __esm({
+  "src/routes/quickVideo/createProject.ts"() {
+    "use strict";
+    import_express185 = __toESM(require_express2());
+    init_zod();
+    init_utils3();
+    init_db();
+    init_responseFormat();
+    init_middleware();
+    init_contract();
+    init_state();
+    router185 = import_express185.default.Router();
+    createProject_default = router185.post(
+      "/",
+      validateFields({
+        name: external_exports.string().min(1).max(100),
+        artStyle: external_exports.string().max(500).default(""),
+        videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS),
+        targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]),
+        draftScript: external_exports.string().max(2e4).optional().default(""),
+        intro: external_exports.string().max(2e3).optional().default(""),
+        idempotencyKey: external_exports.string().min(8).max(64)
+      }),
+      async (req, res) => {
+        const { name: name28, artStyle, videoRatio, targetDuration, draftScript, intro, idempotencyKey } = req.body;
+        const existingProjectId = await findProjectByCreateIdempotencyKey(idempotencyKey);
+        if (existingProjectId != null) {
+          const project2 = await utils_default2.db("o_project").where("id", existingProjectId).first();
+          return res.status(200).send(success3({ projectId: existingProjectId, existed: true, project: project2 }));
+        }
+        const projectId = await db.transaction(async (trx) => {
+          const maxRow = await trx("o_project").max("id as maxId").first();
+          const id = Number(maxRow?.maxId ?? 0) + 1;
+          await trx("o_project").insert({
+            id,
+            projectType: QUICK_VIDEO_PROJECT_TYPE,
+            name: name28,
+            intro,
+            type: "quick_video",
+            artStyle,
+            videoRatio,
+            directorManual: "",
+            userId: 1,
+            imageModel: "",
+            videoModel: "",
+            imageQuality: "",
+            mode: "",
+            createTime: Date.now()
+          });
+          if (draftScript && draftScript.trim()) {
+            const scriptMaxRow = await trx("o_script").max("id as maxId").first();
+            const scriptId = Number(scriptMaxRow?.maxId ?? 0) + 1;
+            await trx("o_script").insert({
+              id: scriptId,
+              projectId: id,
+              name: `${name28}-\u8349\u7A3F`,
+              content: draftScript,
+              createTime: Date.now()
+            });
+          }
+          await initQuickVideoStateRow(trx, { projectId: id, idempotencyKey, targetDuration, videoRatio, artStyle });
+          return id;
+        });
+        const project = await utils_default2.db("o_project").where("id", projectId).first();
+        const state = await (async () => {
+          const row = await utils_default2.db("o_agentWorkData").where({ projectId, key: "quickVideoAgent" }).first();
+          return row && row.data ? JSON.parse(row.data) : null;
+        })();
+        res.status(200).send(success3({ projectId, existed: false, project, state }));
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/getMediaUrls.ts
+var import_express186, router186, getMediaUrls_default;
+var init_getMediaUrls = __esm({
+  "src/routes/quickVideo/getMediaUrls.ts"() {
+    "use strict";
+    import_express186 = __toESM(require_express2());
+    init_zod();
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    init_state();
+    router186 = import_express186.default.Router();
+    getMediaUrls_default = router186.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number()
+      }),
+      async (req, res) => {
+        const { projectId } = req.body;
+        const state = await loadQuickVideoState(projectId);
+        const shots = state?.storyboard?.shots ?? [];
+        const media = {};
+        await Promise.all(
+          shots.filter((s) => s.imageRef || s.videoRef).map(async (s) => {
+            const [imageUrl, videoUrl] = await Promise.all([
+              s.imageRef ? utils_default2.oss.getSmallImageUrl(s.imageRef).catch(() => null) : Promise.resolve(null),
+              s.videoRef ? utils_default2.oss.getFileUrl(s.videoRef).catch(() => null) : Promise.resolve(null)
+            ]);
+            media[s.id] = { imageUrl, videoUrl };
+          })
+        );
+        res.status(200).send(success3({ media }));
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/getMetrics.ts
+var import_express187, router187, getMetrics_default;
+var init_getMetrics = __esm({
+  "src/routes/quickVideo/getMetrics.ts"() {
+    "use strict";
+    import_express187 = __toESM(require_express2());
+    init_zod();
+    init_responseFormat();
+    init_middleware();
+    init_metrics();
+    router187 = import_express187.default.Router();
+    getMetrics_default = router187.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number().optional()
+      }),
+      async (_req, res) => {
+        res.status(200).send(success3(snapshotMetrics()));
+      }
+    );
+  }
+});
+
+// src/lib/quickVideo/timeline.ts
+function buildTimelinePlan({ shots, targetDuration, videoRatio, ctaText = "" }) {
+  const ordered = [...shots].sort((a, b) => a.index - b.index).slice(0, SHOT_COUNT_MAX);
+  if (!ordered.length) throw new Error("TIMELINE_NO_SHOTS");
+  const n = ordered.length;
+  const transition = n >= 2 ? TIMELINE_TRANSITION_DURATION_S : 0;
+  const sourceTotal = ordered.reduce((sum, s) => sum + s.duration, 0);
+  const mediaNeeded = targetDuration + (n - 1) * transition;
+  let playbackRate;
+  let trimFraction = 1;
+  let tailPadSeconds = 0;
+  const rateRaw = sourceTotal / mediaNeeded;
+  if (rateRaw > TIMELINE_MAX_SPEED) {
+    playbackRate = TIMELINE_MAX_SPEED;
+    trimFraction = mediaNeeded * TIMELINE_MAX_SPEED / sourceTotal;
+  } else if (rateRaw < TIMELINE_MIN_SPEED) {
+    playbackRate = TIMELINE_MIN_SPEED;
+    tailPadSeconds = round3(mediaNeeded - sourceTotal / TIMELINE_MIN_SPEED);
+  } else {
+    playbackRate = round6(rateRaw);
+  }
+  const clips = [];
+  let cursor = 0;
+  ordered.forEach((shot, i) => {
+    const windowSeconds = round6(shot.duration * trimFraction);
+    const timelineDuration = round6(windowSeconds / playbackRate);
+    const start = round6(cursor);
+    const end = round6(start + timelineDuration);
+    clips.push({
+      shotId: shot.id,
+      index: shot.index,
+      sourceDuration: shot.duration,
+      trimStart: 0,
+      trimEnd: round6(windowSeconds),
+      playbackRate,
+      start,
+      end,
+      subtitleText: (shot.dialogue ?? "").trim()
+    });
+    cursor = end - (i < n - 1 ? transition : 0);
+  });
+  const transitions = clips.slice(0, -1).map((clip) => ({
+    afterShotId: clip.shotId,
+    type: "crossfade",
+    duration: transition
+  }));
+  const lastEnd = clips[clips.length - 1].end;
+  const tailPad = tailPadSeconds > 0.05 ? { type: "endcard", duration: round6(lastEnd + tailPadSeconds) - round6(lastEnd), text: ctaText.trim() } : null;
+  const totalDuration = round6(lastEnd + (tailPad?.duration ?? 0));
+  const { width, height } = QUICK_VIDEO_DIMENSIONS[videoRatio];
+  return {
+    targetDuration,
+    videoRatio,
+    width,
+    height,
+    totalDuration,
+    clips,
+    transitions,
+    tailPad
+  };
+}
+function buildSubtitleCues(plan) {
+  const cues = [];
+  plan.clips.forEach((clip, i) => {
+    const text2 = clip.subtitleText.trim();
+    if (!text2) return;
+    const start = clip.start + (i > 0 ? plan.transitions[i - 1]?.duration ?? 0 : 0);
+    const end = clip.end - (i < plan.clips.length - 1 ? plan.transitions[i]?.duration ?? 0 : 0);
+    if (end - start > 0.3) cues.push({ start: round3(start), end: round3(end), text: text2 });
+  });
+  return cues;
+}
+function round6(v) {
+  return Math.round(v * 1e6) / 1e6;
+}
+function round3(v) {
+  return Math.round(v * 1e3) / 1e3;
+}
+var init_timeline = __esm({
+  "src/lib/quickVideo/timeline.ts"() {
+    "use strict";
+    init_contract();
+  }
+});
+
+// src/routes/quickVideo/getTimeline.ts
+var import_express188, router188, getTimeline_default;
+var init_getTimeline = __esm({
+  "src/routes/quickVideo/getTimeline.ts"() {
+    "use strict";
+    import_express188 = __toESM(require_express2());
+    init_zod();
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    init_state();
+    init_timeline();
+    init_metrics();
+    router188 = import_express188.default.Router();
+    getTimeline_default = router188.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number()
+      }),
+      async (req, res) => {
+        const { projectId } = req.body;
+        const startedAt = Date.now();
+        try {
+          const project = await utils_default2.db("o_project").where("id", projectId).first();
+          if (!project) return res.status(200).send(success3(null, "\u9879\u76EE\u4E0D\u5B58\u5728"));
+          if (project.projectType !== "quick_video") {
+            return res.status(200).send(success3(null, "\u975E\u5355\u89C6\u9891\u5FEB\u521B\u9879\u76EE\uFF0C\u8BF7\u4F7F\u7528\u4E13\u4E1A\u6A21\u5F0F\u5165\u53E3"));
+          }
+          const state = await loadQuickVideoState(projectId);
+          if (!state) return res.status(200).send(success3(null, "\u672A\u627E\u5230 quickVideoAgent \u72B6\u6001"));
+          if (state.stage !== "ready_to_assemble" && state.stage !== "completed") {
+            throw new QuickVideoError("SHOTS_NOT_READY", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u5C1A\u672A\u5B8C\u6210\u5168\u90E8\u955C\u5934\u751F\u6210\uFF0C\u65E0\u6CD5\u88C5\u914D\u65F6\u95F4\u7EBF`, state.version);
+          }
+          const shots = state.storyboard?.shots ?? [];
+          const notDone = shots.filter((s) => s.videoState !== "done" || !s.videoRef);
+          if (!shots.length || notDone.length) {
+            throw new QuickVideoError(
+              "SHOTS_NOT_READY",
+              notDone.length ? `\u955C\u5934 ${notDone.map((s) => s.id).join("\u3001")} \u5C1A\u672A\u751F\u6210\u5B8C\u6210` : "\u6682\u65E0\u955C\u5934\uFF0C\u65E0\u6CD5\u88C5\u914D\u65F6\u95F4\u7EBF",
+              state.version
+            );
+          }
+          const timeline = buildTimelinePlan({
+            shots: shots.map((s) => ({ id: s.id, index: s.index, duration: s.duration, dialogue: s.dialogue })),
+            targetDuration: state.targetDuration,
+            videoRatio: state.videoRatio,
+            ctaText: state.brief?.cta ?? ""
+          });
+          const subtitles = buildSubtitleCues(timeline);
+          const storyboardVersion = state.storyboard.version;
+          const script = await utils_default2.db("o_script").where("projectId", projectId).select("id").first();
+          let persisted = false;
+          if (state.generation?.timeline?.storyboardVersion !== storyboardVersion) {
+            await mutateQuickVideoState(projectId, {}, async (s, trx) => {
+              if (s.generation.timeline?.storyboardVersion === storyboardVersion) return;
+              if (s.stage !== "ready_to_assemble" && s.stage !== "completed") return;
+              const trackIds = [];
+              for (const shot of [...s.storyboard.shots].sort((a, b) => a.index - b.index)) {
+                const maxRow = await trx("o_videoTrack").max("id as maxId").first();
+                const trackId = Number(maxRow?.maxId ?? 0) + 1;
+                await trx("o_videoTrack").insert({
+                  id: trackId,
+                  videoId: 0,
+                  projectId,
+                  scriptId: script?.id ?? 0,
+                  state: "\u5DF2\u5B8C\u6210",
+                  reason: "quickVideo \u65F6\u95F4\u7EBF\u88C5\u914D",
+                  prompt: shot.description,
+                  selectVideoId: 0,
+                  duration: shot.duration
+                });
+                trackIds.push(trackId);
+              }
+              s.generation.timeline = {
+                storyboardVersion,
+                assembledAt: Date.now(),
+                clipCount: s.storyboard.shots.length,
+                totalDuration: timeline.totalDuration,
+                trackIds
+              };
+              persisted = true;
+            });
+          }
+          const media = {};
+          await Promise.all(
+            shots.map(async (s) => {
+              const [videoUrl, imageUrl] = await Promise.all([
+                s.videoRef ? utils_default2.oss.getFileUrl(s.videoRef).catch(() => null) : Promise.resolve(null),
+                s.imageRef ? utils_default2.oss.getSmallImageUrl(s.imageRef).catch(() => null) : Promise.resolve(null)
+              ]);
+              media[s.id] = { videoUrl, imageUrl };
+            })
+          );
+          recordEvent("timelineAssembled");
+          recordDuration("timelineAssembleMs", Date.now() - startedAt);
+          qvLog("timeline_assembled", { projectId, storyboardVersion, clipCount: timeline.clips.length, totalDuration: timeline.totalDuration, persisted });
+          res.status(200).send(success3({ timeline, subtitles, media, ctaText: state.brief?.cta ?? "", exportInfo: state.generation?.exportInfo ?? null }));
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/getWorkbench.ts
+var import_express189, router189, getWorkbench_default;
+var init_getWorkbench = __esm({
+  "src/routes/quickVideo/getWorkbench.ts"() {
+    "use strict";
+    import_express189 = __toESM(require_express2());
+    init_zod();
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    init_contract();
+    init_state();
+    init_generate();
+    router189 = import_express189.default.Router();
+    getWorkbench_default = router189.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number()
+      }),
+      async (req, res) => {
+        const { projectId } = req.body;
+        const project = await utils_default2.db("o_project").where("id", projectId).first();
+        if (!project) return res.status(200).send(success3(null, "\u9879\u76EE\u4E0D\u5B58\u5728"));
+        if (project.projectType !== "quick_video") {
+          return res.status(200).send(success3(null, "\u975E\u5355\u89C6\u9891\u5FEB\u521B\u9879\u76EE\uFF0C\u8BF7\u4F7F\u7528\u4E13\u4E1A\u6A21\u5F0F\u5165\u53E3"));
+        }
+        await ensureGenerationRecovery(projectId);
+        const state = await loadQuickVideoState(projectId);
+        const script = await utils_default2.db("o_script").where("projectId", projectId).select("id", "name", "content").first();
+        res.status(200).send(
+          success3({
+            project,
+            script: script ?? null,
+            state,
+            // 分镜数量约束，供前端展示与预校验
+            shotBounds: state ? shotCountBounds(state.targetDuration) : null
+          })
+        );
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/removeShot.ts
+var import_express190, router190, removeShot_default;
+var init_removeShot = __esm({
+  "src/routes/quickVideo/removeShot.ts"() {
+    "use strict";
+    import_express190 = __toESM(require_express2());
+    init_zod();
+    init_responseFormat();
+    init_middleware();
+    init_state();
+    init_shots();
+    router190 = import_express190.default.Router();
+    removeShot_default = router190.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        expectedVersion: external_exports.number().int().min(1),
+        idempotencyKey: external_exports.string().min(8).max(64),
+        shotId: external_exports.string().min(1).max(40)
+      }),
+      async (req, res) => {
+        const { projectId, expectedVersion, idempotencyKey, shotId } = req.body;
+        try {
+          const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, (state) => {
+            ensureStoryboardEditable(state);
+            findShot(state, shotId);
+            state.storyboard.shots = state.storyboard.shots.filter((s) => s.id !== shotId);
+            if (!state.storyboard.shots.length) {
+              throw new QuickVideoError("SHOT_LAST_ONE", "\u81F3\u5C11\u4FDD\u7559\u4E00\u4E2A\u955C\u5934", state.version);
+            }
+            reindexShots(state);
+          });
+          res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/resolveAssets.ts
+var import_express191, router191, resolveAssets_default;
+var init_resolveAssets = __esm({
+  "src/routes/quickVideo/resolveAssets.ts"() {
+    "use strict";
+    import_express191 = __toESM(require_express2());
+    init_zod();
+    init_responseFormat();
+    init_middleware();
+    init_generate();
+    init_state();
+    router191 = import_express191.default.Router();
+    resolveAssets_default = router191.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        expectedVersion: external_exports.number().int().min(1),
+        idempotencyKey: external_exports.string().min(8).max(64)
+      }),
+      async (req, res) => {
+        const { projectId, expectedVersion, idempotencyKey } = req.body;
+        try {
+          const result = await resolveMaterialsSnapshot(projectId, { expectedVersion, idempotencyKey });
+          res.status(200).send(
+            success3({
+              state: result.state,
+              materials: result.materials,
+              estimate: result.estimate,
+              idempotentHit: result.idempotentHit
+            })
+          );
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/retryShot.ts
+var import_express192, router192, retryShot_default;
+var init_retryShot = __esm({
+  "src/routes/quickVideo/retryShot.ts"() {
+    "use strict";
+    import_express192 = __toESM(require_express2());
+    init_zod();
+    init_responseFormat();
+    init_middleware();
+    init_generate();
+    init_state();
+    init_metrics();
+    router192 = import_express192.default.Router();
+    retryShot_default = router192.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        shotIds: external_exports.array(external_exports.string().min(1).max(40)).min(1).max(12)
+      }),
+      async (req, res) => {
+        const { projectId, shotIds } = req.body;
+        try {
+          const result = await retryQuickVideoShots(projectId, req.user?.id ?? 1, shotIds);
+          recordEvent("shotRetry");
+          qvLog("shots_retry", { projectId, shotIds: result.retried });
+          res.status(200).send(success3({ state: result.state, retried: result.retried }));
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/updateBrief.ts
+var import_express193, router193, updateBrief_default;
+var init_updateBrief = __esm({
+  "src/routes/quickVideo/updateBrief.ts"() {
+    "use strict";
+    import_express193 = __toESM(require_express2());
+    init_zod();
+    init_responseFormat();
+    init_middleware();
+    init_state();
+    init_contract();
+    router193 = import_express193.default.Router();
+    updateBrief_default = router193.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        expectedVersion: external_exports.number().int().min(1),
+        idempotencyKey: external_exports.string().min(8).max(64),
+        brief: quickVideoBriefSchema
+      }),
+      async (req, res) => {
+        const { projectId, expectedVersion, idempotencyKey, brief } = req.body;
+        try {
+          const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, (state) => {
+            if (!["collect_brief", "brief_confirmed", "storyboard_draft"].includes(state.stage)) {
+              throw new QuickVideoError("STAGE_FORBIDDEN", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u7F16\u8F91\u7B80\u62A5`, state.version);
+            }
+            state.brief = {
+              theme: brief.theme,
+              hook: brief.hook ?? "",
+              narrative: brief.narrative,
+              cta: brief.cta ?? "",
+              keywords: brief.keywords ?? [],
+              confirmed: false,
+              confirmedAt: null
+            };
+          });
+          res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/updateConfig.ts
+var import_express194, router194, updateConfig_default;
+var init_updateConfig = __esm({
+  "src/routes/quickVideo/updateConfig.ts"() {
+    "use strict";
+    import_express194 = __toESM(require_express2());
+    init_zod();
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    init_contract();
+    init_state();
+    router194 = import_express194.default.Router();
+    updateConfig_default = router194.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        expectedVersion: external_exports.number().int().min(1),
+        idempotencyKey: external_exports.string().min(8).max(64),
+        patch: external_exports.object({
+          name: external_exports.string().min(1).max(100).optional(),
+          artStyle: external_exports.string().max(500).optional(),
+          videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS).optional(),
+          targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]).optional(),
+          intro: external_exports.string().max(2e3).optional()
+        })
+      }),
+      async (req, res) => {
+        const { projectId, expectedVersion, idempotencyKey, patch } = req.body;
+        try {
+          const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, async (state, trx) => {
+            if (patch.targetDuration != null && patch.targetDuration !== state.targetDuration && state.storyboard?.status === "confirmed") {
+              throw new QuickVideoError("FORBIDDEN", "\u5206\u955C\u5DF2\u786E\u8BA4\uFF0C\u4E0D\u5141\u8BB8\u4FEE\u6539\u76EE\u6807\u65F6\u957F\uFF1B\u8BF7\u5148\u64A4\u9500\u5206\u955C\u786E\u8BA4");
+            }
+            if (patch.targetDuration != null) state.targetDuration = patch.targetDuration;
+            if (patch.videoRatio != null) state.videoRatio = patch.videoRatio;
+            if (patch.artStyle != null) state.artStyle = patch.artStyle;
+            const projectPatch = {};
+            if (patch.name != null) projectPatch.name = patch.name;
+            if (patch.artStyle != null) projectPatch.artStyle = patch.artStyle;
+            if (patch.videoRatio != null) projectPatch.videoRatio = patch.videoRatio;
+            if (patch.intro != null) projectPatch.intro = patch.intro;
+            if (Object.keys(projectPatch).length) {
+              await trx("o_project").where("id", projectId).update(projectPatch);
+            }
+          });
+          const project = await utils_default2.db("o_project").where("id", projectId).first();
+          res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit, project }));
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/updateShot.ts
+var import_express195, router195, updateShot_default;
+var init_updateShot = __esm({
+  "src/routes/quickVideo/updateShot.ts"() {
+    "use strict";
+    import_express195 = __toESM(require_express2());
+    init_zod();
+    init_responseFormat();
+    init_middleware();
+    init_contract();
+    init_state();
+    init_shots();
+    router195 = import_express195.default.Router();
+    updateShot_default = router195.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        expectedVersion: external_exports.number().int().min(1),
+        idempotencyKey: external_exports.string().min(8).max(64),
+        shotId: external_exports.string().min(1).max(40),
+        patch: external_exports.object({
+          description: external_exports.string().min(1).max(2e3).optional(),
+          dialogue: external_exports.string().max(500).optional(),
+          camera: external_exports.string().max(200).optional(),
+          duration: external_exports.number().int().min(5).max(15).optional(),
+          assetRefs: external_exports.array(shotAssetRefSchema).max(10).optional()
+        })
+      }),
+      async (req, res) => {
+        const { projectId, expectedVersion, idempotencyKey, shotId, patch } = req.body;
+        try {
+          const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, (state) => {
+            ensureStoryboardEditable(state);
+            const shot = findShot(state, shotId);
+            if (patch.description != null) shot.description = patch.description;
+            if (patch.dialogue != null) shot.dialogue = patch.dialogue;
+            if (patch.camera != null) shot.camera = patch.camera;
+            if (patch.duration != null) shot.duration = normalizeShotDuration(patch.duration);
+            if (patch.assetRefs != null) shot.assetRefs = patch.assetRefs;
+          });
+          res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
 // src/router.ts
 var router_exports = {};
 __export(router_exports, {
@@ -245622,6 +248599,19 @@ var init_router = __esm({
     init_getTaskCategories();
     init_taskDetails();
     init_test();
+    init_addShot();
+    init_confirmStage();
+    init_createProject();
+    init_getMediaUrls();
+    init_getMetrics();
+    init_getTimeline();
+    init_getWorkbench();
+    init_removeShot();
+    init_resolveAssets();
+    init_retryShot();
+    init_updateBrief();
+    init_updateConfig();
+    init_updateShot();
     router_default = async (app2) => {
       app2.use("/api/agents/clearMemory", clearMemory_default);
       app2.use("/api/agents/getMemory", getMemory_default);
@@ -245805,6 +248795,19 @@ var init_router = __esm({
       app2.use("/api/library/folders/:id", id_default3);
       app2.use("/api/library-assets", libraryAssets_default);
       app2.use("/api/library-assets/:id", id_default4);
+      app2.use("/api/quickVideo/addShot", addShot_default);
+      app2.use("/api/quickVideo/confirmStage", confirmStage_default);
+      app2.use("/api/quickVideo/createProject", createProject_default);
+      app2.use("/api/quickVideo/getMediaUrls", getMediaUrls_default);
+      app2.use("/api/quickVideo/getMetrics", getMetrics_default);
+      app2.use("/api/quickVideo/getTimeline", getTimeline_default);
+      app2.use("/api/quickVideo/getWorkbench", getWorkbench_default);
+      app2.use("/api/quickVideo/removeShot", removeShot_default);
+      app2.use("/api/quickVideo/resolveAssets", resolveAssets_default);
+      app2.use("/api/quickVideo/retryShot", retryShot_default);
+      app2.use("/api/quickVideo/updateBrief", updateBrief_default);
+      app2.use("/api/quickVideo/updateConfig", updateConfig_default);
+      app2.use("/api/quickVideo/updateShot", updateShot_default);
     };
   }
 });
@@ -245860,7 +248863,7 @@ if (!env) {
 }
 
 // src/app.ts
-var import_express183 = __toESM(require_express2());
+var import_express196 = __toESM(require_express2());
 
 // node_modules/socket.io/wrapper.mjs
 var import_dist = __toESM(require_dist3(), 1);
@@ -245871,6 +248874,7 @@ var import_node_http = __toESM(require("node:http"));
 var import_express_ws = __toESM(require_express_ws());
 var import_morgan = __toESM(require_morgan());
 var import_cors = __toESM(require_lib4());
+var import_compression = __toESM(require_compression());
 
 // src/core.ts
 var import_fast_glob = __toESM(require_out4());
@@ -245934,7 +248938,7 @@ import { Express } from "express";
 
 // src/app.ts
 init_utils3();
-var import_path20 = __toESM(require("path"));
+var import_path21 = __toESM(require("path"));
 var import_fs6 = __toESM(require("fs"));
 
 // src/utils/generationWorker.ts
@@ -246026,7 +249030,7 @@ function startGenerationWorker() {
 }
 
 // src/app.ts
-var import_jsonwebtoken6 = __toESM(require_jsonwebtoken());
+var import_jsonwebtoken7 = __toESM(require_jsonwebtoken());
 
 // src/socket/routes/productionAgent.ts
 var import_jsonwebtoken3 = __toESM(require_jsonwebtoken());
@@ -246321,8 +249325,8 @@ function createSkillTools(skills, skillPaths, rootDir = getPath_default("skills"
         content += "\u4F7F\u7528 read_skill_file \u5DE5\u5177\u8BFB\u53D6\u8D44\u6E90\u6587\u4EF6\u3002\n";
         if (skillPaths.secondarySkills.length > 0) {
           content += "\n<skill_resources>\n";
-          for (const path25 of skillPaths.secondarySkills) {
-            content += `  <file>${path25}</file>
+          for (const path26 of skillPaths.secondarySkills) {
+            content += `  <file>${path26}</file>
 `;
           }
           content += "</skill_resources>\n";
@@ -246365,8 +249369,8 @@ function createSkillTools(skills, skillPaths, rootDir = getPath_default("skills"
         content += "\u53EF\u4EE5\u4F7F\u7528 read_skill_file \u5DE5\u5177\u8BFB\u53D6\u8D44\u6E90\u6587\u4EF6\u3002\n";
         if (skillPaths.tertiarySkills.length > 0) {
           content += "\n<skill_resources>\n";
-          for (const path25 of skillPaths.tertiarySkills) {
-            content += `  <file>${path25}</file>
+          for (const path26 of skillPaths.tertiarySkills) {
+            content += `  <file>${path26}</file>
 `;
           }
           content += "</skill_resources>\n";
@@ -248120,11 +251124,585 @@ var scriptAgent_default = (nsp) => {
   });
 };
 
+// src/socket/routes/quickVideoAgent.ts
+var import_jsonwebtoken5 = __toESM(require_jsonwebtoken());
+init_utils3();
+
+// src/agents/quickVideoAgent/index.ts
+init_utils3();
+
+// src/agents/quickVideoAgent/tools.ts
+init_dist21();
+init_zod();
+init_utils3();
+init_state();
+init_contract();
+init_shots();
+init_generate();
+function describeError(err) {
+  if (err instanceof QuickVideoError) return `[${err.code}] ${err.message}`;
+  return utils_default2.error(err).message;
+}
+async function withThinking(msg, title, fn) {
+  const thinking = msg.thinking(title);
+  try {
+    const result = await fn();
+    thinking.complete();
+    return result;
+  } catch (err) {
+    thinking.appendText(`
+\u5931\u8D25\uFF1A${describeError(err)}`);
+    thinking.updateTitle(`${title}\uFF08\u5931\u8D25\uFF09`);
+    thinking.complete();
+    throw err;
+  }
+}
+var tools_default3 = (toolConfig) => {
+  const { msg } = toolConfig;
+  const projectId = Number(toolConfig.resTool.data.projectId);
+  const userId2 = Number(toolConfig.resTool.data.userId ?? 0) || 1;
+  const tools = {
+    get_state: tool({
+      description: "\u83B7\u53D6\u5F53\u524D\u5FEB\u521B\u5DE5\u4F5C\u53F0\u7684\u5B8C\u6574\u72B6\u6001\uFF1A\u9636\u6BB5\u3001\u76EE\u6807\u65F6\u957F\u3001\u7B80\u62A5\u3001\u5206\u955C\uFF08\u542B\u6BCF\u4E2A\u955C\u5934\u7684\u751F\u6210\u72B6\u6001\uFF09\u3002\u5199\u64CD\u4F5C\u524D\u5FC5\u987B\u5148\u8C03\u7528\u672C\u5DE5\u5177\u786E\u8BA4\u524D\u7F6E\u6761\u4EF6\u3002",
+      inputSchema: jsonSchema({ type: "object", properties: {}, additionalProperties: false }),
+      execute: async () => {
+        const state = await loadQuickVideoState(projectId);
+        if (!state) return "\u672A\u627E\u5230\u5DE5\u4F5C\u53F0\u72B6\u6001";
+        return JSON.stringify(
+          {
+            version: state.version,
+            stage: state.stage,
+            targetDuration: state.targetDuration,
+            videoRatio: state.videoRatio,
+            artStyle: state.artStyle,
+            shotBounds: shotCountBounds(state.targetDuration),
+            brief: state.brief,
+            storyboard: state.storyboard
+          },
+          null,
+          2
+        );
+      }
+    }),
+    save_brief: tool({
+      description: "\u4FDD\u5B58/\u66F4\u65B0\u7ED3\u6784\u5316\u7B80\u62A5\uFF08\u4E3B\u9898\u3001\u5F00\u573A\u94A9\u5B50\u3001\u53D9\u4E8B\u5927\u7EB2\u3001\u7ED3\u5C3ECTA\u3001\u5173\u952E\u8BCD\uFF09\u3002\u4EC5\u5728 collect_brief / brief_confirmed / storyboard_draft \u9636\u6BB5\u53EF\u7528\uFF1B\u4FDD\u5B58\u540E\u7B80\u62A5\u56DE\u5230\u672A\u786E\u8BA4\u72B6\u6001\uFF0C\u9700\u7528\u6237\u91CD\u65B0\u786E\u8BA4\u3002",
+      inputSchema: jsonSchema(
+        external_exports.object({
+          theme: external_exports.string().min(1).max(500).describe("\u4E3B\u9898/\u6838\u5FC3\u521B\u610F"),
+          hook: external_exports.string().max(500).describe("\u5F00\u573A\u94A9\u5B50\uFF08\u524D3\u79D2\u6293\u4F4F\u89C2\u4F17\uFF09"),
+          narrative: external_exports.string().min(1).max(3e3).describe("\u53D9\u4E8B\u5927\u7EB2\uFF0C\u6309\u65F6\u95F4\u7EBF\u7684\u4E00\u6BB5\u8BDD"),
+          cta: external_exports.string().max(500).describe("\u7ED3\u5C3E/\u884C\u52A8\u53F7\u53EC"),
+          keywords: external_exports.array(external_exports.string().min(1).max(60)).max(20).describe("\u98CE\u683C/\u5185\u5BB9\u5173\u952E\u8BCD")
+        }).toJSONSchema()
+      ),
+      execute: async (input, options) => {
+        const { toolCallId } = options;
+        return withThinking(msg, "\u6B63\u5728\u4FDD\u5B58\u7B80\u62A5...", async () => {
+          const { state, idempotentHit } = await mutateQuickVideoState(
+            projectId,
+            { idempotencyKey: `tool:save_brief:${toolCallId}` },
+            (s) => {
+              if (!["collect_brief", "brief_confirmed", "storyboard_draft"].includes(s.stage)) {
+                throw new QuickVideoError("STAGE_FORBIDDEN", `\u5F53\u524D\u9636\u6BB5 ${s.stage} \u4E0D\u5141\u8BB8\u4FEE\u6539\u7B80\u62A5`, s.version);
+              }
+              s.brief = {
+                theme: input.theme,
+                hook: input.hook ?? "",
+                narrative: input.narrative,
+                cta: input.cta ?? "",
+                keywords: input.keywords ?? [],
+                confirmed: false,
+                confirmedAt: null
+              };
+            }
+          );
+          return idempotentHit ? "\u8BE5\u6B21\u7B80\u62A5\u4FDD\u5B58\u5DF2\u5E94\u7528\u8FC7\uFF08\u5E42\u7B49\u547D\u4E2D\uFF09\uFF0C\u672A\u91CD\u590D\u5199\u5165\u3002" : `\u7B80\u62A5\u5DF2\u4FDD\u5B58\uFF08\u72B6\u6001\u7248\u672C ${state.version}\uFF09\u3002\u8BF7\u5411\u7528\u6237\u590D\u8FF0\u7B80\u62A5\u8981\u70B9\uFF0C\u5E76\u63D0\u9192\u7528\u6237\u5728\u53F3\u4FA7\u9762\u677F\u786E\u8BA4\u7B80\u62A5\u540E\u518D\u8FDB\u5165\u5206\u955C\u73AF\u8282\u3002`;
+        }).catch((err) => `\u4FDD\u5B58\u7B80\u62A5\u5931\u8D25\uFF1A${describeError(err)}`);
+      }
+    }),
+    propose_storyboard: tool({
+      description: "\u63D0\u4EA4\u4E00\u7248\u5B8C\u6574\u5206\u955C\uFF08\u66FF\u6362\u5F0F\uFF09\uFF1A5-12 \u4E2A\u955C\u5934\u3001\u6BCF\u955C 5-15 \u79D2\u3001\u603B\u65F6\u957F\u8D34\u8FD1\u76EE\u6807\u65F6\u957F\u3002\u524D\u7F6E\u6761\u4EF6\uFF1A\u7B80\u62A5\u5DF2\u5B58\u5728\u4E14\u7B80\u62A5\u5DF2\u786E\u8BA4\uFF08\u7528\u6237\u5728\u786E\u8BA4\u95E8\u786E\u8BA4\u8FC7\uFF09\u3002\u63D0\u4EA4\u540E\u5206\u955C\u4E3A\u8349\u7A3F\uFF0C\u9700\u7528\u6237\u5728\u53F3\u4FA7\u9762\u677F\u786E\u8BA4\u3002",
+      inputSchema: jsonSchema(
+        external_exports.object({
+          summary: external_exports.string().max(1e3).describe("\u672C\u7248\u5206\u955C\u7684\u6574\u4F53\u8BF4\u660E\uFF08\u4E00\u53E5\u8BDD\uFF09"),
+          shots: external_exports.array(
+            external_exports.object({
+              duration: external_exports.number().int().min(SHOT_DURATION_MIN).max(SHOT_DURATION_MAX).describe(`\u955C\u5934\u65F6\u957F\uFF08\u79D2\uFF09\uFF0C${SHOT_DURATION_MIN}-${SHOT_DURATION_MAX}`),
+              description: external_exports.string().min(1).max(2e3).describe("\u753B\u9762\u63CF\u8FF0\uFF08\u955C\u5934\u5185\u5BB9\u3001\u52A8\u4F5C\u3001\u6C1B\u56F4\uFF09"),
+              dialogue: external_exports.string().max(500).describe("\u53F0\u8BCD/\u65C1\u767D\uFF08\u7528\u4F5C\u5B57\u5E55\uFF0C\u53EF\u4E3A\u7A7A\u5B57\u7B26\u4E32\uFF09"),
+              camera: external_exports.string().max(200).describe("\u666F\u522B/\u8FD0\u955C\uFF08\u5982 \u5168\u666F\u3001\u7F13\u6162\u63A8\u8FDB\uFF09")
+            })
+          ).min(1).max(12).describe("\u955C\u5934\u5217\u8868\uFF0C\u6309\u64AD\u653E\u987A\u5E8F")
+        }).toJSONSchema()
+      ),
+      execute: async (input, options) => {
+        const { toolCallId } = options;
+        return withThinking(msg, "\u6B63\u5728\u63D0\u4EA4\u5206\u955C...", async () => {
+          const current = await loadQuickVideoState(projectId);
+          if (!current) throw new QuickVideoError("STATE_NOT_FOUND", "\u672A\u627E\u5230\u5DE5\u4F5C\u53F0\u72B6\u6001", void 0);
+          const bounds = shotCountBounds(current.targetDuration);
+          if (input.shots.length < bounds.min || input.shots.length > bounds.max) {
+            throw new QuickVideoError(
+              "STORYBOARD_INVALID",
+              `\u955C\u5934\u6570\u91CF\u9700\u5728 ${bounds.min}-${bounds.max} \u4E2A\u4E4B\u95F4\uFF08\u76EE\u6807\u65F6\u957F ${current.targetDuration} \u79D2\uFF09\uFF0C\u5F53\u524D ${input.shots.length} \u4E2A`,
+              current.version
+            );
+          }
+          const { state, idempotentHit } = await mutateQuickVideoState(
+            projectId,
+            { idempotencyKey: `tool:propose_storyboard:${toolCallId}` },
+            (s) => {
+              if (!s.brief) throw new QuickVideoError("NO_BRIEF", "\u8BF7\u5148\u7528 save_brief \u4FDD\u5B58\u7B80\u62A5", s.version);
+              if (!["brief_confirmed", "storyboard_draft"].includes(s.stage)) {
+                if (s.stage === "collect_brief") {
+                  throw new QuickVideoError("BRIEF_NOT_CONFIRMED", "\u7B80\u62A5\u5C1A\u672A\u7ECF\u7528\u6237\u786E\u8BA4\uFF0C\u8BF7\u63D0\u9192\u7528\u6237\u5728\u53F3\u4FA7\u9762\u677F\u786E\u8BA4\u7B80\u62A5\u540E\u518D\u751F\u6210\u5206\u955C", s.version);
+                }
+                throw new QuickVideoError("STAGE_FORBIDDEN", `\u5F53\u524D\u9636\u6BB5 ${s.stage} \u4E0D\u5141\u8BB8\u63D0\u4EA4\u5206\u955C`, s.version);
+              }
+              if (s.storyboard?.status === "confirmed") {
+                throw new QuickVideoError("STORYBOARD_LOCKED", "\u5206\u955C\u5DF2\u786E\u8BA4\u9501\u5B9A\uFF0C\u5982\u9700\u91CD\u63D0\u8BF7\u5148\u8BA9\u7528\u6237\u64A4\u9500\u786E\u8BA4", s.version);
+              }
+              const shots = input.shots.map((shot, i) => ({
+                id: `shot-${i + 1}`,
+                index: i + 1,
+                duration: normalizeShotDuration(shot.duration),
+                description: shot.description,
+                dialogue: shot.dialogue ?? "",
+                camera: shot.camera ?? "",
+                assetRefs: [],
+                imageState: "pending",
+                videoState: "pending",
+                imageRef: null,
+                videoRef: null,
+                errorReason: null
+              }));
+              const errors = validateStoryboard(s.targetDuration, shots);
+              if (errors.length) throw new QuickVideoError("STORYBOARD_INVALID", errors.join("\uFF1B"), s.version);
+              if (s.stage === "brief_confirmed") s.stage = "storyboard_draft";
+              s.storyboard = {
+                version: (s.storyboard?.version ?? 0) + 1,
+                status: "draft",
+                confirmedAt: null,
+                summary: input.summary ?? "",
+                shots
+              };
+            }
+          );
+          if (idempotentHit) return "\u8BE5\u6B21\u5206\u955C\u63D0\u4EA4\u5DF2\u5E94\u7528\u8FC7\uFF08\u5E42\u7B49\u547D\u4E2D\uFF09\uFF0C\u672A\u91CD\u590D\u5199\u5165\u3002";
+          const total = input.shots.reduce((sum, s) => sum + s.duration, 0);
+          return `\u5206\u955C v${state.storyboard?.version} \u5DF2\u63D0\u4EA4\uFF08${input.shots.length} \u4E2A\u955C\u5934\uFF0C\u603B\u65F6\u957F ${total} \u79D2\uFF09\u3002\u8BF7\u5411\u7528\u6237\u6982\u8FF0\u6BCF\u955C\u5185\u5BB9\uFF0C\u5E76\u63D0\u9192\u7528\u6237\u5728\u53F3\u4FA7\u9762\u677F\u786E\u8BA4\u5206\u955C\u3002`;
+        }).catch((err) => `\u63D0\u4EA4\u5206\u955C\u5931\u8D25\uFF1A${describeError(err)}`);
+      }
+    }),
+    update_shot: tool({
+      description: "\u4FEE\u6539\u5355\u4E2A\u8349\u7A3F\u955C\u5934\u7684\u5B57\u6BB5\uFF08\u753B\u9762\u63CF\u8FF0/\u53F0\u8BCD/\u8FD0\u955C/\u65F6\u957F/\u8D44\u4EA7\uFF09\u3002\u4EC5\u5206\u955C\u8349\u7A3F\u72B6\u6001\u53EF\u7528\uFF1B\u955C\u5934 id \u4E0E\u987A\u5E8F\u4E0D\u53EF\u6539\u3002",
+      inputSchema: jsonSchema(
+        external_exports.object({
+          shotId: external_exports.string().min(1).max(40).describe("\u955C\u5934 ID\uFF08\u5982 shot-2\uFF09"),
+          description: external_exports.string().min(1).max(2e3).optional().describe("\u65B0\u7684\u753B\u9762\u63CF\u8FF0"),
+          dialogue: external_exports.string().max(500).optional().describe("\u65B0\u7684\u53F0\u8BCD/\u65C1\u767D"),
+          camera: external_exports.string().max(200).optional().describe("\u65B0\u7684\u666F\u522B/\u8FD0\u955C"),
+          duration: external_exports.number().int().min(SHOT_DURATION_MIN).max(SHOT_DURATION_MAX).optional().describe("\u65B0\u7684\u955C\u5934\u65F6\u957F\uFF08\u79D2\uFF09")
+        }).toJSONSchema()
+      ),
+      execute: async (input, options) => {
+        const { toolCallId } = options;
+        return withThinking(msg, `\u6B63\u5728\u4FEE\u6539\u955C\u5934 ${input.shotId}...`, async () => {
+          const { state, idempotentHit } = await mutateQuickVideoState(
+            projectId,
+            { idempotencyKey: `tool:update_shot:${toolCallId}` },
+            (s) => {
+              if (!s.storyboard || s.storyboard.status !== "draft") {
+                throw new QuickVideoError("STORYBOARD_LOCKED", "\u5206\u955C\u4E0D\u5B58\u5728\u6216\u5DF2\u786E\u8BA4\u9501\u5B9A\uFF0C\u4E0D\u5141\u8BB8\u4FEE\u6539\u955C\u5934", s.version);
+              }
+              if (s.stage !== "storyboard_draft") {
+                throw new QuickVideoError("STAGE_FORBIDDEN", `\u5F53\u524D\u9636\u6BB5 ${s.stage} \u4E0D\u5141\u8BB8\u4FEE\u6539\u955C\u5934`, s.version);
+              }
+              const shot = findShot(s, input.shotId);
+              if (input.description != null) shot.description = input.description;
+              if (input.dialogue != null) shot.dialogue = input.dialogue;
+              if (input.camera != null) shot.camera = input.camera;
+              if (input.duration != null) shot.duration = normalizeShotDuration(input.duration);
+            }
+          );
+          return idempotentHit ? "\u8BE5\u6B21\u955C\u5934\u4FEE\u6539\u5DF2\u5E94\u7528\u8FC7\uFF08\u5E42\u7B49\u547D\u4E2D\uFF09\uFF0C\u672A\u91CD\u590D\u5199\u5165\u3002" : `\u955C\u5934 ${input.shotId} \u5DF2\u66F4\u65B0\uFF08\u72B6\u6001\u7248\u672C ${state.version}\uFF09\u3002`;
+        }).catch((err) => `\u4FEE\u6539\u955C\u5934\u5931\u8D25\uFF1A${describeError(err)}`);
+      }
+    }),
+    add_shot: tool({
+      description: "\u5728\u5206\u955C\u8349\u7A3F\u672B\u5C3E\u8FFD\u52A0\u4E00\u4E2A\u955C\u5934\u3002",
+      inputSchema: jsonSchema(
+        external_exports.object({
+          duration: external_exports.number().int().min(SHOT_DURATION_MIN).max(SHOT_DURATION_MAX).describe(`\u955C\u5934\u65F6\u957F\uFF08\u79D2\uFF09`),
+          description: external_exports.string().min(1).max(2e3).describe("\u753B\u9762\u63CF\u8FF0"),
+          dialogue: external_exports.string().max(500).describe("\u53F0\u8BCD/\u65C1\u767D\uFF0C\u53EF\u4E3A\u7A7A\u5B57\u7B26\u4E32"),
+          camera: external_exports.string().max(200).describe("\u666F\u522B/\u8FD0\u955C")
+        }).toJSONSchema()
+      ),
+      execute: async (input, options) => {
+        const { toolCallId } = options;
+        return withThinking(msg, "\u6B63\u5728\u8FFD\u52A0\u955C\u5934...", async () => {
+          const { state, idempotentHit } = await mutateQuickVideoState(
+            projectId,
+            { idempotencyKey: `tool:add_shot:${toolCallId}` },
+            (s) => {
+              if (!s.storyboard || s.storyboard.status !== "draft") {
+                throw new QuickVideoError("STORYBOARD_LOCKED", "\u5206\u955C\u4E0D\u5B58\u5728\u6216\u5DF2\u786E\u8BA4\u9501\u5B9A\uFF0C\u4E0D\u5141\u8BB8\u8FFD\u52A0\u955C\u5934", s.version);
+              }
+              if (s.stage !== "storyboard_draft") {
+                throw new QuickVideoError("STAGE_FORBIDDEN", `\u5F53\u524D\u9636\u6BB5 ${s.stage} \u4E0D\u5141\u8BB8\u8FFD\u52A0\u955C\u5934`, s.version);
+              }
+              if (s.storyboard.shots.length >= 12) {
+                throw new QuickVideoError("SHOT_COUNT_EXCEEDED", "\u955C\u5934\u6570\u91CF\u5DF2\u8FBE\u4E0A\u9650 12 \u4E2A", s.version);
+              }
+              s.storyboard.shots.push({
+                id: nextShotId(s),
+                index: s.storyboard.shots.length + 1,
+                duration: normalizeShotDuration(input.duration),
+                description: input.description,
+                dialogue: input.dialogue ?? "",
+                camera: input.camera ?? "",
+                assetRefs: [],
+                imageState: "pending",
+                videoState: "pending",
+                imageRef: null,
+                videoRef: null,
+                errorReason: null
+              });
+              reindexShots(s);
+            }
+          );
+          return idempotentHit ? "\u8BE5\u6B21\u8FFD\u52A0\u5DF2\u5E94\u7528\u8FC7\uFF08\u5E42\u7B49\u547D\u4E2D\uFF09\u3002" : `\u955C\u5934\u5DF2\u8FFD\u52A0\uFF08\u72B6\u6001\u7248\u672C ${state.version}\uFF09\u3002`;
+        }).catch((err) => `\u8FFD\u52A0\u955C\u5934\u5931\u8D25\uFF1A${describeError(err)}`);
+      }
+    }),
+    remove_shot: tool({
+      description: "\u4ECE\u5206\u955C\u8349\u7A3F\u4E2D\u5220\u9664\u4E00\u4E2A\u955C\u5934\uFF08\u81F3\u5C11\u4FDD\u7559\u4E00\u4E2A\uFF09\u3002",
+      inputSchema: jsonSchema(
+        external_exports.object({ shotId: external_exports.string().min(1).max(40).describe("\u955C\u5934 ID\uFF08\u5982 shot-3\uFF09") }).toJSONSchema()
+      ),
+      execute: async (input, options) => {
+        const { toolCallId } = options;
+        return withThinking(msg, `\u6B63\u5728\u5220\u9664\u955C\u5934 ${input.shotId}...`, async () => {
+          const { state, idempotentHit } = await mutateQuickVideoState(
+            projectId,
+            { idempotencyKey: `tool:remove_shot:${toolCallId}` },
+            (s) => {
+              if (!s.storyboard || s.storyboard.status !== "draft") {
+                throw new QuickVideoError("STORYBOARD_LOCKED", "\u5206\u955C\u4E0D\u5B58\u5728\u6216\u5DF2\u786E\u8BA4\u9501\u5B9A\uFF0C\u4E0D\u5141\u8BB8\u5220\u9664\u955C\u5934", s.version);
+              }
+              if (s.stage !== "storyboard_draft") {
+                throw new QuickVideoError("STAGE_FORBIDDEN", `\u5F53\u524D\u9636\u6BB5 ${s.stage} \u4E0D\u5141\u8BB8\u5220\u9664\u955C\u5934`, s.version);
+              }
+              findShot(s, input.shotId);
+              if (s.storyboard.shots.length <= 1) {
+                throw new QuickVideoError("SHOT_LAST_ONE", "\u81F3\u5C11\u4FDD\u7559\u4E00\u4E2A\u955C\u5934", s.version);
+              }
+              s.storyboard.shots = s.storyboard.shots.filter((x) => x.id !== input.shotId);
+              reindexShots(s);
+            }
+          );
+          return idempotentHit ? "\u8BE5\u6B21\u5220\u9664\u5DF2\u5E94\u7528\u8FC7\uFF08\u5E42\u7B49\u547D\u4E2D\uFF09\u3002" : `\u955C\u5934 ${input.shotId} \u5DF2\u5220\u9664\uFF08\u72B6\u6001\u7248\u672C ${state.version}\uFF09\u3002`;
+        }).catch((err) => `\u5220\u9664\u955C\u5934\u5931\u8D25\uFF1A${describeError(err)}`);
+      }
+    }),
+    bind_asset: tool({
+      description: "\u4E3A\u67D0\u4E2A\u955C\u5934\u7ED1\u5B9A\u8D44\u4EA7\u5F15\u7528\uFF08\u89D2\u8272/\u573A\u666F/\u9053\u5177\uFF0C\u542B\u89C6\u89C9\u63CF\u8FF0\uFF09\uFF0C\u7528\u4E8E\u540E\u7EED\u751F\u6210\u63D0\u793A\u8BCD\u3002\u4EC5\u5206\u955C\u8349\u7A3F\u72B6\u6001\u53EF\u7528\u3002",
+      inputSchema: jsonSchema(
+        external_exports.object({
+          shotId: external_exports.string().min(1).max(40).describe("\u955C\u5934 ID\uFF08\u5982 shot-1\uFF09"),
+          assets: external_exports.array(shotAssetRefSchema).min(1).max(10).describe("\u8981\u7ED1\u5B9A\u5230\u8BE5\u955C\u5934\u7684\u8D44\u4EA7\u5217\u8868")
+        }).toJSONSchema()
+      ),
+      execute: async (input, options) => {
+        const { toolCallId } = options;
+        return withThinking(msg, `\u6B63\u5728\u4E3A\u955C\u5934 ${input.shotId} \u7ED1\u5B9A\u8D44\u4EA7...`, async () => {
+          const { state, idempotentHit } = await mutateQuickVideoState(
+            projectId,
+            { idempotencyKey: `tool:bind_asset:${toolCallId}` },
+            (s) => {
+              if (!s.storyboard || s.storyboard.status !== "draft") {
+                throw new QuickVideoError("STORYBOARD_LOCKED", "\u5206\u955C\u4E0D\u5B58\u5728\u6216\u5DF2\u786E\u8BA4\u9501\u5B9A\uFF0C\u4E0D\u5141\u8BB8\u7ED1\u5B9A\u8D44\u4EA7", s.version);
+              }
+              if (s.stage !== "storyboard_draft") {
+                throw new QuickVideoError("STAGE_FORBIDDEN", `\u5F53\u524D\u9636\u6BB5 ${s.stage} \u4E0D\u5141\u8BB8\u7ED1\u5B9A\u8D44\u4EA7`, s.version);
+              }
+              const shot = findShot(s, input.shotId);
+              const merged = new Map(shot.assetRefs.map((a) => [`${a.type}:${a.name}`, a]));
+              for (const asset of input.assets) {
+                merged.set(`${asset.type}:${asset.name}`, { type: asset.type, name: asset.name, desc: asset.desc ?? "" });
+              }
+              shot.assetRefs = Array.from(merged.values()).slice(0, 10);
+            }
+          );
+          return idempotentHit ? "\u8BE5\u6B21\u7ED1\u5B9A\u5DF2\u5E94\u7528\u8FC7\uFF08\u5E42\u7B49\u547D\u4E2D\uFF09\u3002" : `\u955C\u5934 ${input.shotId} \u8D44\u4EA7\u7ED1\u5B9A\u5DF2\u66F4\u65B0\uFF08\u72B6\u6001\u7248\u672C ${state.version}\uFF09\u3002`;
+        }).catch((err) => `\u7ED1\u5B9A\u8D44\u4EA7\u5931\u8D25\uFF1A${describeError(err)}`);
+      }
+    }),
+    get_generation_status: tool({
+      description: "\u67E5\u8BE2\u5404\u955C\u5934\u56FE\u7247/\u89C6\u9891\u751F\u6210\u72B6\u6001\uFF08\u7528\u4E8E\u5411\u7528\u6237\u6C47\u62A5\u751F\u6210\u8FDB\u5EA6\u6216\u5B9A\u4F4D\u5931\u8D25\u955C\u5934\uFF09\u3002",
+      inputSchema: jsonSchema({ type: "object", properties: {}, additionalProperties: false }),
+      execute: async () => {
+        const state = await loadQuickVideoState(projectId);
+        if (!state?.storyboard) return "\u6682\u65E0\u5206\u955C";
+        return JSON.stringify(
+          state.storyboard.shots.map((s) => ({
+            shotId: s.id,
+            index: s.index,
+            imageState: s.imageState,
+            videoState: s.videoState,
+            errorReason: s.errorReason
+          })),
+          null,
+          2
+        );
+      }
+    }),
+    generate_shots: tool({
+      description: "\u89E6\u53D1\u9010\u955C\u5934\u751F\u6210\uFF08\u5206\u955C\u56FE + 5-15 \u79D2\u89C6\u9891\u7247\u6BB5\uFF09\u3002\u524D\u7F6E\u6761\u4EF6\u7531\u670D\u52A1\u7AEF\u6821\u9A8C\uFF1A\u5206\u955C\u5DF2\u786E\u8BA4\u4E14\u7528\u6237\u5DF2\u901A\u8FC7\u7D20\u6750/\u6210\u672C\u786E\u8BA4\u95E8\uFF1B\u6761\u4EF6\u6EE1\u8DB3\u65F6\u542F\u52A8\u751F\u6210\uFF08\u5E42\u7B49\uFF0C\u91CD\u590D\u8C03\u7528\u4E0D\u4F1A\u91CD\u590D\u542F\u52A8\uFF09\uFF1B\u751F\u6210\u4E2D\u8C03\u7528\u5219\u8FD4\u56DE\u5F53\u524D\u8FDB\u5EA6\u3002\u6CE8\u610F\uFF1A\u786E\u8BA4\u95E8\u53EA\u80FD\u7531\u7528\u6237\u5728\u53F3\u4FA7\u9762\u677F\u64CD\u4F5C\uFF0C\u672C\u5DE5\u5177\u4E0D\u80FD\u4E5F\u4E0D\u4F1A\u4EE3\u66FF\u7528\u6237\u786E\u8BA4\u3002",
+      inputSchema: jsonSchema({ type: "object", properties: {}, additionalProperties: false }),
+      execute: async () => {
+        return withThinking(msg, "\u6B63\u5728\u68C0\u67E5\u751F\u6210\u6761\u4EF6...", async () => {
+          const state = await loadQuickVideoState(projectId);
+          if (!state) return "\u672A\u627E\u5230\u5DE5\u4F5C\u53F0\u72B6\u6001\uFF0C\u8BF7\u5148\u521B\u5EFA quick_video \u9879\u76EE";
+          if (state.stage === "generating") {
+            if (!state.generation?.materialsConfirmed) {
+              return "\u5904\u4E8E\u751F\u6210\u9636\u6BB5\u4F46\u7D20\u6750/\u6210\u672C\u786E\u8BA4\u72B6\u6001\u5F02\u5E38\uFF0C\u8BF7\u8BA9\u7528\u6237\u5728\u53F3\u4FA7\u9762\u677F\u91CD\u65B0\u64CD\u4F5C\u786E\u8BA4\u95E8\u3002";
+            }
+            const { started, alreadyRunning, runId } = await startQuickVideoGeneration(projectId, userId2);
+            if (started) {
+              return `\u751F\u6210\u5DF2\u91CD\u65B0\u542F\u52A8\uFF08\u8FD0\u884C ${runId}\uFF09\u3002\u8BF7\u63D0\u9192\u7528\u6237\u53F3\u4FA7\u9762\u677F\u4F1A\u5B9E\u65F6\u5C55\u793A\u5404\u955C\u5934\u8FDB\u5EA6\uFF1B\u5931\u8D25\u955C\u5934\u53EF\u5355\u72EC\u91CD\u8BD5\u3002`;
+            }
+            if (alreadyRunning) {
+              return `\u751F\u6210\u6B63\u5728\u8FDB\u884C\u4E2D\uFF08\u8FD0\u884C ${runId}\uFF09\uFF0C\u65E0\u9700\u91CD\u590D\u542F\u52A8\u3002\u8BF7\u63D0\u9192\u7528\u6237\u5728\u53F3\u4FA7\u9762\u677F\u67E5\u770B\u955C\u5934\u7EA7\u8FDB\u5EA6\u3002`;
+            }
+          }
+          if (state.stage === "storyboard_confirmed") {
+            if (!state.generation?.materialsConfirmed) {
+              return "\u5206\u955C\u5DF2\u786E\u8BA4\uFF0C\u4F46\u7D20\u6750/\u6210\u672C\u786E\u8BA4\u95E8\u5C1A\u672A\u901A\u8FC7\u3002\u8BF7\u63D0\u9192\u7528\u6237\u5728\u53F3\u4FA7\u300C\u7D20\u6750\u4E0E\u6210\u672C\u300D\u9762\u677F\u67E5\u770B\u89E3\u6790\u7ED3\u679C\u4E0E\u9884\u4F30\u8D39\u7528\uFF0C\u786E\u8BA4\u540E\u7CFB\u7EDF\u4F1A\u81EA\u52A8\u5F00\u59CB\u9010\u955C\u5934\u751F\u6210\u3002";
+            }
+            const { started, alreadyRunning, runId } = await startQuickVideoGeneration(projectId, userId2);
+            if (started) return `\u751F\u6210\u5DF2\u542F\u52A8\uFF08\u8FD0\u884C ${runId}\uFF09\uFF0C\u7CFB\u7EDF\u5C06\u9010\u955C\u5934\u751F\u6210\u5206\u955C\u56FE\u548C\u89C6\u9891\u7247\u6BB5\u3002`;
+            if (alreadyRunning) return `\u751F\u6210\u5DF2\u5728\u8FDB\u884C\u4E2D\uFF08\u8FD0\u884C ${runId}\uFF09\u3002`;
+          }
+          if (state.stage === "ready_to_assemble") {
+            return "\u6240\u6709\u955C\u5934\u5DF2\u751F\u6210\u5B8C\u6BD5\uFF0C\u53EF\u4EE5\u8FDB\u5165\u88C5\u914D/\u5BFC\u51FA\u73AF\u8282\u3002";
+          }
+          return `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u8FD8\u4E0D\u80FD\u5F00\u59CB\u751F\u6210\uFF1A\u9700\u5148\u786E\u8BA4\u7B80\u62A5\u3001\u751F\u6210\u5E76\u786E\u8BA4\u5206\u955C\u3001\u518D\u901A\u8FC7\u7D20\u6750/\u6210\u672C\u786E\u8BA4\u95E8\u3002`;
+        }).catch((err) => `\u542F\u52A8\u751F\u6210\u5931\u8D25\uFF1A${describeError(err)}`);
+      }
+    })
+  };
+  return tools;
+};
+
+// src/agents/quickVideoAgent/index.ts
+var fs9 = __toESM(require("fs"));
+var import_path9 = __toESM(require("path"));
+init_state();
+init_contract();
+function buildMemPrompt3(mem) {
+  let memoryContext = "";
+  if (mem.rag.length) {
+    memoryContext += `[\u76F8\u5173\u8BB0\u5FC6]
+${mem.rag.map((r) => r.content).join("\n")}`;
+  }
+  if (mem.summaries.length) {
+    if (memoryContext) memoryContext += "\n\n";
+    memoryContext += `[\u5386\u53F2\u6458\u8981]
+${mem.summaries.map((s, i) => `${i + 1}. ${s.content}`).join("\n")}`;
+  }
+  if (mem.shortTerm.length) {
+    if (memoryContext) memoryContext += "\n\n";
+    memoryContext += `[\u8FD1\u671F\u5BF9\u8BDD]
+${mem.shortTerm.map((m) => `${m.role}: ${m.content}`).join("\n")}`;
+  }
+  return `## Memory
+\u4EE5\u4E0B\u662F\u4F60\u5BF9\u7528\u6237\u7684\u8BB0\u5FC6\uFF0C\u53EF\u4F5C\u4E3A\u53C2\u8003\u4F46\u4E0D\u8981\u4E3B\u52A8\u63D0\u53CA\uFF1A
+${memoryContext}`;
+}
+async function runQuickVideoAgent(ctx) {
+  const { isolationKey, text: text2, userMessageTime, abortSignal, resTool, userId: userId2 } = ctx;
+  const memory = new memory_default("quickVideoAgent", isolationKey, userId2);
+  await memory.add("user", text2, { createTime: userMessageTime });
+  const skill = import_path9.default.join(utils_default2.getPath("skills"), "quick_video_agent.md");
+  const prompt = await fs9.promises.readFile(skill, "utf-8");
+  const mem = buildMemPrompt3(await memory.get(text2));
+  const projectData = await utils_default2.db("o_project").where("id", resTool.data.projectId).first();
+  const state = await loadQuickVideoState(Number(resTool.data.projectId));
+  const projectInfo = [
+    "## \u9879\u76EE\u4FE1\u606F",
+    `\u89C6\u9891\u6807\u9898\uFF1A${projectData?.name ?? "\u672A\u77E5"}`,
+    `\u753B\u98CE\uFF1A${state?.artStyle || projectData?.artStyle || "\u65E0"}`,
+    `\u753B\u9762\u6BD4\u4F8B\uFF1A${state?.videoRatio ?? projectData?.videoRatio ?? "16:9"}`,
+    `\u76EE\u6807\u65F6\u957F\uFF1A${state?.targetDuration ?? "\u672A\u77E5"}\u79D2`,
+    state ? `\u5F53\u524D\u9636\u6BB5\uFF1A${state.stage}\uFF08\u72B6\u6001\u7248\u672C ${state.version}\uFF09` : "",
+    state?.brief ? `\u7B80\u62A5\u786E\u8BA4\u72B6\u6001\uFF1A${state.brief.confirmed ? "\u5DF2\u786E\u8BA4" : "\u672A\u786E\u8BA4"}` : "\u7B80\u62A5\uFF1A\u6682\u65E0",
+    state?.storyboard ? `\u5206\u955C\uFF1Av${state.storyboard.version}\uFF08${state.storyboard.status === "confirmed" ? "\u5DF2\u786E\u8BA4" : "\u8349\u7A3F"}\uFF0C\u5171 ${state.storyboard.shots.length} \u955C\uFF09` : "\u5206\u955C\uFF1A\u6682\u65E0",
+    state ? `\u5141\u8BB8\u955C\u5934\u6570\u91CF\uFF1A${shotCountBounds(state.targetDuration).min}-${shotCountBounds(state.targetDuration).max} \u4E2A` : "",
+    "",
+    mem
+  ].filter(Boolean).join("\n");
+  const { fullStream } = await utils_default2.Ai.Text("quickVideoAgent", ctx.userId, ctx.thinkConfig.think, ctx.thinkConfig.thinlLevel).stream({
+    messages: [
+      { role: "system", content: prompt },
+      { role: "assistant", content: projectInfo },
+      { role: "user", content: text2 }
+    ],
+    abortSignal,
+    tools: {
+      ...memory.getTools(),
+      ...tools_default3({ resTool: ctx.resTool, msg: ctx.msg })
+    },
+    onFinish: async (completion) => {
+      await mutateLastChatAt(Number(resTool.data.projectId));
+      await memory.add("assistant", removeAllXmlTags3(completion.text));
+    }
+  });
+  await consumeFullStream3(fullStream, ctx.msg);
+}
+async function mutateLastChatAt(projectId) {
+  try {
+    const { mutateQuickVideoState: mutateQuickVideoState2 } = await Promise.resolve().then(() => (init_state(), state_exports));
+    await mutateQuickVideoState2(projectId, {}, (s) => {
+      s.lastChatAt = Date.now();
+    });
+  } catch {
+  }
+}
+async function consumeFullStream3(fullStream, initialMsg) {
+  let msg = initialMsg;
+  let text2 = msg.text();
+  let thinking = null;
+  let thinkTime = 0;
+  let fullResponse = "";
+  try {
+    for await (const chunk of fullStream) {
+      if (chunk.type === "reasoning-start") {
+        thinkTime = Date.now();
+        thinking = msg.thinking("\u601D\u8003\u4E2D...");
+      } else if (chunk.type === "reasoning-delta") {
+        thinking?.append(chunk.text);
+      } else if (chunk.type === "reasoning-end") {
+        thinkTime = Date.now() - thinkTime;
+        thinking?.updateTitle(`\u601D\u8003\u5B8C\u6BD5\uFF08${(thinkTime / 1e3).toFixed(1)} \u79D2\uFF09`);
+        thinking?.complete();
+        thinking = null;
+      } else if (chunk.type === "text-delta") {
+        text2.append(chunk.text);
+        fullResponse += chunk.text;
+      } else if (chunk.type === "error") {
+        throw chunk.error;
+      }
+    }
+    text2.complete();
+    msg.complete();
+  } catch (err) {
+    thinking?.complete();
+    const errMsg = err?.message ?? String(err);
+    text2.append(errMsg);
+    text2.error();
+    msg.error();
+    throw err;
+  }
+  return fullResponse;
+}
+function removeAllXmlTags3(text2) {
+  text2 = text2.replace(/<([a-zA-Z][\w-]*)(\s+[^>]*)?>([\s\S]*?)<\/\1>/g, "");
+  text2 = text2.replace(/<([a-zA-Z][\w-]*)(\s+[^>]*)?\/>/g, "");
+  text2 = text2.replace(/<\/?[a-zA-Z][\w-]*(\s+[^>]*)?>/g, "");
+  return text2.trim();
+}
+
+// src/socket/routes/quickVideoAgent.ts
+async function verifyToken3(rawToken) {
+  const setting = await utils_default2.db("o_setting").where("key", "tokenKey").select("value").first();
+  if (!setting) return null;
+  const { value: tokenKey } = setting;
+  if (!rawToken) return null;
+  const token = rawToken.replace("Bearer ", "");
+  try {
+    return import_jsonwebtoken5.default.verify(token, tokenKey);
+  } catch (err) {
+    return null;
+  }
+}
+var quickVideoAgent_default = (nsp) => {
+  nsp.on("connection", async (socket) => {
+    const token = socket.handshake.auth.token;
+    const user = await verifyToken3(token);
+    if (!user) {
+      console.log("[quickVideoAgent] \u8FDE\u63A5\u5931\u8D25\uFF0Ctoken\u65E0\u6548");
+      socket.disconnect();
+      return;
+    }
+    const isolationKey = socket.handshake.auth.isolationKey;
+    if (!isolationKey) {
+      console.log("[quickVideoAgent] \u8FDE\u63A5\u5931\u8D25\uFF0C\u7F3A\u5C11 isolationKey");
+      socket.disconnect();
+      return;
+    }
+    console.log("[quickVideoAgent] \u5DF2\u8FDE\u63A5:", socket.id);
+    const resTool = new resTool_default(socket, {
+      projectId: socket.handshake.auth.projectId,
+      userId: user.id
+    });
+    let abortController = null;
+    const thinkConfig = {
+      think: false,
+      thinlLevel: 0
+    };
+    socket.on("chat", async (data) => {
+      const { content } = data;
+      abortController?.abort();
+      abortController = new AbortController();
+      const currentController = abortController;
+      const msg = resTool.newMessage("assistant", "\u5FEB\u521B\u52A9\u624B");
+      const ctx = {
+        socket,
+        isolationKey,
+        userId: user.id,
+        text: content,
+        userMessageTime: new Date(msg.datetime).getTime() - 1,
+        abortSignal: currentController.signal,
+        resTool,
+        msg,
+        thinkConfig
+      };
+      try {
+        await runQuickVideoAgent(ctx);
+      } catch (err) {
+        if (err.name !== "AbortError" && !currentController.signal.aborted) {
+          console.error("[quickVideoAgent] chat error:", utils_default2.error(err).message);
+          msg.error(utils_default2.error(err).message);
+        }
+      } finally {
+        if (abortController === currentController) {
+          abortController = null;
+        }
+      }
+    });
+    socket.on("updateThinkConfig", (data) => {
+      thinkConfig.think = data.think;
+      thinkConfig.thinlLevel = data.thinlLevel;
+      console.log("[quickVideoAgent] \u66F4\u65B0\u601D\u8003\u914D\u7F6E:", thinkConfig);
+    });
+    socket.on("stop", () => {
+      abortController?.abort();
+      abortController = null;
+    });
+  });
+  nsp.on("disconnect", (socket) => {
+    console.log("[quickVideoAgent] \u5DF2\u65AD\u5F00\u8FDE\u63A5:", socket.id);
+  });
+};
+
 // src/socket/index.ts
 var socket_default = (io2) => {
   const routes = {
     productionAgent: productionAgent_default,
-    scriptAgent: scriptAgent_default
+    scriptAgent: scriptAgent_default,
+    quickVideoAgent: quickVideoAgent_default
   };
   for (const [name28, handler] of Object.entries(routes)) {
     const nsp = io2.of(`/api/socket/${name28}`);
@@ -248187,7 +251765,7 @@ async function ensureThumbnail(originalKey, thumbnailKey, size) {
 }
 
 // src/app.ts
-var app = (0, import_express183.default)();
+var app = (0, import_express196.default)();
 var server = import_node_http.default.createServer(app);
 async function checkPermissions() {
   if (!isEletron()) return true;
@@ -248222,8 +251800,9 @@ async function startServe(randomPort = false) {
   (0, import_express_ws.default)(app);
   app.use((0, import_morgan.default)("dev"));
   app.use((0, import_cors.default)({ origin: "*" }));
-  app.use(import_express183.default.json({ limit: "100mb" }));
-  app.use(import_express183.default.urlencoded({ extended: true, limit: "100mb" }));
+  app.use((0, import_compression.default)());
+  app.use(import_express196.default.json({ limit: "100mb" }));
+  app.use(import_express196.default.urlencoded({ extended: true, limit: "100mb" }));
   const OSS_MIME_TYPES = {
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
@@ -248252,7 +251831,7 @@ async function startServe(randomPort = false) {
     ".map": "application/json; charset=utf-8",
     ".txt": "text/plain; charset=utf-8"
   };
-  const staticContentType = (objectKey) => STATIC_MIME_TYPES[import_path20.default.extname(objectKey).toLowerCase()] ?? "application/octet-stream";
+  const staticContentType = (objectKey) => STATIC_MIME_TYPES[import_path21.default.extname(objectKey).toLowerCase()] ?? "application/octet-stream";
   const streamOssFile = async (res, objectKey, contentType) => {
     const { stream: stream8, size } = await utils_default2.oss.getFileStream(objectKey);
     res.set("Content-Type", contentType);
@@ -248261,9 +251840,9 @@ async function startServe(randomPort = false) {
     stream8.pipe(res);
   };
   const webDist = process.env.WEB_DIST;
-  if (webDist && import_fs6.default.existsSync(import_path20.default.join(webDist, "index.html"))) {
+  if (webDist && import_fs6.default.existsSync(import_path21.default.join(webDist, "index.html"))) {
     app.use(
-      import_express183.default.static(webDist, {
+      import_express196.default.static(webDist, {
         // 与原 nginx 缓存策略对齐：带内容哈希的资源一年强缓存，index.html 协商缓存
         setHeaders(res, filePath) {
           if (filePath.endsWith(`index.html`)) res.setHeader("Cache-Control", "no-cache");
@@ -248273,8 +251852,8 @@ async function startServe(randomPort = false) {
       })
     );
     app.use((req, res, next) => {
-      if (req.method === "GET" && !import_path20.default.extname(req.path) && !/^\/(api|oss|skills|assets|socket\.io)(\/|$)/.test(req.path)) {
-        res.sendFile(import_path20.default.join(webDist, "index.html"));
+      if (req.method === "GET" && !import_path21.default.extname(req.path) && !/^\/(api|oss|skills|assets|socket\.io)(\/|$)/.test(req.path)) {
+        res.sendFile(import_path21.default.join(webDist, "index.html"));
         return;
       }
       next();
@@ -248283,7 +251862,7 @@ async function startServe(randomPort = false) {
   app.use("/oss", async (req, res, next) => {
     try {
       const objectKey = req.path;
-      const ext = import_path20.default.extname(objectKey).toLowerCase();
+      const ext = import_path21.default.extname(objectKey).toLowerCase();
       const contentType = OSS_MIME_TYPES[ext] ?? "application/octet-stream";
       if (req.query.size) {
         const size = req.query.size;
@@ -248302,8 +251881,8 @@ async function startServe(randomPort = false) {
           sizeOpts = { type: "percentage", value: pct };
         }
         if (sizeOpts && sizeSubDir) {
-          const base = import_path20.default.basename(objectKey, ext);
-          const dir = import_path20.default.dirname(objectKey);
+          const base = import_path21.default.basename(objectKey, ext);
+          const dir = import_path21.default.dirname(objectKey);
           const smallImageKey = `smallImage${dir}/${base}_${sizeSubDir}${ext}`;
           const thumbnail = await ensureThumbnail(objectKey, smallImageKey, sizeOpts);
           if (thumbnail) {
@@ -248352,15 +251931,15 @@ async function startServe(randomPort = false) {
     if (req.path === "/api/login/login" || req.path === "/api/register/register") return next();
     if (!token) return res.status(401).send({ message: "\u672A\u63D0\u4F9Btoken" });
     try {
-      const decoded = import_jsonwebtoken6.default.verify(token, tokenKey);
+      const decoded = import_jsonwebtoken7.default.verify(token, tokenKey);
       req.user = decoded;
       next();
     } catch (err) {
       return res.status(401).send({ message: "\u65E0\u6548\u7684token" });
     }
   });
-  const router183 = await Promise.resolve().then(() => (init_router(), router_exports));
-  await router183.default(app);
+  const router196 = await Promise.resolve().then(() => (init_router(), router_exports));
+  await router196.default(app);
   app.use((_3, res, next) => {
     return res.status(404).send({ message: "API 404 Not Found" });
   });
@@ -248620,6 +252199,7 @@ router/index.js:
 
 negotiator/index.js:
 negotiator/index.js:
+negotiator/index.js:
   (*!
    * negotiator
    * Copyright(c) 2012 Federico Romero
@@ -248733,6 +252313,28 @@ morgan/index.js:
    * MIT Licensed
    *)
 
+safe-buffer/index.js:
+  (*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> *)
+
+compressible/index.js:
+  (*!
+   * compressible
+   * Copyright(c) 2013 Jonathan Ong
+   * Copyright(c) 2014 Jeremiah Senkpiel
+   * Copyright(c) 2015 Douglas Christopher Wilson
+   * MIT Licensed
+   *)
+
+compression/index.js:
+  (*!
+   * compression
+   * Copyright(c) 2010 Sencha Inc.
+   * Copyright(c) 2011 TJ Holowaychuk
+   * Copyright(c) 2014 Jonathan Ong
+   * Copyright(c) 2014-2015 Douglas Christopher Wilson
+   * MIT Licensed
+   *)
+
 is-extglob/index.js:
   (*!
    * is-extglob <https://github.com/jonschlinkert/is-extglob>
@@ -248778,9 +252380,6 @@ queue-microtask/index.js:
 
 run-parallel/index.js:
   (*! run-parallel. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> *)
-
-safe-buffer/index.js:
-  (*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> *)
 
 lodash/lodash.js:
   (**

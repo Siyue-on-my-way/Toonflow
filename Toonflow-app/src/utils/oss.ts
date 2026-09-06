@@ -47,7 +47,8 @@ class OSS {
       accessKey: process.env.OSS_ACCESS_KEY || "",
       secretKey: process.env.OSS_SECRET_KEY || "",
     });
-    // 初始化时确保 bucket 存在
+    // 初始化时确保 bucket 存在；MinIO 暂不可用时只记录告警，不阻塞服务启动
+    // （后续文件操作仍会因连接失败自然报错，与 MinIO 在线时的失败路径一致）
     this.initPromise = this.client
       .bucketExists(this.bucket)
       .catch(() => false)
@@ -55,6 +56,9 @@ class OSS {
         if (!exists) {
           await this.client.makeBucket(this.bucket);
         }
+      })
+      .catch((err) => {
+        console.warn(`[OSS] MinIO 初始化失败（服务继续启动，文件操作将在使用时报错）: ${err?.message ?? err}`);
       });
   }
 

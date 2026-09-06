@@ -23,7 +23,13 @@
           </div>
           <div>
             <t-tag shape="round">
-              {{ project.projectType == "novel" ? $t(`workbench.project.type.novel`) : $t(`workbench.project.type.script`) }}
+              {{
+                project.projectType == "novel"
+                  ? $t(`workbench.project.type.novel`)
+                  : project.projectType == "quick_video"
+                    ? $t(`workbench.project.type.quickVideo`)
+                    : $t(`workbench.project.type.script`)
+              }}
             </t-tag>
           </div>
         </div>
@@ -94,6 +100,12 @@ async function openProject(projectId: string | undefined) {
   const item = allProject.value.find((p) => p.id === projectId);
 
   if (!item) return window.$message.error($t("workbench.project.msg.notFound"));
+
+  // 单视频快创：无需预先配置图片/视频模型，直接进入一页式工作台
+  if (item.projectType === "quick_video") {
+    project.value = item;
+    return router.push(`/quickVideo`);
+  }
 
   if (!item.imageModel || !item.videoModel) {
     window.$message.warning($t("workbench.project.msg.modelProviderDisabled"));
@@ -180,7 +192,36 @@ function addProjectFn(data: {
   textModel: string;
   imageQuality: string;
   mode: string;
+  targetDuration?: 15 | 30 | 60;
 }) {
+  // 单视频快创走专用入口（含幂等键），不影响专业模式创建链路
+  if (data.projectType === "quick_video") {
+    axios
+      .post("/quickVideo/createProject", {
+        name: data.name,
+        artStyle: data.artStyle,
+        videoRatio: data.videoRatio,
+        targetDuration: data.targetDuration ?? 15,
+        intro: data.intro,
+        draftScript: data.intro,
+        idempotencyKey: crypto.randomUUID(),
+      })
+      .then(({ data: res }: any) => {
+        window.$message.success($t("workbench.project.msg.addSuccess"));
+        getAllProject();
+        if (res?.projectId) {
+          const created = allProject.value.find((p) => p.id === res.projectId);
+          if (created) {
+            project.value = created;
+            router.push(`/quickVideo`);
+          }
+        }
+      })
+      .catch((e) => {
+        window.$message.error(e.message ?? $t("workbench.project.msg.addFailed"));
+      });
+    return;
+  }
   axios
     .post("/project/addProject", data)
     .then(() => {

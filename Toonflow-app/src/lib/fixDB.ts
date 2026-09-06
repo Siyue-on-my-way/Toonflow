@@ -470,6 +470,20 @@ export default async (knex: Knex): Promise<void> => {
     await alterColumnType("o_tasks", "relatedObjects", "text");
   }
 
+  // 单视频快创（SIY-108）：为存量库补齐 quickVideoAgent 基础部署配置，保证简易/高级两种配置模式都能解析到模型
+  const quickVideoBaseAgent = { key: "quickVideoAgent", name: "快创Agent", desc: "单视频快创模式的创作Agent，负责简报梳理与分镜生成，建议使用具备较强文本理解和结构化输出能力的模型" };
+  const existsQuickVideoAgent = await db("o_agentDeploy").where("key", quickVideoBaseAgent.key).select("*").first();
+  if (!existsQuickVideoAgent) {
+    await db("o_agentDeploy").insert({
+      model: "",
+      modelName: "",
+      vendorId: null,
+      key: quickVideoBaseAgent.key,
+      name: quickVideoBaseAgent.name,
+      desc: quickVideoBaseAgent.desc,
+      disabled: false,
+    });
+  }
   // o_assets2Storyboard 使用显式自增列保存关联素材的插入顺序。
   if (knex.client.config.client === "mysql2" && !(await knex.schema.hasColumn("o_assets2Storyboard", "id"))) {
     await knex.raw(
