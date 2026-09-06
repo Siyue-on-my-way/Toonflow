@@ -4,19 +4,12 @@ import vue from "@vitejs/plugin-vue";
 import AutoImport from "unplugin-auto-import/vite";
 import Components from "unplugin-vue-components/vite";
 import { TDesignResolver } from "@tdesign-vue-next/auto-import-resolver";
-import { viteSingleFile } from "vite-plugin-singlefile";
 import postcsspxtoviewport from "postcss-px-to-viewport";
 
 export default defineConfig({
-  base: "./",
-  build: {
-    assetsInlineLimit: Infinity,
-    rollupOptions: {
-      output: {
-        inlineDynamicImports: true,
-      },
-    },
-  },
+  // 必须 "/"：SPA fallback 下深层路由（如 /scriptManage/xxx）刷新时，
+  // 相对路径 "./assets/..." 会解析到错误层级导致白屏
+  base: "/",
   plugins: [
     vue(),
     AutoImport({
@@ -42,7 +35,6 @@ export default defineConfig({
         }),
       ],
     }),
-    viteSingleFile(),
   ],
   resolve: {
     alias: {

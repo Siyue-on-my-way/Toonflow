@@ -1483,7 +1483,7 @@ brace-expansion@^2.0.2:
   dependencies:
     balanced-match "^1.0.0"
 
-braces@^3.0.3, braces@~3.0.2:
+braces@~3.0.2:
   version "3.0.3"
   resolved "https://registry.npmmirror.com/braces/-/braces-3.0.3.tgz#490332f40919452272d55a8480adc0c441358789"
   integrity sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==
@@ -2809,14 +2809,6 @@ mermaid@9.4.3:
     uuid "^9.0.0"
     web-worker "^1.2.0"
 
-micromatch@^4.0.8:
-  version "4.0.8"
-  resolved "https://registry.npmmirror.com/micromatch/-/micromatch-4.0.8.tgz#d66fa18f3a47076789320b9b1af32bd86d9fa202"
-  integrity sha512-PXwfBhYu0hBCPw8Dn0E+WDYb7af3dSLVWKi3HGv84IdF4TyFoC0ysxFd0Goxw7nSv4T/PzEJQxsYsEiFCKo2BA==
-  dependencies:
-    braces "^3.0.3"
-    picomatch "^2.3.1"
-
 mime-db@1.52.0:
   version "1.52.0"
   resolved "https://registry.npmmirror.com/mime-db/-/mime-db-1.52.0.tgz#bbabcdc02859f4987301c856e3387ce5ec43bf70"
@@ -3054,7 +3046,7 @@ picocolors@^1.1.1:
   resolved "https://registry.npmmirror.com/picocolors/-/picocolors-1.1.1.tgz#3d321af3eab939b083c8f929a1d12cda81c26b6b"
   integrity sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==
 
-picomatch@^2.0.4, picomatch@^2.2.1, picomatch@^2.3.1:
+picomatch@^2.0.4, picomatch@^2.2.1:
   version "2.3.1"
   resolved "https://registry.npmmirror.com/picomatch/-/picomatch-2.3.1.tgz#3ba3833733646d9d3e4995946c1365a67fb07a42"
   integrity sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==
@@ -3745,13 +3737,6 @@ validator@^13.15.23:
   version "13.15.26"
   resolved "https://registry.npmmirror.com/validator/-/validator-13.15.26.tgz#36c3deeab30e97806a658728a155c66fcaa5b944"
   integrity sha512-spH26xU080ydGggxRyR1Yhcbgx+j3y5jbNXk/8L+iRvdIEQ4uTRH2Sgf2dokud6Q4oAtsbNvJ1Ft+9xmm6IZcA==
-
-vite-plugin-singlefile@^2.3.0:
-  version "2.3.2"
-  resolved "https://registry.npmmirror.com/vite-plugin-singlefile/-/vite-plugin-singlefile-2.3.2.tgz#e0ff9e146fa3a63fecd53eade9ed33bd08d20da0"
-  integrity sha512-b8SxCi/gG7K298oJDcKOuZeU6gf6wIcCJAaEqUmmZXdjfuONlkyNyWZC3tEbN6QockRCNUd3it9eGTtpHGoYmg==
-  dependencies:
-    micromatch "^4.0.8"
 
 vite@^5.4.10:
   version "5.4.21"

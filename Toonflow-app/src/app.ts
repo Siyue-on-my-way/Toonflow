@@ -7,6 +7,7 @@ import http from "node:http";
 import expressWs from "express-ws";
 import logger from "morgan";
 import cors from "cors";
+import compression from "compression";
 import buildRoute from "@/core";
 import u from "@/utils";
 import path from "path";
@@ -55,6 +56,9 @@ export default async function startServe(randomPort: Boolean = false) {
 
   app.use(logger("dev"));
   app.use(cors({ origin: "*" }));
+  // gzip 压缩（默认 filter 只压 text 类，mp4/图片等已压缩格式自动跳过，
+  // 与下方 MinIO 流式响应兼容）。取代原 nginx brotli/gzip_static 的兜底压缩
+  app.use(compression());
   app.use(express.json({ limit: "100mb" }));
   app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 
