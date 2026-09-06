@@ -1,0 +1,19 @@
+--- /mnt/a-opensource-tools/Toonflow-app/src/lib/initDB.ts
++++ /mnt/a-opensource-tools/Toonflow-app/src/lib/initDB.ts
+@@ -389,7 +389,7 @@
+     {
+       name: "o_novel",
+       builder: (table) => {
+-        table.integer("id").notNullable();
++        table.increments("id").primary();
+         table.integer("chapterIndex");
+         table.text("reel");
+         table.text("chapter");
+@@ -399,7 +399,6 @@
+         table.text("event");
+         table.text("errorReason");
+         table.integer("createTime");
+-        table.primary(["id"]);
+         table.unique(["id"]);
+       },
+     },

@@ -1,0 +1,56 @@
+--- /mnt/a-opensource-tools/Toonflow-app/src/lib/initDB.ts
++++ /mnt/a-opensource-tools/Toonflow-app/src/lib/initDB.ts
+@@ -441,25 +441,6 @@
+     //资产表
+-    {
+-      name: "o_assets",
+-      builder: (table) => {
+-        table.increments("id").primary();
+-        table.text("name");
+-        table.text("prompt");
+-        table.text("remark");
+-        table.text("type");
+-        table.text("describe");
+-        table.integer("scriptId"); //剧本id
+-        table.integer("imageId").unsigned().references("id").inTable("o_image");
+-        table.integer("assetsId");
+-        table.integer("projectId");
+-        table.integer("flowId"); //工作流id
+-        table.integer("startTime");
+-        table.string("promptState");
+-        table.integer("audioBindState");
+-        table.text("promptErrorReason");
+-        table.primary(["id"]);
+-        table.unique(["id"]);
+-      },
+-      initData: async (knex) => {},
+-    },
+     //生成图片表
+     {
+@@ -477,3 +458,22 @@
+       },
+     },
++    //资产表
++    {
++      name: "o_assets",
++      builder: (table) => {
++        table.increments("id").primary();
++        table.text("name");
++        table.text("prompt");
++        table.text("remark");
++        table.text("type");
++        table.text("describe");
++        table.integer("scriptId"); //剧本id
++        table.integer("imageId").unsigned().references("id").inTable("o_image");
++        table.integer("assetsId");
++        table.integer("projectId");
++        table.integer("flowId"); //工作流id
++        table.integer("startTime");
++        table.string("promptState");
++        table.integer("audioBindState");
++        table.text("promptErrorReason");
++        table.unique(["id"]);
++      },
++      initData: async (knex) => {},
++    },
+     //分镜

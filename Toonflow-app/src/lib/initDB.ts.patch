@@ -1,0 +1,19 @@
+--- /mnt/a-opensource-tools/Toonflow-app/src/lib/initDB.ts
++++ /mnt/a-opensource-tools/Toonflow-app/src/lib/initDB.ts
+@@ -43,7 +43,7 @@
+       name: "o_agentDeploy",
+       builder: (table) => {
+-        table.integer("id").notNullable();
++        table.increments("id").primary();
+         table.string("model");
+         table.string("key");
+         table.string("modelName");
+         table.text("vendorId");
+         table.string("desc");
+         table.string("name");
+         table.integer("temperature");
+         table.integer("maxOutputTokens");
+         table.boolean("disabled").defaultTo(false);
+-        table.primary(["id"]);
+         table.unique(["id"]);
+       },

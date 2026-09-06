@@ -1,0 +1,35 @@
+--- /mnt/a-opensource-tools/Toonflow-app/src/lib/initDB.ts
++++ /mnt/a-opensource-tools/Toonflow-app/src/lib/initDB.ts
+@@ -443,7 +443,7 @@
+     {
+       name: "o_assets",
+       builder: (table) => {
+-        table.integer("id").notNullable();
++        table.increments("id").primary();
+         table.text("name");
+         table.text("prompt");
+         table.text("remark");
+@@ -454,7 +454,6 @@
+         table.integer("assetsId");
+         table.integer("createTime");
+         table.integer("updateTime");
+-        table.primary(["id"]);
+         table.unique(["id"]);
+       },
+     },
+@@ -467,7 +466,7 @@
+     {
+       name: "o_image",
+       builder: (table) => {
+-        table.integer("id").notNullable();
++        table.increments("id").primary();
+         table.text("filePath");
+         table.text("type");
+         table.integer("assetsId");
+@@ -476,7 +475,6 @@
+         table.text("state");
+         table.text("errorReason");
+-        table.primary(["id"]);
+         table.unique(["id"]);
+       },
+     },

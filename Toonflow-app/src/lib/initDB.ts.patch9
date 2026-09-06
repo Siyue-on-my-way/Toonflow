@@ -1,0 +1,50 @@
+--- /mnt/a-opensource-tools/Toonflow-app/src/lib/initDB.ts
++++ /mnt/a-opensource-tools/Toonflow-app/src/lib/initDB.ts
+@@ -442,24 +442,6 @@
+     },
+-    {
+-      name: "o_assets",
+-      builder: (table) => {
+-        table.increments("id").primary();
+-        table.text("name");
+-        table.text("prompt");
+-        table.text("remark");
+-        table.text("type");
+-        table.text("describe");
+-        table.integer("scriptId"); //剧本id
+-        table.integer("imageId").unsigned().references("id").inTable("o_image");
+-        table.integer("assetsId");
+-        table.integer("createTime");
+-        table.integer("updateTime");
+-        table.unique(["id"]);
+-      },
+-    },
+-    //图片表
+     {
+       name: "o_image",
+       builder: (table) => {
+         table.increments("id").primary();
+@@ -475,6 +457,24 @@
+         table.unique(["id"]);
+       },
+     },
++    {
++      name: "o_assets",
++      builder: (table) => {
++        table.increments("id").primary();
++        table.text("name");
++        table.text("prompt");
++        table.text("remark");
++        table.text("type");
++        table.text("describe");
++        table.integer("scriptId"); //剧本id
++        table.integer("imageId").unsigned().references("id").inTable("o_image");
++        table.integer("assetsId");
++        table.integer("createTime");
++        table.integer("updateTime");
++        table.unique(["id"]);
++      },
++    },
++    //图片表
+     //分镜表
+     {

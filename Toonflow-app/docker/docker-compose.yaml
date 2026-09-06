@@ -1,0 +1,105 @@
+name: toonflow
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: toonflow-mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_PASSWORD:-}"
+      MYSQL_DATABASE: "${DB_NAME:-toonflow_db}"
+      MYSQL_USER: "${DB_USER:-toonflow_user}"
+      MYSQL_PASSWORD: "${DB_PASSWORD:-}"
+    volumes:
+      - ./volumes/mysql/data:/var/lib/mysql
+      - ./volumes/mysql-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - toonflow-net
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: toonflow-minio
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: "${OSS_ACCESS_KEY:-toonflow-key}"
+      MINIO_ROOT_PASSWORD: "${OSS_SECRET_KEY:-}"
+    volumes:
+      - ./volumes/minio:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - toonflow-net
+    restart: unless-stopped
+
+  toonflow:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: toonflow-app:latest
+    container_name: toonflow-app
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: "${NODE_ENV:-prod}"
+      PORT: "${APP_PORT:-10588}"
+      DB_HOST: mysql
+      DB_PORT: 3306
+      OSS_ENDPOINT: minio:9000
+      OSS_USE_SSL: "false"
+    volumes:
+      - ./volumes/data:/app/data
+      - ./entrypoint.sh:/app/entrypoint.sh
+    entrypoint: ["/bin/sh", "/app/entrypoint.sh"]
+    command: ["yarn", "dev"]
+    networks:
+      - toonflow-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:10588/').then(() => process.exit(0)).catch(() => process.exit(1));"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      mysql:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: ..
+      dockerfile: docker/nginx-brotli.Dockerfile
+    image: toonflow-nginx-brotli:latest
+    container_name: toonflow-nginx
+    ports:
+      - "${HOST_PORT:-2280}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../Toonflow-web/dist:/usr/share/nginx/html:ro
+    depends_on:
+      toonflow:
+        condition: service_healthy
+    networks:
+      - toonflow-net
+    restart: unless-stopped
+
+networks:
+  toonflow-net:
+    driver: bridge

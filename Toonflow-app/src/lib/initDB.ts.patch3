@@ -1,0 +1,12 @@
+--- /mnt/a-opensource-tools/Toonflow-app/src/lib/initDB.ts
++++ /mnt/a-opensource-tools/Toonflow-app/src/lib/initDB.ts
+@@ -266,7 +266,7 @@
+     {
+       name: "o_setting",
+       builder: (table) => {
+-        table.text("key");
++        table.string("key", 255);
+         table.text("value");
+         table.primary(["key"]);
+         table.unique(["key"]);
+       },

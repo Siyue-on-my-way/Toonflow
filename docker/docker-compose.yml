@@ -1,0 +1,47 @@
+name: toonflow-v2
+
+# 只含应用本体一个服务（Node 直接托管前端构建产物，无需独立 nginx）；
+# MySQL / MinIO 暂复用旧栈容器（见下方 networks 说明），通过 .env 指定地址。
+# 如后续要把 DB/MinIO 也收进来，参考 Toonflow-app/docker/docker-compose.yaml。
+services:
+  toonflow:
+    build:
+      # 上下文 = 仓库根（Dockerfile 在根目录，COPY 的是 Toonflow-app / Toonflow-web）
+      context: ..
+      dockerfile: Dockerfile
+    image: toonflow:latest
+    container_name: toonflow
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: prod
+      PORT: "${APP_PORT:-10588}"
+      # Node 直接托管前端构建产物，无需独立 nginx
+      WEB_DIST: /app/public
+    ports:
+      - "${HOST_PORT:-2280}:${APP_PORT:-10588}"
+    volumes:
+      # 运行时数据（首次启动由镜像内 entrypoint 从 data.bundle 初始化）
+      - ./volumes/data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:10588/').then(() => process.exit(0)).catch(() => process.exit(1));"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - default
+      - legacy-infra
+    restart: unless-stopped
+
+# 复用旧栈（Toonflow-app/docker）仍在运行的 mysql / minio 容器：
+# 加入其 compose 网络 toonflow_toonflow-net，.env 里的 DB_HOST=mysql、
+# OSS_ENDPOINT=minio:9000 即可原样解析，旧数据零迁移。
+# 旧栈退役、迁到中间件中心后：删掉本节及 service 里的 legacy-infra，
+# 项目名可改回 toonflow，DB_HOST/OSS_ENDPOINT 按 .env.example 调整。
+networks:
+  legacy-infra:
+    external: true
+    name: toonflow_toonflow-net

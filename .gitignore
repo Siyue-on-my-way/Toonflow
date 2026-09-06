@@ -1,0 +1,95 @@
+# ============================================================
+# Toonflow monorepo 统一 .gitignore
+# 合并自 Toonflow-app/.gitignore 与 Toonflow-web/.gitignore
+# 带子目录前缀的规则 = 原各子项目根目录的锚定规则
+# ============================================================
+
+# ---------- 通用（前后端共用） ----------
+
+# dependencies
+node_modules
+
+# output
+dist
+dist-ssr
+out
+build/*
+*.tgz
+
+# code coverage
+coverage
+*.lcov
+
+# logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# dotenv environment variable files（含真实密码/密钥，禁止提交）
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# caches
+.eslintcache
+.cache
+*.tsbuildinfo
+
+# editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.devtools
+
+# OS
+.DS_Store
+
+# misc
+*.local
+
+# 本地部署运行时数据卷（docker-compose bind mount）
+volumes/
+
+# 本地部署真实配置（含密钥，参考 .env.example）
+.env
+
+# ---------- Toonflow-app（后端） ----------
+
+# 用户上传数据
+Toonflow-app/upload/*
+Toonflow-app/uploads/*
+Toonflow-app/data/oss/*
+Toonflow-app/version.txt
+Toonflow-app/router.ts
+Toonflow-app/database.d.ts
+
+# 本地 Docker 数据卷与内部文档
+Toonflow-app/docker/volumes/minio/
+Toonflow-app/docker/volumes/mysql-init/
+Toonflow-app/docker/volumes/mysql/
+Toonflow-app/docker/业务方模型调用接入_SOP/
+
+# 旧结构：曾内嵌在 app 里的前端目录，防止误提交
+Toonflow-app/web/*
+
+# ---------- Toonflow-web（前端） ----------
+
+Toonflow-web/cypress/videos/
+Toonflow-web/cypress/screenshots/
+Toonflow-web/src/types/auto-imports.d.ts
+Toonflow-web/src/types/components.d.ts
+Toonflow-web/src/views/scriptManage/components/ceshi.png
+Toonflow-web/oss
+Toonflow-web/backup

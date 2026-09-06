@@ -1,0 +1,31 @@
+# 依赖与缓存
+**/node_modules
+**/.eslintcache
+**/*.tsbuildinfo
+
+# 版本控制与 IDE
+**/.git
+**/.github
+**/.vscode
+**/.idea
+**/.devtools
+
+# 构建产物（镜像内重新构建）
+Toonflow-web/dist
+Toonflow-web/vite.config.d.ts
+Toonflow-app/build
+
+# 运行时数据（数据卷内容，禁止打进镜像）
+Toonflow-app/docker/volumes/
+volumes/
+
+# data/web 为旧内嵌前端遗留，前端现由阶段 1 重新构建，不再随镜像分发
+Toonflow-app/data/web
+
+# 敏感配置
+**/.env
+**/.env.local
+
+# 文档与日志
+**/*.log
+**/.DS_Store

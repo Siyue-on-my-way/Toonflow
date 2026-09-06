@@ -1,0 +1,18 @@
+--- /mnt/a-opensource-tools/Toonflow-app/src/lib/initDB.ts
++++ /mnt/a-opensource-tools/Toonflow-app/src/lib/initDB.ts
+@@ -467,7 +467,7 @@
+     {
+       name: "o_image",
+       builder: (table) => {
+-        table.integer("id").notNullable();
++        table.increments("id").primary();
+         table.text("filePath");
+         table.text("type");
+         table.integer("assetsId");
+@@ -476,7 +476,6 @@
+         table.text("state");
+         table.text("errorReason");
+-        table.primary(["id"]);
+         table.unique(["id"]);
+       },
+     },

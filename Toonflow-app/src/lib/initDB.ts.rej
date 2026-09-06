@@ -1,0 +1,10 @@
+--- initDB.ts
++++ initDB.ts
+@@ -475,7 +474,6 @@
+         table.text("state");
+         table.text("errorReason");
+-        table.primary(["id"]);
+         table.unique(["id"]);
+       },
+     },
+ 

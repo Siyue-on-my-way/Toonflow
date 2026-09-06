@@ -1,0 +1,15 @@
+--- /mnt/a-opensource-tools/Toonflow-app/src/lib/initDB.ts
++++ /mnt/a-opensource-tools/Toonflow-app/src/lib/initDB.ts
+@@ -338,7 +338,7 @@
+     {
+       name: "o_prompt",
+       builder: (table) => {
+-        table.integer("id").notNullable();
++        table.increments("id").primary();
+         table.string("name");
+         table.string("type");
+         table.text("data");
+         table.text("useData");
+-        table.primary(["id"]);
+         table.unique(["id"]);
+       },
