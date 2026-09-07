@@ -6,6 +6,55 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+BUILD=false
+BUILD_ARGS=()
+for arg in "$@"; do
+  case "$arg" in
+    --build)
+      BUILD=true
+      ;;
+    --no-cache)
+      BUILD=true
+      BUILD_ARGS+=(--no-cache)
+      ;;
+    --restart-only)
+      BUILD=false
+      ;;
+    --help|-h)
+      echo "Usage: $0 [--build] [--no-cache] [--restart-only]"
+      exit 0
+      ;;
+    *)
+      echo "[start] 未知参数：$arg" >&2
+      exit 2
+      ;;
+  esac
+done
+
+DOCKER_BUILD_LOCK_FILE="${DOCKER_BUILD_LOCK_FILE:-/tmp/multica-docker-build.lock}"
+DOCKER_HOUSEKEEPING_SCRIPT="${DOCKER_HOUSEKEEPING_SCRIPT:-/mnt/a-opensource-tools/multica/scripts/docker-housekeeping.sh}"
+
+run_locked_build() {
+  command -v flock >/dev/null 2>&1 || {
+    echo "[start] 未找到 flock，拒绝在没有构建锁的情况下执行 Docker 构建。" >&2
+    exit 1
+  }
+  mkdir -p -- "$(dirname -- "$DOCKER_BUILD_LOCK_FILE")"
+  (
+    exec 9>"$DOCKER_BUILD_LOCK_FILE"
+    flock 9
+    docker compose build "${BUILD_ARGS[@]}"
+  )
+}
+
+run_housekeeping() {
+  if [ -x "$DOCKER_HOUSEKEEPING_SCRIPT" ]; then
+    "$DOCKER_HOUSEKEEPING_SCRIPT"
+  else
+    echo "[start] 警告：统一 Docker 清理脚本不存在，跳过：$DOCKER_HOUSEKEEPING_SCRIPT" >&2
+  fi
+}
+
 # 1. .env 缺失时从模板生成（含密钥需人工填写，生成后直接退出）
 if [ ! -f .env ]; then
   cp .env.example .env
@@ -21,8 +70,19 @@ for c in toonflow-mysql toonflow-minio; do
   fi
 done
 
-# 3. 构建并启动
-docker compose up -d --build
+# 3. 按需构建并启动；普通启动直接复用已有镜像
+if [ "$BUILD" = true ]; then
+  echo "[start] 使用共享构建锁构建镜像..."
+  run_locked_build
+else
+  echo "[start] 跳过镜像构建，复用已有镜像..."
+fi
+
+docker compose up -d
+
+if [ "$BUILD" = true ]; then
+  run_housekeeping
+fi
 
 docker compose ps
 echo "[start] 完成。访问 http://127.0.0.1:$(grep -E '^HOST_PORT=' .env | cut -d= -f2)/"

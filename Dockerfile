@@ -50,15 +50,16 @@ COPY Toonflow-app/ ./
 # 代码留在 data/ 里会导致升级镜像后仍跑旧代码
 RUN yarn build && mkdir -p server && mv data/serve/app.js server/app.js
 
-# 前端构建产物由 Node 直接托管（WEB_DIST 指向该目录）
-COPY --from=web /web/dist /app/public
-
 # 数据卷初始化包：默认资源（models/skills/assets/vendor/modelPrompt）随镜像分发，
 # 首次启动由 entrypoint 拷入数据卷
 RUN mkdir -p /app/data.bundle && cp -r data/* /app/data.bundle/ || true
 
 # 数据卷初始化脚本打进镜像，不再依赖 bind mount
 COPY Toonflow-app/docker/entrypoint.sh /app/entrypoint.sh
+
+# 前端构建产物由 Node 直接托管（WEB_DIST 指向该目录）。放在稳定的
+# data.bundle/entrypoint 层之后，避免前端改动重复生成约 68MB 的数据层。
+COPY --from=web /web/dist /app/public
 
 ENV NODE_ENV=prod
 ENV PORT=10588
