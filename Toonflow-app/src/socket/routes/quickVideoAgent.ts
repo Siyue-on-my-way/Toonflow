@@ -46,8 +46,8 @@ export default (nsp: Namespace) => {
       thinlLevel: 0,
     };
 
-    socket.on("chat", async (data: { content: string }) => {
-      const { content } = data;
+    socket.on("chat", async (data: { content: string; textModel?: string }) => {
+      const { content, textModel } = data;
       abortController?.abort();
       abortController = new AbortController();
       const currentController = abortController;
@@ -58,6 +58,7 @@ export default (nsp: Namespace) => {
         isolationKey,
         userId: user.id,
         text: content,
+        textModel: textModel as `${string}:${string}` | undefined,
         userMessageTime: new Date(msg.datetime).getTime() - 1,
         abortSignal: currentController.signal,
         resTool,

@@ -13,6 +13,7 @@ export interface AgentContext {
   isolationKey: string;
   userId: number;
   text: string;
+  textModel?: `${string}:${string}`;
   userMessageTime?: number;
   abortSignal?: AbortSignal;
   resTool: ResTool;
@@ -44,7 +45,7 @@ function buildMemPrompt(mem: Awaited<ReturnType<Memory["get"]>>): string {
  * 状态机的阶段推进（确认门）只由用户在右侧面板触发，Agent 不得也無法代替用户确认。
  */
 export async function runQuickVideoAgent(ctx: AgentContext) {
-  const { isolationKey, text, userMessageTime, abortSignal, resTool, userId } = ctx;
+  const { isolationKey, text, textModel, userMessageTime, abortSignal, resTool, userId } = ctx;
   const memory = new Memory("quickVideoAgent", isolationKey, userId);
   await memory.add("user", text, { createTime: userMessageTime });
 
@@ -55,6 +56,7 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
 
   const projectData = await u.db("o_project").where("id", resTool.data.projectId).first();
   const state = await loadQuickVideoState(Number(resTool.data.projectId));
+  const effectiveTextModel = textModel || (projectData?.textModel as `${string}:${string}` | undefined);
 
   const projectInfo = [
     "## 项目信息",
@@ -72,7 +74,13 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
     .filter(Boolean)
     .join("\n");
 
-  const { fullStream } = await u.Ai.Text("quickVideoAgent", ctx.userId, ctx.thinkConfig.think, ctx.thinkConfig.thinlLevel).stream({
+  const { fullStream } = await u.Ai.Text(
+    "quickVideoAgent",
+    ctx.userId,
+    ctx.thinkConfig.think,
+    ctx.thinkConfig.thinlLevel,
+    effectiveTextModel,
+  ).stream({
     messages: [
       { role: "system", content: prompt },
       { role: "assistant", content: projectInfo },

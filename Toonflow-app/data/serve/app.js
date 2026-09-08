@@ -24650,16 +24650,16 @@ var require_router = __commonJS({
         return new Router(options);
       }
       const opts = options || {};
-      function router196(req, res, next) {
-        router196.handle(req, res, next);
+      function router197(req, res, next) {
+        router197.handle(req, res, next);
       }
-      Object.setPrototypeOf(router196, this);
-      router196.caseSensitive = opts.caseSensitive;
-      router196.mergeParams = opts.mergeParams;
-      router196.params = {};
-      router196.strict = opts.strict;
-      router196.stack = [];
-      return router196;
+      Object.setPrototypeOf(router197, this);
+      router197.caseSensitive = opts.caseSensitive;
+      router197.mergeParams = opts.mergeParams;
+      router197.params = {};
+      router197.strict = opts.strict;
+      router197.stack = [];
+      return router197;
     }
     Router.prototype = function() {
     };
@@ -25047,7 +25047,7 @@ var require_application = __commonJS({
     var app2 = exports2 = module2.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router196 = null;
+      var router197 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -25056,13 +25056,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router196 === null) {
-            router196 = new Router({
+          if (router197 === null) {
+            router197 = new Router({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router196;
+          return router197;
         }
       });
     };
@@ -25133,15 +25133,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router196 = this.router;
+      var router197 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router196.use(path26, fn2);
+          return router197.use(path26, fn2);
         }
         debug(".use app under %s", path26);
         fn2.mountpath = path26;
         fn2.parent = this;
-        router196.use(path26, function mounted_app(req, res, next) {
+        router197.use(path26, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -52548,8 +52548,8 @@ var require_lib5 = __commonJS({
         getWss: function getWss() {
           return wsServer;
         },
-        applyTo: function applyTo(router196) {
-          (0, _addWsMethod2.default)(router196);
+        applyTo: function applyTo(router197) {
+          (0, _addWsMethod2.default)(router197);
         }
       };
     }
@@ -145475,13 +145475,13 @@ var require_dist7 = __commonJS({
       };
     }
     var import_provider_utils210 = require_dist6();
-    var import_zod178 = require_zod();
-    var qwenErrorDataSchema = import_zod178.z.object({
-      object: import_zod178.z.literal("error"),
-      message: import_zod178.z.string(),
-      type: import_zod178.z.string(),
-      param: import_zod178.z.string().nullable(),
-      code: import_zod178.z.string().nullable()
+    var import_zod179 = require_zod();
+    var qwenErrorDataSchema = import_zod179.z.object({
+      object: import_zod179.z.literal("error"),
+      message: import_zod179.z.string(),
+      type: import_zod179.z.string(),
+      param: import_zod179.z.string().nullable(),
+      code: import_zod179.z.string().nullable()
     });
     var qwenFailedResponseHandler = (0, import_provider_utils210.createJsonErrorResponseHandler)({
       errorSchema: qwenErrorDataSchema,
@@ -223512,9 +223512,15 @@ function createVendorAPI8(inputValues) {
     return createOpenAI({ baseURL: inputValues.baseUrl, apiKey }).chat(model.modelName);
   };
   const imageRequest = async (config3, model, inputValues2) => {
+    if (model.modelName === "e2e-img") {
+      return "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+    }
     return "";
   };
   const videoRequest = async (config3, model, inputValues2) => {
+    if (model.modelName === "e2e-vid") {
+      return "data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAD8ttZGF03gIATGF2YzYwLjMxLjEwMgBCIAjBGDgAAAJxBgX//23cRem95tlIt5Ys2CDZI+7veDI2NCAtIGNvcmUgMTY0IHIzMTA4IDMxZTE5ZjkgLSBILjI2NC9NUEVHLTQgQVZDIGNvZGVjIC0gQ29weWxlZnQgMjAwMy0yMDIzIC0gaHR0cDovL3d3dy52aWRlb2xhbi5vcmcveDI2NC5odG1sIC0gb3B0aW9uczogY2FiYWM9MCByZWY9MyBkZWJsb2NrPTE6MDowIGFuYWx5c2U9MHgxOjB4MTExIG1lPWhleCBzdWJtZT03IHBzeT0xIHBzeV9yZD0xLjAwOjAuMDAgbWl4ZWRfcmVmPTEgbWVfcmFuZ2U9MTYgY2hyb21hX21lPTEgdHJlbGxpcz0xIDh4OGRjdD0wIGNxbT0wIGRlYWR6b25lPTIxLDExIGZhc3RfcHNraXA9MSBjaHJvbWFfcXBfb2Zmc2V0PS0yIHRocmVhZHM9NiBsb29rYWhlYWRfdGhyZWFkcz0xIHNsaWNlZF90aHJlYWRzPTAgbnI9MCBkZWNpbWF0ZT0xIGludGVybGFjZWQ9MCBibHVyYXlfY29tcGF0PTAgY29uc3RyYWluZWRfaW50cmE9MCBiZnJhbWVzPTAgd2VpZ2h0cD0wIGtleWludD0yNTAga2V5aW50X21pbj0yNSBzY2VuZWN1dD00MCBpbnRyYV9yZWZyZXNoPTAgcmNfbG9va2FoZWFkPTQwIHJjPWNyZiBtYnRyZWU9MSBjcmY9MjMuMCBxY29tcD0wLjYwIHFwbWluPTAgcXBtYXg9NjkgcXBzdGVwPTQgaXBfcmF0aW89MS40MCBhcT0xOjEuMDAAgAAAAs5liIQM8RigACq/HAAEdqOAAIFsnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJyddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddeIRAEYIwcIRAEYIwcAAAAB0GaOBngDmYhEARgjBwhEARgjBwAAAAIQZpUBngDmYAhEARgjBwhEARgjBwAAAAHQZpgM8AczCEQBGCMHAAAAAdBmoAzwBzMIRAEYIwcIRAEYIwcAAAAB0GaoDPAHMwhEARgjBwhEARgjBwAAAAHQZrAM8AczCEQBGCMHCEQBGCMHAAAAAdBmuAzwBzMIRAEYIwcAAAAB0GbADPAHMwhEARgjBwhEARgjBwAAAAHQZsgM8AczCEQBGCMHCEQBGCMHAAAAAdBm0AzwBzMIRAEYIwcAAAAB0GbYDPAHMwhEARgjBwhEARgjBwAAAAHQZuAM8AczCEQBGCMHCEQBGCMHAAAAAdBm6AzwBzMIRAEYIwcIRAEYIwcAAAAB0GbwDPAHMwhEARgjBwAAAAHQZvgM8AczCEQBGCMHCEQBGCMHAAAAAdBmgAzwBzMIRAEYIwcIRAEYIwcAAAAB0GaIDPAHMwhEARgjBwhEARg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AAAAAAAAAAEAAACrYXZjMQAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAKAAWgASAAAAEgAAAAAAAAAARVMYXZjNjAuMzEuMTAyIGxpYngyNjQAAAAAAAAAAAAAABj//wAAADFhdmNDAULAHv/hABlnQsAe2QCgL/lwEQAAAwABAAADADIPFi5IAQAFaMuDyyAAAAAQcGFzcAAAAAEAAAABAAAAFGJ0cnQAAAAAAAAQ+QAAEPkAAAAYc3R0cwAAAAAAAAABAAAAfQAAAgAAAAAUc3RzcwAAAAAAAAABAAAAAQAAABxzdHNjAAAAAAAAAAEAAAABAAAAAQAAAAEAAAIIc3RzegAAAAAAAAAAAAAAfQAABUcAAAALAAAADAAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAACBHN0Y28AAAAAAAAAfQAAAEcAAAWaAAAFsQAABckAAAXaAAAF8QAABggAAAYfAAAGMAAABkcAAAZeAAAGbwAABoYAAAadAAAGtAAABsUAAAbcAAAG8wAABwoAAAcbAAAHMgAAB0kAAAdaAAAHcQAAB4gAAAefAAAHsAAAB8cAAAfeAAAH7wAACAYAAAgdAAAINAAACEUAAAhcAAAIcwAACIoAAAibAAAIsgAACMkAAAjaAAAI8QAACQgAAAkfAAAJMAAACUcAAAleAAAJbwAACYYAAAmdAAAJtAAACcUAAAncAAAJ8wAACgoAAAobAAAKMgAACkkAAApaAAAKcQAACogAAAqfAAAKsAAACscAAAreAAAK7wAACwYAAAsdAAALNAAAC0UAAAtcAAALcwAAC4oAAAubAAALsgAAC8kAAAvaAAAL8QAADAgAAAwfAAAMMAAADEcAAAxeAAAMbwAADIYAAAydAAAMtAAADMUAAAzcAAAM8wAADQoAAA0bAAANMgAADUkAAA1aAAANcQAADYgAAA2fAAANsAAADccAAA3eAAAN7wAADgYAAA4dAAAONAAADkUAAA5cAAAOcwAADooAAA6bAAAOsgAADskAAA7aAAAO8QAADwgAAA8fAAAPMAAAD0cAAA9eAAAPbwAAD4YAAA+dAAAPtAAAD8UAAA/cAAAKzXRyYWsAAABcdGtoZAAAAAMAAAAAAAAAAAAAAAIAAAAAAAATiAAAAAAAAAAAAAAAAQEAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAACRlZHRzAAAAHGVsc3QAAAAAAAAAAQAAE4gAAAQAAAEAAAAACkVtZGlhAAAAIG1kaGQAAAAAAAAAAAAAAAAAAKxEAANhVFXEAAAAAAAtaGRscgAAAAAAAAAAc291bgAAAAAAAAAAAAAAAFNvdW5kSGFuZGxlcgAAAAnwbWluZgAAABBzbWhkAAAAAAAAAAAAAAAkZGluZgAAABxkcmVmAAAAAAAAAAEAAAAMdXJsIAAAAAEAAAm0c3RibAAAAH5zdHNkAAAAAAAAAAEAAABubXA0YQAAAAAAAAABAAAAAAAAAAAAAgAQAAAAAKxEAAAAAAA2ZXNkcwAAAAADgICAJQACAASAgIAXQBUAAAAAAH0AAAAINAWAgIAFEhBW5QAGgICAAQIAAAAUYnRydAAAAAAAAH0AAAAINAAAACBzdHRzAAAAAAAAAAIAAADYAAAEAAAAAAEAAAFUAAADWHN0c2MAAAAAAAAARgAAAAEAAAABAAAAAQAAAAIAAAACAAAAAQAAAAUAAAABAAAAAQAAAAYAAAACAAAAAQAAAAkAAAABAAAAAQAAAAoAAAACAAAAAQAAAAwAAAABAAAAAQAAAA0AAAACAAAAAQAAABAAAAABAAAAAQAAABEAAAACAAAAAQAAABQAAAABAAAAAQAAABUAAAACAAAAAQAAABcAAAABAAAAAQAAABgAAAACAAAAAQAAABsAAAABAAAAAQAAABwAAAACAAAAAQAAAB4AAAABAAAAAQAAAB8AAAACAAAAAQAAACIAAAABAAAAAQAAACMAAAACAAAAAQAAACYAAAABAAAAAQAAACcAAAACAAAAAQAAACkAAAABAAAAAQAAACoAAAACAAAAAQAAAC0AAAABAAAAAQAAAC4AAAACAAAAAQAAADAAAAABAAAAAQAAADEAAAACAAAAAQAAADQAAAABAAAAAQAAADUAAAACAAAAAQAAADgAAAABAAAAAQAAADkAAAACAAAAAQAAADsAAAABAAAAAQAAADwAAAACAAAAAQAAAD8AAAABAAAAAQAAAEAAAAACAAAAAQAAAEIAAAABAAAAAQAAAEMAAAACAAAAAQAAAEYAAAABAAAAAQAAAEcAAAACAAAAAQAAAEoAAAABAAAAAQAAAEsAAAACAAAAAQAAAE0AAAABAAAAAQAAAE4AAAACAAAAAQAAAFEAAAABAAAAAQAAAFIAAAACAAAAAQAAAFQAAAABAAAAAQAAAFUAAAACAAAAAQAAAFgAAAABAAAAAQAAAFkAAAACAAAAAQAAAFwAAAABAAAAAQAAAF0AAAACAAAAAQAAAF8AAAABAAAAAQAAAGAAAAACAAAAAQAAAGMAAAABAAAAAQAAAGQAAAACAAAAAQAAAGYAAAABAAAAAQAAAGcAAAACAAAAAQAAAGoAAAABAAAAAQAAAGsAAAACAAAAAQAAAG4AAAABAAAAAQAAAG8AAAACAAAAAQAAAHEAAAABAAAAAQAAAHIAAAACAAAAAQAAAHUAAAABAAAAAQAAAHYAAAACAAAAAQAAAHgAAAABAAAAAQAAAHkAAAACAAAAAQAAAHwAAAABAAAAAQAAAH0AAAACAAAAAQAAA3hzdHN6AAAAAAAAAAAAAADZAAAAFwAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAghzdGNvAAAAAAAAAH4AAAAwAAAFjgAABaUAAAW9AAAF1AAABeUAAAX8AAAGEwAABioAAAY7AAAGUgAABmkAAAZ6AAAGkQAABqgAAAa/AAAG0AAABucAAAb+AAAHFQAAByYAAAc9AAAHVAAAB2UAAAd8AAAHkwAAB6oAAAe7AAAH0gAAB+kAAAf6AAAIEQAACCgAAAg/AAAIUAAACGcAAAh+AAAIlQAACKYAAAi9AAAI1AAACOUAAAj8AAAJEwAACSoAAAk7AAAJUgAACWkAAAl6AAAJkQAACagAAAm/AAAJ0AAACecAAAn+AAAKFQAACiYAAAo9AAAKVAAACmUAAAp8AAAKkwAACqoAAAq7AAAK0gAACukAAAr6AAALEQAACygAAAs/AAALUAAAC2cAAAt+AAALlQAAC6YAAAu9AAAL1AAAC+UAAAv8AAAMEwAADCoAAAw7AAAMUgAADGkAAAx6AAAMkQAADKgAAAy/AAAM0AAADOcAAAz+AAANFQAADSYAAA09AAANVAAADWUAAA18AAANkwAADaoAAA27AAAN0gAADekAAA36AAAOEQAADigAAA4/AAAOUAAADmcAAA5+AAAOlQAADqYAAA69AAAO1AAADuUAAA78AAAPEwAADyoAAA87AAAPUgAAD2kAAA96AAAPkQAAD6gAAA+/AAAP0AAAD+cAAAAac2dwZAEAAAByb2xsAAAAAgAAAAH//wAAABxzYmdwAAAAAHJvbGwAAAABAAAA2QAAAAEAAABidWR0YQAAAFptZXRhAAAAAAAAACFoZGxyAAAAAAAAAABtZGlyYXBwbAAAAAAAAAAAAAAAAC1pbHN0AAAAJal0b28AAAAdZGF0YQAAAAEAAAAATGF2ZjYwLjE2LjEwMA==";
+    }
     return "";
   };
   const ttsRequest = async (config3, model, inputValues2) => {
@@ -225928,7 +225934,7 @@ async function loadQuickVideoState(projectId) {
 }
 async function mutateQuickVideoState(projectId, opts, mutator) {
   return db.transaction(async (trx) => {
-    const row = await trx("o_agentWorkData").where({ projectId: String(projectId), key: QUICK_VIDEO_AGENT_KEY }).first();
+    const row = await trx("o_agentWorkData").where({ projectId: String(projectId), key: QUICK_VIDEO_AGENT_KEY }).forUpdate().first();
     if (!row) throw new QuickVideoError("STATE_NOT_FOUND", "\u672A\u627E\u5230 quickVideoAgent \u72B6\u6001\uFF0C\u8BF7\u5148\u521B\u5EFA quick_video \u9879\u76EE");
     const current = parseState(row);
     if (opts.idempotencyKey && current.appliedKeys[opts.idempotencyKey] != null) {
@@ -226457,7 +226463,7 @@ async function runShotPipeline(projectId, userId2, shotId, presetCtx) {
       recordEvent("generationShotImageDone");
     } catch (err) {
       const reason = utils_default2.error(err).message;
-      await updateShotState(projectId, shotId, { imageState: "failed", errorReason: reason });
+      await updateShotState(projectId, shotId, { imageState: "failed", videoState: "failed", errorReason: reason });
       recordEvent("generationShotFailed");
       qvLog("shot_failed", { projectId, shotId, stage: "image", reason });
       return;
@@ -248408,6 +248414,38 @@ var init_updateShot = __esm({
   }
 });
 
+// src/routes/quickVideo/updateModels.ts
+var import_express196, router196, updateModels_default;
+var init_updateModels = __esm({
+  "src/routes/quickVideo/updateModels.ts"() {
+    "use strict";
+    import_express196 = __toESM(require_express2());
+    init_zod();
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    router196 = import_express196.default.Router();
+    updateModels_default = router196.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        textModel: external_exports.string().max(500),
+        imageModel: external_exports.string().max(500),
+        videoModel: external_exports.string().max(500)
+      }),
+      async (req, res) => {
+        const { projectId, textModel, imageModel, videoModel } = req.body;
+        const project = await utils_default2.db("o_project").where("id", projectId).select("id", "projectType").first();
+        if (!project) return res.status(200).send(error50("\u9879\u76EE\u4E0D\u5B58\u5728"));
+        if (project.projectType !== "quick_video") return res.status(200).send(error50("\u975E\u5355\u89C6\u9891\u5FEB\u521B\u9879\u76EE"));
+        await utils_default2.db("o_project").where("id", projectId).update({ textModel, imageModel, videoModel });
+        const updatedProject = await utils_default2.db("o_project").where("id", projectId).first();
+        res.status(200).send(success3({ project: updatedProject }));
+      }
+    );
+  }
+});
+
 // src/router.ts
 var router_exports = {};
 __export(router_exports, {
@@ -248612,6 +248650,7 @@ var init_router = __esm({
     init_updateBrief();
     init_updateConfig();
     init_updateShot();
+    init_updateModels();
     router_default = async (app2) => {
       app2.use("/api/agents/clearMemory", clearMemory_default);
       app2.use("/api/agents/getMemory", getMemory_default);
@@ -248808,6 +248847,7 @@ var init_router = __esm({
       app2.use("/api/quickVideo/updateBrief", updateBrief_default);
       app2.use("/api/quickVideo/updateConfig", updateConfig_default);
       app2.use("/api/quickVideo/updateShot", updateShot_default);
+      app2.use("/api/quickVideo/updateModels", updateModels_default);
     };
   }
 });
@@ -248863,7 +248903,7 @@ if (!env) {
 }
 
 // src/app.ts
-var import_express196 = __toESM(require_express2());
+var import_express197 = __toESM(require_express2());
 
 // node_modules/socket.io/wrapper.mjs
 var import_dist = __toESM(require_dist3(), 1);
@@ -251522,7 +251562,7 @@ ${mem.shortTerm.map((m) => `${m.role}: ${m.content}`).join("\n")}`;
 ${memoryContext}`;
 }
 async function runQuickVideoAgent(ctx) {
-  const { isolationKey, text: text2, userMessageTime, abortSignal, resTool, userId: userId2 } = ctx;
+  const { isolationKey, text: text2, textModel, userMessageTime, abortSignal, resTool, userId: userId2 } = ctx;
   const memory = new memory_default("quickVideoAgent", isolationKey, userId2);
   await memory.add("user", text2, { createTime: userMessageTime });
   const skill = import_path9.default.join(utils_default2.getPath("skills"), "quick_video_agent.md");
@@ -251530,6 +251570,7 @@ async function runQuickVideoAgent(ctx) {
   const mem = buildMemPrompt3(await memory.get(text2));
   const projectData = await utils_default2.db("o_project").where("id", resTool.data.projectId).first();
   const state = await loadQuickVideoState(Number(resTool.data.projectId));
+  const effectiveTextModel = textModel || projectData?.textModel;
   const projectInfo = [
     "## \u9879\u76EE\u4FE1\u606F",
     `\u89C6\u9891\u6807\u9898\uFF1A${projectData?.name ?? "\u672A\u77E5"}`,
@@ -251543,7 +251584,13 @@ async function runQuickVideoAgent(ctx) {
     "",
     mem
   ].filter(Boolean).join("\n");
-  const { fullStream } = await utils_default2.Ai.Text("quickVideoAgent", ctx.userId, ctx.thinkConfig.think, ctx.thinkConfig.thinlLevel).stream({
+  const { fullStream } = await utils_default2.Ai.Text(
+    "quickVideoAgent",
+    ctx.userId,
+    ctx.thinkConfig.think,
+    ctx.thinkConfig.thinlLevel,
+    effectiveTextModel
+  ).stream({
     messages: [
       { role: "system", content: prompt },
       { role: "assistant", content: projectInfo },
@@ -251653,7 +251700,7 @@ var quickVideoAgent_default = (nsp) => {
       thinlLevel: 0
     };
     socket.on("chat", async (data) => {
-      const { content } = data;
+      const { content, textModel } = data;
       abortController?.abort();
       abortController = new AbortController();
       const currentController = abortController;
@@ -251663,6 +251710,7 @@ var quickVideoAgent_default = (nsp) => {
         isolationKey,
         userId: user.id,
         text: content,
+        textModel,
         userMessageTime: new Date(msg.datetime).getTime() - 1,
         abortSignal: currentController.signal,
         resTool,
@@ -251765,7 +251813,7 @@ async function ensureThumbnail(originalKey, thumbnailKey, size) {
 }
 
 // src/app.ts
-var app = (0, import_express196.default)();
+var app = (0, import_express197.default)();
 var server = import_node_http.default.createServer(app);
 async function checkPermissions() {
   if (!isEletron()) return true;
@@ -251801,8 +251849,8 @@ async function startServe(randomPort = false) {
   app.use((0, import_morgan.default)("dev"));
   app.use((0, import_cors.default)({ origin: "*" }));
   app.use((0, import_compression.default)());
-  app.use(import_express196.default.json({ limit: "100mb" }));
-  app.use(import_express196.default.urlencoded({ extended: true, limit: "100mb" }));
+  app.use(import_express197.default.json({ limit: "100mb" }));
+  app.use(import_express197.default.urlencoded({ extended: true, limit: "100mb" }));
   const OSS_MIME_TYPES = {
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
@@ -251842,7 +251890,7 @@ async function startServe(randomPort = false) {
   const webDist = process.env.WEB_DIST;
   if (webDist && import_fs6.default.existsSync(import_path21.default.join(webDist, "index.html"))) {
     app.use(
-      import_express196.default.static(webDist, {
+      import_express197.default.static(webDist, {
         // 与原 nginx 缓存策略对齐：带内容哈希的资源一年强缓存，index.html 协商缓存
         setHeaders(res, filePath) {
           if (filePath.endsWith(`index.html`)) res.setHeader("Cache-Control", "no-cache");
@@ -251938,8 +251986,8 @@ async function startServe(randomPort = false) {
       return res.status(401).send({ message: "\u65E0\u6548\u7684token" });
     }
   });
-  const router196 = await Promise.resolve().then(() => (init_router(), router_exports));
-  await router196.default(app);
+  const router197 = await Promise.resolve().then(() => (init_router(), router_exports));
+  await router197.default(app);
   app.use((_3, res, next) => {
     return res.status(404).send({ message: "API 404 Not Found" });
   });

@@ -196,6 +196,7 @@ import route192 from "./routes/quickVideo/retryShot";
 import route193 from "./routes/quickVideo/updateBrief";
 import route194 from "./routes/quickVideo/updateConfig";
 import route195 from "./routes/quickVideo/updateShot";
+import route196 from "./routes/quickVideo/updateModels";
 
 export default async (app: Express) => {
   app.use("/api/agents/clearMemory", route1);
@@ -393,4 +394,5 @@ export default async (app: Express) => {
   app.use("/api/quickVideo/updateBrief", route193);
   app.use("/api/quickVideo/updateConfig", route194);
   app.use("/api/quickVideo/updateShot", route195);
+  app.use("/api/quickVideo/updateModels", route196);
 }

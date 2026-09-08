@@ -17,12 +17,33 @@
           </t-chat-list>
           <t-chat-sender
             class="inputBox"
-            :disabled="status === 'pending' || status === 'streaming'"
+            :disabled="status === 'pending' || status === 'streaming' || !connected"
             v-model="inputValue"
             :loading="status === 'pending' || status === 'streaming'"
             :placeholder="$t('workbench.quickVideo.inputPlaceholder')"
             @send="handleSend"
-            @stop="handleStop" />
+            @stop="handleStop">
+            <template #footer-prefix>
+              <div class="modelPicker" @click.stop>
+                <t-select
+                  v-model="activeModelType"
+                  class="modelTypeSelect"
+                  size="small"
+                  :disabled="status === 'pending' || status === 'streaming'">
+                  <t-option value="text" :label="$t('components.modelSelect.type.text')" />
+                  <t-option value="image" :label="$t('components.modelSelect.type.image')" />
+                  <t-option value="video" :label="$t('components.modelSelect.type.video')" />
+                </t-select>
+                <modelSelect
+                  :key="activeModelType"
+                  v-model="activeModel"
+                  class="modelValueSelect"
+                  :type="activeModelType"
+                  size="small"
+                  :disabled="status === 'pending' || status === 'streaming'" />
+              </div>
+            </template>
+          </t-chat-sender>
           <i-dot class="dot" theme="outline" :fill="connected ? 'green' : 'red'" />
         </div>
       </Pane>
@@ -448,6 +469,7 @@ import axios from "@/utils/axios";
 import projectStore from "@/stores/project";
 import quickVideoStore from "@/stores/quickVideo";
 import type { QuickVideoStage, QuickVideoShot } from "@/types/quickVideo";
+import modelSelect from "@/components/modelSelect.vue";
 import dayjs from "dayjs";
 import ExportProgress from "./ExportProgress.vue";
 import { useTimelinePlayer } from "./timelinePlayer";
@@ -456,9 +478,95 @@ import { estimateExportBytes, formatBytes, formatTime } from "./timelineCore";
 const { project } = storeToRefs(projectStore());
 const quickVideoStoreRef = quickVideoStore();
 const { connected, messages, status, workbench, state, loadingWorkbench } = storeToRefs(quickVideoStoreRef);
-const { chat, stopGenerate, getWorkbench, getMediaUrls, getTimeline } = quickVideoStoreRef;
+const { stopGenerate, getWorkbench, getMediaUrls, getTimeline } = quickVideoStoreRef;
 
 const inputValue = ref("");
+
+type QuickVideoModelType = "text" | "image" | "video";
+type QuickVideoModelPreferences = Record<QuickVideoModelType, string>;
+
+const modelPreferences = ref<QuickVideoModelPreferences>({
+  text: project.value?.textModel || "",
+  image: project.value?.imageModel || "",
+  video: project.value?.videoModel || "",
+});
+const activeModelType = ref<QuickVideoModelType>("text");
+const modelPreferencesLoaded = ref(false);
+const modelPreferencesKey = computed(() => (project.value?.id ? `quick-video-models:${project.value.id}` : ""));
+let modelPreferencesSaveTimer: ReturnType<typeof setTimeout> | null = null;
+const activeModel = computed<string>({
+  get: () => modelPreferences.value[activeModelType.value],
+  set: (value) => {
+    modelPreferences.value[activeModelType.value] = value || "";
+  },
+});
+
+function loadModelPreferences() {
+  const key = modelPreferencesKey.value;
+  if (!key) return;
+
+  const fallback: QuickVideoModelPreferences = {
+    text: project.value?.textModel || "",
+    image: project.value?.imageModel || "",
+    video: project.value?.videoModel || "",
+  };
+  try {
+    const saved = JSON.parse(localStorage.getItem(key) || "null");
+    if (saved && typeof saved === "object") {
+      (Object.keys(fallback) as QuickVideoModelType[]).forEach((type) => {
+        if (typeof saved[type] === "string") fallback[type] = saved[type];
+      });
+    }
+  } catch {
+    // Ignore malformed local preferences and fall back to the project defaults.
+  }
+  modelPreferences.value = fallback;
+  modelPreferencesLoaded.value = true;
+}
+
+function saveModelPreferences(preferences: QuickVideoModelPreferences) {
+  const projectId = project.value?.id;
+  if (!projectId) return;
+  if (modelPreferencesSaveTimer) clearTimeout(modelPreferencesSaveTimer);
+
+  const snapshot = { ...preferences };
+  modelPreferencesSaveTimer = setTimeout(async () => {
+    try {
+      const response: any = await axios.post("/quickVideo/updateModels", {
+        projectId: Number(projectId),
+        ...snapshot,
+      });
+      if (response?.code && response.code !== 200) throw new Error(response.message || "保存模型偏好失败");
+      if (project.value && String(project.value.id) === String(projectId)) {
+        project.value.textModel = snapshot.text;
+        project.value.imageModel = snapshot.image;
+        project.value.videoModel = snapshot.video;
+      }
+    } catch (error) {
+      // Local storage still keeps the selection available if the project API is temporarily offline.
+      console.error("[quickVideo] 保存模型偏好失败", error);
+    } finally {
+      modelPreferencesSaveTimer = null;
+    }
+  }, 180);
+}
+
+watch(
+  modelPreferences,
+  (preferences) => {
+    const key = modelPreferencesKey.value;
+    if (!modelPreferencesLoaded.value || !key) return;
+    localStorage.setItem(key, JSON.stringify(preferences));
+    saveModelPreferences(preferences);
+  },
+  { deep: true },
+);
+
+watch(
+  () => project.value?.id,
+  () => loadModelPreferences(),
+  { immediate: true },
+);
 
 onMounted(() => {
   getWorkbench();
@@ -475,7 +583,9 @@ const defMsg = [
 if (messages.value.length <= 0) messages.value = [...defMsg, ...messages.value] as any;
 
 function handleSend(text: string) {
-  quickVideoStoreRef.chat(text);
+  // The socket isolation key remains `${projectId}:quickVideoAgent`; only the
+  // selected text model changes, so switching models does not reset Agent memory.
+  quickVideoStoreRef.chat(text, undefined, modelPreferences.value.text || undefined);
   inputValue.value = "";
 }
 function handleStop() {
@@ -936,6 +1046,21 @@ function cancelExport() {
       .inputBox {
         padding-right: 8px;
         padding-bottom: 8px;
+      }
+      .modelPicker {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        width: 100%;
+        min-width: 0;
+        .modelTypeSelect {
+          width: 72px;
+          flex-shrink: 0;
+        }
+        .modelValueSelect {
+          min-width: 0;
+          flex: 1;
+        }
       }
       .dot {
         position: absolute;
