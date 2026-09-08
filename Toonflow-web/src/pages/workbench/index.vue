@@ -53,12 +53,12 @@
             :key="index">
             <div
               class="item fc c"
-              v-if="menu.type === 'btn' && (project.projectType === 'novel' || !menu.nodelOnly)"
+              v-if="menu.type === 'btn' && isRightMenuVisible(menu)"
               :class="{ active: activeMenu == menu.path }"
               @click="handleClick(menu)">
               <component :is="menu.icon" class="icon" />
             </div>
-            <div class="divider" v-if="menu.type === 'divider'"></div>
+            <div class="divider" v-if="menu.type === 'divider' && isRightMenuVisible(menu)"></div>
           </t-tooltip>
         </div>
       </div>
@@ -91,6 +91,7 @@ const menuList = ref([
 ]);
 
 const rightBtnList = ref([
+  { type: "btn", path: "/quickVideo", labelKey: "workbench.menu.quickVideo", icon: "i-video-one", quickOnly: true },
   { type: "btn", path: "/novel", labelKey: "workbench.menu.novel", icon: "i-notebook", nodelOnly: true },
   { type: "btn", path: "/scriptAgent", labelKey: "workbench.menu.scriptAgent", icon: "i-color-filter", nodelOnly: true },
   { type: "btn", path: "/script", labelKey: "workbench.menu.scriptManage", icon: "i-document-folder" },
@@ -103,6 +104,16 @@ const rightBtnList = ref([
 const router = useRouter();
 const route = useRoute();
 const activeMenu = ref(route.path);
+
+function isRightMenuVisible(menu: { type: string; nodelOnly?: boolean; quickOnly?: boolean }) {
+  const projectType = project.value?.projectType;
+  if (!projectType) return false;
+  if (menu.type === "divider") return projectType !== "quick_video";
+  if (menu.quickOnly) return projectType === "quick_video";
+  // 快创项目只保留能回到快创工作台的入口，避免误进入专业模式页面。
+  if (projectType === "quick_video") return false;
+  return projectType === "novel" || !menu.nodelOnly;
+}
 
 watch(
   () => route.path,
