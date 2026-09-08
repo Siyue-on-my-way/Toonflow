@@ -8,16 +8,16 @@
       @confirm="handleOk"
       @close-btn-click="handleCancel"
       @cancel="handleCancel"
+      :confirm-loading="submitLoading"
       :confirm-btn="isEdit ? $t('workbench.project.dialog.save') : $t('workbench.project.dialog.ok')"
       :cancel-btn="$t('workbench.project.dialog.cancel')">
       <div class="formColumns">
         <div class="formLeft">
           <t-form :data="formState" label-align="top">
-            <t-form-item :label="$t('workbench.project.dialog.projectType')">
+            <t-form-item v-if="!isQuickForm" :label="$t('workbench.project.dialog.projectType')">
               <t-select v-model="formState.projectType" :placeholder="$t('workbench.project.dialog.selectType')">
                 <t-option key="基于小说原文" :label="$t('workbench.project.dialog.basedOnNovel')" value="novel" />
                 <t-option key="基于剧本" :label="$t('workbench.project.dialog.basedOnScript')" value="script" />
-                <t-option key="单视频快创" :label="$t('workbench.project.dialog.quickVideo')" value="quick_video" />
               </t-select>
             </t-form-item>
             <t-form-item :label="$t('workbench.project.dialog.projectName')">
@@ -321,6 +321,10 @@ import { DialogPlugin } from "tdesign-vue-next";
 const addProjectShow = defineModel<boolean>();
 const props = defineProps<{
   projectData?: ProjectData | null;
+  /** 新建项目时由上游的二选一入口指定创作模式；编辑项目仍以 projectData 为准。 */
+  createMode?: "professional" | "quick";
+  /** 快创项目提交期间锁定确认按钮，避免重复创建。 */
+  submitLoading?: boolean;
 }>();
 const emit = defineEmits<{
   (e: "add", data: ProjectFormData): void;
@@ -413,6 +417,8 @@ const DEFAULT_TAB_DATA: () => Data[] = () => [
 ];
 
 const isEdit = computed(() => !!props.projectData);
+const isQuickForm = computed(() => formState.value.projectType === "quick_video");
+const isQuickCreate = computed(() => !isEdit.value && props.createMode === "quick");
 
 // ===== 常量 =====
 const DEFAULT_VIDEO_RATIO_OPTIONS = [
@@ -427,9 +433,11 @@ const QUICK_RATIO_OPTIONS = [
   { value: "1:1", label: "1:1" },
 ];
 
-const DEFAULT_FORM: () => ProjectFormData & { id: number; era: string; createTime: number; userId: number } = () => ({
+const DEFAULT_FORM: (projectType?: "novel" | "quick_video") => ProjectFormData & { id: number; era: string; createTime: number; userId: number } = (
+  projectType = "novel",
+) => ({
   id: 0,
-  projectType: "novel",
+  projectType,
   name: "",
   intro: "",
   type: "",
@@ -450,8 +458,8 @@ const DEFAULT_FORM: () => ProjectFormData & { id: number; era: string; createTim
 // ===== 表单 =====
 const formState = ref(DEFAULT_FORM());
 
-function resetForm() {
-  formState.value = DEFAULT_FORM();
+function resetForm(projectType: "novel" | "quick_video" = isQuickCreate.value ? "quick_video" : "novel") {
+  formState.value = DEFAULT_FORM(projectType);
   videoRatioOptions.value = [...DEFAULT_VIDEO_RATIO_OPTIONS];
   imageModelDetail.value = null;
 }
@@ -509,6 +517,8 @@ function handleOk() {
         mode: "",
         targetDuration: formState.value.targetDuration,
       });
+      // 快创项目的创建请求由父组件负责；请求成功前保留表单，失败时用户可以直接重试。
+      return;
     }
     resetForm();
     addProjectShow.value = false;
@@ -612,7 +622,7 @@ watch(addProjectShow, async (visible) => {
         await loadImageModelDetail(props.projectData.imageModel);
       }
     } else {
-      resetForm();
+      resetForm(props.createMode === "quick" ? "quick_video" : "novel");
     }
     fetchVisualManuals();
     queryDirectorManual();

@@ -699,6 +699,19 @@
       "title": "我的项目",
       "subtitle": "管理您的所有短剧项目",
       "newProject": "新建项目",
+      "modeDialog": {
+        "title": "选择创作模式",
+        "subtitle": "选择适合当前目标的生产方式，后续仍可在项目列表中管理两类项目。",
+        "hint": "长剧创作保留原有专业流程；单视频快创会直接进入聊天式工作台。",
+        "professional": {
+          "title": "长剧创作",
+          "description": "从小说或剧本开始，完整管理资产、分镜与多集成片。"
+        },
+        "quick": {
+          "title": "单视频快创",
+          "description": "用一句话开始，制作 15/30/60 秒短视频并进入 Quick Video 工作台。"
+        }
+      },
       "dialog": {
         "editTitle": "编辑项目",
         "addTitle": "新建项目",
@@ -805,7 +818,8 @@
         "directorManualUpdated": "导演手册已更新",
         "directorManualAdded": "导演手册已添加",
         "directorManual": "请选择项目导演手册",
-        "modelProviderDisabled": "视频模型或图片模型供应商未启用或无模型供应商，请先配置"
+        "modelProviderDisabled": "视频模型或图片模型供应商未启用或无模型供应商，请先配置",
+        "createdProjectNotFound": "项目已创建，但暂时无法打开，请刷新项目列表后重试"
       },
       "type": {
         "novel": "基于小说原文",

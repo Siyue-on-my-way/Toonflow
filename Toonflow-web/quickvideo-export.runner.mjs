@@ -7,6 +7,8 @@ const { chromium } = playwright;
 const BASE = "http://localhost:2280";
 const PROJECT_ID = process.env.PROJECT_ID ?? "52";
 const PROJECT_NAME = process.env.PROJECT_NAME ?? "验收快创-30s-1788729454659";
+const EXPECTED_DURATION = Number(process.env.EXPECTED_DURATION ?? 30);
+const EXPORT_TIMEOUT_MS = Number(process.env.EXPORT_TIMEOUT_MS ?? 600000);
 const browser = await chromium.launch({
   headless: true,
   executablePath: "/usr/bin/google-chrome",
@@ -16,8 +18,11 @@ const context = await browser.newContext({ acceptDownloads: true, viewport: { wi
 const page = await context.newPage();
 const pageErrors = [];
 page.on("pageerror", (error) => pageErrors.push(error.message));
+page.on("crash", () => console.log("PAGE_CRASH"));
+page.on("close", () => console.log("PAGE_CLOSED"));
+browser.on("disconnected", () => console.log("BROWSER_DISCONNECTED"));
 page.on("console", (message) => {
-  if (message.type() === "error") console.log(`browser console error: ${message.text()}`);
+  if (message.type() === "error" || /WebAV|Combinator|combinate|OutputProgress|QV_NATIVE|视频/.test(message.text())) console.log(`browser console ${message.type()}: ${message.text()}`);
 });
 
 try {
@@ -47,6 +52,9 @@ try {
   }
   console.log("timeline ready");
 
+  await exportButton.click();
+  await page.getByText("成片导出确认", { exact: true }).waitFor({ state: "visible", timeout: 10000 });
+
   const audioEncoder = await page.evaluate(async () => {
     const encoder = globalThis.AudioEncoder;
     if (!encoder?.isConfigSupported) return false;
@@ -63,15 +71,23 @@ try {
   });
   console.log(`AAC encoder supported: ${audioEncoder}`);
 
-  await exportButton.click();
-  await page.getByText("成片导出确认", { exact: true }).waitFor({ state: "visible", timeout: 10000 });
-  const downloadPromise = page.waitForEvent("download", { timeout: 180000 });
+  console.log("EXPORT_BUTTONS", JSON.stringify(await page.locator("button").evaluateAll((buttons) => buttons.filter((button) => button.textContent?.includes("导出")).map((button) => ({ text: button.textContent, disabled: button.disabled, outer: button.outerHTML.slice(0, 500) })) )));
+  const downloadPromise = page.waitForEvent("download", { timeout: EXPORT_TIMEOUT_MS });
   const confirmPromise = page.waitForResponse(
     (response) => response.url().includes("/api/quickVideo/confirmStage") && response.request().method() === "POST",
-    { timeout: 180000 },
+    { timeout: EXPORT_TIMEOUT_MS },
   );
   await page.getByRole("button", { name: "确认并开始导出" }).click();
+  console.log("EXPORT_TRIGGERED");
+  const debugTimer = setInterval(async () => {
+    const snapshot = await page.evaluate(() => ({
+      percent: document.querySelector('[data-testid="qv-export-percent"]')?.textContent,
+      videos: [...document.querySelectorAll("video")].map((video) => ({ currentTime: video.currentTime, readyState: video.readyState, ended: video.ended, paused: video.paused })),
+    })).catch(() => null);
+    console.log(`EXPORT_DEBUG ${JSON.stringify(snapshot)}`);
+  }, 5000);
   const [download, confirmResponse] = await Promise.all([downloadPromise, confirmPromise]);
+  clearInterval(debugTimer);
   const confirmBody = await confirmResponse.json();
   if (!confirmResponse.ok() || confirmBody.code !== 200 || confirmBody.data?.state?.stage !== "completed") {
     throw new Error(`导出确认失败: ${JSON.stringify(confirmBody)}`);
@@ -89,8 +105,8 @@ try {
   const duration = Number(probe.format.duration);
   const hasVideo = probe.streams.some((stream) => stream.codec_type === "video");
   const hasAudio = probe.streams.some((stream) => stream.codec_type === "audio");
-  if (!stat.size || !probe.format.format_name.includes("mp4") || duration <= 29 || duration >= 31 || !hasVideo) {
-    throw new Error(`MP4 校验失败: ${JSON.stringify({ size: stat.size, probe })}`);
+  if (!stat.size || !probe.format.format_name.includes("mp4") || Math.abs(duration - EXPECTED_DURATION) > 1 || !hasVideo) {
+    throw new Error(`MP4 校验失败: ${JSON.stringify({ expectedDuration: EXPECTED_DURATION, size: stat.size, probe })}`);
   }
   if (audioEncoder && !hasAudio) throw new Error("浏览器支持 AAC 但导出没有音轨");
   await page.getByText("最近导出", { exact: false }).waitFor({ state: "visible", timeout: 30000 });
@@ -98,6 +114,7 @@ try {
     fileName: download.suggestedFilename(),
     bytes: stat.size,
     durationSeconds: duration,
+    expectedDurationSeconds: EXPECTED_DURATION,
     streams: probe.streams,
     audioEncoder,
     pageErrors,

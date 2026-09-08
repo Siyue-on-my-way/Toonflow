@@ -6,4 +6,4 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-exec "$REPO_DIR/docker/start.sh" "$@"
+exec "$REPO_DIR/start.sh" "$@"

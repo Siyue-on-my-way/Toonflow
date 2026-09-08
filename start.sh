@@ -4,7 +4,10 @@
 # MySQL / MinIO 暂复用旧栈容器（Toonflow-app/docker），确保其在线
 # ============================================================
 set -euo pipefail
-cd "$(dirname "$0")"
+
+REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
+COMPOSE_DIR="$REPO_DIR/docker"
+cd "$COMPOSE_DIR"
 
 BUILD=false
 BUILD_ARGS=()

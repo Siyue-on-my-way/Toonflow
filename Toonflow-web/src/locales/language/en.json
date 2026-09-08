@@ -604,6 +604,19 @@
       "title": "My Projects",
       "subtitle": "Manage all your short drama projects",
       "newProject": "New Project",
+      "modeDialog": {
+        "title": "Choose a creation mode",
+        "subtitle": "Choose the workflow that matches your goal. Both project types remain available in the project list.",
+        "hint": "Long-form creation keeps the existing professional workflow; Quick Video opens the chat-based workbench.",
+        "professional": {
+          "title": "Long-form Creation",
+          "description": "Start from a novel or script and manage assets, storyboards, and episodic delivery."
+        },
+        "quick": {
+          "title": "Quick Video",
+          "description": "Start with one sentence, make a 15/30/60-second video, and open the Quick Video workbench."
+        }
+      },
       "dialog": {
         "editTitle": "Edit Project",
         "addTitle": "New Project",
@@ -710,7 +723,8 @@
         "directorManualUpdated": "Director's Manual updated",
         "directorManualAdded": "Director's Manual added",
         "directorManual": "Please select Project Director's Manual",
-        "modelProviderDisabled": "The video model or picture model supplier is not enabled or there is no model supplier, please configure it first"
+        "modelProviderDisabled": "The video model or picture model supplier is not enabled or there is no model supplier, please configure it first",
+        "createdProjectNotFound": "The project was created, but could not be opened. Refresh the project list and try again"
       },
       "type": {
         "novel": "Based on the original novel",

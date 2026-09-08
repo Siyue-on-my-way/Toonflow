@@ -5,12 +5,7 @@
         <span class="title">{{ $t("workbench.project.title") }}</span>
         <span class="sub">{{ $t("workbench.project.subtitle") }}</span>
       </div>
-      <t-button
-        class="addBtn"
-        @click="
-          editProjectData = null;
-          dialogShow = true;
-        ">
+      <t-button class="addBtn" @click="openCreateProject">
         <template #icon><i-plus class="addIcon" :size="20" /></template>
         {{ $t("workbench.project.newProject") }}
       </t-button>
@@ -53,11 +48,19 @@
       </t-card>
     </div>
   </div>
-  <projectDialog v-model="dialogShow" :projectData="editProjectData" @add="addProjectFn" @edit="editProjectFn" />
+  <projectModeDialog v-model="modeDialogShow" @select="selectCreateMode" />
+  <projectDialog
+    v-model="dialogShow"
+    :projectData="editProjectData"
+    :createMode="createMode"
+    :submitLoading="quickCreateLoading"
+    @add="addProjectFn"
+    @edit="editProjectFn" />
 </template>
 
 <script setup lang="ts">
 import projectDialog from "./components/projectDialog.vue";
+import projectModeDialog from "./components/projectModeDialog.vue";
 import dayjs from "dayjs";
 import axios from "@/utils/axios";
 import projectStore from "@/stores/project";
@@ -67,6 +70,10 @@ const { clearProjectCache } = imageListCacheStore();
 const { allProject, project } = storeToRefs(projectStore());
 
 const dialogShow = ref(false);
+const modeDialogShow = ref(false);
+const createMode = ref<"professional" | "quick">("professional");
+const quickCreateLoading = ref(false);
+const quickCreateIdempotencyKey = ref<string | null>(null);
 const editProjectData = ref<{
   id: string;
   name: string;
@@ -84,9 +91,11 @@ const editProjectData = ref<{
 } | null>(null);
 
 async function getAllProject() {
-  axios.post("/project/getProject").then(({ data }) => {
-    allProject.value = data;
-  });
+  const response: any = await axios.post("/project/getProject");
+  const payload = response?.data ?? response;
+  const list = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : [];
+  allProject.value = list;
+  return list;
 }
 
 onMounted(() => {
@@ -95,6 +104,24 @@ onMounted(() => {
 });
 
 const router = useRouter();
+
+function openCreateProject() {
+  editProjectData.value = null;
+  quickCreateLoading.value = false;
+  quickCreateIdempotencyKey.value = null;
+  modeDialogShow.value = true;
+}
+
+function selectCreateMode(mode: "professional" | "quick") {
+  createMode.value = mode;
+  editProjectData.value = null;
+  quickCreateLoading.value = false;
+  quickCreateIdempotencyKey.value = null;
+  // 先让模式选择弹窗完成关闭，再打开对应表单，避免两个 Dialog 同时抢占焦点。
+  nextTick(() => {
+    dialogShow.value = true;
+  });
+}
 
 async function openProject(projectId: string | undefined) {
   const item = allProject.value.find((p) => p.id === projectId);
@@ -148,6 +175,8 @@ function openEdit(item: {
   projectType: string;
   mode: string;
 }) {
+  createMode.value = item.projectType === "quick_video" ? "quick" : "professional";
+  quickCreateLoading.value = false;
   editProjectData.value = {
     ...item,
   };
@@ -179,7 +208,14 @@ function editProjectFn(data: {
     });
 }
 
-function addProjectFn(data: {
+function makeIdempotencyKey() {
+  const runtimeCrypto = globalThis.crypto;
+  if (typeof runtimeCrypto?.randomUUID === "function") return runtimeCrypto.randomUUID();
+  // crypto.randomUUID 仅在安全上下文可用；普通 HTTP/IP 访问也必须能创建项目。
+  return `qv-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 14)}`;
+}
+
+async function addProjectFn(data: {
   projectType: string;
   name: string;
   intro: string;
@@ -196,30 +232,47 @@ function addProjectFn(data: {
 }) {
   // 单视频快创走专用入口（含幂等键），不影响专业模式创建链路
   if (data.projectType === "quick_video") {
-    axios
-      .post("/quickVideo/createProject", {
+    if (quickCreateLoading.value) return;
+    quickCreateLoading.value = true;
+    try {
+      quickCreateIdempotencyKey.value ??= makeIdempotencyKey();
+      const response: any = await axios.post("/quickVideo/createProject", {
         name: data.name,
         artStyle: data.artStyle,
         videoRatio: data.videoRatio,
         targetDuration: data.targetDuration ?? 15,
         intro: data.intro,
         draftScript: data.intro,
-        idempotencyKey: crypto.randomUUID(),
-      })
-      .then(({ data: res }: any) => {
-        window.$message.success($t("workbench.project.msg.addSuccess"));
-        getAllProject();
-        if (res?.projectId) {
-          const created = allProject.value.find((p) => p.id === res.projectId);
-          if (created) {
-            project.value = created;
-            router.push(`/quickVideo`);
-          }
-        }
-      })
-      .catch((e) => {
-        window.$message.error(e.message ?? $t("workbench.project.msg.addFailed"));
+        idempotencyKey: quickCreateIdempotencyKey.value,
       });
+
+      // axios 拦截器返回 response.data；兼容旧调用方式下仍包了一层 data 的响应。
+      const body = response?.data ?? response;
+      if (body?.code && body.code !== 200) throw new Error(body.message ?? $t("workbench.project.msg.addFailed"));
+      const res = body?.code === 200 && body.data !== undefined ? body.data : body;
+
+      let created = res?.project;
+      if (!created) {
+        await getAllProject();
+        created = allProject.value.find((item) => String(item.id) === String(res?.projectId));
+      } else {
+        // 工作台直接使用接口返回的完整项目；列表刷新失败不应阻止进入工作台。
+        getAllProject().catch(() => undefined);
+      }
+
+      if (!created) throw new Error($t("workbench.project.msg.createdProjectNotFound"));
+
+      project.value = created;
+      dialogShow.value = false;
+      quickCreateIdempotencyKey.value = null;
+      window.$message.success($t("workbench.project.msg.addSuccess"));
+      await router.push(`/quickVideo`);
+    } catch (e: any) {
+      // 保留弹窗和用户已填写的内容，错误信息明确反馈给用户，支持原表单重试。
+      window.$message.error(e?.message ?? $t("workbench.project.msg.addFailed"));
+    } finally {
+      quickCreateLoading.value = false;
+    }
     return;
   }
   axios

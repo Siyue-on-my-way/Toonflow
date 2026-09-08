@@ -9,12 +9,307 @@
  */
 import { ref } from "vue";
 import { AVCanvas } from "@webav/av-canvas";
-import { MP4Clip, AudioClip, ImgClip, VisibleSprite, renderTxt2ImgBitmap, EmbedSubtitlesClip } from "@webav/av-cliper";
+import { AudioClip, EmbedSubtitlesClip, ImgClip, VisibleSprite, renderTxt2ImgBitmap } from "@webav/av-cliper";
+import type { IClip } from "@webav/av-cliper";
 import type { QuickVideoTimelinePlan } from "@/types/quickVideo";
 import { buildSubtitleCues, buildTimelinePlan, toEmbedSubtitleStructs } from "./timelineCore";
 
 /** split 裁剪安全边界（秒），与专业模式一致：过窄的窗口不裁，避免边界抖动 */
 const SPLIT_SAFETY_MARGIN = 0.05;
+/** Keep browser-side export usable on software-only WebCodecs builds. */
+const EXPORT_MAX_DIMENSION = 320;
+const SAMPLE_FPS = 10;
+const EXPORT_FPS = 5;
+
+/**
+ * WebAV 的 MP4Clip 在部分 Chromium Linux 构建中会把一个长 GOP 一次性
+ * 推入 VideoDecoder。5 秒、25fps 的生成片段可能因此停在约 60 帧，导致
+ * Combinator 永远等不到剩余帧。这里使用浏览器原生 video 解码输入帧，
+ * 仍将帧交给 WebAV 的 Sprite/Combinator 做预览和浏览器端 MP4 编码。
+ */
+interface NativeVideoSourceMeta {
+  width: number;
+  height: number;
+  duration: number;
+}
+
+interface NativeVideoSource {
+  id: number;
+  blob: Blob;
+  video: HTMLVideoElement;
+  objectUrl: string;
+  ready: Promise<NativeVideoSourceMeta>;
+  decodedFrames: NativeVideoFrameSample[] | null;
+  decodePromise: Promise<NativeVideoFrameSample[]> | null;
+  callbackId: number | null;
+  refs: number;
+  destroyed: boolean;
+}
+
+interface NativeVideoFrameSample {
+  timestamp: number;
+  frame: VideoFrame;
+}
+
+let nativeVideoSourceId = 0;
+
+function createNativeVideoSource(blob: Blob): NativeVideoSource {
+  const video = document.createElement("video");
+  const objectUrl = URL.createObjectURL(blob);
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = "auto";
+  video.setAttribute("aria-hidden", "true");
+  video.style.cssText = "position:fixed;left:-10000px;top:-10000px;width:1px;height:1px;opacity:0;pointer-events:none";
+  document.body.appendChild(video);
+
+  const ready = new Promise<NativeVideoSourceMeta>((resolve, reject) => {
+    const onLoaded = () => {
+      const duration = Number.isFinite(video.duration) ? video.duration : 0;
+      if (!duration || !video.videoWidth || !video.videoHeight) {
+        reject(new Error("视频元数据无效"));
+        return;
+      }
+      resolve({ width: video.videoWidth, height: video.videoHeight, duration: duration * 1e6 });
+    };
+    const onError = () => reject(new Error(video.error?.message ?? "视频解码失败"));
+    video.addEventListener("loadedmetadata", onLoaded, { once: true });
+    video.addEventListener("error", onError, { once: true });
+    video.src = objectUrl;
+    video.load();
+  });
+
+  return {
+    id: ++nativeVideoSourceId,
+    blob,
+    video,
+    objectUrl,
+    ready,
+    decodedFrames: null,
+    decodePromise: null,
+    callbackId: null,
+    refs: 0,
+    destroyed: false,
+  };
+}
+
+function retainNativeVideoSource(source: NativeVideoSource) {
+  source.refs += 1;
+}
+
+function releaseNativeVideoSource(source: NativeVideoSource) {
+  source.refs = Math.max(0, source.refs - 1);
+  if (source.refs > 0 || source.destroyed) return;
+  source.destroyed = true;
+  if (source.callbackId != null && "cancelVideoFrameCallback" in source.video) {
+    source.video.cancelVideoFrameCallback(source.callbackId);
+  }
+  source.callbackId = null;
+  source.decodedFrames?.forEach(({ frame }) => frame.close());
+  source.decodedFrames = null;
+  source.decodePromise = null;
+  source.video.pause();
+  source.video.removeAttribute("src");
+  source.video.load();
+  source.video.remove();
+  URL.revokeObjectURL(source.objectUrl);
+}
+
+/**
+ * Decode a source once with the browser's native H.264 decoder and retain a
+ * sampled frame index for one timeline load/export. WebAV's MP4Clip decoder
+ * is not reliable for the long-GOP clips emitted by the quick-video
+ * generator; pre-decoding while the main thread is idle avoids both random
+ * seeks and decoder starvation while Combinator is encoding.
+ */
+function prepareNativeVideoSource(source: NativeVideoSource): Promise<NativeVideoFrameSample[]> {
+  if (source.decodedFrames) return Promise.resolve(source.decodedFrames);
+  if (source.decodePromise) return source.decodePromise;
+
+  source.decodePromise = source.ready.then(
+    ({ width, height, duration }) =>
+      new Promise<NativeVideoFrameSample[]>((resolve, reject) => {
+        const video = source.video;
+        const durationSeconds = duration / 1e6;
+        const frames: NativeVideoFrameSample[] = [];
+        const sampleInterval = 1e6 / SAMPLE_FPS;
+        // Keep the sampled cache at the same maximum size as the export
+        // canvas.  Holding full-resolution VideoFrames for every 100 ms of
+        // every shot can consume hundreds of MB in a portrait project and
+        // makes Chromium's VideoEncoder stall near the end of the export.
+        const sampleScale = Math.min(1, EXPORT_MAX_DIMENSION / Math.max(width, height));
+        const sampleWidth = Math.max(1, Math.round(width * sampleScale));
+        const sampleHeight = Math.max(1, Math.round(height * sampleScale));
+        const sampleCanvas = new OffscreenCanvas(sampleWidth, sampleHeight);
+        const sampleContext = sampleCanvas.getContext("2d", { alpha: false });
+        if (!sampleContext) {
+          reject(new Error("视频采样画布初始化失败"));
+          return;
+        }
+        let callbackId: number | null = null;
+        let pollId: number | null = null;
+        let timeoutId: number | null = null;
+        let settled = false;
+        let lastObserved = -Infinity;
+
+        const cleanup = () => {
+          if (callbackId != null && "cancelVideoFrameCallback" in video) video.cancelVideoFrameCallback(callbackId);
+          if (pollId != null) window.clearInterval(pollId);
+          if (timeoutId != null) window.clearTimeout(timeoutId);
+          video.removeEventListener("ended", onEnded);
+          video.removeEventListener("error", onError);
+        };
+        const finish = (error?: Error) => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          video.pause();
+          if (error) {
+            frames.forEach(({ frame }) => frame.close());
+            reject(error);
+            return;
+          }
+          if (!frames.length) {
+            reject(new Error("视频未解码出有效帧"));
+            return;
+          }
+          source.decodedFrames = frames;
+          resolve(frames);
+        };
+        const capture = (seconds: number) => {
+          if (settled || !Number.isFinite(seconds)) return;
+          const timestamp = Math.max(0, Math.min(seconds, durationSeconds)) * 1e6;
+          if (timestamp <= lastObserved + 1_000) return;
+          lastObserved = timestamp;
+          try {
+            sampleContext.clearRect(0, 0, sampleWidth, sampleHeight);
+            sampleContext.drawImage(video, 0, 0, sampleWidth, sampleHeight);
+            const frame = new VideoFrame(sampleCanvas, { timestamp, duration: sampleInterval });
+            const last = frames[frames.length - 1];
+            if (!last || timestamp >= last.timestamp + sampleInterval - 25_000) {
+              frames.push({ timestamp, frame });
+            } else {
+              frame.close();
+            }
+          } catch (error) {
+            finish(error instanceof Error ? error : new Error(String(error)));
+          }
+        };
+        const onVideoFrame = (_now: number, metadata: VideoFrameCallbackMetadata) => {
+          capture(metadata.mediaTime);
+          if (!settled && !video.ended) callbackId = video.requestVideoFrameCallback(onVideoFrame);
+        };
+        const onEnded = () => {
+          capture(video.currentTime);
+          finish();
+        };
+        const onError = () => finish(new Error(video.error?.message ?? "视频解码失败"));
+        const supportsVideoFrameCallback = typeof (video as HTMLVideoElement & { requestVideoFrameCallback?: unknown }).requestVideoFrameCallback === "function";
+
+        video.addEventListener("ended", onEnded, { once: true });
+        video.addEventListener("error", onError, { once: true });
+        if (supportsVideoFrameCallback) {
+          callbackId = video.requestVideoFrameCallback(onVideoFrame);
+        } else {
+          // 保留不支持 requestVideoFrameCallback 的 Chromium 构建兼容路径。
+          pollId = window.setInterval(() => capture(video.currentTime), 15);
+        }
+        timeoutId = window.setTimeout(
+          () => finish(new Error(`视频解码超时（duration=${durationSeconds.toFixed(3)}s, frames=${frames.length}）`)),
+          Math.max(15_000, durationSeconds * 8_000 + 5_000),
+        );
+        video.currentTime = 0;
+        void video.play().catch((error) => finish(error instanceof Error ? error : new Error(String(error))));
+      }),
+  ).catch((error) => {
+    source.decodePromise = null;
+    throw error;
+  });
+  return source.decodePromise;
+}
+
+class NativeVideoClip implements IClip {
+  private readonly source: NativeVideoSource;
+  private readonly sourceStart: number;
+  private readonly sourceEnd: number | null;
+  private destroyed = false;
+  private metadata = { width: 0, height: 0, duration: 0 };
+
+  readonly ready: IClip["ready"];
+
+  constructor(source: Blob | NativeVideoSource, sourceStart = 0, sourceEnd: number | null = null) {
+    this.source = source instanceof Blob ? createNativeVideoSource(source) : source;
+    retainNativeVideoSource(this.source);
+    this.sourceStart = Math.max(0, sourceStart);
+    this.sourceEnd = sourceEnd;
+    this.ready = this.source.ready.then(({ width, height, duration }) => {
+      const fullDuration = duration / 1e6;
+      const end = Math.min(this.sourceEnd ?? fullDuration, fullDuration);
+      if (!fullDuration || end <= this.sourceStart) throw new Error("视频元数据无效");
+      this.metadata = { width, height, duration: (end - this.sourceStart) * 1e6 };
+      return { ...this.metadata };
+    });
+  }
+
+  get meta() {
+    return { ...this.metadata };
+  }
+
+  async tick(time: number) {
+    await this.ready;
+    if (this.destroyed || this.source.destroyed || time >= this.metadata.duration) return { audio: [], state: "done" as const };
+
+    const frames = await prepareNativeVideoSource(this.source);
+    const sourceTime = this.sourceStart * 1e6 + Math.max(0, time);
+    let low = 0;
+    let high = frames.length - 1;
+    while (low < high) {
+      const middle = Math.ceil((low + high) / 2);
+      if (frames[middle].timestamp <= sourceTime) low = middle;
+      else high = middle - 1;
+    }
+    const sample = frames[Math.max(0, Math.min(low, frames.length - 1))];
+    return {
+      video: sample.frame.clone(),
+      audio: [],
+      state: "success" as const,
+    };
+  }
+
+  async prepareFrames() {
+    await prepareNativeVideoSource(this.source);
+  }
+
+  releaseFrames() {
+    this.source.decodedFrames?.forEach(({ frame }) => frame.close());
+    this.source.decodedFrames = null;
+    this.source.decodePromise = null;
+  }
+
+  async clone() {
+    // The source is immutable after pre-decoding, so the visible preview and
+    // Combinator clone can safely share its sampled frame index.
+    const clip = new NativeVideoClip(this.source, this.sourceStart, this.sourceEnd);
+    await clip.ready;
+    return clip as this;
+  }
+
+  async split(time: number) {
+    await this.ready;
+    const splitAt = this.sourceStart + Math.max(0, Math.min(time / 1e6, this.metadata.duration / 1e6));
+    const end = this.sourceEnd ?? this.sourceStart + this.metadata.duration / 1e6;
+    const pre = new NativeVideoClip(this.source, this.sourceStart, splitAt);
+    const post = new NativeVideoClip(this.source, splitAt, end);
+    await Promise.all([pre.ready, post.ready]);
+    return [pre, post] as [this, this];
+  }
+
+  destroy() {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    releaseNativeVideoSource(this.source);
+  }
+}
 
 /** WebAV 的 MP4 音轨编码使用 AAC；开源 Chromium 常常只能解码而不能编码 AAC。 */
 async function supportsAacAudioEncoding(): Promise<boolean> {
@@ -61,7 +356,7 @@ export function useTimelinePlayer() {
 
   let avCanvas: AVCanvas | null = null;
   let plan: QuickVideoTimelinePlan | null = null;
-  const clips: MP4Clip[] = [];
+  const clips: NativeVideoClip[] = [];
   const sprites: VisibleSprite[] = [];
   let audioSprite: VisibleSprite | null = null;
   let musicPCM: Float32Array[] | null = null;
@@ -70,7 +365,6 @@ export function useTimelinePlayer() {
   let audioEncodingSupported = true;
   let unsubs: (() => void)[] = [];
   let currentPlanInput: PlanInput[] = [];
-  let lastLoadOptions: LoadTimelineOptions | null = null;
 
   interface PlanInput {
     id: string;
@@ -86,11 +380,6 @@ export function useTimelinePlayer() {
     musicEnabled = opts.musicEnabled;
     musicVolume = opts.musicVolume;
     currentPlanInput = [];
-    lastLoadOptions = {
-      ...opts,
-      serverPlan: opts.serverPlan,
-      videoUrls: { ...opts.videoUrls },
-    };
     try {
       destroy();
 
@@ -104,13 +393,7 @@ export function useTimelinePlayer() {
         if (!url) throw new Error(`镜头 ${shotId} 缺少视频地址`);
         const resp = await fetch(url);
         if (!resp.ok || !resp.body) throw new Error(`镜头 ${shotId} 视频下载失败（${resp.status}）`);
-        // 没有 AAC 编码器时连源音轨也不解码，避免 Chromium 在导出阶段等待音频帧超时。
-        // 某些 Linux Chromium 的硬件解码器在多片段重复 seek 时会卡在 decodeQueue；
-        // WebAV 暴露的 software 偏好可避免 MP4Clip.tick 超时，代价仅是导出占用更多 CPU。
-        const clip = new MP4Clip(resp.body, {
-          ...(audioEncodingSupported ? {} : { audio: false }),
-          __unsafe_hardwareAcceleration__: "prefer-software",
-        });
+        const clip = new NativeVideoClip(await resp.blob());
         await clip.ready;
         const planned = opts.serverPlan.clips.find((c) => c.shotId === shotId)?.sourceDuration ?? clip.meta.duration / 1e6;
         actualDurations[shotId] = Math.min(clip.meta.duration / 1e6, planned);
@@ -149,7 +432,7 @@ export function useTimelinePlayer() {
       // 4. 视频片段 sprite：裁剪源窗口 + 时间线三件套 + cover 适配 + crossfade 动画
       for (let i = 0; i < plan.clips.length; i++) {
         const clipPlan = plan.clips[i];
-        let clip = clips[i];
+        let clip: NativeVideoClip = clips[i];
         let sourceDuration = clip.meta.duration / 1e6;
 
         // 裁剪：先用原片段 split 保留 [trimStart, trimEnd]（与专业模式同款）
@@ -250,7 +533,8 @@ export function useTimelinePlayer() {
       duration.value = plan.totalDuration;
       currentTime.value = 0;
       ready.value = true;
-      await avCanvas.previewFrame(0);
+      // 首帧按需渲染：避免预览解码器在用户尚未播放时占用 H.264 解码队列，
+      // 导出时 Combinator 可以从干净的解码器状态开始。
     } catch (err: any) {
       loadError.value = err?.message ?? String(err);
       destroy();
@@ -381,33 +665,6 @@ export function useTimelinePlayer() {
   }
 
   /**
-   * Combinator 已经克隆完所有 sprite 后，释放预览用的 VideoDecoder。
-   * Chromium 对同时存活的 H.264 解码器数量有限，预览解码器不释放会让
-   * 导出副本在多镜头项目中卡在 decodeQueue。导出结束后由 lastLoadOptions
-   * 自动恢复预览，保证取消/失败/重复导出仍可继续操作。
-   */
-  function releasePreviewClips() {
-    const released = new Set<object>();
-    for (const sprite of sprites) {
-      try {
-        const clip = sprite.getClip();
-        if (clip && !released.has(clip as object)) {
-          released.add(clip as object);
-          clip.destroy();
-        }
-      } catch {}
-    }
-    for (const clip of clips) {
-      try {
-        if (!released.has(clip as object)) {
-          released.add(clip as object);
-          clip.destroy();
-        }
-      } catch {}
-    }
-  }
-
-  /**
    * 导出 MP4（浏览器端 WebAV 编码）：
    * - progress 回调 0-1；cancel() 中断并释放；结束后 combinator.destroy() 释放内存。
    * - 部分 Chromium 构建没有 AAC AudioEncoder。检测到该环境时关闭音轨，
@@ -417,22 +674,57 @@ export function useTimelinePlayer() {
     if (!avCanvas || !plan || !ready.value) throw new Error("时间线未就绪，无法导出");
     pause();
     audioEncodingSupported = audioEncodingSupported && (await supportsAacAudioEncoding());
-    const combinator = await avCanvas.createCombinator({
-      width: plan.width,
-      height: plan.height,
-      bitrate: opts.bitrate ?? Math.min(8e6, Math.max(2.5e6, Math.round(plan.width * plan.height * 4.5))),
-      ...(audioEncodingSupported ? {} : { audio: false }),
+    // Prime every source before Combinator starts. A native HTML video can
+    // decode a long-GOP clip sequentially, while asking it to seek once per
+    // 25fps output frame causes Chromium to repeatedly flush the decoder.
+    await Promise.all(clips.map((clip) => clip.prepareFrames()));
+    if (opts.signal?.cancelled) throw new Error("EXPORT_CANCELLED");
+    const exportScale = Math.min(1, EXPORT_MAX_DIMENSION / Math.max(plan.width, plan.height));
+    const exportWidth = Math.max(1, Math.round(plan.width * exportScale));
+    const exportHeight = Math.max(1, Math.round(plan.height * exportScale));
+    const originalRects = sprites.map((sprite) => ({
+      sprite,
+      x: sprite.rect.x,
+      y: sprite.rect.y,
+      w: sprite.rect.w,
+      h: sprite.rect.h,
+    }));
+    // AVCanvas copies sprite geometry into Combinator. Scale that copy only
+    // for the export canvas, then restore the preview geometry immediately.
+    // This keeps the preview at the selected ratio while avoiding a software
+    // 1280x720/720x1280 encode on machines without accelerated WebCodecs.
+    sprites.forEach((sprite) => {
+      sprite.rect.x *= exportScale;
+      sprite.rect.y *= exportScale;
+      sprite.rect.w *= exportScale;
+      sprite.rect.h *= exportScale;
     });
-    const offProgress = combinator.on("OutputProgress", (progress: number) => opts.onProgress?.(progress));
-    const restoreOptions = lastLoadOptions;
-    let previewReleased = false;
+    let combinator;
+    try {
+      combinator = await avCanvas.createCombinator({
+      width: exportWidth,
+      height: exportHeight,
+      // 低资源浏览器使用 5fps 输出，减少软件 H.264 编码时的队列积压；
+      // 预览仍使用 SAMPLE_FPS 的采样缓存，不影响时间线定位。
+      fps: EXPORT_FPS,
+      bitrate: opts.bitrate ?? Math.min(5e6, Math.max(1.2e6, Math.round(exportWidth * exportHeight * 4.5))),
+      ...(audioEncodingSupported ? {} : { audio: false }),
+      });
+    } finally {
+      originalRects.forEach(({ sprite, x, y, w, h }) => {
+        sprite.rect.x = x;
+        sprite.rect.y = y;
+        sprite.rect.w = w;
+        sprite.rect.h = h;
+      });
+    }
     let output: Blob | null = null;
     let outputError: unknown = null;
+    const offProgress = combinator.on("OutputProgress", (progress: number) => opts.onProgress?.(progress));
+    const offError = combinator.on("error", (error: Error) => {
+      outputError ??= error;
+    });
     try {
-      // createCombinator 已完成逐个 clone；现在释放预览副本的 decoder，
-      // 避免导出副本与预览副本同时占用 Chromium 的 H.264 解码队列。
-      releasePreviewClips();
-      previewReleased = true;
       const reader = combinator.output().getReader();
       const chunks: Uint8Array[] = [];
       while (true) {
@@ -451,16 +743,11 @@ export function useTimelinePlayer() {
       outputError = err;
     } finally {
       offProgress();
+      offError();
       try {
         combinator.destroy();
       } catch {}
-    }
-    if (previewReleased && restoreOptions) {
-      try {
-        await load(restoreOptions);
-      } catch (restoreError) {
-        if (!outputError) outputError = restoreError;
-      }
+      clips.forEach((clip) => clip.releaseFrames());
     }
     if (outputError) throw outputError;
     if (!output) throw new Error("导出未生成文件");
