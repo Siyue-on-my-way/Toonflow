@@ -532,9 +532,13 @@ function saveModelPreferences(preferences: QuickVideoModelPreferences) {
   const snapshot = { ...preferences };
   modelPreferencesSaveTimer = setTimeout(async () => {
     try {
+      // 后端字段名为 textModel/imageModel/videoModel（与 o_project 列一致），
+      // 本地偏好键是 text/image/video，发请求时需要做映射。
       const response: any = await axios.post("/quickVideo/updateModels", {
         projectId: Number(projectId),
-        ...snapshot,
+        textModel: snapshot.text,
+        imageModel: snapshot.image,
+        videoModel: snapshot.video,
       });
       if (response?.code && response.code !== 200) throw new Error(response.message || "保存模型偏好失败");
       if (project.value && String(project.value.id) === String(projectId)) {

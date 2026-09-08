@@ -62,6 +62,25 @@ export const vendor: VendorConfig = {
   ],
 };
 
+/**
+ * 递归剔除 JSON Schema 中的 $schema / $id 元数据关键字。
+ * 网关的 gemini 等路由会对带 $schema 的工具参数直接返回 400 "Bad Request"
+ * （gpt 系路由可容忍），而 ai-sdk / zod 的 toJSONSchema 默认会带上它，
+ * 因此在进入网关前统一剔除。
+ */
+function stripSchemaMeta(value: any): any {
+  if (Array.isArray(value)) return value.map(stripSchemaMeta);
+  if (value && typeof value === "object") {
+    const out: Record<string, any> = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (k === "$schema" || k === "$id") continue;
+      out[k] = stripSchemaMeta(v);
+    }
+    return out;
+  }
+  return value;
+}
+
 export function createVendorAPI(inputValues: Record<string, string>) {
   // ============================================================
   // 适配器函数
@@ -165,7 +184,8 @@ export function createVendorAPI(inputValues: Record<string, string>) {
                 stream: isStream,
                 // 透传工具定义与 tool_choice（SOP 9.3）。网关用 payload.standard.tools + toolChoice.toolChoiceMode，
                 // 而非 OpenAI 原生的 tools/tool_choice；tool_choice 缺省时不传，由网关默认 auto。
-                ...(body.tools?.length ? { tools: body.tools } : {}),
+                // 工具参数里的 $schema/$id 元数据关键字部分路由（如 gemini）会拒绝，先剔除。
+                ...(body.tools?.length ? { tools: stripSchemaMeta(body.tools) } : {}),
                 ...(body.tool_choice != null ? { toolChoice: mapToolChoice(body.tool_choice) } : {}),
               },
               inhouse: {

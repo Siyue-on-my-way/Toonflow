@@ -568,6 +568,16 @@ export function useChat(options: UseChatOptions) {
   };
 
   // 连接管理
+  // 页面从 Back-Forward Cache 恢复/重新可见时浏览器会掐断 WebSocket；
+  // 若 socket.io 的有限重连次数（reconnectionAttempts）已耗尽，连接不会自行恢复，
+  // 输入框会因 !connected 永久禁用，这里在页面重新可见时兜底重连。
+  const handlePageResume = () => {
+    if (document.visibilityState === "hidden") return;
+    if (socket.value && !socket.value.connected && !connecting.value) connect();
+  };
+  window.addEventListener("pageshow", handlePageResume);
+  document.addEventListener("visibilitychange", handlePageResume);
+
   const connect = () => {
     if (socket.value?.connected || connecting.value) return;
 
@@ -725,6 +735,8 @@ export function useChat(options: UseChatOptions) {
       disconnect();
       socket.value?.removeAllListeners();
       socket.value = null;
+      window.removeEventListener("pageshow", handlePageResume);
+      document.removeEventListener("visibilitychange", handlePageResume);
     });
   } else if (autoConnect) {
     connect();

@@ -90808,6 +90808,18 @@ function mapToolChoice(tc) {
   if (tc?.type) return { toolChoiceMode: tc.type };
   return void 0;
 }
+function stripSchemaMeta(value) {
+  if (Array.isArray(value)) return value.map(stripSchemaMeta);
+  if (value && typeof value === "object") {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (k === "$schema" || k === "$id") continue;
+      out[k] = stripSchemaMeta(v);
+    }
+    return out;
+  }
+  return value;
+}
 function createVendorAPI(inputValues) {
   const textRequest = (model, think, thinkLevel) => {
     if (!inputValues.token) throw new Error("\u7F3A\u5C11 Token");
@@ -90888,7 +90900,8 @@ function createVendorAPI(inputValues) {
                 stream: isStream2,
                 // 透传工具定义与 tool_choice（SOP 9.3）。网关用 payload.standard.tools + toolChoice.toolChoiceMode，
                 // 而非 OpenAI 原生的 tools/tool_choice；tool_choice 缺省时不传，由网关默认 auto。
-                ...body.tools?.length ? { tools: body.tools } : {},
+                // 工具参数里的 $schema/$id 元数据关键字部分路由（如 gemini）会拒绝，先剔除。
+                ...body.tools?.length ? { tools: stripSchemaMeta(body.tools) } : {},
                 ...body.tool_choice != null ? { toolChoice: mapToolChoice(body.tool_choice) } : {}
               },
               inhouse: {

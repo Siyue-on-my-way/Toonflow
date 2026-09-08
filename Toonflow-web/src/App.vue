@@ -78,14 +78,18 @@ async function getPort() {
   await nextTick();
   await nextTick();
   await nextTick();
-  try {
-    const res = await fetch("toonflow://getAppUrl");
-    const data = await res.json();
-    if (data?.url) {
-      baseUrl.value = data.url;
-      isElectron.value = true;
-    }
-  } catch (error) {}
+  // toonflow:// 自定义协议只在 Electron 容器内可解析；普通浏览器里发起这个
+  // fetch 必然抛 "URL scheme not supported" 控制台错误，先用 UA 判断再探测。
+  if (/Electron/i.test(navigator.userAgent)) {
+    try {
+      const res = await fetch("toonflow://getAppUrl");
+      const data = await res.json();
+      if (data?.url) {
+        baseUrl.value = data.url;
+        isElectron.value = true;
+      }
+    } catch (error) {}
+  }
 
   loading.value = false;
 
