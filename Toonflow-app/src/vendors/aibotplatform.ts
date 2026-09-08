@@ -81,6 +81,33 @@ function stripSchemaMeta(value: any): any {
   return value;
 }
 
+/**
+ * gemini-3 等思考模型经网关返回的 tool_calls 会携带 extra_content（内含
+ * google.thought_signature）。下一轮对话必须把它原样回传到 assistant 消息的
+ * 对应 tool_call 上，否则网关 gemini 路由会静默返回空流（HTTP 200 但零输出）。
+ * ai-sdk 不透传 extra_content，因此在供应商层按 tool_call id 暂存并在下轮回填。
+ */
+const toolCallExtraContent = new Map<string, Record<string, any>>();
+
+function rememberToolCallExtraContent(calls: any): void {
+  for (const call of calls ?? []) {
+    if (call?.id && call.extra_content && typeof call.extra_content === "object") {
+      toolCallExtraContent.set(call.id, call.extra_content);
+      // 防止长期驻留进程内存：超过上限时淘汰最早写入的条目
+      if (toolCallExtraContent.size > 500) {
+        const oldest = toolCallExtraContent.keys().next().value;
+        if (oldest != null) toolCallExtraContent.delete(oldest);
+      }
+    }
+  }
+}
+
+function withRememberedExtraContent(call: any): any {
+  if (!call?.id) return call;
+  const extra = toolCallExtraContent.get(call.id);
+  return extra ? { ...call, extra_content: extra } : call;
+}
+
 export function createVendorAPI(inputValues: Record<string, string>) {
   // ============================================================
   // 适配器函数
@@ -153,7 +180,8 @@ export function createVendorAPI(inputValues: Record<string, string>) {
                     return {
                       role: "assistant",
                       content: text != null ? [{ type: "text", text: { text } }] : null,
-                      tool_calls: msg.tool_calls,
+                      // 回填思考签名：gemini 路由要求 tool_call 携带的 extra_content 原样回传
+                      tool_calls: msg.tool_calls.map(withRememberedExtraContent),
                     };
                   }
                   // tool 结果消息：必须保留 tool_call_id 供网关匹配对应工具调用，content 转成数组形态
@@ -252,7 +280,10 @@ export function createVendorAPI(inputValues: Record<string, string>) {
                   content: extractTextContent(msg.content),
                 };
                 // 透传工具调用（网关返回标准 OpenAI 形态：message.tool_calls[] + finish_reason:"tool_calls"）
-                if (msg.tool_calls) message.tool_calls = msg.tool_calls;
+                if (msg.tool_calls) {
+                  rememberToolCallExtraContent(msg.tool_calls);
+                  message.tool_calls = msg.tool_calls;
+                }
                 return {
                   index: choice.index,
                   message,
@@ -312,6 +343,8 @@ export function createVendorAPI(inputValues: Record<string, string>) {
                       // 透传流式工具调用增量（delta.tool_calls[]）。
                       // 网关非首片常把 name/id/type 置空，回填工具名并剔空值，避免覆盖首片。
                       if (delta.tool_calls) {
+                        // 思考签名随增量返回，先暂存，供下一轮请求回填
+                        rememberToolCallExtraContent(delta.tool_calls);
                         outDelta.tool_calls = delta.tool_calls.map((call: any, idx: number) => {
                           const fn = call.function || {};
                           const callIndex = Number.isInteger(call.index) ? call.index : idx;

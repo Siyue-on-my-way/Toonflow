@@ -90820,6 +90820,22 @@ function stripSchemaMeta(value) {
   }
   return value;
 }
+function rememberToolCallExtraContent(calls) {
+  for (const call of calls ?? []) {
+    if (call?.id && call.extra_content && typeof call.extra_content === "object") {
+      toolCallExtraContent.set(call.id, call.extra_content);
+      if (toolCallExtraContent.size > 500) {
+        const oldest = toolCallExtraContent.keys().next().value;
+        if (oldest != null) toolCallExtraContent.delete(oldest);
+      }
+    }
+  }
+}
+function withRememberedExtraContent(call) {
+  if (!call?.id) return call;
+  const extra = toolCallExtraContent.get(call.id);
+  return extra ? { ...call, extra_content: extra } : call;
+}
 function createVendorAPI(inputValues) {
   const textRequest = (model, think, thinkLevel) => {
     if (!inputValues.token) throw new Error("\u7F3A\u5C11 Token");
@@ -90870,7 +90886,8 @@ function createVendorAPI(inputValues) {
                     return {
                       role: "assistant",
                       content: text2 != null ? [{ type: "text", text: { text: text2 } }] : null,
-                      tool_calls: msg.tool_calls
+                      // 回填思考签名：gemini 路由要求 tool_call 携带的 extra_content 原样回传
+                      tool_calls: msg.tool_calls.map(withRememberedExtraContent)
                     };
                   }
                   if (msg.role === "tool") {
@@ -90951,7 +90968,10 @@ function createVendorAPI(inputValues) {
                   role: msg.role ?? "assistant",
                   content: extractTextContent(msg.content)
                 };
-                if (msg.tool_calls) message.tool_calls = msg.tool_calls;
+                if (msg.tool_calls) {
+                  rememberToolCallExtraContent(msg.tool_calls);
+                  message.tool_calls = msg.tool_calls;
+                }
                 return {
                   index: choice2.index,
                   message,
@@ -90998,6 +91018,7 @@ function createVendorAPI(inputValues) {
                         content: extractTextContent(delta.content) ?? ""
                       };
                       if (delta.tool_calls) {
+                        rememberToolCallExtraContent(delta.tool_calls);
                         outDelta.tool_calls = delta.tool_calls.map((call, idx) => {
                           const fn = call.function || {};
                           const callIndex = Number.isInteger(call.index) ? call.index : idx;
@@ -91102,7 +91123,7 @@ function createVendorAPI(inputValues) {
   };
   return { textRequest, imageRequest, videoRequest, ttsRequest, checkForUpdates: checkForUpdates2, updateVendor: updateVendor2 };
 }
-var vendor;
+var vendor, toolCallExtraContent;
 var init_aibotplatform = __esm({
   "src/vendors/aibotplatform.ts"() {
     "use strict";
@@ -91135,6 +91156,7 @@ var init_aibotplatform = __esm({
         { name: "GPT-5.6 Terra", modelName: "gpt-5.6-terra", type: "text", think: false }
       ]
     };
+    toolCallExtraContent = /* @__PURE__ */ new Map();
   }
 });
 
