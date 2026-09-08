@@ -478,7 +478,7 @@ import { estimateExportBytes, formatBytes, formatTime } from "./timelineCore";
 const { project } = storeToRefs(projectStore());
 const quickVideoStoreRef = quickVideoStore();
 const { connected, messages, status, workbench, state, loadingWorkbench } = storeToRefs(quickVideoStoreRef);
-const { stopGenerate, getWorkbench, getMediaUrls, getTimeline } = quickVideoStoreRef;
+const { stopGenerate, getWorkbench, getHistory, getMediaUrls, getTimeline } = quickVideoStoreRef;
 
 const inputValue = ref("");
 
@@ -575,6 +575,10 @@ watch(
 onMounted(() => {
   getWorkbench();
   quickVideoStoreRef.connect();
+  // History restoration is a read-only request and is deliberately handled
+  // independently from the socket so a chat connection failure cannot block
+  // the rest of the workbench.
+  void getHistory();
 });
 
 const defMsg = [

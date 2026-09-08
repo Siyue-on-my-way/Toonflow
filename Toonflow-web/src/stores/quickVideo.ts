@@ -12,12 +12,14 @@ import type { QuickVideoState, QuickVideoWorkbench } from "@/types/quickVideo";
  * - generating 阶段自动轮询（4s）展示镜头级进度；轮询中断/页面刷新后恢复轮询即可续看
  */
 const POLL_INTERVAL_MS = 4000;
+const CHAT_HISTORY_LIMIT = 20;
 
 function makeQuickVideoStore(projectId: string) {
   return defineStore(`quickVideo-${projectId}`, () => {
     const workbench = ref<QuickVideoWorkbench>({ project: null, script: null, state: null, shotBounds: null });
     const state = computed<QuickVideoState | null>(() => workbench.value.state);
     const loadingWorkbench = ref(false);
+    const loadingHistory = ref(false);
     let pollTimer: ReturnType<typeof setInterval> | null = null;
 
     const { connected, messages, chat, stopGenerate, socket, status, disconnect, connect, isGenerating } = useChat({
@@ -75,6 +77,41 @@ function makeQuickVideoStore(projectId: string) {
       return workbench.value;
     }
 
+    /**
+     * Restore the user-visible conversation from the Agent memory table.
+     * This endpoint only reads persisted messages, so restoring history never
+     * starts another Agent turn. A failed history request is intentionally
+     * isolated from the workbench and socket connection.
+     */
+    async function getHistory() {
+      if (loadingHistory.value) return messages.value;
+
+      loadingHistory.value = true;
+      try {
+        const response = await axios.post("/agents/getMemory", {
+          projectId: Number(projectId),
+          agentType: "quickVideoAgent",
+          limit: CHAT_HISTORY_LIMIT,
+        });
+        const payload = response?.data ?? response;
+        if (!Array.isArray(payload)) {
+          throw new Error(payload?.message ?? "加载聊天历史失败");
+        }
+
+        // The welcome card is local UI copy, not a persisted Agent message.
+        // Preserve it while replacing stale/in-memory history with the
+        // server's chronological result.
+        const welcomeMessages = messages.value.filter((message) => message.id === "welcome");
+        messages.value = [...welcomeMessages, ...payload];
+      } catch (error) {
+        console.error("[quickVideo] 加载聊天历史失败", error);
+      } finally {
+        loadingHistory.value = false;
+      }
+
+      return messages.value;
+    }
+
     /** 时间线装配查询（ready_to_assemble / completed 阶段）：规划 + 字幕 + 视频地址 */
     async function getTimeline() {
       const response = await axios.post("/quickVideo/getTimeline", { projectId: Number(projectId) });
@@ -92,7 +129,25 @@ function makeQuickVideoStore(projectId: string) {
       return payload?.media ?? {};
     }
 
-    return { connected, messages, chat, stopGenerate, socket, status, connect, disconnect, isGenerating, workbench, state, loadingWorkbench, getWorkbench, getMediaUrls, getTimeline };
+    return {
+      connected,
+      messages,
+      chat,
+      stopGenerate,
+      socket,
+      status,
+      connect,
+      disconnect,
+      isGenerating,
+      workbench,
+      state,
+      loadingWorkbench,
+      loadingHistory,
+      getWorkbench,
+      getHistory,
+      getMediaUrls,
+      getTimeline,
+    };
   });
 }
 
