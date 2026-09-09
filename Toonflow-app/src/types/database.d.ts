@@ -33,6 +33,7 @@ export interface o_agentWorkData {
   'id': number;
   'key'?: string | null;
   'projectId'?: number | null;
+  'sessionId'?: number | null;
   'updateTime'?: number | null;
 }
 export interface o_artStyle {
@@ -136,6 +137,17 @@ export interface o_prompt {
   'name'?: string | null;
   'type'?: string | null;
   'useData'?: string | null;
+}
+export interface o_quickVideoSession {
+  'createTime'?: number | null;
+  'id': number;
+  'imageModel'?: string | null;
+  'projectId': number;
+  'status'?: string | null;
+  'textModel'?: string | null;
+  'title'?: string | null;
+  'updateTime'?: number | null;
+  'videoModel'?: string | null;
 }
 export interface o_script {
   'content'?: string | null;
@@ -277,6 +289,7 @@ export interface DB {
   "o_novel": o_novel;
   "o_project": o_project;
   "o_prompt": o_prompt;
+  "o_quickVideoSession": o_quickVideoSession;
   "o_script": o_script;
   "o_scriptAssets": o_scriptAssets;
   "o_setting": o_setting;

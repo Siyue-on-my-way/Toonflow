@@ -6,6 +6,7 @@ import db from "@/utils/db";
 import { KLING_O1_VENDOR_MODEL, NANO_BANANA_PRO_VENDOR_MODEL } from "@/vendors/runninghub-models";
 import { vendor as aibotplatformVendor } from "@/vendors/aibotplatform";
 import { vendor as runninghubVendor } from "@/vendors/runninghub";
+import { ensureDefaultSession } from "@/lib/quickVideo/session";
 
 
 export default async (knex: Knex): Promise<void> => {
@@ -489,6 +490,20 @@ export default async (knex: Knex): Promise<void> => {
     await knex.raw(
       "ALTER TABLE `o_assets2Storyboard` ADD COLUMN `id` INT NOT NULL AUTO_INCREMENT, ADD UNIQUE KEY `o_assets2Storyboard_id_unique` (`id`)",
     );
+  }
+
+  // 单视频快创（SIY-128）：o_agentWorkData 补充 sessionId 留痕字段；存量 quick_video 项目
+  // 补建默认会话，保证旧项目在未手动新建会话前，聊天历史与模型偏好仍可正常读写。
+  await addColumn("o_agentWorkData", "sessionId", "integer");
+  {
+    const legacyQuickVideoProjects = await db("o_project").where({ projectType: "quick_video" }).select("id");
+    for (const p of legacyQuickVideoProjects) {
+      try {
+        await ensureDefaultSession(Number(p.id));
+      } catch (err) {
+        console.error(`[quickVideo] 项目 ${p.id} 补建默认会话失败:`, u.error(err as Error).message);
+      }
+    }
   }
 
   //矫正提示词

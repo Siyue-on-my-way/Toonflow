@@ -3,6 +3,8 @@ import u from "@/utils";
 import { Namespace, Socket } from "socket.io";
 import * as agent from "@/agents/quickVideoAgent/index";
 import ResTool from "@/socket/resTool";
+import { getOwnedSession, bumpSessionActivity } from "@/lib/quickVideo/session";
+import { buildSessionIsolationKey } from "@/lib/quickVideo/contract";
 
 async function verifyToken(rawToken: string): Promise<{ id: number; name: string; role: string } | null> {
   const setting = await u.db("o_setting").where("key", "tokenKey").select("value").first();
@@ -26,9 +28,21 @@ export default (nsp: Namespace) => {
       socket.disconnect();
       return;
     }
-    const isolationKey = socket.handshake.auth.isolationKey;
-    if (!isolationKey) {
-      console.log("[quickVideoAgent] 连接失败，缺少 isolationKey");
+    const projectId = Number(socket.handshake.auth.projectId);
+    const sessionId = Number(socket.handshake.auth.sessionId);
+    if (!projectId || !sessionId) {
+      console.log("[quickVideoAgent] 连接失败，缺少 projectId/sessionId");
+      socket.disconnect();
+      return;
+    }
+    // isolationKey 由服务端根据校验过归属关系的 projectId + sessionId 拼出，
+    // 禁止直接采信客户端传入的隔离键，避免跨项目/跨会话读写记忆。
+    let isolationKey: string;
+    try {
+      await getOwnedSession(projectId, sessionId);
+      isolationKey = buildSessionIsolationKey(projectId, sessionId);
+    } catch (err) {
+      console.log("[quickVideoAgent] 连接失败，session 校验不通过:", u.error(err as Error).message);
       socket.disconnect();
       return;
     }
@@ -36,7 +50,7 @@ export default (nsp: Namespace) => {
     console.log("[quickVideoAgent] 已连接:", socket.id);
 
     const resTool = new ResTool(socket, {
-      projectId: socket.handshake.auth.projectId,
+      projectId,
       userId: user.id,
     });
     let abortController: AbortController | null = null;
@@ -52,10 +66,13 @@ export default (nsp: Namespace) => {
       abortController = new AbortController();
       const currentController = abortController;
 
+      void bumpSessionActivity(sessionId);
+
       const msg = resTool.newMessage("assistant", "快创助手");
       const ctx: agent.AgentContext = {
         socket,
         isolationKey,
+        sessionId,
         userId: user.id,
         text: content,
         textModel: textModel as `${string}:${string}` | undefined,

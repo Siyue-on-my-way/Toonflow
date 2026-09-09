@@ -114,7 +114,9 @@ async function main() {
     idempotencyKey: createKey,
   });
   const projectId = created.data.projectId;
+  const sessionId = created.data.session?.id;
   assert(!!projectId, "创建 quick_video 项目成功", JSON.stringify(created).slice(0, 200));
+  assert(!!sessionId, "创建项目时同步创建默认会话", JSON.stringify(created.data.session));
   assert(created.data.state?.stage === "collect_brief", "初始阶段为 collect_brief");
   assert(created.data.state?.version === 1, "初始状态版本为 1");
   assert(created.data.existed === false, "首次创建 existed=false");
@@ -162,7 +164,7 @@ async function main() {
   });
   assert(stale.code === "VERSION_CONFLICT", "过期版本写入被拒绝（乐观锁）", JSON.stringify(stale));
 
-  const noSb = await api("/quickVideo/confirmStage", { projectId, expectedVersion: v0.version, idempotencyKey: key(), gate: "storyboard", action: "confirm" });
+  const noSb = await api("/quickVideo/confirmStage", { projectId, sessionId, expectedVersion: v0.version, idempotencyKey: key(), gate: "storyboard", action: "confirm" });
   assert(noSb.code === "NO_STORYBOARD", "无分镜时确认分镜被拒", JSON.stringify(noSb));
 
   const editNoSb = await api("/quickVideo/addShot", {
@@ -205,7 +207,7 @@ async function main() {
   });
   assert(briefThird.data.idempotentHit === true && briefThird.data.state.brief.theme === briefAgain.data.state.brief.theme, "同幂等键重复提交被去重且保持首次结果");
 
-  const confirmBrief = await api("/quickVideo/confirmStage", { projectId, expectedVersion: briefThird.data.state.version, idempotencyKey: key(), gate: "brief", action: "confirm" });
+  const confirmBrief = await api("/quickVideo/confirmStage", { projectId, sessionId, expectedVersion: briefThird.data.state.version, idempotencyKey: key(), gate: "brief", action: "confirm" });
   assert(confirmBrief.code === 200 && confirmBrief.data.state.stage === "brief_confirmed", "确认简报 -> brief_confirmed", JSON.stringify(confirmBrief).slice(0, 200));
 
   console.log("== 6. Agent 工具层：propose_storyboard 校验 ==");
@@ -260,7 +262,7 @@ async function main() {
 
   // 7.4 确认分镜（5 镜 28 秒，容差 6 秒内 → 通过）-> storyboard_confirmed
   const v8 = await getState(projectId);
-  const confirmSb = await api("/quickVideo/confirmStage", { projectId, expectedVersion: v8.version, idempotencyKey: key(), gate: "storyboard", action: "confirm" });
+  const confirmSb = await api("/quickVideo/confirmStage", { projectId, sessionId, expectedVersion: v8.version, idempotencyKey: key(), gate: "storyboard", action: "confirm" });
   assert(confirmSb.code === 200 && confirmSb.data.state.stage === "storyboard_confirmed", "确认分镜 -> storyboard_confirmed", JSON.stringify(confirmSb).slice(0, 300));
 
   // 7.5 确认后编辑镜头被锁
@@ -274,12 +276,12 @@ async function main() {
 
   // 7.7 撤销确认 -> 回草稿可编辑
   const v10 = await getState(projectId);
-  const unconfirm = await api("/quickVideo/confirmStage", { projectId, expectedVersion: v10.version, idempotencyKey: key(), gate: "storyboard", action: "reject" });
+  const unconfirm = await api("/quickVideo/confirmStage", { projectId, sessionId, expectedVersion: v10.version, idempotencyKey: key(), gate: "storyboard", action: "reject" });
   assert(unconfirm.code === 200 && unconfirm.data.state.stage === "storyboard_draft", "撤销分镜确认 -> storyboard_draft");
 
   console.log("== 8. 导出门与刷新恢复 ==");
   const v11 = await getState(projectId);
-  const exp = await api("/quickVideo/confirmStage", { projectId, expectedVersion: v11.version, idempotencyKey: key(), gate: "export", action: "confirm" });
+  const exp = await api("/quickVideo/confirmStage", { projectId, sessionId, expectedVersion: v11.version, idempotencyKey: key(), gate: "export", action: "confirm" });
   assert(exp.code === "STAGE_MISMATCH", "未装配前导出确认被拒", JSON.stringify(exp));
 
   const wb2 = await api("/quickVideo/getWorkbench", { projectId });
@@ -333,6 +335,7 @@ async function main() {
     idempotencyKey: key(),
   });
   const p2Id = p2.data.projectId;
+  const p2SessionId = p2.data.session?.id;
   assert(!!p2Id, "生成链路测试项目创建成功", JSON.stringify(p2).slice(0, 200));
 
   await api("/quickVideo/updateBrief", {
@@ -341,7 +344,7 @@ async function main() {
     idempotencyKey: key(),
     brief: { theme: "霓虹奶茶", hook: "雨夜霓虹", narrative: "雨夜霓虹街头，主角接过奶茶，喝下后街头霓虹全部亮起", cta: "", keywords: ["赛博"] },
   });
-  await api("/quickVideo/confirmStage", { projectId: p2Id, expectedVersion: (await getState(p2Id)).version, idempotencyKey: key(), gate: "brief", action: "confirm" });
+  await api("/quickVideo/confirmStage", { projectId: p2Id, sessionId: p2SessionId, expectedVersion: (await getState(p2Id)).version, idempotencyKey: key(), gate: "brief", action: "confirm" });
   await agentProposeStoryboard(
     p2Id,
     [
@@ -381,7 +384,7 @@ async function main() {
 
   // 9.3 确认分镜 → 解析素材
   const vC = await getState(p2Id);
-  const confirmSb2 = await api("/quickVideo/confirmStage", { projectId: p2Id, expectedVersion: vC.version, idempotencyKey: key(), gate: "storyboard", action: "confirm" });
+  const confirmSb2 = await api("/quickVideo/confirmStage", { projectId: p2Id, sessionId: p2SessionId, expectedVersion: vC.version, idempotencyKey: key(), gate: "storyboard", action: "confirm" });
   assert(confirmSb2.code === 200 && confirmSb2.data.state.stage === "storyboard_confirmed", "P2 分镜确认成功");
 
   const resolved = await api("/quickVideo/resolveAssets", { projectId: p2Id, expectedVersion: confirmSb2.data.state.version, idempotencyKey: key() });
@@ -395,11 +398,11 @@ async function main() {
   assert(Math.abs(resolved.data.estimate?.estimatedCostYuan - 8.7) < 0.001, "预估费用 = 4×0.3 + 15×0.5 = 8.7 元", JSON.stringify(resolved.data.estimate));
 
   // 9.4 分镜未确认时不允许素材确认（用 storyboard_draft 的主项目验证）
-  const draftConfirm = await api("/quickVideo/confirmStage", { projectId, expectedVersion: (await getState(projectId)).version, idempotencyKey: key(), gate: "materials", action: "confirm" });
+  const draftConfirm = await api("/quickVideo/confirmStage", { projectId, sessionId, expectedVersion: (await getState(projectId)).version, idempotencyKey: key(), gate: "materials", action: "confirm" });
   assert(draftConfirm.code === "NO_STORYBOARD", "分镜未确认时素材确认被拒", JSON.stringify(draftConfirm));
 
   console.log("== 10. 素材确认门与逐镜头生成（无模型 → 统一失败可重试） ==");
-  const confirmMat = await api("/quickVideo/confirmStage", { projectId: p2Id, expectedVersion: (await getState(p2Id)).version, idempotencyKey: key(), gate: "materials", action: "confirm" });
+  const confirmMat = await api("/quickVideo/confirmStage", { projectId: p2Id, sessionId: p2SessionId, expectedVersion: (await getState(p2Id)).version, idempotencyKey: key(), gate: "materials", action: "confirm" });
   assert(confirmMat.code === 200 && confirmMat.data.state.stage === "generating", "素材确认 → generating", JSON.stringify(confirmMat).slice(0, 200));
   assert(confirmMat.data.state.generation.materialsConfirmed === true, "素材确认门状态由服务端写入");
   assert(confirmMat.data.state.generation.snapshot?.storyboardVersion === 1, "确认快照冻结分镜版本 v1");
@@ -415,7 +418,7 @@ async function main() {
   assert(failureReason.length > 0, "失败原因可读且已写入", failureReason);
 
   // 生成阶段重复素材确认被拒（门状态由服务端决定）
-  const matAgain = await api("/quickVideo/confirmStage", { projectId: p2Id, expectedVersion: (await getState(p2Id)).version, idempotencyKey: key(), gate: "materials", action: "confirm" });
+  const matAgain = await api("/quickVideo/confirmStage", { projectId: p2Id, sessionId: p2SessionId, expectedVersion: (await getState(p2Id)).version, idempotencyKey: key(), gate: "materials", action: "confirm" });
   assert(matAgain.code === "STAGE_MISMATCH", "generating 阶段重复素材确认被拒", JSON.stringify(matAgain));
 
   console.log("== 11. 配置空模板供应商，单镜头重试隔离 ==");
@@ -438,7 +441,7 @@ async function main() {
   });
 
   // 11.2 重试 shot-1 → 仅该镜头重建并成功，其余保持失败
-  await api("/quickVideo/retryShot", { projectId: p2Id, shotIds: ["shot-1"] });
+  await api("/quickVideo/retryShot", { projectId: p2Id, sessionId: p2SessionId, shotIds: ["shot-1"] });
   await waitFor("shot-1 成功", async () => {
     const st = await getState(p2Id);
     const s1 = st.storyboard.shots.find((s: any) => s.id === "shot-1");
@@ -451,7 +454,7 @@ async function main() {
   assert(s3Before.imageState === "failed" && s3Before.videoState === "failed", "重试不影响其他镜头（shot-3 保持原状）");
 
   // 11.3 重试 shot-2 → shot-1 已成功产物不变（失败重试不影响已成功镜头）
-  await api("/quickVideo/retryShot", { projectId: p2Id, shotIds: ["shot-2"] });
+  await api("/quickVideo/retryShot", { projectId: p2Id, sessionId: p2SessionId, shotIds: ["shot-2"] });
   await waitFor("shot-2 成功", async () => {
     const st = await getState(p2Id);
     const s2 = st.storyboard.shots.find((s: any) => s.id === "shot-2");
@@ -462,11 +465,11 @@ async function main() {
   assert(s1After.imageRef === s1.imageRef && s1After.videoRef === s1.videoRef, "shot-1 产物引用未被重试改动");
 
   // 11.4 已完成镜头不可重试
-  const retryDone = await api("/quickVideo/retryShot", { projectId: p2Id, shotIds: ["shot-2"] });
+  const retryDone = await api("/quickVideo/retryShot", { projectId: p2Id, sessionId: p2SessionId, shotIds: ["shot-2"] });
   assert(retryDone.code === "SHOT_ALREADY_DONE", "已完成镜头重试被拒", JSON.stringify(retryDone));
 
   // 11.5 重试最后一个失败镜头 → 全部完成 → 自动推进 ready_to_assemble
-  await api("/quickVideo/retryShot", { projectId: p2Id, shotIds: ["shot-3"] });
+  await api("/quickVideo/retryShot", { projectId: p2Id, sessionId: p2SessionId, shotIds: ["shot-3"] });
   await waitFor("全部完成并推进", async () => {
     const st = await getState(p2Id);
     return st.stage === "ready_to_assemble";
@@ -495,11 +498,67 @@ async function main() {
   assert(Object.keys(mediaMap).length === 3 && Object.values(mediaMap).every((m: any) => m.imageUrl && m.videoUrl), "getMediaUrls 返回三镜头图/视频地址", JSON.stringify(media).slice(0, 200));
 
   console.log("== 12. 导出门（ready_to_assemble -> completed） ==");
-  const exportOk = await api("/quickVideo/confirmStage", { projectId: p2Id, expectedVersion: finalState.version, idempotencyKey: key(), gate: "export", action: "confirm" });
+  const exportOk = await api("/quickVideo/confirmStage", { projectId: p2Id, sessionId: p2SessionId, expectedVersion: finalState.version, idempotencyKey: key(), gate: "export", action: "confirm" });
   assert(exportOk.code === 200 && exportOk.data.state.stage === "completed", "导出确认 → completed", JSON.stringify(exportOk).slice(0, 200));
 
   // 状态版本应与真实写入次数同量级（保护：恢复/轮询不得反复空转写状态）
   assert(finalState.version < 60, "状态版本有界（无轮询空转写入）", `version=${finalState.version}`);
+
+  console.log("== 13. Session 会话隔离（SIY-128） ==");
+  // 13.1 创建项目时自动带一个默认会话；列表按 updateTime 倒序
+  const list1 = await api("/quickVideo/listSessions", { projectId });
+  assert(list1.data.sessions.length === 1 && list1.data.sessions[0].id === sessionId, "新项目自动创建默认会话", JSON.stringify(list1.data).slice(0, 200));
+
+  // 13.2 新建第二个会话；列表倒序时最新会话排最前
+  const createdSession2 = await api("/quickVideo/createSession", { projectId, title: "会话B" });
+  const sessionId2 = createdSession2.data.session.id;
+  assert(!!sessionId2 && sessionId2 !== sessionId, "新建第二个会话成功");
+  const list2 = await api("/quickVideo/listSessions", { projectId });
+  assert(list2.data.sessions.length === 2 && list2.data.sessions[0].id === sessionId2, "会话列表按 updateTime 倒序，最新会话在前", JSON.stringify(list2.data.sessions.map((s: any) => s.id)));
+
+  // 13.3 聊天记忆按 projectId:quickVideoAgent:sessionId 隔离（模拟真实 socket 握手写入的 isolationKey）
+  await u.db("memories").insert([
+    { id: u.uuid(), isolationKey: `${projectId}:quickVideoAgent:${sessionId}`, type: "message", role: "user", content: "会话A的消息", createTime: Date.now() },
+    { id: u.uuid(), isolationKey: `${projectId}:quickVideoAgent:${sessionId2}`, type: "message", role: "user", content: "会话B的消息", createTime: Date.now() },
+  ]);
+  const historyA = await api("/agents/getMemory", { projectId, agentType: "quickVideoAgent", sessionId });
+  const historyB = await api("/agents/getMemory", { projectId, agentType: "quickVideoAgent", sessionId: sessionId2 });
+  assert(
+    historyA.data.some((m: any) => m.content?.[0]?.data === "会话A的消息") && !historyA.data.some((m: any) => m.content?.[0]?.data === "会话B的消息"),
+    "会话A的历史只包含会话A的消息，不串入会话B",
+    JSON.stringify(historyA.data).slice(0, 200),
+  );
+  assert(
+    historyB.data.some((m: any) => m.content?.[0]?.data === "会话B的消息") && !historyB.data.some((m: any) => m.content?.[0]?.data === "会话A的消息"),
+    "会话B的历史只包含会话B的消息，不串入会话A",
+    JSON.stringify(historyB.data).slice(0, 200),
+  );
+
+  // 13.4 非法/跨项目 session 被拒绝：用 p2 项目的 sessionId 冒充 projectId 项目的会话
+  const crossProject = await api("/agents/getMemory", { projectId, agentType: "quickVideoAgent", sessionId: p2SessionId });
+  assert(crossProject.code === 400 && String(crossProject.message ?? "").includes("会话不存在"), "跨项目 sessionId 被拒绝而非静默返回历史", JSON.stringify(crossProject).slice(0, 200));
+  const missingSession = await api("/agents/getMemory", { projectId, agentType: "quickVideoAgent" });
+  assert(missingSession.code === 400 && String(missingSession.message ?? "").includes("缺少 sessionId"), "quickVideoAgent 缺少 sessionId 被拒绝", JSON.stringify(missingSession));
+
+  // 13.5 模型偏好按 session 隔离保存；互不覆盖
+  const modelsA = await api("/quickVideo/updateModels", { projectId, sessionId, textModel: "1:model-a-text", imageModel: "1:model-a-img", videoModel: "1:model-a-vid" });
+  assert(modelsA.code === 200 && modelsA.data.session.textModel === "1:model-a-text", "会话A模型偏好保存成功", JSON.stringify(modelsA).slice(0, 200));
+  const modelsB = await api("/quickVideo/updateModels", { projectId, sessionId: sessionId2, textModel: "1:model-b-text", imageModel: "1:model-b-img", videoModel: "1:model-b-vid" });
+  assert(modelsB.code === 200 && modelsB.data.session.textModel === "1:model-b-text", "会话B模型偏好保存成功", JSON.stringify(modelsB).slice(0, 200));
+  const list3 = await api("/quickVideo/listSessions", { projectId });
+  const savedA = list3.data.sessions.find((s: any) => s.id === sessionId);
+  const savedB = list3.data.sessions.find((s: any) => s.id === sessionId2);
+  assert(savedA.textModel === "1:model-a-text" && savedB.textModel === "1:model-b-text", "两个会话的模型偏好互相独立、不覆盖", JSON.stringify({ savedA, savedB }));
+
+  // 13.6 跨项目更新模型偏好被拒绝
+  const crossModels = await api("/quickVideo/updateModels", { projectId, sessionId: p2SessionId, textModel: "x", imageModel: "x", videoModel: "x" });
+  assert(String(crossModels.message ?? "").includes("会话不存在"), "跨项目 sessionId 更新模型偏好被拒绝", JSON.stringify(crossModels));
+
+  // 13.7 重命名/归档会话：写操作会刷新 updateTime，重新排到列表顶部
+  const renamed = await api("/quickVideo/updateSession", { projectId, sessionId, title: "会话A-改名", status: "archived" });
+  assert(renamed.code === 200 && renamed.data.session.title === "会话A-改名" && renamed.data.session.status === "archived", "会话重命名与归档成功", JSON.stringify(renamed).slice(0, 200));
+  const list4 = await api("/quickVideo/listSessions", { projectId });
+  assert(list4.data.sessions[0].id === sessionId, "刚被修改的会话重新排到列表顶部（updateTime 最新）", JSON.stringify(list4.data.sessions.map((s: any) => s.id)));
 
   // 清理 e2e 写入共享 MinIO 的测试对象（best-effort，不阻塞结果）
   try {

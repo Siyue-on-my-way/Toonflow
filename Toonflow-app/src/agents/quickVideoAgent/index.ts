@@ -11,6 +11,7 @@ import { shotCountBounds } from "@/lib/quickVideo/contract";
 export interface AgentContext {
   socket: Socket;
   isolationKey: string;
+  sessionId: number;
   userId: number;
   text: string;
   textModel?: `${string}:${string}`;
@@ -45,7 +46,7 @@ function buildMemPrompt(mem: Awaited<ReturnType<Memory["get"]>>): string {
  * 状态机的阶段推进（确认门）只由用户在右侧面板触发，Agent 不得也無法代替用户确认。
  */
 export async function runQuickVideoAgent(ctx: AgentContext) {
-  const { isolationKey, text, textModel, userMessageTime, abortSignal, resTool, userId } = ctx;
+  const { isolationKey, sessionId, text, textModel, userMessageTime, abortSignal, resTool, userId } = ctx;
   const memory = new Memory("quickVideoAgent", isolationKey, userId);
   await memory.add("user", text, { createTime: userMessageTime });
 
@@ -55,8 +56,10 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
   const mem = buildMemPrompt(await memory.get(text));
 
   const projectData = await u.db("o_project").where("id", resTool.data.projectId).first();
+  const sessionData = await u.db("o_quickVideoSession").where("id", sessionId).first();
   const state = await loadQuickVideoState(Number(resTool.data.projectId));
-  const effectiveTextModel = textModel || (projectData?.textModel as `${string}:${string}` | undefined);
+  // 文本模型优先级：本轮显式传入 > 当前会话保存的偏好 > 项目历史默认值（兼容未迁移前的选择）
+  const effectiveTextModel = textModel || (sessionData?.textModel as `${string}:${string}` | undefined) || (projectData?.textModel as `${string}:${string}` | undefined);
 
   const projectInfo = [
     "## 项目信息",
@@ -89,10 +92,10 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
     abortSignal,
     tools: {
       ...memory.getTools(),
-      ...useTools({ resTool: ctx.resTool, msg: ctx.msg }),
+      ...useTools({ resTool: ctx.resTool, msg: ctx.msg, sessionId: ctx.sessionId }),
     },
     onFinish: async (completion) => {
-      await mutateLastChatAt(Number(resTool.data.projectId));
+      await mutateLastChatAt(Number(resTool.data.projectId), sessionId);
       await memory.add("assistant", removeAllXmlTags(completion.text));
     },
   });
@@ -100,11 +103,11 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
   await consumeFullStream(fullStream, ctx.msg);
 }
 
-/** 记录最近聊天时间，供工作台展示（失败不影响主流程） */
-async function mutateLastChatAt(projectId: number) {
+/** 记录最近聊天时间与触发会话，供工作台展示/留痕（失败不影响主流程） */
+async function mutateLastChatAt(projectId: number, sessionId: number) {
   try {
     const { mutateQuickVideoState } = await import("@/lib/quickVideo/state");
-    await mutateQuickVideoState(projectId, {}, (s) => {
+    await mutateQuickVideoState(projectId, { sessionId }, (s) => {
       s.lastChatAt = Date.now();
     });
   } catch {

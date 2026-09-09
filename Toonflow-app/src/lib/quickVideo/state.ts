@@ -61,6 +61,8 @@ export interface MutateOptions {
   idempotencyKey?: string;
   /** 本次写入涉及的阶段转移（source -> target），必须在白名单内 */
   stageTransition?: { from: QuickVideoStage; to: QuickVideoStage };
+  /** 触发本次写入的会话（留痕用，不影响状态内容与校验；未提供时保留上次记录的值） */
+  sessionId?: number;
 }
 
 export interface MutateResult {
@@ -147,7 +149,11 @@ export async function mutateQuickVideoState(
 
     await trx("o_agentWorkData")
       .where({ id: row.id })
-      .update({ data: JSON.stringify(parsed.data), updateTime: Date.now() });
+      .update({
+        data: JSON.stringify(parsed.data),
+        updateTime: Date.now(),
+        ...(opts.sessionId != null ? { sessionId: opts.sessionId } : {}),
+      });
 
     return { state: parsed.data, idempotentHit: false };
   });

@@ -2,12 +2,15 @@ import axios from "@/utils/axios";
 import projectStore from "@/stores/project";
 import settingStore from "@/stores/setting";
 import { useChat } from "@/utils/useChat";
-import type { QuickVideoState, QuickVideoWorkbench } from "@/types/quickVideo";
+import type { QuickVideoState, QuickVideoWorkbench, QuickVideoSession, QuickVideoSessionStatus } from "@/types/quickVideo";
 
 /**
  * 单视频快创工作台 store：
- * - 左侧聊天走 /socket/quickVideoAgent 命名空间
- * - 右侧产物（简报/分镜/素材与生成进度）来自 /quickVideo/getWorkbench 聚合查询，刷新可恢复
+ * - 左侧聊天走 /socket/quickVideoAgent 命名空间，隔离键由服务端按 projectId + 当前
+ *   会话（sessionId）拼出；切换会话时必须重新握手（见 switchSession）
+ * - 右侧产物（简报/分镜/素材与生成进度）来自 /quickVideo/getWorkbench 聚合查询，项目级共享，不随会话切换变化
+ * - 会话列表（sessions）、当前会话（currentSessionId）与三类模型偏好按会话隔离，
+ *   互不覆盖；聊天记录/模型偏好属于会话，工作台产物属于项目
  * - Agent 每轮回复结束后刷新一次工作台状态（工具写库后同步右侧面板）
  * - generating 阶段自动轮询（4s）展示镜头级进度；轮询中断/页面刷新后恢复轮询即可续看
  */
@@ -22,11 +25,25 @@ function makeQuickVideoStore(projectId: string) {
     const loadingHistory = ref(false);
     let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-    const { connected, messages, chat, stopGenerate, socket, status, disconnect, connect, isGenerating } = useChat({
+    // ===== 会话（session，SIY-128） =====
+    const sessions = ref<QuickVideoSession[]>([]);
+    const loadingSessions = ref(false);
+    const currentSessionId = ref<number | null>(null);
+    const currentSession = computed<QuickVideoSession | null>(() => sessions.value.find((s) => s.id === currentSessionId.value) ?? null);
+    /** 当前会话保存的三类模型偏好；未选中会话或会话未设置过偏好时为空字符串 */
+    const modelPreferences = computed(() => ({
+      text: currentSession.value?.textModel || "",
+      image: currentSession.value?.imageModel || "",
+      video: currentSession.value?.videoModel || "",
+    }));
+
+    const { connected, messages, chat, stopGenerate, socket, status, disconnect, connect, clearMessages, isGenerating } = useChat({
       url: `${settingStore().baseUrl}/socket/quickVideoAgent`,
+      // 只传 projectId + sessionId，不再由客户端拼隔离键：服务端会校验 sessionId
+      // 真实属于该 projectId 后才据此构造 Agent 记忆隔离键，拒绝跨项目/跨会话访问。
       auth: () => ({
-        isolationKey: `${projectId}:quickVideoAgent`,
-        projectId: projectId,
+        projectId: Number(projectId),
+        sessionId: currentSessionId.value,
       }),
       manageLifecycle: false,
       autoConnect: false,
@@ -78,6 +95,72 @@ function makeQuickVideoStore(projectId: string) {
     }
 
     /**
+     * 加载会话列表（按 update_time 倒序，存量项目没有会话时由服务端自动补建默认会话）。
+     * 当前选中的会话若仍在返回列表中则保持不变（避免刷新时因活跃度排序变化跳到别的会话）；
+     * 否则默认选中第一个非归档会话（全部归档时选列表第一条）。
+     */
+    async function loadSessions(): Promise<QuickVideoSession[]> {
+      loadingSessions.value = true;
+      try {
+        const response = await axios.post("/quickVideo/listSessions", { projectId: Number(projectId) });
+        const payload = response?.data ?? response;
+        if (payload && payload.code && payload.code !== 200) throw new Error(payload.message ?? "listSessions failed");
+        sessions.value = payload?.sessions ?? [];
+
+        if (!sessions.value.some((s) => s.id === currentSessionId.value)) {
+          const defaultSession = sessions.value.find((s) => s.status === "active") ?? sessions.value[0] ?? null;
+          currentSessionId.value = defaultSession?.id ?? null;
+        }
+      } finally {
+        loadingSessions.value = false;
+      }
+      return sessions.value;
+    }
+
+    /** 新建会话并立即切换到它；模型偏好从项目当前配置继承一次，之后独立编辑 */
+    async function createSession(title?: string): Promise<QuickVideoSession> {
+      const response = await axios.post("/quickVideo/createSession", { projectId: Number(projectId), title });
+      const payload = response?.data ?? response;
+      if (payload && payload.code && payload.code !== 200) throw new Error(payload.message ?? "创建会话失败");
+      const created: QuickVideoSession = payload.session;
+      sessions.value = [created, ...sessions.value];
+      await switchSession(created.id);
+      return created;
+    }
+
+    /** 重命名会话标题，或归档/恢复会话 */
+    async function updateSession(sessionId: number, patch: { title?: string; status?: QuickVideoSessionStatus }): Promise<QuickVideoSession> {
+      const response = await axios.post("/quickVideo/updateSession", { projectId: Number(projectId), sessionId, ...patch });
+      const payload = response?.data ?? response;
+      if (payload && payload.code && payload.code !== 200) throw new Error(payload.message ?? "更新会话失败");
+      const updated: QuickVideoSession = payload.session;
+      sessions.value = sessions.value.map((s) => (s.id === updated.id ? updated : s));
+      return updated;
+    }
+
+    /**
+     * 切换当前会话：清空聊天消息与 socket 内部私有状态，重新建立 socket 连接
+     * （握手时 auth() 会读取新的 currentSessionId，服务端据此重新拼出隔离键），
+     * 并重新拉取该会话的历史记录。
+     *
+     * useChat 的 auth 只在首次创建 socket 实例时读取一次，之后 connect() 只会
+     * 复用旧连接，因此必须先 disconnect + 把 socket 置空，下一次 connect() 才会
+     * 真正用新会话重新握手，而不是继续用旧会话的连接收发消息。
+     */
+    async function switchSession(sessionId: number) {
+      if (sessionId === currentSessionId.value) return;
+      if (!sessions.value.some((s) => s.id === sessionId)) throw new Error("会话不存在");
+
+      disconnect();
+      socket.value = null;
+      clearMessages();
+      currentSessionId.value = sessionId;
+
+      connect();
+      await getHistory();
+    }
+
+    /**
      * Restore the user-visible conversation from the Agent memory table.
      * This endpoint only reads persisted messages, so restoring history never
      * starts another Agent turn. A failed history request is intentionally
@@ -85,12 +168,15 @@ function makeQuickVideoStore(projectId: string) {
      */
     async function getHistory() {
       if (loadingHistory.value) return messages.value;
+      const sessionId = currentSessionId.value;
+      if (!sessionId) return messages.value;
 
       loadingHistory.value = true;
       try {
         const response = await axios.post("/agents/getMemory", {
           projectId: Number(projectId),
           agentType: "quickVideoAgent",
+          sessionId,
           limit: CHAT_HISTORY_LIMIT,
         });
         const payload = response?.data ?? response;
@@ -110,6 +196,39 @@ function makeQuickVideoStore(projectId: string) {
       }
 
       return messages.value;
+    }
+
+    /**
+     * 保存当前会话的某一类模型偏好（文本/图片/视频），乐观更新本地状态，
+     * 失败时回滚；不新建、不切换 session_id，也不影响其他会话已保存的偏好。
+     */
+    async function setModelPreference(type: "text" | "image" | "video", value: string) {
+      const sessionId = currentSessionId.value;
+      const target = sessions.value.find((s) => s.id === sessionId);
+      if (!target) return;
+
+      const previous = { textModel: target.textModel, imageModel: target.imageModel, videoModel: target.videoModel };
+      const next = { ...modelPreferences.value, [type]: value };
+      target.textModel = next.text;
+      target.imageModel = next.image;
+      target.videoModel = next.video;
+
+      try {
+        const response = await axios.post("/quickVideo/updateModels", {
+          projectId: Number(projectId),
+          sessionId,
+          textModel: next.text,
+          imageModel: next.image,
+          videoModel: next.video,
+        });
+        const payload = response?.data ?? response;
+        if (payload && payload.code && payload.code !== 200) throw new Error(payload.message ?? "保存模型偏好失败");
+      } catch (error) {
+        console.error("[quickVideo] 保存模型偏好失败", error);
+        target.textModel = previous.textModel;
+        target.imageModel = previous.imageModel;
+        target.videoModel = previous.videoModel;
+      }
     }
 
     /** 时间线装配查询（ready_to_assemble / completed 阶段）：规划 + 字幕 + 视频地址 */
@@ -147,6 +266,16 @@ function makeQuickVideoStore(projectId: string) {
       getHistory,
       getMediaUrls,
       getTimeline,
+      sessions,
+      loadingSessions,
+      currentSessionId,
+      currentSession,
+      modelPreferences,
+      loadSessions,
+      createSession,
+      updateSession,
+      switchSession,
+      setModelPreference,
     };
   });
 }

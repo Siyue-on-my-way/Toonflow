@@ -1,12 +1,13 @@
 import express from "express";
 import { z } from "zod";
 import u from "@/utils";
-import { success } from "@/lib/responseFormat";
+import { success, error } from "@/lib/responseFormat";
 import { validateFields } from "@/middleware/middleware";
 import { QuickVideoError, mutateQuickVideoState, loadQuickVideoState } from "@/lib/quickVideo/state";
 import { validateStoryboard } from "@/lib/quickVideo/contract";
 import { buildSnapshot, applySnapshotToState, startQuickVideoGeneration } from "@/lib/quickVideo/generate";
 import { recordEvent, qvLog } from "@/lib/quickVideo/metrics";
+import { getOwnedSession } from "@/lib/quickVideo/session";
 
 const router = express.Router();
 
@@ -18,11 +19,14 @@ const router = express.Router();
  *              reject 清除素材确认（停在 storyboard_confirmed，可重新解析素材）
  * - export     成片导出确认：ready_to_assemble -> completed（装配/导出由后续任务接入）
  * 仅用户可推进确认门；Agent 工具无权调用本接口。门的判定全部在服务端完成。
+ * sessionId 必须真实属于该项目（校验跨项目/非法引用）；素材确认门据此把生成模型偏好定位到当前会话，
+ * 并把触发该次写入的会话留痕到 o_agentWorkData.sessionId。
  */
 export default router.post(
   "/",
   validateFields({
     projectId: z.number(),
+    sessionId: z.number(),
     expectedVersion: z.number().int().min(1),
     idempotencyKey: z.string().min(8).max(64),
     gate: z.enum(["brief", "storyboard", "materials", "export"]),
@@ -37,10 +41,16 @@ export default router.post(
       .optional(),
   }),
   async (req, res) => {
-    const { projectId, expectedVersion, idempotencyKey, gate, action, exportInfo } = req.body;
+    const { projectId, sessionId, expectedVersion, idempotencyKey, gate, action, exportInfo } = req.body;
+    try {
+      await getOwnedSession(projectId, sessionId);
+    } catch (err) {
+      if (err instanceof QuickVideoError) return res.status(200).send(error(err.message));
+      throw err;
+    }
     let shouldStartGeneration = false;
     try {
-      const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, async (state) => {
+      const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey, sessionId }, async (state) => {
         if (gate === "brief") {
           if (!state.brief) throw new QuickVideoError("NO_BRIEF", "暂无简报，无法操作", state.version);
           if (action === "confirm") {
@@ -140,7 +150,7 @@ export default router.post(
       // 用户可通过失败镜头重试或 Agent 的 generate_shots 幂等重启）
       if (shouldStartGeneration && !result.idempotentHit) {
         try {
-          const start = await startQuickVideoGeneration(projectId, (req as any).user?.id ?? 1);
+          const start = await startQuickVideoGeneration(projectId, (req as any).user?.id ?? 1, sessionId);
           if (start.started) console.log(`[quickVideo] 项目 ${projectId} 生成已启动（${start.runId}）`);
         } catch (err: any) {
           console.error(`[quickVideo] 项目 ${projectId} 确认后启动生成失败:`, u.error(err).message);

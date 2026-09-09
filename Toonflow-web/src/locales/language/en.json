@@ -1608,6 +1608,16 @@
       "generateVideo": "Generate video"
     },
     "quickVideo": {
+      "sessions": {
+        "title": "Sessions",
+        "create": "New session",
+        "empty": "No sessions yet",
+        "rename": "Rename",
+        "archive": "Archive",
+        "unarchive": "Unarchive",
+        "archivedTag": "Archived",
+        "defaultTitle": "Default session"
+      },
       "welcomeMsg": "Hi! I'm your Quick Video assistant. Give me a one-line idea or paste a draft script, and I'll create a brief and a 15-60s storyboard for you.",
       "inputPlaceholder": "Describe the short video you want, e.g. a 15s promo for a new milk tea",
       "targetDuration": "Target duration",

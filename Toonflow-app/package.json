@@ -33,7 +33,8 @@
     "debug:ai": "npx @ai-sdk/devtools",
     "license": "node scripts/license.ts",
     "vendor2json": "node scripts/vendor2json.ts",
-    "test:aibotplatform": "tsx tests/aibotplatform.test.ts"
+    "test:aibotplatform": "tsx tests/aibotplatform.test.ts",
+    "test:quickvideo-session": "tsx scripts/quickvideo-session-unit.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.35",

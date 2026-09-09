@@ -205,3 +205,21 @@ export interface QuickVideoReject {
   message: string;
   currentVersion: number | null;
 }
+
+// ---------------------------------------------------------------------------
+// 会话（session，与后端 src/lib/quickVideo/session.ts 保持一致，SIY-128）
+// ---------------------------------------------------------------------------
+
+export type QuickVideoSessionStatus = "active" | "archived";
+
+export interface QuickVideoSession {
+  id: number;
+  projectId: number;
+  title: string | null;
+  status: QuickVideoSessionStatus;
+  textModel: string | null;
+  imageModel: string | null;
+  videoModel: string | null;
+  createTime: number;
+  updateTime: number;
+}

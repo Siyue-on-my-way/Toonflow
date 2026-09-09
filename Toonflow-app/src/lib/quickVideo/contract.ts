@@ -415,3 +415,15 @@ export function recordIdempotencyKey(state: QuickVideoState, key: string): boole
   state.appliedKeys = next;
   return true;
 }
+
+// ---------------------------------------------------------------------------
+// 会话隔离键（SIY-128）
+// ---------------------------------------------------------------------------
+
+/**
+ * 会话隔离键：Agent 记忆表 isolationKey 与 Socket 隔离统一使用该格式。
+ * 纯函数，不依赖数据库，供后端与单元测试直接引用。
+ */
+export function buildSessionIsolationKey(projectId: number, sessionId: number): string {
+  return `${projectId}:quickVideoAgent:${sessionId}`;
+}

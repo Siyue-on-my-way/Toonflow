@@ -6,6 +6,7 @@ import { success } from "@/lib/responseFormat";
 import { validateFields } from "@/middleware/middleware";
 import { QUICK_VIDEO_PROJECT_TYPE, QUICK_VIDEO_RATIOS, QuickVideoState } from "@/lib/quickVideo/contract";
 import { findProjectByCreateIdempotencyKey, initQuickVideoStateRow } from "@/lib/quickVideo/state";
+import { createQuickVideoSession } from "@/lib/quickVideo/session";
 
 const router = express.Router();
 
@@ -36,7 +37,7 @@ export default router.post(
       return res.status(200).send(success({ projectId: existingProjectId, existed: true, project }));
     }
 
-    const projectId = await knexDb.transaction(async (trx) => {
+    const { projectId, session } = await knexDb.transaction(async (trx) => {
       const maxRow = await trx("o_project").max("id as maxId").first();
       const id = Number(maxRow?.maxId ?? 0) + 1;
 
@@ -70,8 +71,10 @@ export default router.post(
       }
 
       await initQuickVideoStateRow(trx, { projectId: id, idempotencyKey, targetDuration, videoRatio, artStyle });
+      const createdSession = await createQuickVideoSession(id, { trx });
+      await trx("o_agentWorkData").where({ projectId: id, key: "quickVideoAgent" }).update({ sessionId: createdSession.id });
 
-      return id;
+      return { projectId: id, session: createdSession };
     });
 
     const project = await u.db("o_project").where("id", projectId).first();
@@ -80,6 +83,6 @@ export default router.post(
       return row && row.data ? JSON.parse(row.data) : null;
     })();
 
-    res.status(200).send(success({ projectId, existed: false, project, state }));
+    res.status(200).send(success({ projectId, existed: false, project, state, session }));
   },
 );

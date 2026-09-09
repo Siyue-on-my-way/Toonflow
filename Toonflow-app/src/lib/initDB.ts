@@ -1173,6 +1173,23 @@ export default async (knex: Knex, forceInit: boolean = false): Promise<void> => 
         table.index(["type", "styleName"]);
       },
     },
+    // 单视频快创（SIY-128）：项目内可切换的聊天会话；文本/图片/视频模型偏好按 session 隔离保存
+    {
+      name: "o_quickVideoSession",
+      builder: (table) => {
+        table.integer("id").notNullable();
+        table.integer("projectId").notNullable();
+        table.string("title", 200);
+        table.string("status", 16).defaultTo("active"); // 'active' | 'archived'
+        table.string("textModel", 500);
+        table.string("imageModel", 500);
+        table.string("videoModel", 500);
+        table.bigInteger("createTime");
+        table.bigInteger("updateTime");
+        table.unique(["id"]);
+        table.index(["projectId", "updateTime"]);
+      },
+    },
   ];
 
   for (const t of tables) {

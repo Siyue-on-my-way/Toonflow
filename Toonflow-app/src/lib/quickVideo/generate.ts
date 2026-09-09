@@ -179,10 +179,12 @@ async function findFirstAvailableModel(type: "image" | "video"): Promise<string>
   return "";
 }
 
-export async function resolveGenerationModels(projectId: number): Promise<{ imageModel: string; videoModel: string }> {
+export async function resolveGenerationModels(projectId: number, sessionId?: number | null): Promise<{ imageModel: string; videoModel: string }> {
   const project = await u.db("o_project").where("id", projectId).first();
-  let imageModel = String(project?.imageModel ?? "");
-  let videoModel = String(project?.videoModel ?? "");
+  const session = sessionId ? await u.db("o_quickVideoSession").where({ id: sessionId, projectId }).first() : null;
+  // 会话内保存的偏好优先；未设置时回退项目历史默认值（兼容尚未迁移/未设置过偏好的会话）
+  let imageModel = String(session?.imageModel || project?.imageModel || "");
+  let videoModel = String(session?.videoModel || project?.videoModel || "");
   if (!imageModel) imageModel = await findFirstAvailableModel("image");
   if (!videoModel) videoModel = await findFirstAvailableModel("video");
   if (!imageModel || !videoModel) {
@@ -202,6 +204,7 @@ export async function resolveGenerationModels(projectId: number): Promise<{ imag
 export async function startQuickVideoGeneration(
   projectId: number,
   userId: number,
+  sessionId?: number | null,
 ): Promise<{ started: boolean; alreadyRunning: boolean; runId: string }> {
   const active = runningGenerations.get(projectId);
   if (active) return { started: false, alreadyRunning: true, runId: active.runId };
@@ -218,7 +221,7 @@ export async function startQuickVideoGeneration(
   const runId = `run-${u.uuid().slice(0, 8)}`;
   runningGenerations.set(projectId, { runId });
   try {
-    await mutateQuickVideoState(projectId, {}, (s) => {
+    await mutateQuickVideoState(projectId, { sessionId: sessionId ?? undefined }, (s) => {
       s.generation.runId = runId;
       s.generation.startedAt = Date.now();
       s.generation.finishedAt = null;
@@ -227,7 +230,7 @@ export async function startQuickVideoGeneration(
     console.error(`[quickVideo] 写入运行 ID 失败:`, u.error(err as Error).message);
   }
   // 分离运行：接口立刻返回，进度通过状态轮询观察
-  runGeneration(projectId, userId, runId)
+  runGeneration(projectId, userId, runId, sessionId)
     .catch((err) => console.error(`[quickVideo] 生成运行 ${runId} 异常终止:`, u.error(err).message))
     .finally(() => {
       if (runningGenerations.get(projectId)?.runId === runId) runningGenerations.delete(projectId);
@@ -240,7 +243,7 @@ export async function startQuickVideoGeneration(
  * 重试镜头：重置失败（或中断遗留 pending/generating）镜头的状态并单独重建任务。
  * 已成功（done）的镜头不会被重置，其他镜头任务不受影响。
  */
-export async function retryQuickVideoShots(projectId: number, userId: number, shotIds: string[]) {
+export async function retryQuickVideoShots(projectId: number, userId: number, shotIds: string[], sessionId?: number | null) {
   const state = await loadQuickVideoState(projectId);
   if (!state) throw new QuickVideoError("STATE_NOT_FOUND", "未找到 quickVideoAgent 状态");
   if (state.stage !== "generating") {
@@ -266,7 +269,7 @@ export async function retryQuickVideoShots(projectId: number, userId: number, sh
 
   // 重试是显式的新动作：不记幂等键（同镜头可反复重试）；done 镜头已在上方拦截
   const runId = `retry-${u.uuid().slice(0, 8)}`;
-  const { state: next } = await mutateQuickVideoState(projectId, {}, (s) => {
+  const { state: next } = await mutateQuickVideoState(projectId, { sessionId: sessionId ?? undefined }, (s) => {
     s.generation.runId = runId;
     for (const shotId of shotIds) {
       const shot = s.storyboard?.shots.find((x) => x.id === shotId);
@@ -279,17 +282,17 @@ export async function retryQuickVideoShots(projectId: number, userId: number, sh
   });
 
   for (const shotId of shotIds) {
-    launchShotPipeline(projectId, userId, runId, shotId);
+    launchShotPipeline(projectId, userId, runId, shotId, sessionId);
   }
   return { state: next, retried: shotIds, runId };
 }
 
 /** 启动单镜头管线（登记 + 分离运行），重复启动会被登记挡下 */
-function launchShotPipeline(projectId: number, userId: number, runId: string, shotId: string) {
+function launchShotPipeline(projectId: number, userId: number, runId: string, shotId: string, sessionId?: number | null) {
   const key = `${projectId}:${shotId}`;
   if (runningShots.has(key)) return;
   runningShots.set(key, { runId });
-  runShotPipeline(projectId, userId, shotId)
+  runShotPipeline(projectId, userId, shotId, undefined, sessionId)
     .catch((err) => console.error(`[quickVideo] 镜头 ${shotId} 管线异常:`, u.error(err).message))
     .finally(() => {
       runningShots.delete(key);
@@ -352,9 +355,10 @@ interface GenerationContext {
   snapshot: QuickVideoGenerationSnapshot;
   imageModel: string;
   videoModel: string;
+  sessionId?: number | null;
 }
 
-async function runGeneration(projectId: number, userId: number, runId: string) {
+async function runGeneration(projectId: number, userId: number, runId: string, sessionId?: number | null) {
   const state = await loadQuickVideoState(projectId);
   const snapshot = state?.generation?.snapshot;
   if (!snapshot) {
@@ -364,13 +368,13 @@ async function runGeneration(projectId: number, userId: number, runId: string) {
 
   let models: { imageModel: string; videoModel: string };
   try {
-    models = await resolveGenerationModels(projectId);
+    models = await resolveGenerationModels(projectId, sessionId);
   } catch (err) {
     await markShotsFailed(projectId, snapshot.shots.map((s) => s.id), u.error(err as Error).message);
     return;
   }
 
-  const ctx: GenerationContext = { projectId, userId, runId, snapshot, ...models };
+  const ctx: GenerationContext = { projectId, userId, runId, snapshot, sessionId, ...models };
 
   // 先补齐需要生成的素材图（同一素材只生成一次，供引用它的镜头做参考图）
   await ensureMaterialImages(ctx);
@@ -450,7 +454,7 @@ async function ensureMaterialImages(ctx: GenerationContext) {
 }
 
 /** 单镜头管线：分镜图（未完成时）→ 5-15 秒视频片段（图生视频） */
-async function runShotPipeline(projectId: number, userId: number, shotId: string, presetCtx?: GenerationContext) {
+async function runShotPipeline(projectId: number, userId: number, shotId: string, presetCtx?: GenerationContext, sessionId?: number | null) {
   const state = await loadQuickVideoState(projectId);
   const snapshot = state?.generation?.snapshot;
   const liveShot = state?.storyboard?.shots.find((s) => s.id === shotId);
@@ -461,8 +465,8 @@ async function runShotPipeline(projectId: number, userId: number, shotId: string
   const ctx =
     presetCtx ??
     (await (async () => {
-      const models = await resolveGenerationModels(projectId);
-      return { projectId, userId, runId: `retry-${u.uuid().slice(0, 8)}`, snapshot, ...models } as GenerationContext;
+      const models = await resolveGenerationModels(projectId, sessionId);
+      return { projectId, userId, runId: `retry-${u.uuid().slice(0, 8)}`, snapshot, sessionId, ...models } as GenerationContext;
     })());
 
   // --- 分镜图 ---

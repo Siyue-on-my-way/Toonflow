@@ -3,6 +3,22 @@
     <Splitpanes class="default-theme data f">
       <Pane :size="30" :min-size="15" class="operate">
         <div class="box pr">
+          <SessionList
+            :sessions="sessions"
+            :current-session-id="currentSessionId"
+            :loading="loadingSessions"
+            :title="$t('workbench.quickVideo.sessions.title')"
+            :create-text="$t('workbench.quickVideo.sessions.create')"
+            :empty-text="$t('workbench.quickVideo.sessions.empty')"
+            :rename-text="$t('workbench.quickVideo.sessions.rename')"
+            :archive-text="$t('workbench.quickVideo.sessions.archive')"
+            :unarchive-text="$t('workbench.quickVideo.sessions.unarchive')"
+            :archived-text="$t('workbench.quickVideo.sessions.archivedTag')"
+            :default-title-text="$t('workbench.quickVideo.sessions.defaultTitle')"
+            @select="handleSessionSelect"
+            @create="handleSessionCreate"
+            @rename="handleSessionRename"
+            @toggle-archive="handleSessionToggleArchive" />
           <t-chat-list :clear-history="false">
             <t-chat-message
               v-for="message in messages"
@@ -468,8 +484,9 @@ import { Splitpanes, Pane } from "splitpanes";
 import axios from "@/utils/axios";
 import projectStore from "@/stores/project";
 import quickVideoStore from "@/stores/quickVideo";
-import type { QuickVideoStage, QuickVideoShot } from "@/types/quickVideo";
+import type { QuickVideoStage, QuickVideoShot, QuickVideoSession } from "@/types/quickVideo";
 import modelSelect from "@/components/modelSelect.vue";
+import SessionList from "./components/SessionList.vue";
 import dayjs from "dayjs";
 import ExportProgress from "./ExportProgress.vue";
 import { useTimelinePlayer } from "./timelinePlayer";
@@ -477,103 +494,60 @@ import { estimateExportBytes, formatBytes, formatTime } from "./timelineCore";
 
 const { project } = storeToRefs(projectStore());
 const quickVideoStoreRef = quickVideoStore();
-const { connected, messages, status, workbench, state, loadingWorkbench } = storeToRefs(quickVideoStoreRef);
-const { stopGenerate, getWorkbench, getHistory, getMediaUrls, getTimeline } = quickVideoStoreRef;
+const { connected, messages, status, workbench, state, loadingWorkbench, sessions, loadingSessions, currentSessionId, modelPreferences } = storeToRefs(quickVideoStoreRef);
+const { stopGenerate, getWorkbench, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference } = quickVideoStoreRef;
 
 const inputValue = ref("");
 
 type QuickVideoModelType = "text" | "image" | "video";
-type QuickVideoModelPreferences = Record<QuickVideoModelType, string>;
 
-const modelPreferences = ref<QuickVideoModelPreferences>({
-  text: project.value?.textModel || "",
-  image: project.value?.imageModel || "",
-  video: project.value?.videoModel || "",
-});
 const activeModelType = ref<QuickVideoModelType>("text");
-const modelPreferencesLoaded = ref(false);
-const modelPreferencesKey = computed(() => (project.value?.id ? `quick-video-models:${project.value.id}` : ""));
-let modelPreferencesSaveTimer: ReturnType<typeof setTimeout> | null = null;
 const activeModel = computed<string>({
   get: () => modelPreferences.value[activeModelType.value],
   set: (value) => {
-    modelPreferences.value[activeModelType.value] = value || "";
+    void setModelPreference(activeModelType.value, value || "");
   },
 });
 
-function loadModelPreferences() {
-  const key = modelPreferencesKey.value;
-  if (!key) return;
-
-  const fallback: QuickVideoModelPreferences = {
-    text: project.value?.textModel || "",
-    image: project.value?.imageModel || "",
-    video: project.value?.videoModel || "",
-  };
+async function handleSessionSelect(sessionId: number) {
   try {
-    const saved = JSON.parse(localStorage.getItem(key) || "null");
-    if (saved && typeof saved === "object") {
-      (Object.keys(fallback) as QuickVideoModelType[]).forEach((type) => {
-        if (typeof saved[type] === "string") fallback[type] = saved[type];
-      });
-    }
-  } catch {
-    // Ignore malformed local preferences and fall back to the project defaults.
+    await switchSession(sessionId);
+  } catch (e: any) {
+    window.$message.error(e?.message ?? $t("workbench.quickVideo.opFailed"));
   }
-  modelPreferences.value = fallback;
-  modelPreferencesLoaded.value = true;
 }
 
-function saveModelPreferences(preferences: QuickVideoModelPreferences) {
-  const projectId = project.value?.id;
-  if (!projectId) return;
-  if (modelPreferencesSaveTimer) clearTimeout(modelPreferencesSaveTimer);
-
-  const snapshot = { ...preferences };
-  modelPreferencesSaveTimer = setTimeout(async () => {
-    try {
-      // 后端字段名为 textModel/imageModel/videoModel（与 o_project 列一致），
-      // 本地偏好键是 text/image/video，发请求时需要做映射。
-      const response: any = await axios.post("/quickVideo/updateModels", {
-        projectId: Number(projectId),
-        textModel: snapshot.text,
-        imageModel: snapshot.image,
-        videoModel: snapshot.video,
-      });
-      if (response?.code && response.code !== 200) throw new Error(response.message || "保存模型偏好失败");
-      if (project.value && String(project.value.id) === String(projectId)) {
-        project.value.textModel = snapshot.text;
-        project.value.imageModel = snapshot.image;
-        project.value.videoModel = snapshot.video;
-      }
-    } catch (error) {
-      // Local storage still keeps the selection available if the project API is temporarily offline.
-      console.error("[quickVideo] 保存模型偏好失败", error);
-    } finally {
-      modelPreferencesSaveTimer = null;
-    }
-  }, 180);
+async function handleSessionCreate() {
+  try {
+    await createSession();
+  } catch (e: any) {
+    window.$message.error(e?.message ?? $t("workbench.quickVideo.opFailed"));
+  }
 }
 
-watch(
-  modelPreferences,
-  (preferences) => {
-    const key = modelPreferencesKey.value;
-    if (!modelPreferencesLoaded.value || !key) return;
-    localStorage.setItem(key, JSON.stringify(preferences));
-    saveModelPreferences(preferences);
-  },
-  { deep: true },
-);
+async function handleSessionRename(sessionId: number, title: string) {
+  try {
+    await updateSession(sessionId, { title });
+  } catch (e: any) {
+    window.$message.error(e?.message ?? $t("workbench.quickVideo.opFailed"));
+  }
+}
 
-watch(
-  () => project.value?.id,
-  () => loadModelPreferences(),
-  { immediate: true },
-);
+async function handleSessionToggleArchive(sessionId: number) {
+  const target = sessions.value.find((s: QuickVideoSession) => s.id === sessionId);
+  if (!target) return;
+  try {
+    await updateSession(sessionId, { status: target.status === "archived" ? "active" : "archived" });
+  } catch (e: any) {
+    window.$message.error(e?.message ?? $t("workbench.quickVideo.opFailed"));
+  }
+}
 
-onMounted(() => {
+onMounted(async () => {
   getWorkbench();
+  // 会话列表必须先加载完成、确定当前 session 后才能建立 socket 连接和拉取历史——
+  // 否则握手时 sessionId 为空，会被服务端拒绝。
+  await loadSessions();
   quickVideoStoreRef.connect();
   // History restoration is a read-only request and is deliberately handled
   // independently from the socket so a chat connection failure cannot block
@@ -591,8 +565,7 @@ const defMsg = [
 if (messages.value.length <= 0) messages.value = [...defMsg, ...messages.value] as any;
 
 function handleSend(text: string) {
-  // The socket isolation key remains `${projectId}:quickVideoAgent`; only the
-  // selected text model changes, so switching models does not reset Agent memory.
+  // 切换文本模型不会新建或切换 session_id；socket 隔离键由服务端按当前会话固定。
   quickVideoStoreRef.chat(text, undefined, modelPreferences.value.text || undefined);
   inputValue.value = "";
 }
@@ -685,6 +658,7 @@ function confirmGate(gate: "brief" | "storyboard" | "materials" | "export", acti
   if (!state.value) return;
   callQuickVideoApi("/quickVideo/confirmStage", {
     projectId: Number(project.value?.id),
+    sessionId: currentSessionId.value,
     expectedVersion: state.value.version,
     idempotencyKey: newIdemKey(),
     gate,
@@ -811,6 +785,7 @@ async function retryShots(shotIds: string[]) {
   try {
     await callQuickVideoApi("/quickVideo/retryShot", {
       projectId: Number(project.value?.id),
+      sessionId: currentSessionId.value,
       shotIds,
     });
   } finally {
@@ -1001,6 +976,7 @@ async function startExport() {
     // 成片导出确认门：编码成功后回写导出结果并落定 completed
     await callQuickVideoApi("/quickVideo/confirmStage", {
       projectId: Number(project.value?.id),
+      sessionId: currentSessionId.value,
       expectedVersion: state.value.version,
       idempotencyKey: newIdemKey(),
       gate: "export",

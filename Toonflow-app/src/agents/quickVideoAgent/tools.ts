@@ -23,6 +23,7 @@ import { startQuickVideoGeneration } from "@/lib/quickVideo/generate";
 interface ToolConfig {
   resTool: ResTool;
   msg: ReturnType<ResTool["newMessage"]>;
+  sessionId: number;
 }
 
 /** 工具内统一错误转文本，避免 Agent 因异常中断 */
@@ -47,7 +48,7 @@ async function withThinking<T>(msg: ReturnType<ResTool["newMessage"]>, title: st
 }
 
 export default (toolConfig: ToolConfig) => {
-  const { msg } = toolConfig;
+  const { msg, sessionId } = toolConfig;
   const projectId = Number(toolConfig.resTool.data.projectId);
   const userId = Number(toolConfig.resTool.data.userId ?? 0) || 1;
 
@@ -100,7 +101,7 @@ export default (toolConfig: ToolConfig) => {
         return withThinking(msg, "正在保存简报...", async () => {
           const { state, idempotentHit } = await mutateQuickVideoState(
             projectId,
-            { idempotencyKey: `tool:save_brief:${toolCallId}` },
+            { idempotencyKey: `tool:save_brief:${toolCallId}`, sessionId },
             (s) => {
               if (!["collect_brief", "brief_confirmed", "storyboard_draft"].includes(s.stage)) {
                 throw new QuickVideoError("STAGE_FORBIDDEN", `当前阶段 ${s.stage} 不允许修改简报`, s.version);
@@ -165,7 +166,7 @@ export default (toolConfig: ToolConfig) => {
 
           const { state, idempotentHit } = await mutateQuickVideoState(
             projectId,
-            { idempotencyKey: `tool:propose_storyboard:${toolCallId}` },
+            { idempotencyKey: `tool:propose_storyboard:${toolCallId}`, sessionId },
             (s) => {
               if (!s.brief) throw new QuickVideoError("NO_BRIEF", "请先用 save_brief 保存简报", s.version);
               if (!["brief_confirmed", "storyboard_draft"].includes(s.stage)) {
@@ -237,7 +238,7 @@ export default (toolConfig: ToolConfig) => {
         return withThinking(msg, `正在修改镜头 ${input.shotId}...`, async () => {
           const { state, idempotentHit } = await mutateQuickVideoState(
             projectId,
-            { idempotencyKey: `tool:update_shot:${toolCallId}` },
+            { idempotencyKey: `tool:update_shot:${toolCallId}`, sessionId },
             (s) => {
               if (!s.storyboard || s.storyboard.status !== "draft") {
                 throw new QuickVideoError("STORYBOARD_LOCKED", "分镜不存在或已确认锁定，不允许修改镜头", s.version);
@@ -276,7 +277,7 @@ export default (toolConfig: ToolConfig) => {
         return withThinking(msg, "正在追加镜头...", async () => {
           const { state, idempotentHit } = await mutateQuickVideoState(
             projectId,
-            { idempotencyKey: `tool:add_shot:${toolCallId}` },
+            { idempotencyKey: `tool:add_shot:${toolCallId}`, sessionId },
             (s) => {
               if (!s.storyboard || s.storyboard.status !== "draft") {
                 throw new QuickVideoError("STORYBOARD_LOCKED", "分镜不存在或已确认锁定，不允许追加镜头", s.version);
@@ -319,7 +320,7 @@ export default (toolConfig: ToolConfig) => {
         return withThinking(msg, `正在删除镜头 ${input.shotId}...`, async () => {
           const { state, idempotentHit } = await mutateQuickVideoState(
             projectId,
-            { idempotencyKey: `tool:remove_shot:${toolCallId}` },
+            { idempotencyKey: `tool:remove_shot:${toolCallId}`, sessionId },
             (s) => {
               if (!s.storyboard || s.storyboard.status !== "draft") {
                 throw new QuickVideoError("STORYBOARD_LOCKED", "分镜不存在或已确认锁定，不允许删除镜头", s.version);
@@ -355,7 +356,7 @@ export default (toolConfig: ToolConfig) => {
         return withThinking(msg, `正在为镜头 ${input.shotId} 绑定资产...`, async () => {
           const { state, idempotentHit } = await mutateQuickVideoState(
             projectId,
-            { idempotencyKey: `tool:bind_asset:${toolCallId}` },
+            { idempotencyKey: `tool:bind_asset:${toolCallId}`, sessionId },
             (s) => {
               if (!s.storyboard || s.storyboard.status !== "draft") {
                 throw new QuickVideoError("STORYBOARD_LOCKED", "分镜不存在或已确认锁定，不允许绑定资产", s.version);
@@ -411,7 +412,7 @@ export default (toolConfig: ToolConfig) => {
             if (!state.generation?.materialsConfirmed) {
               return "处于生成阶段但素材/成本确认状态异常，请让用户在右侧面板重新操作确认门。";
             }
-            const { started, alreadyRunning, runId } = await startQuickVideoGeneration(projectId, userId);
+            const { started, alreadyRunning, runId } = await startQuickVideoGeneration(projectId, userId, sessionId);
             if (started) {
               return `生成已重新启动（运行 ${runId}）。请提醒用户右侧面板会实时展示各镜头进度；失败镜头可单独重试。`;
             }
@@ -424,7 +425,7 @@ export default (toolConfig: ToolConfig) => {
             if (!state.generation?.materialsConfirmed) {
               return "分镜已确认，但素材/成本确认门尚未通过。请提醒用户在右侧「素材与成本」面板查看解析结果与预估费用，确认后系统会自动开始逐镜头生成。";
             }
-            const { started, alreadyRunning, runId } = await startQuickVideoGeneration(projectId, userId);
+            const { started, alreadyRunning, runId } = await startQuickVideoGeneration(projectId, userId, sessionId);
             if (started) return `生成已启动（运行 ${runId}），系统将逐镜头生成分镜图和视频片段。`;
             if (alreadyRunning) return `生成已在进行中（运行 ${runId}）。`;
           }
