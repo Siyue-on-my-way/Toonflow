@@ -2,7 +2,7 @@ import axios from "@/utils/axios";
 import projectStore from "@/stores/project";
 import settingStore from "@/stores/setting";
 import { useChat } from "@/utils/useChat";
-import type { QuickVideoState, QuickVideoWorkbench } from "@/types/quickVideo";
+import type { QuickVideoConfigPatch, QuickVideoReject, QuickVideoState, QuickVideoWorkbench } from "@/types/quickVideo";
 
 /**
  * 单视频快创工作台 store：
@@ -75,6 +75,41 @@ function makeQuickVideoStore(projectId: string) {
       return workbench.value;
     }
 
+    /** 更新快创项目基础配置，使用状态版本做乐观锁校验。 */
+    async function updateConfig(
+      patch: QuickVideoConfigPatch,
+    ): Promise<
+      | { ok: true; state: QuickVideoState | null; project: QuickVideoWorkbench["project"] }
+      | { ok: false; error: QuickVideoReject }
+    > {
+      const current = state.value;
+      if (!current) {
+        return { ok: false, error: { code: "STATE_NOT_FOUND", message: "未找到 quickVideoAgent 状态", currentVersion: null } };
+      }
+
+      const response: any = await axios.post("/quickVideo/updateConfig", {
+        projectId: Number(projectId),
+        expectedVersion: current.version,
+        idempotencyKey: `web-config-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+        patch,
+      });
+
+      if (response?.code !== 200) {
+        await getWorkbench();
+        return {
+          ok: false,
+          error: {
+            code: String(response?.code ?? "UPDATE_CONFIG_FAILED"),
+            message: response?.message ?? "项目配置更新失败",
+            currentVersion: response?.currentVersion ?? null,
+          },
+        };
+      }
+
+      await getWorkbench();
+      return { ok: true, state: workbench.value.state, project: workbench.value.project };
+    }
+
     /** 时间线装配查询（ready_to_assemble / completed 阶段）：规划 + 字幕 + 视频地址 */
     async function getTimeline() {
       const response = await axios.post("/quickVideo/getTimeline", { projectId: Number(projectId) });
@@ -92,7 +127,24 @@ function makeQuickVideoStore(projectId: string) {
       return payload?.media ?? {};
     }
 
-    return { connected, messages, chat, stopGenerate, socket, status, connect, disconnect, isGenerating, workbench, state, loadingWorkbench, getWorkbench, getMediaUrls, getTimeline };
+    return {
+      connected,
+      messages,
+      chat,
+      stopGenerate,
+      socket,
+      status,
+      connect,
+      disconnect,
+      isGenerating,
+      workbench,
+      state,
+      loadingWorkbench,
+      getWorkbench,
+      updateConfig,
+      getMediaUrls,
+      getTimeline,
+    };
   });
 }
 

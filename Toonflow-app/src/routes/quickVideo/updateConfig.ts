@@ -31,12 +31,32 @@ export default router.post(
 
     try {
       const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, async (state, trx) => {
-        if (patch.targetDuration != null && patch.targetDuration !== state.targetDuration && state.storyboard?.status === "confirmed") {
+        const targetDurationChanged = patch.targetDuration != null && patch.targetDuration !== state.targetDuration;
+        const visualConfigChanged =
+          (patch.artStyle != null && patch.artStyle !== state.artStyle) ||
+          (patch.videoRatio != null && patch.videoRatio !== state.videoRatio);
+        const generationConfigChanged = targetDurationChanged || visualConfigChanged;
+
+        if (targetDurationChanged && state.storyboard?.status === "confirmed") {
           throw new QuickVideoError("FORBIDDEN", "分镜已确认，不允许修改目标时长；请先撤销分镜确认");
+        }
+        if (generationConfigChanged && ["generating", "ready_to_assemble", "completed"].includes(state.stage)) {
+          throw new QuickVideoError("FORBIDDEN", "生成已开始，不能再修改目标时长、画风或比例；如需调整请新建项目");
         }
         if (patch.targetDuration != null) state.targetDuration = patch.targetDuration;
         if (patch.videoRatio != null) state.videoRatio = patch.videoRatio;
         if (patch.artStyle != null) state.artStyle = patch.artStyle;
+
+        // 目标/视觉配置会进入素材解析和生成提示词。配置变化后丢弃旧快照，
+        // 让下一次素材确认按新配置重建，避免沿用旧画风或比例。
+        if (generationConfigChanged) {
+          state.generation.snapshot = null;
+          state.generation.materialsConfirmed = false;
+          state.generation.materialsConfirmedAt = null;
+          state.generation.materialImages = {};
+          state.generation.timeline = null;
+          state.generation.exportInfo = null;
+        }
 
         // o_project 与状态同事务更新，保证列表数据一致
         const projectPatch: Record<string, any> = {};

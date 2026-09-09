@@ -5,6 +5,7 @@ import ResTool from "@/socket/resTool";
 import { loadQuickVideoState, mutateQuickVideoState, QuickVideoError } from "@/lib/quickVideo/state";
 import {
   QuickVideoShot,
+  QUICK_VIDEO_RATIOS,
   SHOT_DURATION_MAX,
   SHOT_DURATION_MIN,
   shotAssetRefSchema,
@@ -72,6 +73,78 @@ export default (toolConfig: ToolConfig) => {
           null,
           2,
         );
+      },
+    }),
+
+    update_config: tool({
+      description:
+        "修改单视频项目基础配置（标题、画风、画面比例、目标时长、简介）。写入前必须调用 get_state；目标时长在分镜已确认后不可修改，需先提醒用户撤销分镜确认。修改画风或比例后应重新解析素材/成本快照；修改目标时长后应按新的镜头数量区间和总时长约束重新打磨分镜。",
+      inputSchema: jsonSchema<{
+        name?: string;
+        artStyle?: string;
+        videoRatio?: "16:9" | "9:16" | "1:1";
+        targetDuration?: 15 | 30 | 60;
+        intro?: string;
+      }>(
+        z
+          .object({
+            name: z.string().min(1).max(100).optional().describe("项目标题"),
+            artStyle: z.string().max(500).optional().describe("画风"),
+            videoRatio: z.enum(QUICK_VIDEO_RATIOS).optional().describe("画面比例"),
+            targetDuration: z.union([z.literal(15), z.literal(30), z.literal(60)]).optional().describe("目标时长（秒）"),
+            intro: z.string().max(2000).optional().describe("项目简介"),
+          })
+          .toJSONSchema(),
+      ),
+      execute: async (input, options) => {
+        const { toolCallId } = options as { toolCallId: string };
+        return withThinking(msg, "正在更新项目配置...", async () => {
+          if (!Object.keys(input).length) throw new QuickVideoError("INVALID_CONFIG", "至少提供一项需要修改的配置");
+
+          const { state, idempotentHit } = await mutateQuickVideoState(
+            projectId,
+            { idempotencyKey: `tool:update_config:${toolCallId}` },
+            async (s, trx) => {
+              const targetDurationChanged = input.targetDuration != null && input.targetDuration !== s.targetDuration;
+              const visualConfigChanged =
+                (input.artStyle != null && input.artStyle !== s.artStyle) ||
+                (input.videoRatio != null && input.videoRatio !== s.videoRatio);
+              const generationConfigChanged = targetDurationChanged || visualConfigChanged;
+
+              if (targetDurationChanged && s.storyboard?.status === "confirmed") {
+                throw new QuickVideoError("FORBIDDEN", "分镜已确认，不允许修改目标时长；请先让用户撤销分镜确认", s.version);
+              }
+              if (generationConfigChanged && ["generating", "ready_to_assemble", "completed"].includes(s.stage)) {
+                throw new QuickVideoError("FORBIDDEN", "生成已开始，不能再修改目标时长、画风或比例；如需调整请新建项目", s.version);
+              }
+              if (input.targetDuration != null) s.targetDuration = input.targetDuration;
+              if (input.videoRatio != null) s.videoRatio = input.videoRatio;
+              if (input.artStyle != null) s.artStyle = input.artStyle;
+
+              if (generationConfigChanged) {
+                s.generation.snapshot = null;
+                s.generation.materialsConfirmed = false;
+                s.generation.materialsConfirmedAt = null;
+                s.generation.materialImages = {};
+                s.generation.timeline = null;
+                s.generation.exportInfo = null;
+              }
+
+              const projectPatch: Record<string, string> = {};
+              if (input.name != null) projectPatch.name = input.name;
+              if (input.artStyle != null) projectPatch.artStyle = input.artStyle;
+              if (input.videoRatio != null) projectPatch.videoRatio = input.videoRatio;
+              if (input.intro != null) projectPatch.intro = input.intro;
+              if (Object.keys(projectPatch).length) await trx("o_project").where("id", projectId).update(projectPatch);
+            },
+          );
+
+          if (idempotentHit) return "该次项目配置更新已应用过（幂等命中），未重复写入。";
+          const durationHint = input.targetDuration != null ? `目标时长已更新为 ${state.targetDuration} 秒` : "项目配置已更新";
+          const storyboardHint = input.targetDuration != null && state.storyboard ? "请根据新目标时长重新打磨当前分镜。" : "";
+          const visualHint = input.artStyle != null || input.videoRatio != null ? "请在素材/成本确认前重新解析素材快照。" : "";
+          return `${durationHint}（状态版本 ${state.version}）。${storyboardHint}${visualHint}`;
+        }).catch((err) => `更新项目配置失败：${describeError(err)}`);
       },
     }),
 

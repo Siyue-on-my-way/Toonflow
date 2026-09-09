@@ -25,17 +25,23 @@
             </t-form-item>
             <template v-if="formState.projectType === 'quick_video'">
               <t-form-item :label="$t('workbench.project.dialog.quickArtStyle')">
-                <t-input v-model="formState.artStyle" :placeholder="$t('workbench.project.dialog.quickArtStylePh')" />
+                <t-input v-model="formState.artStyle" :placeholder="$t('workbench.project.dialog.quickArtStylePh')" :disabled="formState.quickVideoConfigLocked" />
               </t-form-item>
               <t-form-item :label="$t('workbench.project.dialog.targetDuration')">
-                <t-select v-model="formState.targetDuration">
+                <t-select v-model="formState.targetDuration" :disabled="formState.quickVideoStoryboardConfirmed">
                   <t-option :value="15" label="15s" />
                   <t-option :value="30" label="30s" />
                   <t-option :value="60" label="60s" />
                 </t-select>
+                <div v-if="formState.quickVideoStoryboardConfirmed" class="quickDurationHint">
+                  {{ $t("workbench.quickVideo.targetDurationLocked") }}
+                </div>
               </t-form-item>
               <t-form-item :label="$t('workbench.project.dialog.videoRatio')">
-                <t-select v-model="formState.videoRatio" :options="QUICK_RATIO_OPTIONS" />
+                <t-select v-model="formState.videoRatio" :options="QUICK_RATIO_OPTIONS" :disabled="formState.quickVideoConfigLocked" />
+                <div v-if="formState.quickVideoConfigLocked" class="quickDurationHint">
+                  {{ $t("workbench.quickVideo.configAfterGenerationLocked") }}
+                </div>
               </t-form-item>
               <t-form-item :label="$t('workbench.project.dialog.novelIntro')">
                 <t-textarea
@@ -213,7 +219,7 @@
             <div class="promptEditorWrapper">
               <div class="promptEditorHeader">
                 <div class="aiExtractInline">
-                  <t-tabs :value="visualManualTabValue" size="medium" @change="(v) => (visualManualTabValue = v)">
+                  <t-tabs :value="visualManualTabValue" size="medium" @change="(v: TabValue) => (visualManualTabValue = v)">
                     <t-tab-panel v-for="tab in visualManualTabData" :key="tab.value" :value="tab.value" :label="tab.label">
                       <MdEditor
                         v-model="tab.data"
@@ -284,7 +290,7 @@
             <div class="promptEditorWrapper">
               <div class="promptEditorHeader">
                 <div class="aiExtractInline">
-                  <t-tabs :value="directorManualTabValue" size="medium" @change="(v) => (directorManualTabValue = v)">
+                  <t-tabs :value="directorManualTabValue" size="medium" @change="(v: TabValue) => (directorManualTabValue = v)">
                     <t-tab-panel v-for="tab in directorManualTabData" :key="tab.value" :value="tab.value" :label="tab.label">
                       <MdEditor
                         v-model="tab.data"
@@ -345,6 +351,8 @@ const emit = defineEmits<{
       imageQuality: "1K" | "2K" | "4K" | "";
       mode: string;
       targetDuration: 15 | 30 | 60;
+      quickVideoStoryboardConfirmed?: boolean;
+      quickVideoConfigLocked?: boolean;
     },
   ): void;
 }>();
@@ -365,6 +373,9 @@ interface ProjectData {
   imageQuality: "1K" | "2K" | "4K" | "";
   visualManual?: string;
   mode: string;
+  targetDuration?: 15 | 30 | 60;
+  quickVideoStoryboardConfirmed?: boolean;
+  quickVideoConfigLocked?: boolean;
 }
 
 interface ProjectFormData {
@@ -381,6 +392,8 @@ interface ProjectFormData {
   imageQuality: "1K" | "2K" | "4K" | "";
   mode: string;
   targetDuration: 15 | 30 | 60;
+  quickVideoStoryboardConfirmed?: boolean;
+  quickVideoConfigLocked?: boolean;
 }
 interface VisualManualItem {
   name: string;
@@ -453,6 +466,8 @@ const DEFAULT_FORM: (projectType?: "novel" | "quick_video") => ProjectFormData &
   mode: "",
   directorManual: "",
   targetDuration: 15,
+  quickVideoStoryboardConfirmed: false,
+  quickVideoConfigLocked: false,
 });
 
 // ===== 表单 =====
@@ -605,6 +620,9 @@ watch(addProjectShow, async (visible) => {
         projectType: props.projectData.projectType || "novel",
         mode: props.projectData.mode || "text",
         directorManual: props.projectData.directorManual || "",
+        targetDuration: props.projectData.targetDuration ?? 15,
+        quickVideoStoryboardConfirmed: props.projectData.quickVideoStoryboardConfirmed ?? false,
+        quickVideoConfigLocked: props.projectData.quickVideoConfigLocked ?? false,
       };
       // 编辑模式下主动获取视频模型详情，填充 mode 列表以回显 label
       if (props.projectData.videoModel) {
@@ -1028,6 +1046,14 @@ function handleDirectorManualCoverFileChange(e: Event) {
     min-width: 0;
   }
 }
+
+.quickDurationHint {
+  margin-top: 6px;
+  color: var(--td-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .directorManual {
   width: 100%;
   height: 50%;
