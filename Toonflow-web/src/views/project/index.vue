@@ -88,6 +88,9 @@ const editProjectData = ref<{
   imageQuality: "1K" | "2K" | "4K" | "";
   mode: string;
   directorManual: string;
+  targetDuration?: 15 | 30 | 60;
+  quickVideoStoryboardConfirmed?: boolean;
+  quickVideoConfigLocked?: boolean;
 } | null>(null);
 
 async function getAllProject() {
@@ -160,7 +163,7 @@ async function openProject(projectId: string | undefined) {
   else if (item.projectType === "script") router.push(`/script`);
 }
 
-function openEdit(item: {
+async function openEdit(item: {
   id: string;
   name: string;
   intro: string;
@@ -175,10 +178,34 @@ function openEdit(item: {
   projectType: string;
   mode: string;
 }) {
+  let targetDuration: 15 | 30 | 60 | undefined;
+  let quickVideoStoryboardConfirmed = false;
+  let quickVideoConfigLocked = false;
+  if (item.projectType === "quick_video") {
+    try {
+      const response: any = await axios.post("/quickVideo/getWorkbench", { projectId: Number(item.id) });
+      const payload = response?.data ?? response;
+      const workbench = payload?.data ?? payload;
+      if (workbench?.state) {
+        targetDuration = workbench.state.targetDuration;
+        quickVideoStoryboardConfirmed = workbench.state.storyboard?.status === "confirmed";
+        quickVideoConfigLocked = ["generating", "ready_to_assemble", "completed"].includes(workbench.state.stage);
+      } else {
+        window.$message.error($t("workbench.project.msg.quickConfigLoadFailed"));
+        return;
+      }
+    } catch {
+      window.$message.error($t("workbench.project.msg.quickConfigLoadFailed"));
+      return;
+    }
+  }
   createMode.value = item.projectType === "quick_video" ? "quick" : "professional";
   quickCreateLoading.value = false;
   editProjectData.value = {
     ...item,
+    targetDuration,
+    quickVideoStoryboardConfirmed,
+    quickVideoConfigLocked,
   };
   dialogShow.value = true;
 }
@@ -196,7 +223,37 @@ function editProjectFn(data: {
   textModel: string;
   imageQuality: "1K" | "2K" | "4K" | "";
   mode: string;
+  projectType?: string;
+  targetDuration?: 15 | 30 | 60;
 }) {
+  if (data.projectType === "quick_video") {
+    axios
+      .post("/quickVideo/getWorkbench", { projectId: Number(data.id) })
+      .then(async (workbenchResponse: any) => {
+        const payload = workbenchResponse?.data ?? workbenchResponse;
+        const workbench = payload?.data ?? payload;
+        if ((payload?.code && payload.code !== 200) || !workbench?.state) throw new Error("未找到 quickVideoAgent 状态");
+        const response: any = await axios.post("/quickVideo/updateConfig", {
+          projectId: Number(data.id),
+          expectedVersion: workbench.state.version,
+          idempotencyKey: `project-config-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+          patch: {
+            name: data.name,
+            artStyle: data.artStyle,
+            videoRatio: data.videoRatio,
+            targetDuration: data.targetDuration ?? workbench.state.targetDuration,
+            intro: data.intro,
+          },
+        });
+        if (response?.code !== 200) throw new Error(response?.message ?? $t("workbench.project.msg.editFailed"));
+        window.$message.success($t("workbench.project.msg.editSuccess"));
+        await getAllProject();
+      })
+      .catch((e: any) => {
+        window.$message.error(e?.message ?? $t("workbench.project.msg.editFailed"));
+      });
+    return;
+  }
   axios
     .post("/project/editProject", data)
     .then(() => {

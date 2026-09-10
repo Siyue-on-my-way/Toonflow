@@ -199,7 +199,15 @@ export interface QuickVideoWorkbench {
   shotBounds: { min: number; max: number } | null;
 }
 
-/** 服务端拒绝写入时的响应结构 */
+/** 工作台可编辑的项目基础配置（与 /quickVideo/updateConfig 的 patch 对齐）。 */
+export interface QuickVideoConfigPatch {
+  name?: string;
+  artStyle?: string;
+  videoRatio?: QuickVideoRatio;
+  targetDuration?: QuickVideoDuration;
+  intro?: string;
+}
+
 export interface QuickVideoReject {
   code: string;
   message: string;

@@ -72,10 +72,33 @@
               <t-tag shape="round">{{ $t("workbench.quickVideo.targetDuration") }}：{{ state?.targetDuration }}s</t-tag>
               <t-tag shape="round">{{ state?.videoRatio }}</t-tag>
               <t-tag shape="round" v-if="state?.artStyle">{{ state.artStyle }}</t-tag>
+              <t-button size="small" variant="outline" :disabled="!state" @click="openConfigEdit">
+                <template #icon><i-edit size="14" /></template>
+                {{ $t("workbench.quickVideo.editConfig") }}
+              </t-button>
               <t-button size="small" variant="outline" @click="getWorkbench()">
                 <template #icon><i-refresh size="14" /></template>
               </t-button>
             </div>
+          </div>
+          <div v-if="storyboardRefreshHint" class="configNotice">
+            <div class="configNoticeText">
+              {{
+                $t("workbench.quickVideo.storyboardRefreshHint", {
+                  duration: storyboardRefreshHint.targetDuration,
+                  min: storyboardRefreshHint.min,
+                  max: storyboardRefreshHint.max,
+                  lower: storyboardRefreshHint.lower,
+                  upper: storyboardRefreshHint.upper,
+                })
+              }}
+            </div>
+            <t-button size="small" variant="outline" @click="fillStoryboardRefinePrompt">
+              {{ $t("workbench.quickVideo.refineStoryboard") }}
+            </t-button>
+            <t-button size="small" variant="text" @click="storyboardRefreshHint = null">
+              {{ $t("workbench.quickVideo.close") }}
+            </t-button>
           </div>
           <div class="panelBody">
             <!-- 简报卡片 -->
@@ -417,6 +440,64 @@
       </div>
     </t-dialog>
 
+    <!-- 项目基础配置编辑 -->
+    <t-dialog
+      v-model:visible="configEditVisible"
+      :header="$t('workbench.quickVideo.editConfig')"
+      width="560px"
+      placement="center"
+      :confirm-btn="{ content: $t('workbench.quickVideo.save'), theme: 'primary', loading: configSaving }"
+      :cancel-btn="$t('workbench.quickVideo.cancel')"
+      @confirm="saveConfigEdit">
+      <div class="editForm">
+        <t-form label-align="top">
+          <t-form-item :label="$t('workbench.quickVideo.projectName')">
+            <t-input v-model="configEditData.name" :maxlength="100" />
+          </t-form-item>
+          <t-form-item :label="$t('workbench.quickVideo.artStyle')">
+            <t-input v-model="configEditData.artStyle" :maxlength="500" :disabled="generationConfigLocked" />
+          </t-form-item>
+          <t-form-item :label="$t('workbench.quickVideo.videoRatio')">
+            <t-select v-model="configEditData.videoRatio" :disabled="generationConfigLocked">
+              <t-option value="16:9" label="16:9" />
+              <t-option value="9:16" label="9:16" />
+              <t-option value="1:1" label="1:1" />
+            </t-select>
+            <div v-if="generationConfigLocked" class="fieldHint">
+              {{ $t("workbench.quickVideo.configAfterGenerationLocked") }}
+            </div>
+          </t-form-item>
+          <t-form-item :label="$t('workbench.quickVideo.targetDuration')">
+            <t-select v-model="configEditData.targetDuration" :disabled="targetDurationLocked">
+              <t-option :value="15" label="15s" />
+              <t-option :value="30" label="30s" />
+              <t-option :value="60" label="60s" />
+            </t-select>
+            <div v-if="targetDurationLocked" class="fieldHint">
+              {{ $t("workbench.quickVideo.targetDurationLocked") }}
+            </div>
+          </t-form-item>
+          <div v-if="configDurationPreview" class="configDurationHint">
+            <div>
+              {{
+                $t("workbench.quickVideo.durationStoryboardHint", {
+                  duration: configDurationPreview.duration,
+                  min: configDurationPreview.min,
+                  max: configDurationPreview.max,
+                  lower: configDurationPreview.lower,
+                  upper: configDurationPreview.upper,
+                })
+              }}
+            </div>
+            <div class="fieldHint">{{ $t("workbench.quickVideo.durationStoryboardHintExtra") }}</div>
+          </div>
+          <t-form-item :label="$t('workbench.quickVideo.projectIntro')">
+            <t-textarea v-model="configEditData.intro" :maxlength="2000" :autosize="{ minRows: 3, maxRows: 6 }" />
+          </t-form-item>
+        </t-form>
+      </div>
+    </t-dialog>
+
     <!-- 简报编辑 -->
     <t-dialog
       v-model:visible="briefEditVisible"
@@ -484,7 +565,7 @@ import { Splitpanes, Pane } from "splitpanes";
 import axios from "@/utils/axios";
 import projectStore from "@/stores/project";
 import quickVideoStore from "@/stores/quickVideo";
-import type { QuickVideoStage, QuickVideoShot, QuickVideoSession } from "@/types/quickVideo";
+import type { QuickVideoDuration, QuickVideoRatio, QuickVideoStage, QuickVideoShot, QuickVideoSession } from "@/types/quickVideo";
 import modelSelect from "@/components/modelSelect.vue";
 import SessionList from "./components/SessionList.vue";
 import dayjs from "dayjs";
@@ -495,7 +576,7 @@ import { estimateExportBytes, formatBytes, formatTime } from "./timelineCore";
 const { project } = storeToRefs(projectStore());
 const quickVideoStoreRef = quickVideoStore();
 const { connected, messages, status, workbench, state, loadingWorkbench, sessions, loadingSessions, currentSessionId, modelPreferences } = storeToRefs(quickVideoStoreRef);
-const { stopGenerate, getWorkbench, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference } = quickVideoStoreRef;
+const { stopGenerate, getWorkbench, updateConfig, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference } = quickVideoStoreRef;
 
 const inputValue = ref("");
 
@@ -619,6 +700,112 @@ const totalDuration = computed(() => state.value?.storyboard?.shots.reduce((sum,
 
 const canEditBrief = computed(() => ["collect_brief", "brief_confirmed", "storyboard_draft"].includes(state.value?.stage ?? ""));
 const canEditStoryboard = computed(() => state.value?.stage === "storyboard_draft" && state.value?.storyboard?.status === "draft");
+
+// ===== 项目基础配置编辑 =====
+interface QuickVideoConfigForm {
+  name: string;
+  artStyle: string;
+  videoRatio: QuickVideoRatio;
+  targetDuration: QuickVideoDuration;
+  intro: string;
+}
+
+interface StoryboardRefreshHint {
+  targetDuration: QuickVideoDuration;
+  min: number;
+  max: number;
+  lower: number;
+  upper: number;
+}
+
+const configEditVisible = ref(false);
+const configSaving = ref(false);
+const configEditData = ref<QuickVideoConfigForm>({
+  name: "",
+  artStyle: "",
+  videoRatio: "16:9",
+  targetDuration: 15,
+  intro: "",
+});
+const configOriginalTargetDuration = ref<QuickVideoDuration>(15);
+const storyboardRefreshHint = ref<StoryboardRefreshHint | null>(null);
+const targetDurationLocked = computed(() => state.value?.storyboard?.status === "confirmed");
+const generationConfigLocked = computed(() => ["generating", "ready_to_assemble", "completed"].includes(state.value?.stage ?? ""));
+
+function getShotBounds(targetDuration: QuickVideoDuration) {
+  const max = Math.max(1, Math.min(12, Math.floor(targetDuration / 5)));
+  const min = Math.max(1, Math.min(5, Math.floor(targetDuration / 15) || 1));
+  const tolerance = Math.max(3, Math.round(targetDuration * 0.2));
+  return { min, max, lower: targetDuration - tolerance, upper: targetDuration + tolerance };
+}
+
+const configDurationPreview = computed(() => {
+  if (!state.value?.storyboard || configEditData.value.targetDuration === configOriginalTargetDuration.value) return null;
+  return { duration: configEditData.value.targetDuration, ...getShotBounds(configEditData.value.targetDuration) };
+});
+
+function openConfigEdit() {
+  const currentState = state.value;
+  if (!currentState) return;
+  const currentProject = workbench.value.project ?? project.value;
+  configEditData.value = {
+    name: currentProject?.name ?? "",
+    artStyle: currentState.artStyle ?? currentProject?.artStyle ?? "",
+    videoRatio: (currentState.videoRatio ?? currentProject?.videoRatio ?? "16:9") as QuickVideoRatio,
+    targetDuration: currentState.targetDuration,
+    intro: currentProject?.intro ?? "",
+  };
+  configOriginalTargetDuration.value = currentState.targetDuration;
+  configEditVisible.value = true;
+}
+
+async function saveConfigEdit() {
+  const currentState = state.value;
+  if (!currentState) return;
+  if (!configEditData.value.name.trim()) return window.$message.warning($t("workbench.project.msg.enterProjectName"));
+  if (!configEditData.value.artStyle.trim()) return window.$message.warning($t("workbench.project.msg.enterArtStyle"));
+
+  const previousTargetDuration = currentState.targetDuration;
+  const targetDurationChanged = configEditData.value.targetDuration !== previousTargetDuration;
+  const hadStoryboard = !!currentState.storyboard;
+  configSaving.value = true;
+  try {
+    const result = await updateConfig({
+      name: configEditData.value.name.trim(),
+      artStyle: configEditData.value.artStyle.trim(),
+      videoRatio: configEditData.value.videoRatio,
+      targetDuration: configEditData.value.targetDuration,
+      intro: configEditData.value.intro,
+    });
+    if (!result.ok) {
+      window.$message.warning(result.error.message);
+      return;
+    }
+
+    configEditVisible.value = false;
+    if (targetDurationChanged && hadStoryboard) {
+      storyboardRefreshHint.value = { targetDuration: configEditData.value.targetDuration, ...getShotBounds(configEditData.value.targetDuration) };
+    }
+    window.$message.success($t("workbench.quickVideo.configSaved"));
+  } catch (error: any) {
+    window.$message.error(error?.message ?? $t("workbench.quickVideo.opFailed"));
+  } finally {
+    configSaving.value = false;
+  }
+}
+
+function fillStoryboardRefinePrompt() {
+  const hint = storyboardRefreshHint.value;
+  if (!hint) return;
+  inputValue.value = $t("workbench.quickVideo.refineStoryboardPrompt", {
+    duration: hint.targetDuration,
+    min: hint.min,
+    max: hint.max,
+    lower: hint.lower,
+    upper: hint.upper,
+  });
+  window.$message.info($t("workbench.quickVideo.refineStoryboardPromptFilled"));
+}
 
 const shotColumns = [
   { colKey: "index", title: "#", width: 50 },
@@ -1077,6 +1264,21 @@ function cancelExport() {
         flex-wrap: wrap;
       }
     }
+    .configNotice {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 4px 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--td-warning-color-3);
+      border-radius: 8px;
+      background: var(--td-warning-color-1);
+      .configNoticeText {
+        flex: 1;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+    }
     .panelBody {
       flex: 1;
       overflow-y: auto;
@@ -1203,6 +1405,20 @@ function cancelExport() {
   }
   .editForm {
     padding: 4px 0;
+    .fieldHint {
+      margin-top: 6px;
+      color: var(--td-text-color-secondary);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .configDurationHint {
+      margin: -4px 0 16px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      background: var(--td-bg-color-secondarycontainer);
+      font-size: 13px;
+      line-height: 1.6;
+    }
   }
   .videoPreview {
     width: 100%;
