@@ -17,6 +17,8 @@ import { validateStoryboard, type QuickVideoShot } from "@/lib/quickVideo/contra
 import { normalizeShotDuration } from "@/lib/quickVideo/shots";
 import { bumpUserMessageCountAndMaybeClaimTitle } from "@/lib/quickVideo/session";
 import { generateSessionTitle } from "@/lib/quickVideo/title";
+import { createChatMedia, markChatMediaDone } from "@/lib/quickVideo/media";
+import { assertVideoSupportsSingleImage } from "@/lib/quickVideo/generate";
 
 const BASE = process.env.BASE || "http://localhost:10588";
 
@@ -613,6 +615,189 @@ async function main() {
   } else {
     console.log("  ℹ 标题生成失败（供应商/网络不可用属预期降级路径，未影响其他断言）");
   }
+
+  // ===========================================================================
+  // 以下覆盖 SIY-132/134：聊天媒体索引落库、资产白板、镜头首帧绑定（校验/幂等/
+  // 快照失效）与生成引擎首帧优先级。quickvideo-media-unit.ts 只覆盖这些结构的
+  // schema 形状，不连接数据库；这里补上真正落库/鉴权/状态机路径的覆盖。
+  // ===========================================================================
+  console.log("== 15. 聊天媒体索引、资产白板与镜头首帧绑定（SIY-132/134） ==");
+
+  // 15.1 直接调用与聊天工具同一套落库函数（跳过 socket/Agent 层）：一张已完成图片、
+  // 一张生成中图片（未 markDone）、一段已完成视频；另在 p2Id 项目下造一张跨项目图片，
+  // 用于验证首帧绑定的项目归属校验。
+  const doneImage = await createChatMedia({ projectId, sessionId, messageId: "e2e-msg-img-1", kind: "image", model: "null:e2e-img", prompt: "一杯冒着热气的奶茶特写", source: "chat", idempotencyKey: key() });
+  await markChatMediaDone(doneImage.media.id, `/${projectId}/quickVideo/e2e-firstframe-a-${Date.now()}.jpg`);
+
+  const doneImage2 = await createChatMedia({ projectId, sessionId, messageId: "e2e-msg-img-2", kind: "image", model: "null:e2e-img", prompt: "同款奶茶换一个机位的特写", source: "asset_board", idempotencyKey: key() });
+  await markChatMediaDone(doneImage2.media.id, `/${projectId}/quickVideo/e2e-firstframe-b-${Date.now()}.jpg`);
+
+  const pendingImage = await createChatMedia({ projectId, sessionId, messageId: "e2e-msg-img-3", kind: "image", model: "null:e2e-img", prompt: "尚未生成完成的占位图", source: "chat", idempotencyKey: key() });
+
+  const doneVideo = await createChatMedia({ projectId, sessionId, messageId: "e2e-msg-vid-1", kind: "video", model: "null:e2e-vid", prompt: "奶茶倒入杯中的短视频", source: "chat", idempotencyKey: key() });
+  await markChatMediaDone(doneVideo.media.id, `/${projectId}/quickVideo/e2e-video-${Date.now()}.mp4`);
+
+  const crossProjectImage = await createChatMedia({ projectId: p2Id, sessionId: p2SessionId, messageId: "e2e-msg-img-cross", kind: "image", model: "null:e2e-img", prompt: "属于另一个项目的图片", source: "chat", idempotencyKey: key() });
+  await markChatMediaDone(crossProjectImage.media.id, `/${p2Id}/quickVideo/e2e-cross-${Date.now()}.jpg`);
+
+  // 15.2 资产白板：分页、类型过滤、跨项目隔离；聊天与白板共用同一份索引（mediaId 一致）
+  const board = await api("/quickVideo/getAssetBoard", { projectId, page: 1, pageSize: 10 });
+  const boardIds = (board.data?.items ?? []).map((it: any) => it.mediaId);
+  assert(board.code === 200 && board.data.total >= 4, "资产白板返回本项目媒体（含生成中/已完成）", JSON.stringify(board).slice(0, 200));
+  assert(boardIds.includes(doneImage.media.id) && boardIds.includes(doneVideo.media.id), "白板项包含聊天生成的图片与视频，mediaId 与落库一致");
+  assert(!boardIds.includes(crossProjectImage.media.id), "白板严格按 projectId 隔离，不返回其他项目媒体");
+  const pendingItem = (board.data.items as any[]).find((it) => it.mediaId === pendingImage.media.id);
+  assert(pendingItem?.state === "generating" && pendingItem?.url === null, "生成中的媒体状态正确且不返回预览地址", JSON.stringify(pendingItem));
+  const doneItem = (board.data.items as any[]).find((it) => it.mediaId === doneImage.media.id);
+  assert(doneItem?.state === "done" && !!doneItem?.url, "已完成的媒体返回短期预览地址", JSON.stringify(doneItem));
+
+  const boardImagesOnly = await api("/quickVideo/getAssetBoard", { projectId, kind: "image" });
+  assert(
+    (boardImagesOnly.data.items as any[]).every((it) => it.kind === "image") && !(boardImagesOnly.data.items as any[]).some((it) => it.mediaId === doneVideo.media.id),
+    "kind=image 过滤后不包含视频",
+  );
+  const boardPage1 = await api("/quickVideo/getAssetBoard", { projectId, page: 1, pageSize: 1 });
+  assert(boardPage1.data.items.length === 1 && boardPage1.data.total === board.data.total, "分页 pageSize=1 只返回一条，total 不受分页影响", JSON.stringify(boardPage1).slice(0, 200));
+
+  // 15.3 首帧绑定的校验错误：跨项目媒体 / 非图片 / 未生成完成 / 镜头不存在 / 版本冲突
+  const preBindState = await getState(projectId);
+  const targetShotId = preBindState.storyboard.shots[0].id;
+
+  const bindCross = await api("/quickVideo/bindShotFirstFrame", { projectId, expectedVersion: preBindState.version, idempotencyKey: key(), shotId: targetShotId, mediaId: crossProjectImage.media.id });
+  assert(bindCross.code === "MEDIA_NOT_FOUND", "跨项目 mediaId 绑定首帧被拒", JSON.stringify(bindCross));
+
+  const bindVideoAsFrame = await api("/quickVideo/bindShotFirstFrame", { projectId, expectedVersion: preBindState.version, idempotencyKey: key(), shotId: targetShotId, mediaId: doneVideo.media.id });
+  assert(bindVideoAsFrame.code === "MEDIA_NOT_IMAGE", "视频类型媒体不能绑定为首帧", JSON.stringify(bindVideoAsFrame));
+
+  const bindPending = await api("/quickVideo/bindShotFirstFrame", { projectId, expectedVersion: preBindState.version, idempotencyKey: key(), shotId: targetShotId, mediaId: pendingImage.media.id });
+  assert(bindPending.code === "MEDIA_NOT_READY", "未生成完成的图片不能绑定为首帧", JSON.stringify(bindPending));
+
+  const bindNoShot = await api("/quickVideo/bindShotFirstFrame", { projectId, expectedVersion: preBindState.version, idempotencyKey: key(), shotId: "shot-does-not-exist", mediaId: doneImage.media.id });
+  assert(bindNoShot.code === "SHOT_NOT_FOUND", "不存在的镜头 ID 被拒", JSON.stringify(bindNoShot));
+
+  const bindStaleVersion = await api("/quickVideo/bindShotFirstFrame", { projectId, expectedVersion: Math.max(1, preBindState.version - 1), idempotencyKey: key(), shotId: targetShotId, mediaId: doneImage.media.id });
+  assert(bindStaleVersion.code === "VERSION_CONFLICT", "过期 expectedVersion 绑定首帧被拒", JSON.stringify(bindStaleVersion));
+
+  // 15.4 制造一份"确认过又撤销"的陈旧快照，验证绑定首帧会强制失效该快照（见 bindShotFirstFrame.ts 注释）
+  const confirmForSnapshot = await api("/quickVideo/confirmStage", { projectId, sessionId, expectedVersion: (await getState(projectId)).version, idempotencyKey: key(), gate: "storyboard", action: "confirm" });
+  assert(confirmForSnapshot.code === 200, "为构造陈旧快照先确认分镜", JSON.stringify(confirmForSnapshot).slice(0, 200));
+  const staleResolve = await api("/quickVideo/resolveAssets", { projectId, expectedVersion: confirmForSnapshot.data.state.version, idempotencyKey: key() });
+  assert(staleResolve.code === 200 && !!staleResolve.data.state.generation.snapshot, "构造出一份非空快照");
+  const rejectBack = await api("/quickVideo/confirmStage", { projectId, sessionId, expectedVersion: staleResolve.data.state.version, idempotencyKey: key(), gate: "storyboard", action: "reject" });
+  assert(rejectBack.code === 200 && rejectBack.data.state.stage === "storyboard_draft", "撤销确认回到草稿，快照未被自动清理（陈旧快照仍在）");
+  assert(!!rejectBack.data.state.generation.snapshot, "撤销确认不会主动清空快照——正是绑定首帧必须强制失效它的原因");
+
+  // 15.5 成功绑定：陈旧快照与素材确认门被强制失效，firstFrame 写入正确的稳定引用
+  const bindOk = await api("/quickVideo/bindShotFirstFrame", { projectId, expectedVersion: rejectBack.data.state.version, idempotencyKey: key(), shotId: targetShotId, mediaId: doneImage.media.id });
+  assert(bindOk.code === 200, "绑定首帧成功", JSON.stringify(bindOk).slice(0, 200));
+  const boundShot = bindOk.data.state.storyboard.shots.find((s: any) => s.id === targetShotId);
+  assert(
+    boundShot?.firstFrame?.mediaId === doneImage.media.id && boundShot.firstFrame.assetId === doneImage.media.assetId && boundShot.firstFrame.imageId === doneImage.media.imageId,
+    "首帧写入的稳定引用与落库一致",
+    JSON.stringify(boundShot?.firstFrame),
+  );
+  assert(bindOk.data.state.generation.snapshot === null && bindOk.data.state.generation.materialsConfirmed === false, "绑定首帧强制失效了陈旧快照与素材确认门", JSON.stringify(bindOk.data.state.generation));
+
+  // 15.6 幂等：相同 idempotencyKey 重复请求不重复生效（不重复递增版本）
+  const idemKey = key();
+  const idemFirst = await api("/quickVideo/bindShotFirstFrame", { projectId, expectedVersion: bindOk.data.state.version, idempotencyKey: idemKey, shotId: targetShotId, mediaId: doneImage2.media.id });
+  assert(idemFirst.code === 200 && idemFirst.data.idempotentHit === false, "首次绑定替换请求正常生效");
+  const idemSecond = await api("/quickVideo/bindShotFirstFrame", { projectId, expectedVersion: bindOk.data.state.version, idempotencyKey: idemKey, shotId: targetShotId, mediaId: doneImage2.media.id });
+  assert(
+    idemSecond.code === 200 && idemSecond.data.idempotentHit === true && idemSecond.data.state.version === idemFirst.data.state.version,
+    "重复幂等键命中缓存结果，版本不重复递增",
+    JSON.stringify({ first: idemFirst.data.state.version, second: idemSecond.data.state.version }),
+  );
+
+  // 15.7 替换与解除
+  const replacedShot = idemFirst.data.state.storyboard.shots.find((s: any) => s.id === targetShotId);
+  assert(replacedShot?.firstFrame?.mediaId === doneImage2.media.id, "替换首帧成功切换到新的 mediaId");
+  const unbound = await api("/quickVideo/bindShotFirstFrame", { projectId, expectedVersion: idemFirst.data.state.version, idempotencyKey: key(), shotId: targetShotId, mediaId: null });
+  assert(unbound.code === 200 && unbound.data.state.storyboard.shots.find((s: any) => s.id === targetShotId)?.firstFrame === null, "解除首帧成功", JSON.stringify(unbound).slice(0, 200));
+
+  // 15.8 分镜确认锁定后禁止绑定首帧
+  const lockForBind = await api("/quickVideo/confirmStage", { projectId, sessionId, expectedVersion: unbound.data.state.version, idempotencyKey: key(), gate: "storyboard", action: "confirm" });
+  assert(lockForBind.code === 200 && lockForBind.data.state.stage === "storyboard_confirmed", "为验证锁定先确认分镜");
+  const bindAfterLock = await api("/quickVideo/bindShotFirstFrame", { projectId, expectedVersion: lockForBind.data.state.version, idempotencyKey: key(), shotId: targetShotId, mediaId: doneImage.media.id });
+  assert(bindAfterLock.code === "STORYBOARD_LOCKED", "分镜确认锁定后绑定首帧被拒", JSON.stringify(bindAfterLock));
+  const unlockAfterBindTest = await api("/quickVideo/confirmStage", { projectId, sessionId, expectedVersion: lockForBind.data.state.version, idempotencyKey: key(), gate: "storyboard", action: "reject" });
+  assert(unlockAfterBindTest.code === 200, "还原为草稿，避免影响后续断言");
+
+  // 15.9 视频模型能力校验：目录未声明 singleImage 时拒绝首帧/单图输入，声明了则放行
+  await assertVideoSupportsSingleImage("null:e2e-vid", true)
+    .then(() => assert(true, "已声明 singleImage 的视频模型允许首帧输入"))
+    .catch((err: any) => assert(false, "已声明 singleImage 的视频模型应允许首帧输入", String(err?.message ?? err)));
+  await dbWrite("追加一个不支持 singleImage 的视频模型", async () => {
+    const row = await u.db("o_vendorConfig").where("id", "null").first();
+    if (!row) throw new Error("空模板供应商尚未配置（应已在第 11 节创建）");
+    const models = JSON.parse(row.models || "[]");
+    if (!models.some((m: any) => m.modelName === "e2e-vid-nosingle")) {
+      models.push({ name: "E2E视频(不支持单图)", modelName: "e2e-vid-nosingle", type: "video", mode: ["text"] });
+      const enabledModels = JSON.parse(row.enabledModels || "[]");
+      if (!enabledModels.includes("e2e-vid-nosingle")) enabledModels.push("e2e-vid-nosingle");
+      await u.db("o_vendorConfig").where("id", "null").update({ models: JSON.stringify(models), enabledModels: JSON.stringify(enabledModels) });
+    }
+  });
+  let capabilityError = "";
+  try {
+    await assertVideoSupportsSingleImage("null:e2e-vid-nosingle", true);
+  } catch (err: any) {
+    capabilityError = String(err?.message ?? err);
+  }
+  assert(capabilityError.includes("不支持单图/首帧输入"), "未声明 singleImage 的视频模型明确拒绝首帧输入", capabilityError);
+
+  // 15.10 端到端优先级证明：绑定一个"文件不存在"的首帧后，该镜头的视频生成必须尝试读取
+  // 首帧文件而失败（而不是静默回退到本镜头本可成功生成的 imageRef）；重试后仍读同一份
+  // 冻结首帧，不会因为失败重试而改用别的图。
+  const p3 = await api("/quickVideo/createProject", { name: `E2E首帧优先级-${Date.now()}`, artStyle: "水彩", videoRatio: "9:16", targetDuration: 15, idempotencyKey: key() });
+  const p3Id = p3.data.projectId;
+  const p3SessionId = p3.data.session?.id;
+  assert(!!p3Id, "首帧优先级测试项目创建成功", JSON.stringify(p3).slice(0, 200));
+  await api("/quickVideo/updateBrief", { projectId: p3Id, expectedVersion: 1, idempotencyKey: key(), brief: { theme: "首帧优先级验证", hook: "", narrative: "单镜头，用于验证生成引擎优先读取绑定首帧", cta: "", keywords: [] } });
+  await api("/quickVideo/confirmStage", { projectId: p3Id, sessionId: p3SessionId, expectedVersion: (await getState(p3Id)).version, idempotencyKey: key(), gate: "brief", action: "confirm" });
+  await agentProposeStoryboard(p3Id, [{ duration: 15, description: "单镜头：奶茶特写" }], "单镜 15 秒");
+
+  const p3ShotId = (await getState(p3Id)).storyboard.shots[0].id;
+  const badFirstFrame = await createChatMedia({ projectId: p3Id, sessionId: p3SessionId, messageId: "e2e-badframe", kind: "image", model: "null:e2e-img", prompt: "不存在的首帧文件", source: "chat", idempotencyKey: key() });
+  await markChatMediaDone(badFirstFrame.media.id, `/${p3Id}/quickVideo/e2e-nonexistent-${Date.now()}.jpg`);
+  const bindBad = await api("/quickVideo/bindShotFirstFrame", { projectId: p3Id, expectedVersion: (await getState(p3Id)).version, idempotencyKey: key(), shotId: p3ShotId, mediaId: badFirstFrame.media.id });
+  assert(bindBad.code === 200 && bindBad.data.state.storyboard.shots[0].firstFrame?.mediaId === badFirstFrame.media.id, "为优先级验证绑定一个文件不存在的首帧", JSON.stringify(bindBad).slice(0, 200));
+
+  await api("/quickVideo/confirmStage", { projectId: p3Id, sessionId: p3SessionId, expectedVersion: (await getState(p3Id)).version, idempotencyKey: key(), gate: "storyboard", action: "confirm" });
+  await api("/quickVideo/resolveAssets", { projectId: p3Id, expectedVersion: (await getState(p3Id)).version, idempotencyKey: key() });
+  await dbWrite("给 p3 配置模型偏好", () => u.db("o_project").where("id", p3Id).update({ imageModel: "null:e2e-img", videoModel: "null:e2e-vid" }));
+  await api("/quickVideo/confirmStage", { projectId: p3Id, sessionId: p3SessionId, expectedVersion: (await getState(p3Id)).version, idempotencyKey: key(), gate: "materials", action: "confirm" });
+
+  await waitFor(
+    "p3 唯一镜头产物落定（图成功/视频因首帧文件不存在而失败）",
+    async () => {
+      const st = await getState(p3Id);
+      const s = st.storyboard.shots[0];
+      return s.imageState !== "pending" && s.imageState !== "generating" && s.videoState !== "pending" && s.videoState !== "generating";
+    },
+    30000,
+  );
+  const p3Final = await getState(p3Id);
+  const p3Shot = p3Final.storyboard.shots[0];
+  assert(p3Shot.imageState === "done" && !!p3Shot.imageRef, "首帧无关的分镜图仍正常生成成功（imageRef 独立于 firstFrame）", JSON.stringify(p3Shot));
+  assert(p3Shot.videoState === "failed" && String(p3Shot.errorReason ?? "").length > 0, "视频生成因读取绑定的首帧文件失败——证明引擎优先使用了 firstFrame 而非退回可用的 imageRef", JSON.stringify(p3Shot));
+  const firstFailureReason = p3Shot.errorReason;
+
+  await api("/quickVideo/retryShot", { projectId: p3Id, sessionId: p3SessionId, shotIds: [p3ShotId] });
+  await waitFor(
+    "p3 镜头重试后再次落定",
+    async () => {
+      const st = await getState(p3Id);
+      return st.storyboard.shots[0].videoState !== "generating" && st.storyboard.shots[0].videoState !== "pending";
+    },
+    30000,
+  );
+  const p3AfterRetry = await getState(p3Id);
+  assert(
+    p3AfterRetry.storyboard.shots[0].videoState === "failed" && p3AfterRetry.storyboard.shots[0].firstFrame?.mediaId === badFirstFrame.media.id,
+    "失败重试仍读取同一份冻结首帧，未静默换用 imageRef",
+    JSON.stringify({ videoState: p3AfterRetry.storyboard.shots[0].videoState, firstFrame: p3AfterRetry.storyboard.shots[0].firstFrame, firstFailureReason, retryReason: p3AfterRetry.storyboard.shots[0].errorReason }),
+  );
 
   console.log(`\n结果：${passed} 通过，${failed} 失败`);
   process.exit(failed > 0 ? 1 : 0);
