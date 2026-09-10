@@ -14,8 +14,8 @@ const router = express.Router();
 /**
  * 用户确认门（三个关键确认点的统一入口）：
  * - brief      简报确认：collect_brief -> brief_confirmed；reject 回退到 collect_brief
- * - storyboard 分镜确认：storyboard_draft -> storyboard_confirmed（校验镜头数量/时长）；reject 回草稿解锁编辑
- * - materials  素材/成本确认：storyboard_confirmed -> generating（冻结不可歧义的生成快照并启动逐镜头生成）；
+ * - storyboard 分镜确认：storyboard_draft -> storyboard_confirmed（校验镜头数量/时长并冻结首帧快照）；reject 回草稿解锁编辑
+ * - materials  素材/成本确认：storyboard_confirmed -> generating（确认已冻结的素材/成本快照并启动逐镜头生成）；
  *              reject 清除素材确认（停在 storyboard_confirmed，可重新解析素材）
  * - export     成片导出确认：ready_to_assemble -> completed（装配/导出由后续任务接入）
  * 仅用户可推进确认门；Agent 工具无权调用本接口。门的判定全部在服务端完成。
@@ -80,6 +80,11 @@ export default router.post(
             }
             const errors = validateStoryboard(state.targetDuration, state.storyboard.shots);
             if (errors.length) throw new QuickVideoError("STORYBOARD_INVALID", errors.join("；"), state.version);
+            // 分镜确认是首帧生命周期的冻结点。这里在同一状态事务中解析并保存
+            // snapshot.shots.firstFrame（含稳定引用和 filePath），后续素材确认、生成
+            // 以及单镜头重试都只能读取这份快照，不能再从可变草稿中选图。
+            const { materials, estimate, snapshotShots } = await buildSnapshot(projectId, state);
+            applySnapshotToState(state, state.storyboard.version, snapshotShots, materials, estimate);
             state.stage = "storyboard_confirmed";
             state.storyboard.status = "confirmed";
             state.storyboard.confirmedAt = Date.now();

@@ -172483,7 +172483,7 @@ function buildDefaultSessionTitle(projectName, sequence) {
   const name28 = projectName?.trim();
   return name28 ? `${name28}-session${sequence}` : DEFAULT_SESSION_TITLE;
 }
-var QUICK_VIDEO_AGENT_KEY, QUICK_VIDEO_SCHEMA_VERSION, QUICK_VIDEO_PROJECT_TYPE, QUICK_VIDEO_RATIOS, SHOT_DURATION_MIN, SHOT_DURATION_MAX, SHOT_COUNT_MAX, QUICK_VIDEO_STAGES, STAGE_TRANSITIONS, SHOT_GEN_STATES, shotAssetRefSchema, QUICK_VIDEO_MEDIA_KINDS, QUICK_VIDEO_MEDIA_STATES, QUICK_VIDEO_MEDIA_SOURCES, mediaRefSchema, shotFirstFrameSchema, snapshotFirstFrameSchema, quickVideoShotSchema, quickVideoBriefSchema, quickVideoStoryboardSchema, materialItemSchema, snapshotShotSchema, generationSnapshotSchema, TIMELINE_TRANSITION_DURATION_S, TIMELINE_MAX_SPEED, TIMELINE_MIN_SPEED, QUICK_VIDEO_DIMENSIONS, timelineClipPlanSchema, timelineTransitionSchema, timelineTailPadSchema, timelinePlanSchema, timelineMetaSchema, quickVideoExportInfoSchema, quickVideoGenerationSchema, GENERATION_CONCURRENCY, GENERATION_IMAGE_TIMEOUT_MS, GENERATION_VIDEO_TIMEOUT_MS, ESTIMATE_IMAGE_COST_YUAN, ESTIMATE_VIDEO_COST_PER_SECOND_YUAN, ESTIMATE_IMAGE_SECONDS, ESTIMATE_VIDEO_SECONDS, quickVideoStateSchema, IDEMPOTENCY_MAX_KEYS, TITLE_GENERATION_TRIGGER_COUNT, DEFAULT_SESSION_TITLE;
+var QUICK_VIDEO_AGENT_KEY, QUICK_VIDEO_SCHEMA_VERSION, QUICK_VIDEO_PROJECT_TYPE, QUICK_VIDEO_RATIOS, QUICK_VIDEO_CHAT_MODES, SHOT_DURATION_MIN, SHOT_DURATION_MAX, SHOT_COUNT_MAX, QUICK_VIDEO_STAGES, STAGE_TRANSITIONS, SHOT_GEN_STATES, shotAssetRefSchema, QUICK_VIDEO_MEDIA_KINDS, QUICK_VIDEO_MEDIA_STATES, QUICK_VIDEO_MEDIA_SOURCES, mediaRefSchema, shotFirstFrameSchema, snapshotFirstFrameSchema, quickVideoShotSchema, quickVideoBriefSchema, quickVideoStoryboardSchema, materialItemSchema, snapshotShotSchema, generationSnapshotSchema, TIMELINE_TRANSITION_DURATION_S, TIMELINE_MAX_SPEED, TIMELINE_MIN_SPEED, QUICK_VIDEO_DIMENSIONS, timelineClipPlanSchema, timelineTransitionSchema, timelineTailPadSchema, timelinePlanSchema, timelineMetaSchema, quickVideoExportInfoSchema, quickVideoGenerationSchema, GENERATION_CONCURRENCY, GENERATION_IMAGE_TIMEOUT_MS, GENERATION_VIDEO_TIMEOUT_MS, ESTIMATE_IMAGE_COST_YUAN, ESTIMATE_VIDEO_COST_PER_SECOND_YUAN, ESTIMATE_IMAGE_SECONDS, ESTIMATE_VIDEO_SECONDS, quickVideoStateSchema, IDEMPOTENCY_MAX_KEYS, TITLE_GENERATION_TRIGGER_COUNT, DEFAULT_SESSION_TITLE;
 var init_contract = __esm({
   "src/lib/quickVideo/contract.ts"() {
     "use strict";
@@ -172492,6 +172492,7 @@ var init_contract = __esm({
     QUICK_VIDEO_SCHEMA_VERSION = 1;
     QUICK_VIDEO_PROJECT_TYPE = "quick_video";
     QUICK_VIDEO_RATIOS = ["16:9", "9:16", "1:1"];
+    QUICK_VIDEO_CHAT_MODES = ["text", "image", "video"];
     SHOT_DURATION_MIN = 5;
     SHOT_DURATION_MAX = 15;
     SHOT_COUNT_MAX = 12;
@@ -233131,6 +233132,8 @@ var init_delProject = __esm({
       }),
       async (req, res) => {
         const { id } = req.body;
+        await utils_default2.db("o_quickVideoMedia").where("projectId", id).delete();
+        await utils_default2.db("o_quickVideoSession").where("projectId", id).delete();
         await utils_default2.db("o_project").where("id", id).delete();
         await utils_default2.db("o_agentWorkData").where("projectId", id).delete();
         await utils_default2.db("o_novel").where("projectId", id).delete();
@@ -233690,6 +233693,8 @@ var init_confirmStage = __esm({
                 }
                 const errors = validateStoryboard(state.targetDuration, state.storyboard.shots);
                 if (errors.length) throw new QuickVideoError("STORYBOARD_INVALID", errors.join("\uFF1B"), state.version);
+                const { materials, estimate, snapshotShots } = await buildSnapshot(projectId, state);
+                applySnapshotToState(state, state.storyboard.version, snapshotShots, materials, estimate);
                 state.stage = "storyboard_confirmed";
                 state.storyboard.status = "confirmed";
                 state.storyboard.confirmedAt = Date.now();
@@ -252467,13 +252472,10 @@ var tools_default3 = (toolConfig) => {
           }
           const referenceIds = (input.referenceMediaIds ?? toolConfig.references ?? []).slice(0, 4);
           const referenceList = [];
-          for (const refId of referenceIds) {
-            try {
-              referenceList.push({ type: "image", base64: await resolveMediaImageBase64(projectId, refId) });
-            } catch {
-            }
-          }
           try {
+            for (const refId of referenceIds) {
+              referenceList.push({ type: "image", base64: await resolveMediaImageBase64(projectId, refId) });
+            }
             const imageCls = utils_default2.Ai.Image(imageModel, userId2);
             await imageCls.run(
               { prompt: input.prompt, referenceList, size: "1K", aspectRatio },
@@ -252496,7 +252498,8 @@ var tools_default3 = (toolConfig) => {
           } catch (err) {
             const reason = describeError(err);
             await markChatMediaFailed(media.id, reason);
-            return `\u56FE\u7247\u751F\u6210\u5931\u8D25\uFF1A${reason}\u3002\u53EF\u4EE5\u8BF7\u7528\u6237\u6362\u4E00\u4E2A\u63CF\u8FF0\u6216\u6362\u4E00\u4E2A\u56FE\u7247\u6A21\u578B\u540E\u91CD\u65B0\u53D1\u9001\u3002`;
+            const referenceHint = referenceIds.length ? `\u53C2\u8003\u56FE\u65E0\u6548\uFF08${reason}\uFF09` : reason;
+            return `\u56FE\u7247\u751F\u6210\u5931\u8D25\uFF1A${referenceHint}\u3002${referenceIds.length ? "\u8BF7\u91CD\u65B0\u9009\u62E9\u4E00\u5F20\u5F53\u524D\u9879\u76EE\u4E2D\u5DF2\u5B8C\u6210\u7684\u56FE\u7247\u4F5C\u4E3A\u53C2\u8003\u540E\u518D\u8BD5\u3002" : "\u53EF\u4EE5\u8BF7\u7528\u6237\u6362\u4E00\u4E2A\u63CF\u8FF0\u6216\u6362\u4E00\u4E2A\u56FE\u7247\u6A21\u578B\u540E\u91CD\u65B0\u53D1\u9001\u3002"}`;
           }
         }).catch((err) => `\u56FE\u7247\u751F\u6210\u5931\u8D25\uFF1A${describeError(err)}`);
       }
@@ -252833,11 +252836,16 @@ var quickVideoAgent_default = (nsp) => {
     };
     socket.on("chat", async (data) => {
       const { content, textModel } = data;
-      const mode = data.mode === "image" ? "image" : data.mode === "video" ? "video" : "text";
+      const msg = resTool.newMessage("assistant", "\u5FEB\u521B\u52A9\u624B");
+      const requestedMode = data.mode == null ? "text" : data.mode;
+      if (!QUICK_VIDEO_CHAT_MODES.includes(requestedMode)) {
+        msg.error(`\u804A\u5929\u6A21\u5F0F\u65E0\u6548\uFF1A${String(requestedMode)}\uFF0C\u8BF7\u9009\u62E9\u6587\u672C\u3001\u56FE\u50CF\u6216\u89C6\u9891\u6A21\u5F0F`);
+        return;
+      }
+      const mode = requestedMode;
       abortController?.abort();
       abortController = new AbortController();
       const currentController = abortController;
-      const msg = resTool.newMessage("assistant", "\u5FEB\u521B\u52A9\u624B");
       const claimedTitleGeneration = await bumpUserMessageCountAndMaybeClaimTitle(sessionId);
       let validatedImageModel;
       let validatedVideoModel;

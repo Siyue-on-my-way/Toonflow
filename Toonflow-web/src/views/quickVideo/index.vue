@@ -30,7 +30,12 @@
                 :status="message.status"
                 allowContentSegmentCustom></t-chat-message>
               <div v-if="mediaCardsOf(message).length" class="qvChatMediaRow">
-                <div v-for="card in mediaCardsOf(message)" :key="card.key" class="qvChatMediaCard">
+                <div
+                  v-for="card in mediaCardsOf(message)"
+                  :key="card.key"
+                  class="qvChatMediaCard"
+                  :data-testid="`qv-chat-media-${card.ext.mediaId}`"
+                  :data-media-id="card.ext.mediaId">
                   <div class="qvChatMediaThumb" @click="card.ext.state === 'done' && openMediaPreview(toMediaRefFromCard(card))">
                     <t-image v-if="card.ext.state === 'done' && card.ext.kind === 'image' && card.url" :src="card.url" fit="cover" :style="{ width: '100%', height: '100%', cursor: 'pointer' }" />
                     <video v-else-if="card.ext.state === 'done' && card.ext.kind === 'video' && card.url" :src="card.url" muted class="qvChatMediaVideo" />
@@ -1093,16 +1098,26 @@ async function callQuickVideoApi(url: string, payload: Record<string, any>) {
   }
 }
 
-function confirmGate(gate: "brief" | "storyboard" | "materials" | "export", action: "confirm" | "reject") {
-  if (!state.value) return;
-  callQuickVideoApi("/quickVideo/confirmStage", {
-    projectId: Number(project.value?.id),
-    sessionId: currentSessionId.value,
-    expectedVersion: state.value.version,
-    idempotencyKey: newIdemKey(),
-    gate,
-    action,
-  });
+async function confirmGate(gate: "brief" | "storyboard" | "materials" | "export", action: "confirm" | "reject") {
+  // Chat/media writes update the same optimistic-lock version as the gates. A
+  // user can click a gate immediately after the last streaming response, before
+  // the background workbench refresh finishes; refresh here so the request
+  // carries the latest expectedVersion and a legitimate click is not silently
+  // discarded as a stale-version conflict.
+  try {
+    await getWorkbench();
+    if (!state.value) return;
+    await callQuickVideoApi("/quickVideo/confirmStage", {
+      projectId: Number(project.value?.id),
+      sessionId: currentSessionId.value,
+      expectedVersion: state.value.version,
+      idempotencyKey: newIdemKey(),
+      gate,
+      action,
+    });
+  } catch (error: any) {
+    window.$message.error(error?.message ?? $t("workbench.quickVideo.opFailed"));
+  }
 }
 
 // ===== 简报编辑 =====

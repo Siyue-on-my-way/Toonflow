@@ -13,6 +13,10 @@ export default router.post(
   }),
   async (req, res) => {
     const { id } = req.body;
+    // quick_video 的会话与媒体索引不属于专业模式的旧清理链路；项目删除时
+    // 一并清理，避免聊天媒体/会话记录成为无法通过项目权限访问的孤儿数据。
+    await u.db("o_quickVideoMedia").where("projectId", id).delete();
+    await u.db("o_quickVideoSession").where("projectId", id).delete();
     //删除项目
     await u.db("o_project").where("id", id).delete();
     await u.db("o_agentWorkData").where("projectId", id).delete();

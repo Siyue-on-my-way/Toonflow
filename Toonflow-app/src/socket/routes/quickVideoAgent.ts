@@ -4,7 +4,7 @@ import { Namespace, Socket } from "socket.io";
 import * as agent from "@/agents/quickVideoAgent/index";
 import ResTool from "@/socket/resTool";
 import { getOwnedSession, bumpUserMessageCountAndMaybeClaimTitle } from "@/lib/quickVideo/session";
-import { buildSessionIsolationKey, QuickVideoChatMode } from "@/lib/quickVideo/contract";
+import { buildSessionIsolationKey, QUICK_VIDEO_CHAT_MODES, QuickVideoChatMode } from "@/lib/quickVideo/contract";
 import { generateSessionTitle } from "@/lib/quickVideo/title";
 import { validateImageModelKey, validateVideoModelKey } from "@/lib/quickVideo/media";
 import { QuickVideoError } from "@/lib/quickVideo/state";
@@ -65,12 +65,18 @@ export default (nsp: Namespace) => {
 
     socket.on("chat", async (data: { content: string; textModel?: string; mode?: string; imageModel?: string; videoModel?: string; references?: number[] }) => {
       const { content, textModel } = data;
-      const mode: QuickVideoChatMode = data.mode === "image" ? "image" : data.mode === "video" ? "video" : "text";
+      const msg = resTool.newMessage("assistant", "快创助手");
+      // 缺少 mode 兼容旧客户端，按普通文本处理；显式传入未知值必须拒绝，
+      // 不能把浏览器拼写错误静默降级成文本请求。
+      const requestedMode = data.mode == null ? "text" : data.mode;
+      if (!(QUICK_VIDEO_CHAT_MODES as readonly string[]).includes(requestedMode)) {
+        msg.error(`聊天模式无效：${String(requestedMode)}，请选择文本、图像或视频模式`);
+        return;
+      }
+      const mode = requestedMode as QuickVideoChatMode;
       abortController?.abort();
       abortController = new AbortController();
       const currentController = abortController;
-
-      const msg = resTool.newMessage("assistant", "快创助手");
 
       // 计数 + 抢占放在模型校验/Agent 调用之前：即使本轮因图片/视频模型无效被提前拒绝，
       // 用户也确实发了一条消息，仍应计入"第几条消息"的判断，避免图片/视频模式的失败请求

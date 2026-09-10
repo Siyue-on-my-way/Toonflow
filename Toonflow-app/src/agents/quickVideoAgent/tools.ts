@@ -567,15 +567,14 @@ export default (toolConfig: ToolConfig) => {
 
           const referenceIds = (input.referenceMediaIds ?? toolConfig.references ?? []).slice(0, 4);
           const referenceList: { type: "image"; base64: string }[] = [];
-          for (const refId of referenceIds) {
-            try {
-              referenceList.push({ type: "image", base64: await resolveMediaImageBase64(projectId, refId) });
-            } catch {
-              // 单张参考图失效不阻断本次生成，退化为纯文本提示词
-            }
-          }
 
           try {
+            // 参考图是用户明确选择的稳定 mediaId。任何一张引用失效、跨项目、未完成
+            // 或文件缺失都必须终止本次请求；不能把图生图静默降级成文生图。
+            for (const refId of referenceIds) {
+              referenceList.push({ type: "image", base64: await resolveMediaImageBase64(projectId, refId) });
+            }
+
             const imageCls = u.Ai.Image(imageModel as `${string}:${string}`, userId);
             await imageCls.run(
               { prompt: input.prompt, referenceList, size: "1K", aspectRatio },
@@ -599,7 +598,8 @@ export default (toolConfig: ToolConfig) => {
           } catch (err) {
             const reason = describeError(err);
             await markChatMediaFailed(media.id, reason);
-            return `图片生成失败：${reason}。可以请用户换一个描述或换一个图片模型后重新发送。`;
+            const referenceHint = referenceIds.length ? `参考图无效（${reason}）` : reason;
+            return `图片生成失败：${referenceHint}。${referenceIds.length ? "请重新选择一张当前项目中已完成的图片作为参考后再试。" : "可以请用户换一个描述或换一个图片模型后重新发送。"}`;
           }
         }).catch((err) => `图片生成失败：${describeError(err)}`);
       },
