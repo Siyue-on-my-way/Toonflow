@@ -26,6 +26,13 @@ import {
 } from "./contract";
 import { QuickVideoError, loadQuickVideoState, mutateQuickVideoState } from "./state";
 import { recordEvent, qvLog } from "./metrics";
+import {
+  getQuickVideoImageInputRequirements,
+  selectQuickVideoImageModel,
+  selectQuickVideoVideoModel,
+  supportsQuickVideoImageInput,
+  supportsQuickVideoVideoInput,
+} from "./modelCapabilities";
 
 /** 进程内生成运行登记：projectId -> 运行 runId（防止重复启动） */
 const runningGenerations = new Map<number, { runId: string }>();
@@ -160,35 +167,105 @@ async function matchProjectAsset(
 // 模型解析
 // ---------------------------------------------------------------------------
 
-/** 项目未配置生成模型时，按「启用的供应商 → 该类型第一个模型」兜底选择 */
-async function findFirstAvailableModel(type: "image" | "video"): Promise<string> {
-  const vendorRows = await u.db("o_vendorConfig").select("id").where("enable", 1);
-  for (const row of vendorRows) {
-    try {
-      const models = (await u.vendor.getModelList(row.id)) ?? [];
-      const hit = models.find((m: any) => m.type === type);
-      if (!hit) continue;
-      const enabled = await u.vendor.getEnabledModelNames(row.id);
-      if (enabled.length === 0 || enabled.includes(hit.modelName)) {
-        return `${row.id}:${hit.modelName}`;
-      }
-    } catch {
-      // 单个供应商查询失败不影响兜底选择
-    }
-  }
-  return "";
+interface ModelCandidate {
+  vendorId: string;
+  model: any;
+  key: string;
 }
 
-export async function resolveGenerationModels(projectId: number, sessionId?: number | null): Promise<{ imageModel: string; videoModel: string }> {
+/** 读取当前启用供应商目录，并应用全局 enabledModels 过滤。 */
+async function listAvailableModelCandidates(type: "image" | "video"): Promise<ModelCandidate[]> {
+  const vendorRows = await u.db("o_vendorConfig").select("id").where("enable", 1);
+  const perVendor = await Promise.all(
+    vendorRows.map(async (row: any): Promise<ModelCandidate[]> => {
+      const vendorId = String(row.id ?? "");
+      if (!vendorId) return [];
+      try {
+        const [models, enabled] = await Promise.all([
+          u.vendor.getModelList(vendorId),
+          u.vendor.getEnabledModelNames(vendorId),
+        ]);
+        const enabledNames = Array.isArray(enabled)
+          ? enabled.filter((name): name is string => typeof name === "string")
+          : [];
+        return (Array.isArray(models) ? models : [])
+          .filter(
+            (model: any) =>
+              model?.type === type &&
+              typeof model.modelName === "string" &&
+              enabledNames.includes(model.modelName),
+          )
+          .map((model: any) => ({
+            vendorId,
+            model,
+            key: `${vendorId}:${model.modelName}`,
+          }));
+      } catch {
+        // 单个供应商目录损坏时，其他供应商仍可提供候选。
+        return [];
+      }
+    }),
+  );
+  return perVendor.flat();
+}
+
+function candidateByRequestedKey(
+  candidates: ModelCandidate[],
+  requested: string,
+  isCompatible: (model: any) => boolean,
+): string {
+  const hit = candidates.find((candidate) => candidate.key === requested);
+  return hit && isCompatible(hit.model) ? hit.key : "";
+}
+
+/**
+ * 解析本次快创实际可用的模型。
+ * 图片候选必须覆盖所有镜头：无资产引用的镜头需要 text，有资产引用的镜头需要
+ * singleImage/multiReference。视频候选必须支持 singleImage，因为快创视频以分镜图为首帧。
+ */
+export async function resolveGenerationModels(
+  projectId: number,
+  sessionId?: number | null,
+  snapshot?: QuickVideoGenerationSnapshot,
+): Promise<{ imageModel: string; videoModel: string }> {
   const project = await u.db("o_project").where("id", projectId).first();
   const session = sessionId ? await u.db("o_quickVideoSession").where({ id: sessionId, projectId }).first() : null;
   // 会话内保存的偏好优先；未设置时回退项目历史默认值（兼容尚未迁移/未设置过偏好的会话）
-  let imageModel = String(session?.imageModel || project?.imageModel || "");
-  let videoModel = String(session?.videoModel || project?.videoModel || "");
-  if (!imageModel) imageModel = await findFirstAvailableModel("image");
-  if (!videoModel) videoModel = await findFirstAvailableModel("video");
+  const requestedImageModel = String(session?.imageModel || project?.imageModel || "").trim();
+  const requestedVideoModel = String(session?.videoModel || project?.videoModel || "").trim();
+  const imageRequirements = getQuickVideoImageInputRequirements(snapshot?.shots, {
+    needsTextForMaterialGeneration: snapshot?.materials.some((material) => material.source === "to_generate") ?? false,
+  });
+  const [imageCandidates, videoCandidates] = await Promise.all([
+    listAvailableModelCandidates("image"),
+    listAvailableModelCandidates("video"),
+  ]);
+
+  const imageCompatible = (model: any) => supportsQuickVideoImageInput(model, imageRequirements);
+  const videoCompatible = (model: any) => supportsQuickVideoVideoInput(model);
+  let imageModel = requestedImageModel
+    ? candidateByRequestedKey(imageCandidates, requestedImageModel, imageCompatible)
+    : "";
+  let videoModel = requestedVideoModel
+    ? candidateByRequestedKey(videoCandidates, requestedVideoModel, videoCompatible)
+    : "";
+  if (!imageModel) imageModel = selectQuickVideoImageModel(imageCandidates.map((candidate) => ({ ...candidate.model, modelName: candidate.key })), imageRequirements)?.modelName ?? "";
+  if (!videoModel) videoModel = selectQuickVideoVideoModel(videoCandidates.map((candidate) => ({ ...candidate.model, modelName: candidate.key })))?.modelName ?? "";
+
+  if (requestedImageModel && requestedImageModel !== imageModel) {
+    console.warn(`[quickVideo] 图片模型 ${requestedImageModel} 不适配当前镜头输入，已回退到 ${imageModel || "未配置"}`);
+  }
+  if (requestedVideoModel && requestedVideoModel !== videoModel) {
+    console.warn(`[quickVideo] 视频模型 ${requestedVideoModel} 不支持分镜图首帧，已回退到 ${videoModel || "未配置"}`);
+  }
   if (!imageModel || !videoModel) {
-    throw new QuickVideoError("MODEL_NOT_CONFIGURED", "未找到可用的图片/视频生成模型，请先在设置页配置或启用对应模型");
+    const missing = [!imageModel ? "图片" : "", !videoModel ? "视频" : ""].filter(Boolean).join("/");
+    const reason = !imageModel && imageRequirements.needsText
+      ? "当前存在无参考图镜头，需要支持文生图的启用模型"
+      : !videoModel
+        ? "快创视频需要支持单图首帧的启用模型"
+        : "请先配置或启用对应模型";
+    throw new QuickVideoError("MODEL_NOT_CONFIGURED", `未找到可用的${missing}生成模型：${reason}`);
   }
   return { imageModel, videoModel };
 }
@@ -278,6 +355,8 @@ export async function retryQuickVideoShots(projectId: number, userId: number, sh
       if (shot.imageState !== "done") shot.imageState = "pending";
       if (shot.videoState !== "done") shot.videoState = "pending";
       shot.errorReason = null;
+      shot.imageErrorReason = null;
+      shot.videoErrorReason = null;
     }
   });
 
@@ -330,12 +409,20 @@ export async function ensureGenerationRecovery(projectId: number): Promise<void>
     await mutateQuickVideoState(projectId, {}, (s) => {
       for (const shot of s.storyboard?.shots ?? []) {
         if (shot.imageState === "generating") {
+          const reason = "生成中断（服务重启或轮询中断），请重试该镜头";
           shot.imageState = "failed";
-          shot.errorReason = "生成中断（服务重启或轮询中断），请重试该镜头";
+          shot.errorReason = reason;
+          shot.imageErrorReason = reason;
+          if (shot.videoState !== "done") {
+            shot.videoState = "failed";
+            shot.videoErrorReason = videoDependencyFailureReason(reason);
+          }
         }
         if (shot.videoState === "generating") {
+          const reason = "生成中断（服务重启或轮询中断），请重试该镜头";
           shot.videoState = "failed";
-          shot.errorReason = "生成中断（服务重启或轮询中断），请重试该镜头";
+          shot.errorReason = reason;
+          shot.videoErrorReason = reason;
         }
       }
     });
@@ -368,7 +455,7 @@ async function runGeneration(projectId: number, userId: number, runId: string, s
 
   let models: { imageModel: string; videoModel: string };
   try {
-    models = await resolveGenerationModels(projectId, sessionId);
+    models = await resolveGenerationModels(projectId, sessionId, snapshot);
   } catch (err) {
     await markShotsFailed(projectId, snapshot.shots.map((s) => s.id), u.error(err as Error).message);
     return;
@@ -396,9 +483,13 @@ async function markShotsFailed(projectId: number, shotIds: string[], reason: str
       for (const shotId of shotIds) {
         const shot = s.storyboard?.shots.find((x) => x.id === shotId);
         if (!shot) continue;
-        if (shot.imageState !== "done") shot.imageState = "failed";
-        if (shot.videoState !== "done") shot.videoState = "failed";
+        const imageFailed = shot.imageState !== "done";
+        const videoFailed = shot.videoState !== "done";
+        if (imageFailed) shot.imageState = "failed";
+        if (videoFailed) shot.videoState = "failed";
         shot.errorReason = reason;
+        if (imageFailed) shot.imageErrorReason = reason;
+        if (videoFailed) shot.videoErrorReason = imageFailed ? videoDependencyFailureReason(reason) : reason;
       }
     });
   } catch (err) {
@@ -465,14 +556,19 @@ async function runShotPipeline(projectId: number, userId: number, shotId: string
   const ctx =
     presetCtx ??
     (await (async () => {
-      const models = await resolveGenerationModels(projectId, sessionId);
+      const models = await resolveGenerationModels(projectId, sessionId, snapshot);
       return { projectId, userId, runId: `retry-${u.uuid().slice(0, 8)}`, snapshot, sessionId, ...models } as GenerationContext;
     })());
 
   // --- 分镜图 ---
   let imageRef = liveShot.imageRef;
   if (liveShot.imageState !== "done" || !imageRef) {
-    await updateShotState(projectId, shotId, { imageState: "generating", errorReason: null });
+    await updateShotState(projectId, shotId, {
+      imageState: "generating",
+      errorReason: null,
+      imageErrorReason: null,
+      videoErrorReason: null,
+    });
     try {
       const referenceList = await buildShotImageReferences(ctx, shotContent);
       const imageCls = u.Ai.Image(ctx.imageModel as `${string}:${string}`, ctx.userId);
@@ -496,14 +592,26 @@ async function runShotPipeline(projectId: number, userId: number, shotId: string
       );
       imageRef = `/${projectId}/quickVideo/${shotId}-${u.uuid().slice(0, 8)}.jpg`;
       await imageCls.save(imageRef);
-      await updateShotState(projectId, shotId, { imageState: "done", imageRef, errorReason: null });
+      await updateShotState(projectId, shotId, {
+        imageState: "done",
+        imageRef,
+        errorReason: null,
+        imageErrorReason: null,
+        videoErrorReason: null,
+      });
       recordEvent("generationShotImageDone");
     } catch (err) {
       const reason = u.error(err as Error).message;
       // 视频管线依赖分镜图。图片失败时也要把视频收敛到 failed，
       // 否则镜头会永远停在 image=failed/video=pending，既无法完成
       // 项目级失败对账，也无法让用户明确触发单镜头重试。
-      await updateShotState(projectId, shotId, { imageState: "failed", videoState: "failed", errorReason: reason });
+      await updateShotState(projectId, shotId, {
+        imageState: "failed",
+        videoState: "failed",
+        errorReason: reason,
+        imageErrorReason: reason,
+        videoErrorReason: videoDependencyFailureReason(reason),
+      });
       recordEvent("generationShotFailed");
       qvLog("shot_failed", { projectId, shotId, stage: "image", reason });
       return; // 视频依赖分镜图，图失败则该镜头终止（其余镜头不受影响）
@@ -513,7 +621,11 @@ async function runShotPipeline(projectId: number, userId: number, shotId: string
   // --- 视频片段 ---
   const liveAfterImage = (await loadQuickVideoState(projectId))?.storyboard?.shots.find((s) => s.id === shotId);
   if (liveAfterImage?.videoState === "done" && liveAfterImage.videoRef) return;
-  await updateShotState(projectId, shotId, { videoState: "generating", errorReason: null });
+  await updateShotState(projectId, shotId, {
+    videoState: "generating",
+    errorReason: null,
+    videoErrorReason: null,
+  });
   try {
     const imageBase64 = await u.oss.getImageBase64(imageRef!);
     const videoAi = u.Ai.Video(ctx.videoModel as `${string}:${string}`, ctx.userId);
@@ -539,12 +651,12 @@ async function runShotPipeline(projectId: number, userId: number, shotId: string
     );
     const videoRef = `/${projectId}/quickVideo/${shotId}-${u.uuid().slice(0, 8)}.mp4`;
     await videoAi.save(videoRef);
-    await updateShotState(projectId, shotId, { videoState: "done", videoRef, errorReason: null });
+    await updateShotState(projectId, shotId, { videoState: "done", videoRef, errorReason: null, videoErrorReason: null });
     recordEvent("generationShotDone");
     qvLog("shot_done", { projectId, shotId, duration: shotContent.duration });
   } catch (err) {
     const reason = u.error(err as Error).message;
-    await updateShotState(projectId, shotId, { videoState: "failed", errorReason: reason });
+    await updateShotState(projectId, shotId, { videoState: "failed", errorReason: reason, videoErrorReason: reason });
     recordEvent("generationShotFailed");
     qvLog("shot_failed", { projectId, shotId, stage: "video", reason });
   }
@@ -575,10 +687,14 @@ async function maybeFinishGeneration(projectId: number) {
 // 状态回写与提示词
 // ---------------------------------------------------------------------------
 
+function videoDependencyFailureReason(imageReason: string): string {
+  return `视频未启动：图片生成依赖未满足。原始图片错误：${imageReason}`.slice(0, 1000);
+}
+
 async function updateShotState(
   projectId: number,
   shotId: string,
-  patch: Partial<Pick<QuickVideoShot, "imageState" | "videoState" | "imageRef" | "videoRef" | "errorReason">>,
+  patch: Partial<Pick<QuickVideoShot, "imageState" | "videoState" | "imageRef" | "videoRef" | "errorReason" | "imageErrorReason" | "videoErrorReason">>,
 ) {
   try {
     await mutateQuickVideoState(projectId, {}, (s) => {
@@ -589,6 +705,8 @@ async function updateShotState(
       if (patch.imageRef !== undefined) shot.imageRef = patch.imageRef;
       if (patch.videoRef !== undefined) shot.videoRef = patch.videoRef;
       if (patch.errorReason !== undefined) shot.errorReason = patch.errorReason;
+      if (patch.imageErrorReason !== undefined) shot.imageErrorReason = patch.imageErrorReason;
+      if (patch.videoErrorReason !== undefined) shot.videoErrorReason = patch.videoErrorReason;
     });
   } catch (err) {
     console.error(`[quickVideo] 回写镜头 ${shotId} 状态失败:`, u.error(err as Error).message);

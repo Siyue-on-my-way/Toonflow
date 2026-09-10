@@ -40,6 +40,8 @@ export interface QuickVideoShot {
   imageRef: string | null;
   videoRef: string | null;
   errorReason: string | null;
+  imageErrorReason?: string | null;
+  videoErrorReason?: string | null;
 }
 
 export interface QuickVideoBrief {

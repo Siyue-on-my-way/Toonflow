@@ -66,6 +66,8 @@ function agentProposeStoryboard(projectId: number, shotsSpec: { duration: number
       imageRef: null,
       videoRef: null,
       errorReason: null,
+      imageErrorReason: null,
+      videoErrorReason: null,
     }));
     // 与 propose_storyboard 工具一致：先跑契约校验
     const errors = validateStoryboard(s.targetDuration, shots);

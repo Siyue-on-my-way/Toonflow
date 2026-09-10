@@ -34,7 +34,8 @@
     "license": "node scripts/license.ts",
     "vendor2json": "node scripts/vendor2json.ts",
     "test:aibotplatform": "tsx tests/aibotplatform.test.ts",
-    "test:quickvideo-session": "tsx scripts/quickvideo-session-unit.ts"
+    "test:quickvideo-session": "tsx scripts/quickvideo-session-unit.ts",
+    "test:quickvideo-model-capabilities": "tsx tests/quickvideo-model-capabilities.test.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.35",

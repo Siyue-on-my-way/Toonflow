@@ -127,6 +127,8 @@ export const quickVideoShotSchema = z.object({
   imageRef: z.string().max(500).nullable().default(null).describe("分镜图文件引用（OSS key）"),
   videoRef: z.string().max(500).nullable().default(null).describe("视频片段文件引用（OSS key）"),
   errorReason: z.string().max(1000).nullable().default(null).describe("最近一次生成失败原因"),
+  imageErrorReason: z.string().max(1000).nullable().default(null).describe("分镜图生成失败原因"),
+  videoErrorReason: z.string().max(1000).nullable().default(null).describe("视频生成失败或图片依赖未满足原因"),
 });
 export type QuickVideoShot = z.infer<typeof quickVideoShotSchema>;
 

@@ -196,7 +196,7 @@
                     </div>
                   </template>
                   <template #genState="{ row }">
-                    <t-tooltip v-if="row.errorReason" :content="row.errorReason">
+                    <t-tooltip v-if="shotImageError(row)" :content="shotImageError(row)">
                       <t-tag size="small" shape="round" :theme="genStateTheme(row.imageState)" style="margin-right: 4px">
                         {{ $t("workbench.quickVideo.image") }}·{{ genStateLabel(row.imageState) }}
                       </t-tag>
@@ -204,7 +204,7 @@
                     <t-tag v-else size="small" shape="round" :theme="genStateTheme(row.imageState)" style="margin-right: 4px">
                       {{ $t("workbench.quickVideo.image") }}·{{ genStateLabel(row.imageState) }}
                     </t-tag>
-                    <t-tooltip v-if="row.errorReason" :content="row.errorReason">
+                    <t-tooltip v-if="shotVideoError(row)" :content="shotVideoError(row)">
                       <t-tag size="small" shape="round" :theme="genStateTheme(row.videoState)">
                         {{ $t("workbench.quickVideo.video") }}·{{ genStateLabel(row.videoState) }}
                       </t-tag>
@@ -694,6 +694,12 @@ function genStateTheme(s: string) {
 }
 function isShotFailed(row: QuickVideoShot) {
   return row.imageState === "failed" || row.videoState === "failed";
+}
+function shotImageError(row: QuickVideoShot) {
+  return row.imageState === "failed" ? row.imageErrorReason || row.errorReason || "" : "";
+}
+function shotVideoError(row: QuickVideoShot) {
+  return row.videoState === "failed" ? row.videoErrorReason || row.errorReason || "" : "";
 }
 
 const totalDuration = computed(() => state.value?.storyboard?.shots.reduce((sum, s) => sum + s.duration, 0) ?? 0);

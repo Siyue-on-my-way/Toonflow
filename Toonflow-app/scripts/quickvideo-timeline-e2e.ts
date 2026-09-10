@@ -67,6 +67,8 @@ function agentProposeStoryboard(projectId: number, shotsSpec: { duration: number
       imageRef: null,
       videoRef: null,
       errorReason: null,
+      imageErrorReason: null,
+      videoErrorReason: null,
     }));
     const errors = validateStoryboard(s.targetDuration, shots);
     if (errors.length) throw new Error(`STORYBOARD_INVALID:${errors.join(";")}`);

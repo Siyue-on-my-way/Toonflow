@@ -44,6 +44,8 @@ export default router.post(
           imageRef: null,
           videoRef: null,
           errorReason: null,
+          imageErrorReason: null,
+          videoErrorReason: null,
         });
         reindexShots(state);
       });

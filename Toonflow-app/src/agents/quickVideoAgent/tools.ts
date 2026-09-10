@@ -265,6 +265,8 @@ export default (toolConfig: ToolConfig) => {
                 imageRef: null,
                 videoRef: null,
                 errorReason: null,
+                imageErrorReason: null,
+                videoErrorReason: null,
               }));
               const errors = validateStoryboard(s.targetDuration, shots);
               if (errors.length) throw new QuickVideoError("STORYBOARD_INVALID", errors.join("；"), s.version);
@@ -374,6 +376,8 @@ export default (toolConfig: ToolConfig) => {
                 imageRef: null,
                 videoRef: null,
                 errorReason: null,
+                imageErrorReason: null,
+                videoErrorReason: null,
               });
               reindexShots(s);
             },
@@ -464,6 +468,8 @@ export default (toolConfig: ToolConfig) => {
             imageState: s.imageState,
             videoState: s.videoState,
             errorReason: s.errorReason,
+            imageErrorReason: s.imageErrorReason,
+            videoErrorReason: s.videoErrorReason,
           })),
           null,
           2,
