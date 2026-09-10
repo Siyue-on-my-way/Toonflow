@@ -53,4 +53,16 @@ describe("ExportProgress.vue", () => {
     await wrapper.find('[data-testid="qv-export-close"]').trigger("click");
     expect(wrapper.emitted("close")).toHaveLength(1);
   });
+
+  it("warning 状态说明文件已生成但状态待保存，并允许只重试回写", async () => {
+    const wrapper = mount(ExportProgress, {
+      props: { ...baseProps, status: "warning", progress: 100, errorMessage: "文件已下载，等待保存" },
+    });
+    expect(wrapper.find('[data-testid="qv-export-error"]').text()).toContain("文件已下载");
+    expect(wrapper.find('[data-testid="qv-export-retry"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="qv-export-close"]').exists()).toBe(true);
+
+    await wrapper.find('[data-testid="qv-export-retry"]').trigger("click");
+    expect(wrapper.emitted("retry")).toHaveLength(1);
+  });
 });

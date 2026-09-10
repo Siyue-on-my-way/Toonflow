@@ -41,11 +41,7 @@
             @stop="handleStop">
             <template #footer-prefix>
               <div class="modelPicker" @click.stop>
-                <t-select
-                  v-model="activeModelType"
-                  class="modelTypeSelect"
-                  size="small"
-                  :disabled="status === 'pending' || status === 'streaming'">
+                <t-select v-model="activeModelType" class="modelTypeSelect" size="small" :disabled="status === 'pending' || status === 'streaming'">
                   <t-option value="text" :label="$t('components.modelSelect.type.text')" />
                   <t-option value="image" :label="$t('components.modelSelect.type.image')" />
                   <t-option value="video" :label="$t('components.modelSelect.type.video')" />
@@ -107,7 +103,9 @@
                 <span>{{ $t("workbench.quickVideo.brief") }}</span>
                 <div class="actions">
                   <t-tag v-if="state?.brief?.confirmed" shape="round" theme="success">{{ $t("workbench.quickVideo.confirmed") }}</t-tag>
-                  <t-button size="small" variant="outline" @click="openBriefEdit" :disabled="!canEditBrief">{{ $t("workbench.quickVideo.edit") }}</t-button>
+                  <t-button size="small" variant="outline" @click="openBriefEdit" :disabled="!canEditBrief">
+                    {{ $t("workbench.quickVideo.edit") }}
+                  </t-button>
                   <t-button
                     v-if="state?.stage === 'collect_brief' || state?.stage === 'storyboard_draft'"
                     size="small"
@@ -116,20 +114,28 @@
                     @click="confirmGate('brief', 'confirm')">
                     {{ $t("workbench.quickVideo.confirmBrief") }}
                   </t-button>
-                  <t-button
-                    v-if="state?.stage === 'brief_confirmed'"
-                    size="small"
-                    variant="outline"
-                    @click="confirmGate('brief', 'reject')">
+                  <t-button v-if="state?.stage === 'brief_confirmed'" size="small" variant="outline" @click="confirmGate('brief', 'reject')">
                     {{ $t("workbench.quickVideo.rejectConfirm") }}
                   </t-button>
                 </div>
               </div>
               <div class="cardBody" v-if="state?.brief">
-                <div class="briefRow"><label>{{ $t("workbench.quickVideo.briefTheme") }}</label><span>{{ state.brief.theme }}</span></div>
-                <div class="briefRow"><label>{{ $t("workbench.quickVideo.briefHook") }}</label><span>{{ state.brief.hook || "-" }}</span></div>
-                <div class="briefRow"><label>{{ $t("workbench.quickVideo.briefNarrative") }}</label><span>{{ state.brief.narrative }}</span></div>
-                <div class="briefRow"><label>{{ $t("workbench.quickVideo.briefCta") }}</label><span>{{ state.brief.cta || "-" }}</span></div>
+                <div class="briefRow">
+                  <label>{{ $t("workbench.quickVideo.briefTheme") }}</label>
+                  <span>{{ state.brief.theme }}</span>
+                </div>
+                <div class="briefRow">
+                  <label>{{ $t("workbench.quickVideo.briefHook") }}</label>
+                  <span>{{ state.brief.hook || "-" }}</span>
+                </div>
+                <div class="briefRow">
+                  <label>{{ $t("workbench.quickVideo.briefNarrative") }}</label>
+                  <span>{{ state.brief.narrative }}</span>
+                </div>
+                <div class="briefRow">
+                  <label>{{ $t("workbench.quickVideo.briefCta") }}</label>
+                  <span>{{ state.brief.cta || "-" }}</span>
+                </div>
                 <div class="briefRow" v-if="state.brief.keywords?.length">
                   <label>{{ $t("workbench.quickVideo.briefKeywords") }}</label>
                   <t-tag v-for="kw in state.brief.keywords" :key="kw" shape="round" size="small">{{ kw }}</t-tag>
@@ -144,7 +150,8 @@
                 <span>
                   {{ $t("workbench.quickVideo.storyboard") }}
                   <t-tag v-if="state?.storyboard" shape="round" size="small" style="margin-left: 6px">
-                    v{{ state.storyboard.version }} · {{ state.storyboard.status === "confirmed" ? $t("workbench.quickVideo.confirmed") : $t("workbench.quickVideo.draft") }}
+                    v{{ state.storyboard.version }} ·
+                    {{ state.storyboard.status === "confirmed" ? $t("workbench.quickVideo.confirmed") : $t("workbench.quickVideo.draft") }}
                   </t-tag>
                 </span>
                 <div class="actions">
@@ -250,12 +257,7 @@
                   </t-tag>
                 </span>
                 <div class="actions">
-                  <t-button
-                    v-if="state?.stage === 'storyboard_confirmed'"
-                    size="small"
-                    variant="outline"
-                    :loading="resolving"
-                    @click="resolveAssets">
+                  <t-button v-if="state?.stage === 'storyboard_confirmed'" size="small" variant="outline" :loading="resolving" @click="resolveAssets">
                     {{ $t("workbench.quickVideo.resolveMaterials") }}
                   </t-button>
                   <t-button
@@ -279,7 +281,9 @@
                 <div class="estimateRow">
                   <t-tag shape="round">{{ $t("workbench.quickVideo.estimateImages") }}：{{ snapshot?.estimatedImageCount ?? 0 }}</t-tag>
                   <t-tag shape="round">{{ $t("workbench.quickVideo.estimateVideos") }}：{{ snapshot?.estimatedVideoCount ?? 0 }}</t-tag>
-                  <t-tag shape="round" theme="warning">{{ $t("workbench.quickVideo.estimateCost") }}：≈ ¥{{ snapshot?.estimatedCostYuan ?? 0 }}</t-tag>
+                  <t-tag shape="round" theme="warning">
+                    {{ $t("workbench.quickVideo.estimateCost") }}：≈ ¥{{ snapshot?.estimatedCostYuan ?? 0 }}
+                  </t-tag>
                   <t-tag shape="round" theme="warning">{{ $t("workbench.quickVideo.estimateTime") }}：≈ {{ estimateMinutes }}</t-tag>
                 </div>
                 <div class="materialList">
@@ -359,7 +363,10 @@
                       :style="{ '--qv-ratio': playerAspectRatio }" />
                     <div class="previewControls" v-if="timelinePlayer.ready.value">
                       <t-button size="small" shape="circle" theme="primary" @click="togglePlay">
-                        <template #icon><i-pause v-if="timelinePlayer.playing.value" size="14" /><i-play-circle v-else size="14" /></template>
+                        <template #icon>
+                          <i-pause v-if="timelinePlayer.playing.value" size="14" />
+                          <i-play-circle v-else size="14" />
+                        </template>
                       </t-button>
                       <t-slider
                         class="seekSlider"
@@ -369,7 +376,9 @@
                         :step="0.1"
                         :tooltip-visible="false"
                         @change="(v: any) => timelinePlayer.seek(Number(v))" />
-                      <span class="timeLabel">{{ formatTime(timelinePlayer.currentTime.value) }} / {{ formatTime(timelinePlayer.duration.value) }}</span>
+                      <span class="timeLabel">
+                        {{ formatTime(timelinePlayer.currentTime.value) }} / {{ formatTime(timelinePlayer.duration.value) }}
+                      </span>
                     </div>
                     <t-alert v-if="timelinePlayer.loadError.value" theme="error" :message="timelinePlayer.loadError.value" style="margin-top: 8px" />
                   </div>
@@ -380,15 +389,26 @@
                     </div>
                     <div class="controlRow" v-if="bgmEnabled">
                       <span>{{ $t("workbench.quickVideo.bgmVolume") }}</span>
-                      <t-slider class="volumeSlider" v-model="bgmVolume" :min="0" :max="1" :step="0.05" :tooltip-visible="false" @change-end="onBgmChange" />
+                      <t-slider
+                        class="volumeSlider"
+                        v-model="bgmVolume"
+                        :min="0"
+                        :max="1"
+                        :step="0.05"
+                        :tooltip-visible="false"
+                        @change-end="onBgmChange" />
                     </div>
                     <div class="controlSummary" v-if="timelineSummary">
-                      <t-tag size="small" shape="round" style="margin: 1px 2px">{{ $t("workbench.quickVideo.totalDuration") }}：{{ timelineSummary }}</t-tag>
-                      <t-tag size="small" shape="round" style="margin: 1px 2px" v-if="timelineClipCount">{{ $t("workbench.quickVideo.clipCount") }}：{{ timelineClipCount }}</t-tag>
+                      <t-tag size="small" shape="round" style="margin: 1px 2px">
+                        {{ $t("workbench.quickVideo.totalDuration") }}：{{ timelineSummary }}
+                      </t-tag>
+                      <t-tag size="small" shape="round" style="margin: 1px 2px" v-if="timelineClipCount">
+                        {{ $t("workbench.quickVideo.clipCount") }}：{{ timelineClipCount }}
+                      </t-tag>
                       <t-tag size="small" shape="round" style="margin: 1px 2px">{{ state?.videoRatio }} · {{ timelineSizeLabel }}</t-tag>
                     </div>
                     <div class="exportRow">
-                      <t-button theme="primary" :disabled="!timelinePlayer.ready.value" @click="openExportConfirm">
+                      <t-button theme="primary" :disabled="!timelinePlayer.ready.value || !timelineStateSynced" @click="openExportConfirm">
                         {{ $t("workbench.quickVideo.exportBtn") }}
                       </t-button>
                       <span class="exportHint">{{ $t("workbench.quickVideo.exportGateHint") }}</span>
@@ -405,7 +425,7 @@
                       :retry-text="$t('workbench.quickVideo.retry')"
                       :close-text="$t('workbench.quickVideo.close')"
                       @cancel="cancelExport"
-                      @retry="startExport"
+                      @retry="retryExport"
                       @close="exportStatus = 'idle'" />
                     <div class="exportedInfo" v-if="state?.generation?.exportInfo">
                       <span>{{ $t("workbench.quickVideo.exportedAt") }}：{{ formatStamp(state.generation.exportInfo.exportedAt) }}</span>
@@ -432,10 +452,22 @@
       <div class="exportConfirmBody">
         <p>{{ $t("workbench.quickVideo.exportConfirmDesc") }}</p>
         <div class="exportConfirmRows">
-          <div class="briefRow"><label>{{ $t("workbench.quickVideo.targetDuration") }}</label><span>{{ state?.targetDuration }}s</span></div>
-          <div class="briefRow"><label>{{ $t("workbench.quickVideo.totalDuration") }}</label><span>{{ timelineSummary }}</span></div>
-          <div class="briefRow"><label>{{ $t("workbench.quickVideo.resolution") }}</label><span>{{ timelineResolution }}</span></div>
-          <div class="briefRow"><label>{{ $t("workbench.quickVideo.estimateSize") }}</label><span>{{ timelineSizeLabel }}</span></div>
+          <div class="briefRow">
+            <label>{{ $t("workbench.quickVideo.targetDuration") }}</label>
+            <span>{{ state?.targetDuration }}s</span>
+          </div>
+          <div class="briefRow">
+            <label>{{ $t("workbench.quickVideo.totalDuration") }}</label>
+            <span>{{ timelineSummary }}</span>
+          </div>
+          <div class="briefRow">
+            <label>{{ $t("workbench.quickVideo.resolution") }}</label>
+            <span>{{ timelineResolution }}</span>
+          </div>
+          <div class="briefRow">
+            <label>{{ $t("workbench.quickVideo.estimateSize") }}</label>
+            <span>{{ timelineSizeLabel }}</span>
+          </div>
         </div>
       </div>
     </t-dialog>
@@ -551,7 +583,12 @@
     </t-dialog>
 
     <!-- 镜头视频预览 -->
-    <t-dialog v-model:visible="videoPreviewVisible" :header="$t('workbench.quickVideo.videoPreview')" width="480px" placement="center" :footer="false">
+    <t-dialog
+      v-model:visible="videoPreviewVisible"
+      :header="$t('workbench.quickVideo.videoPreview')"
+      width="480px"
+      placement="center"
+      :footer="false">
       <video v-if="videoPreviewUrl" :src="videoPreviewUrl" controls autoplay class="videoPreview" />
     </t-dialog>
 
@@ -575,8 +612,21 @@ import { estimateExportBytes, formatBytes, formatTime } from "./timelineCore";
 
 const { project } = storeToRefs(projectStore());
 const quickVideoStoreRef = quickVideoStore();
-const { connected, messages, status, workbench, state, loadingWorkbench, sessions, loadingSessions, currentSessionId, modelPreferences } = storeToRefs(quickVideoStoreRef);
-const { stopGenerate, getWorkbench, updateConfig, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference } = quickVideoStoreRef;
+const { connected, messages, status, workbench, state, loadingWorkbench, sessions, loadingSessions, currentSessionId, modelPreferences } =
+  storeToRefs(quickVideoStoreRef);
+const {
+  stopGenerate,
+  getWorkbench,
+  updateConfig,
+  getHistory,
+  getMediaUrls,
+  getTimeline,
+  loadSessions,
+  createSession,
+  updateSession,
+  switchSession,
+  setModelPreference,
+} = quickVideoStoreRef;
 
 const inputValue = ref("");
 
@@ -824,20 +874,73 @@ function newIdemKey() {
   return `web-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-async function callQuickVideoApi(url: string, payload: Record<string, any>) {
+interface QuickVideoApiError {
+  code: string;
+  message: string;
+  currentVersion: number | null;
+}
+
+interface QuickVideoApiResult {
+  ok: boolean;
+  data?: any;
+  error?: QuickVideoApiError;
+}
+
+/** Axios 已在拦截器中展开 response.data；兼容少数仍返回 { data: ... } 的 mock/适配器。 */
+function unwrapQuickVideoPayload(response: any) {
+  return response?.data ?? response;
+}
+
+function readQuickVideoApiError(payload: any): QuickVideoApiError | null {
+  if (!payload || payload.code == null || payload.code === 200) return null;
+  return {
+    code: String(payload.code),
+    message: payload.message ?? $t("workbench.quickVideo.opFailed"),
+    currentVersion: typeof payload.currentVersion === "number" ? payload.currentVersion : null,
+  };
+}
+
+async function postQuickVideoApi(url: string, payload: Record<string, any>): Promise<QuickVideoApiResult> {
   try {
-    const { data }: any = await axios.post(url, payload);
-    if (data && data.code && data.code !== 200 && data.message) {
-      window.$message.warning(data.message);
+    const response: any = await axios.post(url, payload);
+    const body = unwrapQuickVideoPayload(response);
+    const error = readQuickVideoApiError(body);
+    if (error) return { ok: false, error };
+    return { ok: true, data: body?.data ?? body };
+  } catch (e: any) {
+    return {
+      ok: false,
+      error: {
+        code: String(e?.code ?? "REQUEST_FAILED"),
+        message: e?.message ?? $t("workbench.quickVideo.opFailed"),
+        currentVersion: typeof e?.currentVersion === "number" ? e.currentVersion : null,
+      },
+    };
+  }
+}
+
+async function callQuickVideoApi(url: string, payload: Record<string, any>): Promise<QuickVideoApiResult> {
+  try {
+    const result = await postQuickVideoApi(url, payload);
+    if (!result.ok) {
+      window.$message.warning(result.error?.message ?? $t("workbench.quickVideo.opFailed"));
       await getWorkbench();
-      return false;
+      return result;
     }
     await getWorkbench();
-    return true;
+    return result;
   } catch (e: any) {
-    window.$message.error(e?.message ?? $t("workbench.quickVideo.opFailed"));
+    const result: QuickVideoApiResult = {
+      ok: false,
+      error: {
+        code: String(e?.code ?? "REQUEST_FAILED"),
+        message: e?.message ?? $t("workbench.quickVideo.opFailed"),
+        currentVersion: null,
+      },
+    };
+    window.$message.error(result.error!.message);
     await getWorkbench();
-    return false;
+    return result;
   }
 }
 
@@ -879,7 +982,7 @@ async function saveBriefEdit() {
     idempotencyKey: newIdemKey(),
     brief: { ...briefEditData.value, keywords: state.value.brief?.keywords ?? [] },
   });
-  if (ok) briefEditVisible.value = false;
+  if (ok.ok) briefEditVisible.value = false;
 }
 
 // ===== 镜头编辑/新增 =====
@@ -914,7 +1017,7 @@ async function saveShotEdit() {
   const ok = shotEditIsAdd.value
     ? await callQuickVideoApi("/quickVideo/addShot", { ...base, shot: { ...shotEditData.value } })
     : await callQuickVideoApi("/quickVideo/updateShot", { ...base, shotId: shotEditId.value, patch: { ...shotEditData.value } });
-  if (ok) shotEditVisible.value = false;
+  if (ok.ok) shotEditVisible.value = false;
 }
 
 async function removeShot(shotId: string) {
@@ -982,23 +1085,23 @@ async function retryShots(shotIds: string[]) {
 
 // ===== 镜头产物预览（imageRef/videoRef -> 访问地址） =====
 const mediaUrls = ref<Record<string, { imageUrl: string | null; videoUrl: string | null }>>({});
-const mediaSignature = computed(() =>
-  shots.value
-    .map((s) => `${s.id}:${s.imageRef ?? ""}:${s.videoRef ?? ""}`)
-    .join("|"),
+const mediaSignature = computed(() => shots.value.map((s) => `${s.id}:${s.imageRef ?? ""}:${s.videoRef ?? ""}`).join("|"));
+watch(
+  mediaSignature,
+  async (sig, prev) => {
+    if (sig === prev) return;
+    if (!shots.value.some((s) => s.imageRef || s.videoRef)) {
+      mediaUrls.value = {};
+      return;
+    }
+    try {
+      mediaUrls.value = await getMediaUrls();
+    } catch {
+      // 预览地址获取失败不影响工作台
+    }
+  },
+  { immediate: true },
 );
-watch(mediaSignature, async (sig, prev) => {
-  if (sig === prev) return;
-  if (!shots.value.some((s) => s.imageRef || s.videoRef)) {
-    mediaUrls.value = {};
-    return;
-  }
-  try {
-    mediaUrls.value = await getMediaUrls();
-  } catch {
-    // 预览地址获取失败不影响工作台
-  }
-}, { immediate: true });
 
 const videoPreviewVisible = ref(false);
 const videoPreviewUrl = ref("");
@@ -1022,6 +1125,8 @@ const showAssembleCard = computed(() => ["ready_to_assemble", "completed"].inclu
 const bgmEnabled = ref(true);
 const bgmVolume = ref(0.35);
 const timelineReloading = ref(false);
+/** 时间线装配会写 quickVideoAgent 并递增 version；同步完成前禁止打开导出确认门。 */
+const timelineStateSynced = ref(false);
 
 interface TimelinePayload {
   timeline: {
@@ -1030,7 +1135,17 @@ interface TimelinePayload {
     width: number;
     height: number;
     totalDuration: number;
-    clips: { shotId: string; index: number; sourceDuration: number; subtitleText: string; trimStart: number; trimEnd: number; playbackRate: number; start: number; end: number }[];
+    clips: {
+      shotId: string;
+      index: number;
+      sourceDuration: number;
+      subtitleText: string;
+      trimStart: number;
+      trimEnd: number;
+      playbackRate: number;
+      start: number;
+      end: number;
+    }[];
     transitions: { afterShotId: string; type: string; duration: number }[];
     tailPad: { type: string; duration: number; text: string } | null;
   };
@@ -1047,7 +1162,13 @@ const timelineInfo = computed(() => {
   if (!meta) return "";
   return `${$t("workbench.quickVideo.clipCount")} ${meta.clipCount} · ${formatTime(meta.totalDuration)}`;
 });
-const timelineSummary = computed(() => (timelinePlayer.duration.value ? formatTime(timelinePlayer.duration.value) : timelineData.value ? formatTime(timelineData.value.timeline.totalDuration) : ""));
+const timelineSummary = computed(() =>
+  timelinePlayer.duration.value
+    ? formatTime(timelinePlayer.duration.value)
+    : timelineData.value
+      ? formatTime(timelineData.value.timeline.totalDuration)
+      : "",
+);
 const timelineClipCount = computed(() => timelineData.value?.timeline.clips.length ?? 0);
 const playerAspectRatio = computed(() => {
   const w = timelineData.value?.timeline.width;
@@ -1056,27 +1177,39 @@ const playerAspectRatio = computed(() => {
 });
 const timelineResolution = computed(() => (timelineData.value ? `${timelineData.value.timeline.width}×${timelineData.value.timeline.height}` : "-"));
 const timelineSizeLabel = computed(() =>
-  timelineData.value ? formatBytes(estimateExportBytes(timelineData.value.timeline.width, timelineData.value.timeline.height, timelineData.value.timeline.totalDuration)) : "-",
+  timelineData.value
+    ? formatBytes(
+        estimateExportBytes(timelineData.value.timeline.width, timelineData.value.timeline.height, timelineData.value.timeline.totalDuration),
+      )
+    : "-",
 );
 
-/** 阶段进入装配/完成时自动加载时间线（切走即销毁释放内存） */
-// 签名只含"是否处于装配/完成态 + 装配元数据"：导出确认（ready_to_assemble -> completed）不触发重载，
-// 仅分镜版本变化（重新生成后再次装配）或首次进入时加载
-const assembledSignature = computed(() => {
-  if (!showAssembleCard.value) return "";
-  const meta = state.value?.generation?.timeline;
-  if (!meta) return "";
-  return `${meta.storyboardVersion}:${meta.assembledAt}`;
+/**
+ * 阶段进入装配/完成时自动加载时间线（切走即销毁释放内存）。
+ * 首次进入 ready_to_assemble 时 generation.timeline 为空，因此不能只依赖
+ * 已装配元数据作为 watch key；pending key 确保首次装配也会触发。
+ */
+const timelineSourceKey = computed(() => {
+  if (!showAssembleCard.value || !state.value) return "";
+  const meta = state.value.generation?.timeline;
+  return meta
+    ? `${state.value.stage}:${meta.storyboardVersion}:${meta.assembledAt}`
+    : `${state.value.stage}:pending:${state.value.storyboard?.version ?? 0}`;
 });
+const timelineLoadedKey = ref("");
 watch(
-  assembledSignature,
-  async (sig, prev) => {
-    if (!sig) {
+  timelineSourceKey,
+  async (key) => {
+    if (!key) {
+      timelineStateSynced.value = false;
+      timelineLoadedKey.value = "";
       timelinePlayer.destroy();
       timelineData.value = null;
       return;
     }
-    if (sig === prev) return;
+    // getWorkbench() 在 reloadTimeline 内会把首次装配产生的新 key 推回来；
+    // 这时仍在同一次加载中，避免递归装配/重复解码。
+    if (timelineReloading.value || (key === timelineLoadedKey.value && timelineData.value)) return;
     await reloadTimeline();
   },
   { immediate: true },
@@ -1089,6 +1222,8 @@ onBeforeUnmount(() => {
 async function reloadTimeline() {
   if (!state.value) return;
   timelineReloading.value = true;
+  timelineStateSynced.value = false;
+  timelineLoadedKey.value = "";
   try {
     const payload: TimelinePayload | null = await getTimeline();
     timelineData.value = payload;
@@ -1100,6 +1235,13 @@ async function reloadTimeline() {
         musicVolume: bgmVolume.value,
       });
     }
+
+    // getTimeline 首次装配会写 o_agentWorkData 并递增状态版本。必须在
+    // 导出按钮重新可用前读回工作台，确保 confirmStage 使用最新版本。
+    const refreshedWorkbench = await getWorkbench();
+    const refreshedStage = refreshedWorkbench?.state?.stage;
+    timelineStateSynced.value = !!payload?.timeline && ["ready_to_assemble", "completed"].includes(refreshedStage ?? "");
+    if (timelineStateSynced.value) timelineLoadedKey.value = timelineSourceKey.value;
   } catch (e: any) {
     window.$message.warning(e?.message ?? $t("workbench.quickVideo.opFailed"));
   } finally {
@@ -1118,15 +1260,20 @@ async function onBgmChange() {
 
 // --- 第三道确认门：导出确认 -> 编码 -> 下载 -> 回写导出结果 ---
 const exportConfirmVisible = ref(false);
-const exportStatus = ref<"idle" | "encoding" | "success" | "error">("idle");
+const exportStatus = ref<"idle" | "encoding" | "success" | "warning" | "error">("idle");
 const exportProgress = ref(0);
 const exportFileName = ref("");
 const exportError = ref("");
 const exportMeta = ref("");
 const exportSignal = { cancelled: false };
+const lastExport = ref<{ blob: Blob; fileName: string; durationSeconds: number } | null>(null);
 
 function openExportConfirm() {
   if (!timelinePlayer.ready.value) return;
+  if (!timelineStateSynced.value) {
+    window.$message.info($t("workbench.quickVideo.timelineSyncing"));
+    return;
+  }
   exportConfirmVisible.value = true;
 }
 
@@ -1134,12 +1281,84 @@ function formatStamp(ts: number) {
   return dayjs(ts).format("YYYY-MM-DD HH:mm:ss");
 }
 
+interface ExportPersistenceResult {
+  ok: boolean;
+  reconciled?: boolean;
+  conflict?: boolean;
+  message?: string;
+}
+
+/**
+ * 回写浏览器本地成片结果。编码耗时较长，期间可能有装配或其他窗口写入状态，
+ * 所以提交前总是读取最新版本，遇到 VERSION_CONFLICT 自动刷新并最多重试一次。
+ */
+async function persistExportConfirmation(localExport: { blob: Blob; fileName: string; durationSeconds: number }): Promise<ExportPersistenceResult> {
+  let refreshedWorkbench = await getWorkbench();
+  let expectedVersion = refreshedWorkbench?.state?.version;
+  if (!expectedVersion) return { ok: false, message: $t("workbench.quickVideo.exportStateUnavailable") };
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const result = await postQuickVideoApi("/quickVideo/confirmStage", {
+      projectId: Number(project.value?.id),
+      sessionId: currentSessionId.value,
+      expectedVersion,
+      idempotencyKey: newIdemKey(),
+      gate: "export",
+      action: "confirm",
+      exportInfo: {
+        fileName: localExport.fileName,
+        sizeBytes: localExport.blob.size,
+        durationSeconds: localExport.durationSeconds,
+      },
+    });
+
+    if (result.ok) {
+      await getWorkbench();
+      return { ok: true, reconciled: attempt > 0 };
+    }
+
+    if (result.error?.code !== "VERSION_CONFLICT") {
+      await getWorkbench();
+      return { ok: false, message: result.error?.message ?? $t("workbench.quickVideo.exportFailed") };
+    }
+
+    // 先读最新 stage/version；如果服务端已经由另一个请求完成，
+    // 下一轮仍会尝试以当前版本回写本地文件信息，避免状态与下载文件脱节。
+    refreshedWorkbench = await getWorkbench();
+    expectedVersion = refreshedWorkbench?.state?.version;
+    if (!expectedVersion) break;
+  }
+
+  const latestState = state.value;
+  if (latestState?.stage === "completed") {
+    return { ok: true, reconciled: true };
+  }
+  return {
+    ok: false,
+    conflict: true,
+    message: $t("workbench.quickVideo.exportVersionConflict"),
+  };
+}
+
+function applyExportPersistenceResult(result: ExportPersistenceResult) {
+  if (result.ok) {
+    exportStatus.value = "success";
+    exportError.value = "";
+    if (result.reconciled) window.$message.info($t("workbench.quickVideo.exportStateRefreshed"));
+    return;
+  }
+  exportStatus.value = result.conflict ? "warning" : "error";
+  exportError.value = result.message ?? $t("workbench.quickVideo.exportFailed");
+  window.$message.warning(exportError.value);
+}
+
 async function startExport() {
-  if (!state.value || !timelineData.value) return;
+  if (!state.value || !timelineData.value || !timelineStateSynced.value) return;
   exportConfirmVisible.value = false;
   exportStatus.value = "encoding";
   exportProgress.value = 0;
   exportError.value = "";
+  lastExport.value = null;
   exportSignal.cancelled = false;
   const fileName = `quick-video-${project.value?.id ?? "export"}-${dayjs().format("YYYYMMDD-HHmmss")}.mp4`;
   exportFileName.value = fileName;
@@ -1158,24 +1377,35 @@ async function startExport() {
     setTimeout(() => URL.revokeObjectURL(url), 3000);
 
     exportProgress.value = 100;
-    exportStatus.value = "success";
     exportMeta.value = `${formatBytes(blob.size)} · ${((Date.now() - startedAt) / 1000).toFixed(1)}s`;
-    // 成片导出确认门：编码成功后回写导出结果并落定 completed
-    await callQuickVideoApi("/quickVideo/confirmStage", {
-      projectId: Number(project.value?.id),
-      sessionId: currentSessionId.value,
-      expectedVersion: state.value.version,
-      idempotencyKey: newIdemKey(),
-      gate: "export",
-      action: "confirm",
-      exportInfo: { fileName, sizeBytes: blob.size, durationSeconds: Math.round(timelinePlayer.duration.value * 10) / 10 },
-    });
+    const localExport = { blob, fileName, durationSeconds: Math.round(timelinePlayer.duration.value * 10) / 10 };
+    lastExport.value = localExport;
+    // 成片导出确认门：编码成功后回写导出结果并落定 completed。
+    // persistExportConfirmation 会在提交前重新取 version，并处理并发冲突。
+    applyExportPersistenceResult(await persistExportConfirmation(localExport));
   } catch (e: any) {
     if (e?.message === "EXPORT_CANCELLED") {
       exportStatus.value = "idle";
       window.$message.info($t("workbench.quickVideo.exportCancelled"));
       return;
     }
+    exportStatus.value = "error";
+    exportError.value = e?.message ?? String(e);
+    window.$message.error($t("workbench.quickVideo.exportFailed"));
+  }
+}
+
+/** 冲突提示中的“重试”只重试状态回写，复用已下载的 Blob，不重新编码。 */
+async function retryExport() {
+  if (!lastExport.value) {
+    await startExport();
+    return;
+  }
+  exportStatus.value = "encoding";
+  exportError.value = "";
+  try {
+    applyExportPersistenceResult(await persistExportConfirmation(lastExport.value));
+  } catch (e: any) {
     exportStatus.value = "error";
     exportError.value = e?.message ?? String(e);
     window.$message.error($t("workbench.quickVideo.exportFailed"));

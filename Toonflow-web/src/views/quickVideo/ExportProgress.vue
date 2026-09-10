@@ -7,25 +7,26 @@
 
     <div class="qvExportBarWrap" data-testid="qv-export-bar">
       <div class="qvExportBar">
-        <div class="qvExportBarFill" :style="{ width: progress + '%' }" :class="{ error: status === 'error' }"></div>
+        <div class="qvExportBarFill" :style="{ width: progress + '%' }" :class="{ error: status === 'error', warning: status === 'warning' }"></div>
       </div>
       <span class="qvExportPercent" data-testid="qv-export-percent">{{ Math.round(progress) }}%</span>
     </div>
 
     <div class="qvExportMeta" v-if="metaLine">{{ metaLine }}</div>
-    <div class="qvExportError" v-if="status === 'error'" data-testid="qv-export-error">{{ errorMessage }}</div>
+    <div
+      class="qvExportError"
+      :class="{ warning: status === 'warning' }"
+      v-if="status === 'error' || status === 'warning'"
+      data-testid="qv-export-error">
+      {{ errorMessage }}
+    </div>
 
     <div class="qvExportActions">
-      <button
-        v-if="status === 'encoding'"
-        class="qvBtn ghost"
-        type="button"
-        data-testid="qv-export-cancel"
-        @click="$emit('cancel')">
+      <button v-if="status === 'encoding'" class="qvBtn ghost" type="button" data-testid="qv-export-cancel" @click="$emit('cancel')">
         {{ cancelText }}
       </button>
       <button
-        v-if="status === 'error'"
+        v-if="status === 'error' || status === 'warning'"
         class="qvBtn primary"
         type="button"
         data-testid="qv-export-retry"
@@ -33,7 +34,7 @@
         {{ retryText }}
       </button>
       <button
-        v-if="status === 'success' || status === 'error'"
+        v-if="status === 'success' || status === 'error' || status === 'warning'"
         class="qvBtn ghost"
         type="button"
         data-testid="qv-export-close"
@@ -50,7 +51,7 @@ import { computed } from "vue";
 /** 快创导出进度条（纯展示组件，无 UI 库依赖，便于组件测试） */
 const props = defineProps<{
   visible: boolean;
-  status: "idle" | "encoding" | "success" | "error";
+  status: "idle" | "encoding" | "success" | "warning" | "error";
   progress: number;
   fileName: string;
   errorMessage?: string;
@@ -116,6 +117,9 @@ const metaLine = computed(() => props.metaLine ?? "");
 .qvExportBarFill.error {
   background: var(--td-error-color, #d54941);
 }
+.qvExportBarFill.warning {
+  background: var(--td-warning-color, #ed7b2f);
+}
 .qvExportPercent {
   min-width: 38px;
   text-align: right;
@@ -129,6 +133,9 @@ const metaLine = computed(() => props.metaLine ?? "");
 }
 .qvExportError {
   color: var(--td-error-color, #d54941);
+}
+.qvExportError.warning {
+  color: var(--td-warning-color, #ed7b2f);
 }
 .qvExportActions {
   display: flex;
