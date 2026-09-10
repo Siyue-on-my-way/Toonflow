@@ -93,3 +93,5 @@ Toonflow-web/src/types/components.d.ts
 Toonflow-web/src/views/scriptManage/components/ceshi.png
 Toonflow-web/oss
 Toonflow-web/backup
+Toonflow-web/test-results/
+Toonflow-web/playwright-report/

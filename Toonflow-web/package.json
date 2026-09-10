@@ -8,6 +8,7 @@
     "build": "vue-tsc --build --force && vite build",
     "build-only": "vite build",
     "type-check": "vue-tsc --build --force",
+    "test:e2e:quickvideo-models": "playwright test e2e/quickvideo-model-config.spec.ts",
     "license": "node scripts/license.ts",
     "i18n:check": "node scripts/findUnusedI18n.ts",
     "test": "vitest run"
@@ -51,6 +52,7 @@
     "@tsconfig/node22": "^22.0.0",
     "@types/license-checker": "^25.0.6",
     "@types/node": "^22.9.0",
+    "@playwright/test": "^1.63.0",
     "@types/splitpanes": "^2.2.6",
     "@types/uuid": "^11.0.0",
     "@vitejs/plugin-vue": "^6.0.5",
