@@ -7,50 +7,61 @@
       </button>
     </div>
 
-    <div v-if="!sessions.length" class="qvSessionListEmpty" data-testid="qv-session-empty">{{ emptyText }}</div>
+    <div v-if="!visibleSessions.length" class="qvSessionListEmpty" data-testid="qv-session-empty">{{ emptyText }}</div>
 
-    <ul v-else class="qvSessionItems">
-      <li
-        v-for="session in sessions"
-        :key="session.id"
-        class="qvSessionItem"
-        :class="{ active: session.id === currentSessionId, archived: session.status === 'archived' }"
-        data-testid="qv-session-item"
-        :data-session-id="session.id"
-        :data-active="session.id === currentSessionId"
-        @click="$emit('select', session.id)">
-        <template v-if="renamingId === session.id">
-          <input
-            ref="renameInputRef"
-            v-model="renameDraft"
-            class="qvSessionRenameInput"
-            data-testid="qv-session-rename-input"
-            type="text"
-            @click.stop
-            @keyup.enter="confirmRename(session.id)"
-            @keyup.esc="cancelRename"
-            @blur="confirmRename(session.id)" />
-        </template>
-        <template v-else>
-          <span class="qvSessionItemTitle" data-testid="qv-session-title">{{ session.title || defaultTitleText }}</span>
-          <span v-if="session.status === 'archived'" class="qvSessionArchivedTag">{{ archivedText }}</span>
-        </template>
+    <details v-else ref="pickerRef" class="qvSessionPicker" data-testid="qv-session-picker">
+      <summary class="qvSessionPickerTrigger" data-testid="qv-session-trigger">
+        <span class="qvSessionCurrentTitle" data-testid="qv-session-current">{{ currentSession?.title || defaultTitleText }}</span>
+        <span class="qvSessionChevron" aria-hidden="true">⌄</span>
+      </summary>
 
-        <div class="qvSessionItemActions">
-          <button class="qvSessionIconBtn" type="button" data-testid="qv-session-rename" :title="renameText" @click.stop="startRename(session)">
-            ✎
-          </button>
-          <button class="qvSessionIconBtn" type="button" data-testid="qv-session-archive" :title="session.status === 'archived' ? unarchiveText : archiveText" @click.stop="$emit('toggleArchive', session.id)">
-            {{ session.status === "archived" ? "↺" : "🗄" }}
-          </button>
+      <div class="qvSessionMenu" role="listbox" :aria-label="title">
+        <div
+          v-for="session in visibleSessions"
+          :key="session.id"
+          class="qvSessionOption"
+          :class="{ active: session.id === currentSessionId }"
+          data-testid="qv-session-option"
+          :data-session-id="session.id"
+          :data-active="session.id === currentSessionId"
+          role="option"
+          :aria-selected="session.id === currentSessionId"
+          tabindex="0"
+          @click="selectSession(session.id)"
+          @keydown.enter.prevent="selectSession(session.id)"
+          @keydown.space.prevent="selectSession(session.id)">
+          <template v-if="renamingId === session.id">
+            <input
+              ref="renameInputRef"
+              v-model="renameDraft"
+              class="qvSessionRenameInput"
+              data-testid="qv-session-rename-input"
+              type="text"
+              @click.stop
+              @keyup.enter="confirmRename(session.id)"
+              @keyup.esc="cancelRename"
+              @blur="confirmRename(session.id)" />
+          </template>
+          <template v-else>
+            <span class="qvSessionOptionTitle" data-testid="qv-session-title">{{ session.title || defaultTitleText }}</span>
+          </template>
+
+          <div class="qvSessionItemActions">
+            <button class="qvSessionIconBtn" type="button" data-testid="qv-session-rename" :title="renameText" @click.stop="startRename(session)">
+              ✎
+            </button>
+            <button class="qvSessionIconBtn" type="button" data-testid="qv-session-archive" :title="archiveText" @click.stop="$emit('toggleArchive', session.id)">
+              🗄
+            </button>
+          </div>
         </div>
-      </li>
-    </ul>
+      </div>
+    </details>
   </div>
 </template>
 
 <script setup lang="ts">
-import { nextTick, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
 import type { QuickVideoSession } from "@/types/quickVideo";
 
 /**
@@ -78,9 +89,17 @@ const emit = defineEmits<{
   (e: "toggleArchive", sessionId: number): void;
 }>();
 
+const pickerRef = ref<HTMLDetailsElement | null>(null);
 const renamingId = ref<number | null>(null);
 const renameDraft = ref("");
 const renameInputRef = ref<HTMLInputElement | HTMLInputElement[] | null>(null);
+const visibleSessions = computed(() => props.sessions.filter((session) => session.status !== "archived"));
+const currentSession = computed(() => visibleSessions.value.find((session) => session.id === props.currentSessionId) ?? null);
+
+function selectSession(sessionId: number) {
+  emit("select", sessionId);
+  pickerRef.value?.removeAttribute("open");
+}
 
 function startRename(session: QuickVideoSession) {
   renamingId.value = session.id;
@@ -127,49 +146,87 @@ function confirmRename(sessionId: number) {
   color: var(--td-text-color-secondary, #666);
   padding: 4px 2px;
 }
-.qvSessionItems {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  max-height: 160px;
-  overflow-y: auto;
+.qvSessionPicker {
+  position: relative;
+  min-width: 0;
 }
-.qvSessionItem {
+.qvSessionPickerTrigger {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
-  padding: 6px 8px;
+  gap: 8px;
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 1px solid var(--td-component-border, #dcdcdc);
   border-radius: 6px;
+  background: var(--td-bg-color-container, #fff);
   cursor: pointer;
+  list-style: none;
   font-size: 13px;
 }
-.qvSessionItem:hover {
-  background: var(--td-bg-color-container-hover, #f3f3f3);
+.qvSessionPickerTrigger::-webkit-details-marker {
+  display: none;
 }
-.qvSessionItem.active {
-  background: var(--td-brand-color-light, #e7f0ff);
-  color: var(--td-brand-color, #0052d9);
-  font-weight: 600;
+.qvSessionPickerTrigger:hover,
+.qvSessionPicker[open] .qvSessionPickerTrigger {
+  border-color: var(--td-brand-color, #0052d9);
 }
-.qvSessionItem.archived {
-  opacity: 0.6;
-}
-.qvSessionItemTitle {
+.qvSessionCurrentTitle {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
 }
-.qvSessionArchivedTag {
-  font-size: 11px;
+.qvSessionChevron {
+  flex: 0 0 auto;
   color: var(--td-text-color-secondary, #666);
+  font-size: 14px;
+  line-height: 1;
+  transform: translateY(-2px);
+}
+.qvSessionMenu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  padding: 4px;
+  overflow-y: auto;
   border: 1px solid var(--td-component-border, #dcdcdc);
+  border-radius: 6px;
+  background: var(--td-bg-color-container, #fff);
+  box-shadow: var(--td-shadow-2, 0 4px 12px rgb(0 0 0 / 12%));
+}
+.qvSessionOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 30px;
+  padding: 5px 6px;
   border-radius: 4px;
-  padding: 0 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.qvSessionOption:hover,
+.qvSessionOption:focus-visible {
+  outline: none;
+  background: var(--td-bg-color-container-hover, #f3f3f3);
+}
+.qvSessionOption.active {
+  background: var(--td-brand-color-light, #e7f0ff);
+  color: var(--td-brand-color, #0052d9);
+  font-weight: 600;
+}
+.qvSessionOptionTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
 }
 .qvSessionItemActions {
   display: flex;

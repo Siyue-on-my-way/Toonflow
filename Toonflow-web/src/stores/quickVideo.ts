@@ -149,6 +149,19 @@ function makeQuickVideoStore(projectId: string) {
       if (payload && payload.code && payload.code !== 200) throw new Error(payload.message ?? "更新会话失败");
       const updated: QuickVideoSession = payload.session;
       sessions.value = sessions.value.map((s) => (s.id === updated.id ? updated : s));
+      // 归档当前会话后，它会从下拉框中消失；立即切到最近的活动会话，
+      // 避免界面仍显示已归档会话的聊天和模型偏好。
+      if (updated.status === "archived" && currentSessionId.value === updated.id) {
+        const fallback = sessions.value.find((session) => session.status === "active");
+        if (fallback) {
+          await switchSession(fallback.id);
+        } else {
+          disconnect();
+          socket.value = null;
+          clearMessages();
+          currentSessionId.value = null;
+        }
+      }
       return updated;
     }
 

@@ -37,19 +37,19 @@ describe("SessionList.vue", () => {
     expect(wrapper.find('[data-testid="qv-session-item"]').exists()).toBe(false);
   });
 
-  it("按传入顺序展示会话，标记当前选中项", () => {
+  it("收起时只展示当前会话标题，不平铺会话项", () => {
     const sessions = [session({ id: 1, title: "会话A" }), session({ id: 2, title: "会话B" })];
     const wrapper = mount(SessionList, { props: { ...baseProps, sessions, currentSessionId: 2 } });
-    const items = wrapper.findAll('[data-testid="qv-session-item"]');
-    expect(items).toHaveLength(2);
-    expect(items[0].attributes("data-active")).toBe("false");
-    expect(items[1].attributes("data-active")).toBe("true");
+    expect(wrapper.find('[data-testid="qv-session-current"]').text()).toBe("会话B");
+    expect(wrapper.find('[data-testid="qv-session-trigger"]').exists()).toBe(true);
+    expect(wrapper.findAll('[data-testid="qv-session-item"]')).toHaveLength(0);
   });
 
-  it("点击会话项触发 select，携带对应 sessionId", async () => {
+  it("展开后点击会话项触发 select，携带对应 sessionId", async () => {
     const sessions = [session({ id: 1 }), session({ id: 2 })];
     const wrapper = mount(SessionList, { props: { ...baseProps, sessions, currentSessionId: 1 } });
-    await wrapper.findAll('[data-testid="qv-session-item"]')[1].trigger("click");
+    await wrapper.find('[data-testid="qv-session-trigger"]').trigger("click");
+    await wrapper.findAll('[data-testid="qv-session-option"]')[1].trigger("click");
     expect(wrapper.emitted("select")).toEqual([[2]]);
   });
 
@@ -59,10 +59,11 @@ describe("SessionList.vue", () => {
     expect(wrapper.emitted("create")).toHaveLength(1);
   });
 
-  it("归档标记展示在已归档会话上，点击归档按钮触发 toggleArchive 且不触发 select", async () => {
-    const sessions = [session({ id: 1, status: "archived" })];
+  it("归档会话不展示，活动会话仍可归档且不触发 select", async () => {
+    const sessions = [session({ id: 1, title: "活动会话" }), session({ id: 2, title: "旧会话", status: "archived" })];
     const wrapper = mount(SessionList, { props: { ...baseProps, sessions, currentSessionId: 1 } });
-    expect(wrapper.text()).toContain("已归档");
+    expect(wrapper.text()).not.toContain("旧会话");
+    expect(wrapper.find('[data-session-id="2"]').exists()).toBe(false);
     await wrapper.find('[data-testid="qv-session-archive"]').trigger("click");
     expect(wrapper.emitted("toggleArchive")).toEqual([[1]]);
     expect(wrapper.emitted("select")).toBeUndefined();
