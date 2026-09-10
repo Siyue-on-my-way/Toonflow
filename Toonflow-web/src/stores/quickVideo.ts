@@ -9,6 +9,7 @@ import type {
   QuickVideoWorkbench,
   QuickVideoSession,
   QuickVideoSessionStatus,
+  MediaRef,
 } from "@/types/quickVideo";
 
 /**
@@ -301,13 +302,58 @@ function makeQuickVideoStore(projectId: string) {
       return payload ?? null;
     }
 
-    /** 镜头产物访问地址（imageRef/videoRef -> 预览链接），存在已完成镜头时按需调用 */
-    async function getMediaUrls(): Promise<Record<string, { imageUrl: string | null; videoUrl: string | null }>> {
+    /** 镜头产物访问地址（imageRef/videoRef -> 预览链接，firstFrame -> 首帧缩略图），存在已完成镜头或已绑定首帧时按需调用 */
+    async function getMediaUrls(): Promise<Record<string, { imageUrl: string | null; videoUrl: string | null; firstFrameUrl: string | null }>> {
       const response = await axios.post("/quickVideo/getMediaUrls", { projectId: Number(projectId) });
       const payload = response?.data ?? response;
       // Axios has already unwrapped the HTTP response body; the endpoint
       // payload is success({ media }).
       return payload?.media ?? {};
+    }
+
+    // ===== 资产白板与首帧绑定（SIY-132） =====
+
+    /** 应用内部剪贴板：只保存稳定的 MediaRef，不保存 URL；聊天卡片和白板卡片的"复制"共用同一个槽位 */
+    const clipboardMediaRef = ref<MediaRef | null>(null);
+
+    /** 资产白板分页查询：项目范围，可选按会话/类型/状态过滤 */
+    async function getAssetBoard(opts: { sessionId?: number; kind?: "all" | "image" | "video"; state?: "all" | "generating" | "done" | "failed"; page?: number; pageSize?: number } = {}) {
+      const response = await axios.post("/quickVideo/getAssetBoard", { projectId: Number(projectId), ...opts });
+      const payload = response?.data ?? response;
+      if (payload && payload.code && payload.code !== 200) throw new Error(payload.message ?? "getAssetBoard failed");
+      return payload as { items: MediaRef[]; total: number; page: number; pageSize: number };
+    }
+
+    /**
+     * 绑定/替换/解除某个草稿镜头的首帧。mediaId 传 null 表示解除。
+     * 复制到聊天卡片和资产白板的引用最终都走这一个接口，避免两套权限/状态逻辑。
+     */
+    async function bindShotFirstFrame(shotId: string, mediaId: number | null) {
+      const current = state.value;
+      if (!current) return { ok: false as const, error: { code: "STATE_NOT_FOUND", message: "未找到 quickVideoAgent 状态", currentVersion: null } };
+
+      const response: any = await axios.post("/quickVideo/bindShotFirstFrame", {
+        projectId: Number(projectId),
+        expectedVersion: current.version,
+        idempotencyKey: `web-firstframe-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+        shotId,
+        mediaId,
+      });
+
+      if (response?.code !== 200) {
+        await getWorkbench();
+        return {
+          ok: false as const,
+          error: {
+            code: String(response?.code ?? "BIND_FIRST_FRAME_FAILED"),
+            message: response?.message ?? "首帧绑定失败",
+            currentVersion: response?.currentVersion ?? null,
+          },
+        };
+      }
+
+      await getWorkbench();
+      return { ok: true as const, state: workbench.value.state };
     }
 
     return {
@@ -339,6 +385,9 @@ function makeQuickVideoStore(projectId: string) {
       updateSession,
       switchSession,
       setModelPreference,
+      clipboardMediaRef,
+      getAssetBoard,
+      bindShotFirstFrame,
     };
   });
 }

@@ -6,6 +6,7 @@ import { validateFields } from "@/middleware/middleware";
 import { getOwnedSession } from "@/lib/quickVideo/session";
 import { buildSessionIsolationKey } from "@/lib/quickVideo/contract";
 import { QuickVideoError } from "@/lib/quickVideo/state";
+import { getAssetBoard } from "@/lib/quickVideo/media";
 const router = express.Router();
 
 function normalizeRole(role?: string | null): "user" | "assistant" | null {
@@ -72,6 +73,46 @@ export default router.post(
         };
       })
       .filter((message): message is NonNullable<typeof message> => message !== null);
+
+    // 聊天生成的图片/视频不落在 memories 表里（工具执行的副作用，不是文本记忆），
+    // 单独查询同一份资产索引后按时间戳与文本历史合并展示，保证刷新/切换会话后仍可用。
+    if (agentType === "quickVideoAgent") {
+      const board = await getAssetBoard(projectId, { sessionId, pageSize: 60 });
+      // 聊天记录只回放"由这轮聊天生成"的媒体；白板/未来其他来源（asset_board/generated/upload）
+      // 不是这个会话的对话内容，混进聊天历史会显得像 Agent 突然凭空发了张不相关的图。
+      const mediaMessages = board.items
+        .filter((ref) => ref.source === "chat")
+        .map((ref) => ({
+        id: `media-${ref.mediaId}`,
+        role: "assistant" as const,
+        name: "快创助手",
+        status: ref.state === "failed" ? ("error" as const) : ("complete" as const),
+        datetime: new Date(ref.createTime).toISOString(),
+        content: [
+          {
+            type: ref.kind,
+            status: ref.state === "failed" ? "error" : "complete",
+            data: { name: ref.promptSummary ?? undefined, url: ref.url ?? undefined },
+            ext: {
+              mediaId: ref.mediaId,
+              assetId: ref.assetId,
+              imageId: ref.imageId,
+              videoId: ref.videoId,
+              kind: ref.kind,
+              model: ref.model,
+              promptSummary: ref.promptSummary,
+              state: ref.state,
+              source: ref.source,
+              errorReason: ref.errorReason,
+            },
+          },
+        ],
+        createTime: ref.createTime,
+      }));
+
+      const merged = [...history, ...mediaMessages].sort((a, b) => a.createTime - b.createTime);
+      return res.status(200).send(success(merged));
+    }
 
     res.status(200).send(success(history));
   },

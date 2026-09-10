@@ -138,6 +138,25 @@ export interface o_prompt {
   'type'?: string | null;
   'useData'?: string | null;
 }
+export interface o_quickVideoMedia {
+  'assetId'?: number | null;
+  'createTime': number;
+  'deletedAt'?: number | null;
+  'errorReason'?: string | null;
+  'id'?: number;
+  'idempotencyKey': string;
+  'imageId'?: number | null;
+  'kind': string;
+  'messageId'?: string | null;
+  'model'?: string | null;
+  'projectId': number;
+  'prompt'?: string | null;
+  'sessionId'?: number | null;
+  'source': string;
+  'state': string;
+  'updateTime': number;
+  'videoId'?: number | null;
+}
 export interface o_quickVideoSession {
   'createTime'?: number | null;
   'id': number;
@@ -294,6 +313,7 @@ export interface DB {
   "o_novel": o_novel;
   "o_project": o_project;
   "o_prompt": o_prompt;
+  "o_quickVideoMedia": o_quickVideoMedia;
   "o_quickVideoSession": o_quickVideoSession;
   "o_script": o_script;
   "o_scriptAssets": o_scriptAssets;

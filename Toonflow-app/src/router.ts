@@ -200,6 +200,8 @@ import route196 from "./routes/quickVideo/updateModels";
 import route197 from "./routes/quickVideo/listSessions";
 import route198 from "./routes/quickVideo/createSession";
 import route199 from "./routes/quickVideo/updateSession";
+import route200 from "./routes/quickVideo/getAssetBoard";
+import route201 from "./routes/quickVideo/bindShotFirstFrame";
 
 export default async (app: Express) => {
   app.use("/api/agents/clearMemory", route1);
@@ -401,4 +403,6 @@ export default async (app: Express) => {
   app.use("/api/quickVideo/listSessions", route197);
   app.use("/api/quickVideo/createSession", route198);
   app.use("/api/quickVideo/updateSession", route199);
+  app.use("/api/quickVideo/getAssetBoard", route200);
+  app.use("/api/quickVideo/bindShotFirstFrame", route201);
 }

@@ -58,7 +58,7 @@ export interface XmlTagOption {
 
 export interface ChatSocketEvents {
   // 发送事件
-  chat: { content: string; attachments?: any[]; textModel?: string };
+  chat: { content: string; attachments?: any[]; textModel?: string; mode?: string; imageModel?: string; references?: number[] };
   stop: { messageId: string };
   regenerate: { messageId: string };
 
@@ -636,7 +636,12 @@ export function useChat(options: UseChatOptions) {
   };
 
   // 业务方法
-  const chat = (content: string, attachments?: any[], textModel?: string) => {
+  const chat = (
+    content: string,
+    attachments?: any[],
+    textModel?: string,
+    extra?: { mode?: string; imageModel?: string; references?: number[] },
+  ) => {
     if (!content.trim() && !attachments?.length) return false;
 
     const userMessage: UserMessage = {
@@ -657,7 +662,14 @@ export function useChat(options: UseChatOptions) {
 
     messages.value.push(userMessage);
 
-    return emit("chat", { content, attachments, ...(textModel ? { textModel } : {}) });
+    return emit("chat", {
+      content,
+      attachments,
+      ...(textModel ? { textModel } : {}),
+      ...(extra?.mode ? { mode: extra.mode } : {}),
+      ...(extra?.imageModel ? { imageModel: extra.imageModel } : {}),
+      ...(extra?.references?.length ? { references: extra.references } : {}),
+    });
   };
 
   const stopGenerate = (messageId?: string) => {

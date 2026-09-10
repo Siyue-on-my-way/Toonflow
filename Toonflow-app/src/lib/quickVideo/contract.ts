@@ -26,6 +26,10 @@ export type QuickVideoDuration = (typeof QUICK_VIDEO_DURATIONS)[number];
 export const QUICK_VIDEO_RATIOS = ["16:9", "9:16", "1:1"] as const;
 export type QuickVideoRatio = (typeof QUICK_VIDEO_RATIOS)[number];
 
+/** 聊天发送模式：text=普通文本对话，image=受限图片生成工具（SIY-132） */
+export const QUICK_VIDEO_CHAT_MODES = ["text", "image"] as const;
+export type QuickVideoChatMode = (typeof QUICK_VIDEO_CHAT_MODES)[number];
+
 /** 镜头片段时长下限/上限（秒） */
 export const SHOT_DURATION_MIN = 5;
 export const SHOT_DURATION_MAX = 15;
@@ -109,6 +113,64 @@ export const shotAssetRefSchema = z.object({
 });
 export type ShotAssetRef = z.infer<typeof shotAssetRefSchema>;
 
+// ---------------------------------------------------------------------------
+// 聊天生图/生视频媒体索引（SIY-132：聊天生图、资产白板与分镜首帧绑定）
+// ---------------------------------------------------------------------------
+
+/** 媒体种类：目前聊天生成只支持图片；视频保留给白板展示既有镜头产物用 */
+export const QUICK_VIDEO_MEDIA_KINDS = ["image", "video"] as const;
+export type QuickVideoMediaKind = (typeof QUICK_VIDEO_MEDIA_KINDS)[number];
+
+/** 媒体生成状态：与 o_image/o_video 的中文状态字段一一对应，见 LEGACY_GEN_STATE_MAP */
+export const QUICK_VIDEO_MEDIA_STATES = ["generating", "done", "failed"] as const;
+export type QuickVideoMediaState = (typeof QUICK_VIDEO_MEDIA_STATES)[number];
+
+/** 媒体来源：chat=聊天生成，asset_board=白板直接生成，generated=镜头分镜/生成产物，upload=用户上传（暂未开放） */
+export const QUICK_VIDEO_MEDIA_SOURCES = ["chat", "asset_board", "generated", "upload"] as const;
+export type QuickVideoMediaSource = (typeof QUICK_VIDEO_MEDIA_SOURCES)[number];
+
+/**
+ * 前后端共享的稳定媒体引用（MediaRef）。mediaId 是 o_quickVideoMedia.id，是唯一需要在
+ * 应用内部复制/粘贴/绑定首帧时传递的稳定标识；url 是接口按需签发的短期预览/播放地址，
+ * 不作为持久化依据（见 CLAUDE 任务约束 3、4）。
+ */
+export const mediaRefSchema = z.object({
+  mediaId: z.number().int().positive(),
+  projectId: z.number().int().positive(),
+  kind: z.enum(QUICK_VIDEO_MEDIA_KINDS),
+  assetId: z.number().int().positive().nullable(),
+  imageId: z.number().int().positive().nullable(),
+  videoId: z.number().int().positive().nullable(),
+  state: z.enum(QUICK_VIDEO_MEDIA_STATES),
+  model: z.string().max(200).nullable(),
+  promptSummary: z.string().max(200).nullable(),
+  source: z.enum(QUICK_VIDEO_MEDIA_SOURCES),
+  errorReason: z.string().max(1000).nullable(),
+  url: z.string().max(1000).nullable().describe("按需签发的短期预览/播放地址，不持久化"),
+  width: z.number().int().nullable().optional(),
+  height: z.number().int().nullable().optional(),
+  createTime: z.number().int(),
+});
+export type MediaRef = z.infer<typeof mediaRefSchema>;
+
+/**
+ * 镜头首帧引用：分镜草稿阶段可粘贴/替换/解除；分镜确认后随快照冻结（见 snapshotShotSchema）。
+ * 只允许引用 kind=image 且已生成完成的媒体；filePath 只在冻结快照里出现（生成链路直接读取，不再二次查库）。
+ */
+export const shotFirstFrameSchema = z.object({
+  mediaId: z.number().int().positive(),
+  assetId: z.number().int().positive(),
+  imageId: z.number().int().positive(),
+  boundAt: z.number().int(),
+});
+export type ShotFirstFrame = z.infer<typeof shotFirstFrameSchema>;
+
+/** 冻结进生成快照的首帧引用：额外带 filePath，生成引擎直接读取，不依赖运行时再查库/查权限 */
+export const snapshotFirstFrameSchema = shotFirstFrameSchema.extend({
+  filePath: z.string().max(500),
+});
+export type SnapshotFirstFrame = z.infer<typeof snapshotFirstFrameSchema>;
+
 export const quickVideoShotSchema = z.object({
   id: z.string().min(1).max(40).describe("镜头稳定 ID，如 shot-1"),
   index: z.number().int().min(1).describe("镜头序号（1 开始，按播放顺序）"),
@@ -127,6 +189,8 @@ export const quickVideoShotSchema = z.object({
   imageRef: z.string().max(500).nullable().default(null).describe("分镜图文件引用（OSS key）"),
   videoRef: z.string().max(500).nullable().default(null).describe("视频片段文件引用（OSS key）"),
   errorReason: z.string().max(1000).nullable().default(null).describe("最近一次生成失败原因"),
+  /** 视频生成首帧输入（人工绑定，与 imageRef 分开建模）；未绑定时生成引擎回退用 imageRef */
+  firstFrame: shotFirstFrameSchema.nullable().default(null),
 });
 export type QuickVideoShot = z.infer<typeof quickVideoShotSchema>;
 
@@ -175,6 +239,8 @@ export const snapshotShotSchema = z.object({
   dialogue: z.string().max(500).default(""),
   camera: z.string().max(200).default(""),
   assetRefs: z.array(shotAssetRefSchema).max(10).default([]),
+  /** 冻结的首帧引用（含 filePath，生成引擎直接读取）；无人工首帧时为 null，回退用分镜图 imageRef */
+  firstFrame: snapshotFirstFrameSchema.nullable().default(null),
 });
 export type QuickVideoSnapshotShot = z.infer<typeof snapshotShotSchema>;
 

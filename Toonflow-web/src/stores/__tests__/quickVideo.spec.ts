@@ -190,3 +190,94 @@ describe("quickVideo store — 会话（SIY-128）", () => {
     expect(store.modelPreferences.text).toBe("1:old-model");
   });
 });
+
+describe("quickVideo store — 资产白板与首帧绑定（SIY-132）", () => {
+  function makeWorkbenchState(overrides: Record<string, any> = {}) {
+    return {
+      schemaVersion: 1,
+      version: 3,
+      stage: "storyboard_draft",
+      targetDuration: 15,
+      videoRatio: "16:9",
+      artStyle: "",
+      createIdempotencyKey: "k",
+      brief: null,
+      storyboard: { version: 1, status: "draft", confirmedAt: null, summary: "", shots: [] },
+      generation: { snapshot: null, materialsConfirmed: false, materialsConfirmedAt: null, runId: null, startedAt: null, finishedAt: null, materialImages: {}, timeline: null, exportInfo: null },
+      appliedKeys: {},
+      lastChatAt: null,
+      updateTime: 1000,
+      ...overrides,
+    };
+  }
+
+  /** getWorkbench 接口返回的是 {project, script, state, shotBounds}，state 只是其中一个字段 */
+  function makeWorkbench(stateOverrides: Record<string, any> = {}) {
+    return { project: null, script: null, shotBounds: null, state: makeWorkbenchState(stateOverrides) };
+  }
+
+  it("getAssetBoard：请求携带 projectId 与筛选参数，原样返回分页结果", async () => {
+    const id = setupProject();
+    const items = [{ mediaId: 1, projectId: Number(id), kind: "image", assetId: 2, imageId: 3, videoId: null, state: "done", model: "aibotplatform:gpt-image-1", promptSummary: "猫", source: "chat", errorReason: null, url: "http://x/1.jpg", createTime: 1000 }];
+    post.mockResolvedValueOnce(envelope({ items, total: 1, page: 1, pageSize: 24 }));
+
+    const store = useQuickVideoStore();
+    const result = await store.getAssetBoard({ kind: "image", page: 1, pageSize: 24 });
+
+    expect(post).toHaveBeenCalledWith("/quickVideo/getAssetBoard", expect.objectContaining({ projectId: Number(id), kind: "image", page: 1, pageSize: 24 }));
+    expect(result.items).toEqual(items);
+    expect(result.total).toBe(1);
+  });
+
+  it("bindShotFirstFrame：成功时带上当前状态版本号，并在完成后刷新工作台", async () => {
+    const id = setupProject();
+    post.mockResolvedValueOnce(envelope(makeWorkbench()));
+    const store = useQuickVideoStore();
+    await store.getWorkbench();
+    expect(store.state?.version).toBe(3);
+
+    post.mockResolvedValueOnce({ code: 200 });
+    post.mockResolvedValueOnce(envelope(makeWorkbench({ version: 4 })));
+
+    const result = await store.bindShotFirstFrame("shot-1", 7);
+
+    expect(post).toHaveBeenCalledWith("/quickVideo/bindShotFirstFrame", expect.objectContaining({ projectId: Number(id), expectedVersion: 3, shotId: "shot-1", mediaId: 7 }));
+    expect(result.ok).toBe(true);
+    // 绑定成功后应刷新工作台，拿到新的状态版本
+    expect(store.state?.version).toBe(4);
+  });
+
+  it("bindShotFirstFrame：服务端拒绝（如版本冲突）时返回错误信息，仍重新拉取工作台对账", async () => {
+    setupProject();
+    post.mockResolvedValueOnce(envelope(makeWorkbench()));
+    const store = useQuickVideoStore();
+    await store.getWorkbench();
+
+    post.mockResolvedValueOnce({ code: "VERSION_CONFLICT", message: "状态版本冲突，请刷新后重试", currentVersion: 5 });
+    post.mockResolvedValueOnce(envelope(makeWorkbench({ version: 5 })));
+
+    const result = await store.bindShotFirstFrame("shot-1", 7);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("VERSION_CONFLICT");
+      expect(result.error.message).toBe("状态版本冲突，请刷新后重试");
+    }
+    // 失败也要对账，避免前端继续拿着过期版本号重试
+    expect(store.state?.version).toBe(5);
+  });
+
+  it("bindShotFirstFrame：mediaId 传 null 表示解除首帧", async () => {
+    const id = setupProject();
+    post.mockResolvedValueOnce(envelope(makeWorkbench()));
+    const store = useQuickVideoStore();
+    await store.getWorkbench();
+
+    post.mockResolvedValueOnce({ code: 200 });
+    post.mockResolvedValueOnce(envelope(makeWorkbench({ version: 4 })));
+
+    await store.bindShotFirstFrame("shot-1", null);
+
+    expect(post).toHaveBeenCalledWith("/quickVideo/bindShotFirstFrame", expect.objectContaining({ projectId: Number(id), shotId: "shot-1", mediaId: null }));
+  });
+});

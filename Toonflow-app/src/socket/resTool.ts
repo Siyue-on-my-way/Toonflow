@@ -177,14 +177,16 @@ class MessageBuilder {
     return new SearchStream(this.socket, this.messageId, contentId);
   }
 
-  // 添加图片内容
-  image(data: ImageContent["data"]) {
+  // 添加图片内容；ext 用于携带 mediaId/assetId/imageId 等稳定引用和可执行操作所需信息，
+  // 不得把私有 OSS key 之类的内部路径放进去（SIY-132：聊天生图落库为项目资产）
+  image(data: ImageContent["data"], ext?: Record<string, any>) {
     const contentId = u.uuid();
     const content: ImageContent = {
       type: "image",
       id: contentId,
       data,
       status: "complete",
+      ...(ext ? { ext } : {}),
     };
 
     this.socket.emit("content:add", {

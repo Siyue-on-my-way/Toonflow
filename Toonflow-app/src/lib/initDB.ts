@@ -623,6 +623,33 @@ export default async (knex: Knex, forceInit: boolean = false): Promise<void> => 
         table.unique(["id"]);
       },
     },
+    // 单视频快创：聊天/白板生成媒体索引（SIY-132）。只保存关系与元数据，媒体二进制仍走
+    // o_image/o_video + MinIO；projectId 隔离读写，idempotencyKey 防重复生成同一次请求的资产。
+    {
+      name: "o_quickVideoMedia",
+      builder: (table) => {
+        table.increments("id").primary();
+        table.integer("projectId").notNullable();
+        table.integer("sessionId");
+        table.string("messageId", 64);
+        table.string("kind", 16).notNullable(); // image | video
+        table.integer("assetId");
+        table.integer("imageId");
+        table.integer("videoId");
+        table.string("model", 200);
+        table.text("prompt");
+        table.string("source", 20).notNullable().defaultTo("chat"); // chat | asset_board | generated | upload
+        table.string("state", 16).notNullable().defaultTo("generating"); // generating | done | failed
+        table.text("errorReason");
+        table.string("idempotencyKey", 191).notNullable();
+        table.bigInteger("deletedAt"); // 软删除：被镜头首帧引用的资产不物理删除
+        table.bigInteger("createTime").notNullable();
+        table.bigInteger("updateTime").notNullable();
+        table.unique(["projectId", "idempotencyKey"]);
+        table.index(["projectId", "kind", "state", "createTime"]);
+        table.index(["projectId", "sessionId"]);
+      },
+    },
     //供应商配置表
     {
       name: "o_vendorConfig",

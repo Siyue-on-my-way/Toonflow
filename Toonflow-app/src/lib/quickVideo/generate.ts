@@ -22,10 +22,12 @@ import {
   QuickVideoShot,
   QuickVideoSnapshotShot,
   QuickVideoState,
+  SnapshotFirstFrame,
   computeGenerationEstimate,
 } from "./contract";
 import { QuickVideoError, loadQuickVideoState, mutateQuickVideoState } from "./state";
 import { recordEvent, qvLog } from "./metrics";
+import { CHAT_MEDIA_ASSET_TYPE, getVendorModelCatalog } from "./media";
 
 /** 进程内生成运行登记：projectId -> 运行 runId（防止重复启动） */
 const runningGenerations = new Map<number, { runId: string }>();
@@ -81,17 +83,37 @@ export async function resolveMaterialsSnapshot(
 export async function buildSnapshot(projectId: number, state: QuickVideoState) {
   if (!state.storyboard) throw new QuickVideoError("NO_STORYBOARD", "暂无分镜，无法解析素材", state.version);
   const materials = await buildMaterials(projectId, state.storyboard.shots);
-  const snapshotShots: QuickVideoSnapshotShot[] = state.storyboard.shots.map((s) => ({
-    id: s.id,
-    index: s.index,
-    duration: s.duration,
-    description: s.description,
-    dialogue: s.dialogue,
-    camera: s.camera,
-    assetRefs: s.assetRefs,
-  }));
+  const snapshotShots: QuickVideoSnapshotShot[] = await Promise.all(
+    state.storyboard.shots.map(async (s) => ({
+      id: s.id,
+      index: s.index,
+      duration: s.duration,
+      description: s.description,
+      dialogue: s.dialogue,
+      camera: s.camera,
+      assetRefs: s.assetRefs,
+      firstFrame: await resolveSnapshotFirstFrame(s),
+    })),
+  );
   const estimate = computeGenerationEstimate(snapshotShots, materials);
   return { materials, estimate, snapshotShots };
+}
+
+/**
+ * 冻结镜头的首帧引用：把 shot.firstFrame（mediaId/assetId/imageId）解析出 filePath 一并
+ * 写入快照，生成引擎直接读取，不再二次查库/查权限。首帧已绑定但文件已失效时直接报错，
+ * 不允许静默回退到分镜图（任务约束「禁止静默换图」）——用户需要在草稿阶段重新绑定或解除。
+ */
+async function resolveSnapshotFirstFrame(shot: QuickVideoShot): Promise<SnapshotFirstFrame | null> {
+  if (!shot.firstFrame) return null;
+  const image = await u.db("o_image").where("id", shot.firstFrame.imageId).select("filePath").first();
+  if (!image?.filePath) {
+    throw new QuickVideoError(
+      "FIRST_FRAME_MISSING",
+      `镜头 ${shot.id} 绑定的首帧已失效，请在分镜草稿阶段重新绑定或解除后再确认`,
+    );
+  }
+  return { ...shot.firstFrame, filePath: image.filePath };
 }
 
 /** 把解析结果写入状态的 generation.snapshot（确认门前为未确认快照；新快照会重置确认门） */
@@ -139,7 +161,9 @@ async function buildMaterials(projectId: number, shots: QuickVideoShot[]): Promi
   return materials;
 }
 
-/** 按 项目 + 名称 匹配资产库（优先同类型），返回带图片的命中项；无图资产不算命中 */
+/** 按 项目 + 名称 匹配资产库（优先同类型），返回带图片的命中项；无图资产不算命中。
+ *  聊天/白板生成的媒体资产（CHAT_MEDIA_ASSET_TYPE）明确排除在外——它们没有 role/scene/tool
+ *  语义，只是碰巧同名就被当成素材参考图会悄悄改变镜头生成输入（SIY-132 review 发现的缺口）。 */
 async function matchProjectAsset(
   projectId: number,
   ref: { type: string; name: string },
@@ -149,6 +173,7 @@ async function matchProjectAsset(
     .leftJoin("o_image", "o_assets.imageId", "o_image.id")
     .where("o_assets.projectId", projectId)
     .andWhere("o_assets.name", ref.name)
+    .andWhereNot("o_assets.type", CHAT_MEDIA_ASSET_TYPE)
     .select("o_assets.id as assetId", "o_assets.type as assetType", "o_image.id as imageId", "o_image.filePath as filePath");
 
   const hit = rows.find((r: any) => r.assetType === ref.type && r.filePath) ?? rows.find((r: any) => r.filePath);
@@ -515,7 +540,11 @@ async function runShotPipeline(projectId: number, userId: number, shotId: string
   if (liveAfterImage?.videoState === "done" && liveAfterImage.videoRef) return;
   await updateShotState(projectId, shotId, { videoState: "generating", errorReason: null });
   try {
-    const imageBase64 = await u.oss.getImageBase64(imageRef!);
+    // 优先使用用户绑定的冻结首帧；未绑定时回退到本镜头自动生成的分镜图（imageRef 与
+    // firstFrame 分开建模，见 contract.ts shotFirstFrameSchema 注释）。
+    const baseImagePath = shotContent.firstFrame?.filePath ?? imageRef;
+    await assertVideoSupportsSingleImage(ctx.videoModel, !!shotContent.firstFrame);
+    const imageBase64 = await u.oss.getImageBase64(baseImagePath!);
     const videoAi = u.Ai.Video(ctx.videoModel as `${string}:${string}`, ctx.userId);
     await withTimeout(
       videoAi.run(
@@ -547,6 +576,27 @@ async function runShotPipeline(projectId: number, userId: number, shotId: string
     await updateShotState(projectId, shotId, { videoState: "failed", errorReason: reason });
     recordEvent("generationShotFailed");
     qvLog("shot_failed", { projectId, shotId, stage: "video", reason });
+  }
+}
+
+/**
+ * 视频模型单图/首帧模式能力检查：仅当目录中明确声明了 mode 且不包含 singleImage 时才拦截；
+ * 目录缺失/未声明 mode 时放行（与既有"未收紧则放行"的模型解析约定一致，避免误伤已在用模型）。
+ * hasBoundFirstFrame 只影响报错文案——没有绑定首帧时走的是自动生成的分镜图回退，
+ * 提示用户"解除首帧"并不适用（该镜头本来就没有绑定）。
+ */
+async function assertVideoSupportsSingleImage(videoModelKey: string, hasBoundFirstFrame: boolean): Promise<void> {
+  const sep = videoModelKey.indexOf(":");
+  if (sep <= 0) return;
+  const vendorId = videoModelKey.slice(0, sep);
+  const modelName = videoModelKey.slice(sep + 1);
+  const catalog = await getVendorModelCatalog(vendorId);
+  if (!catalog) return;
+  const hit = catalog.models.find((m) => m?.modelName === modelName && m?.type === "video");
+  const modes = Array.isArray(hit?.mode) ? (hit!.mode as string[]) : null;
+  if (modes && !modes.includes("singleImage")) {
+    const hint = hasBoundFirstFrame ? "请更换视频模型或解除该镜头首帧后重试" : "请更换视频模型后重试";
+    throw new Error(`所选视频模型「${modelName}」不支持单图/首帧输入，${hint}`);
   }
 }
 

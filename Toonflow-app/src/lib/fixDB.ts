@@ -83,6 +83,13 @@ export default async (knex: Knex): Promise<void> => {
     state: "生成失败",
     errorReason: "软件退出导致失败",
   });
+  // 单视频快创聊天生图媒体索引（SIY-132）：o_image/o_video 的中断矫正已覆盖在上面，
+  // 但 o_quickVideoMedia 是独立的关联表，state 用自己的英文枚举，不会被上面的清理捎带上，
+  // 否则中断的生成会永远停在 generating，聊天卡片/白板卡片显示成永久转圈。
+  await db("o_quickVideoMedia").where("state", "generating").update({
+    state: "failed",
+    errorReason: "服务重启导致生成中断，请重新发送生成请求",
+  });
 
   // 添加新字段
   await addColumn("o_project", "textModel", "string");

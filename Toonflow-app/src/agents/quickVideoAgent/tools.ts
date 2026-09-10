@@ -14,6 +14,7 @@ import {
 } from "@/lib/quickVideo/contract";
 import { findShot, nextShotId, normalizeShotDuration, reindexShots } from "@/lib/quickVideo/shots";
 import { startQuickVideoGeneration } from "@/lib/quickVideo/generate";
+import { createChatMedia, markChatMediaDone, markChatMediaFailed, resolveMediaImageBase64 } from "@/lib/quickVideo/media";
 
 /**
  * QuickVideoAgent 受限工具层。
@@ -25,6 +26,10 @@ interface ToolConfig {
   resTool: ResTool;
   msg: ReturnType<ResTool["newMessage"]>;
   sessionId: number;
+  /** 服务端已校验过的图片模型 key；未提供时 generate_image 工具不对 Agent 暴露 */
+  imageModel?: string;
+  /** 用户选中的引用媒体 mediaId 列表（图生图参考） */
+  references?: number[];
 }
 
 /** 工具内统一错误转文本，避免 Agent 因异常中断 */
@@ -265,6 +270,7 @@ export default (toolConfig: ToolConfig) => {
                 imageRef: null,
                 videoRef: null,
                 errorReason: null,
+                firstFrame: null,
               }));
               const errors = validateStoryboard(s.targetDuration, shots);
               if (errors.length) throw new QuickVideoError("STORYBOARD_INVALID", errors.join("；"), s.version);
@@ -374,6 +380,7 @@ export default (toolConfig: ToolConfig) => {
                 imageRef: null,
                 videoRef: null,
                 errorReason: null,
+                firstFrame: null,
               });
               reindexShots(s);
             },
@@ -512,6 +519,89 @@ export default (toolConfig: ToolConfig) => {
       },
     }),
   };
+
+  // 仅当本轮 socket 已校验通过 imageModel 时才对 Agent 暴露该工具：mode=text 的普通
+  // 对话轮次不应该、也不能触发图片生成（见 socket/routes/quickVideoAgent.ts 的服务端校验）。
+  if (toolConfig.imageModel) {
+    const imageModel = toolConfig.imageModel;
+    tools.generate_image = tool({
+      description:
+        "在当前聊天会话中生成一张图片（文生图，可选引用图作为图生图参考）。生成成功会自动出现在聊天记录和资产白板中，" +
+        "但不会绑定到任何镜头、不会修改分镜、不会代替用户确认任何确认门——绑定镜头首帧是用户在右侧分镜表的专属操作。",
+      inputSchema: jsonSchema<{ prompt: string; referenceMediaIds?: number[] }>(
+        z
+          .object({
+            prompt: z.string().min(1).max(2000).describe("图片生成提示词（画面描述，尽量具体：主体、构图、风格、光影）"),
+            referenceMediaIds: z
+              .array(z.number().int().positive())
+              .max(4)
+              .optional()
+              .describe("引用媒体的 mediaId 列表（图生图参考），只能是用户在本轮聊天中明确选中的引用，不要凭空编造 id"),
+          })
+          .toJSONSchema(),
+      ),
+      execute: async (input, options) => {
+        const { toolCallId } = options as { toolCallId: string };
+        return withThinking(msg, "正在生成图片...", async () => {
+          const project = await u.db("o_project").where("id", projectId).select("videoRatio").first();
+          const aspectRatio = (project?.videoRatio || "16:9") as `${number}:${number}`;
+
+          const { media, idempotentHit } = await createChatMedia({
+            projectId,
+            sessionId,
+            messageId: msg.id,
+            kind: "image",
+            model: imageModel,
+            prompt: input.prompt,
+            source: "chat",
+            idempotencyKey: `tool:generate_image:${toolCallId}`,
+          });
+          if (idempotentHit) {
+            if (media.state === "done") return "该次图片生成请求已处理过（幂等命中），图片已在聊天记录和资产白板中。";
+            if (media.state === "failed") return `该次图片生成请求已处理过（幂等命中），生成失败：${media.errorReason ?? "未知原因"}`;
+            return "该次图片生成请求正在处理中（幂等命中），请稍候查看聊天记录或资产白板。";
+          }
+
+          const referenceIds = (input.referenceMediaIds ?? toolConfig.references ?? []).slice(0, 4);
+          const referenceList: { type: "image"; base64: string }[] = [];
+          for (const refId of referenceIds) {
+            try {
+              referenceList.push({ type: "image", base64: await resolveMediaImageBase64(projectId, refId) });
+            } catch {
+              // 单张参考图失效不阻断本次生成，退化为纯文本提示词
+            }
+          }
+
+          try {
+            const imageCls = u.Ai.Image(imageModel as `${string}:${string}`, userId);
+            await imageCls.run(
+              { prompt: input.prompt, referenceList, size: "1K", aspectRatio },
+              {
+                taskClass: "快创聊天生图",
+                describe: `聊天生图：${input.prompt.slice(0, 100)}`,
+                relatedObjects: JSON.stringify({ projectId, sessionId, mediaId: media.id }),
+                projectId,
+              },
+            );
+            const savePath = `/${projectId}/quickVideo/chat-${u.uuid().slice(0, 8)}.jpg`;
+            await imageCls.save(savePath);
+            await markChatMediaDone(media.id, savePath);
+
+            const url = await u.oss.getFileUrl(savePath);
+            msg.image(
+              { name: input.prompt.slice(0, 60), url },
+              { mediaId: media.id, assetId: media.assetId, imageId: media.imageId, kind: "image", model: imageModel, promptSummary: input.prompt.slice(0, 200), state: "done", source: "chat" },
+            );
+            return `图片已生成并加入聊天记录与资产白板（mediaId ${media.id}）。提醒用户：如需用作某个镜头的首帧，请在右侧分镜表对应镜头点击"设为首帧"手动绑定，我不会自动绑定。`;
+          } catch (err) {
+            const reason = describeError(err);
+            await markChatMediaFailed(media.id, reason);
+            return `图片生成失败：${reason}。可以请用户换一个描述或换一个图片模型后重新发送。`;
+          }
+        }).catch((err) => `图片生成失败：${describeError(err)}`);
+      },
+    });
+  }
 
   return tools;
 };

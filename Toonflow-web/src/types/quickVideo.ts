@@ -27,6 +27,59 @@ export interface ShotAssetRef {
   desc: string;
 }
 
+// ---------------------------------------------------------------------------
+// 聊天生图/资产白板/首帧绑定（与后端 src/lib/quickVideo/contract.ts + media.ts 保持一致，SIY-132）
+// ---------------------------------------------------------------------------
+
+export const QUICK_VIDEO_MEDIA_KINDS = ["image", "video"] as const;
+export type QuickVideoMediaKind = (typeof QUICK_VIDEO_MEDIA_KINDS)[number];
+
+export type QuickVideoMediaState = "generating" | "done" | "failed";
+export type QuickVideoMediaSource = "chat" | "asset_board" | "generated" | "upload";
+
+/** 稳定媒体引用：应用内部复制/粘贴/绑定首帧只传递 mediaId，url 是接口按需签发的短期预览地址 */
+export interface MediaRef {
+  mediaId: number;
+  projectId: number;
+  kind: QuickVideoMediaKind;
+  assetId: number | null;
+  imageId: number | null;
+  videoId: number | null;
+  state: QuickVideoMediaState;
+  model: string | null;
+  promptSummary: string | null;
+  source: QuickVideoMediaSource;
+  errorReason: string | null;
+  url: string | null;
+  width?: number | null;
+  height?: number | null;
+  createTime: number;
+}
+
+/** 聊天图片/视频内容块携带的扩展元数据（ChatBaseContent.ext），与后端 resTool.image 一致 */
+export interface ChatMediaExt {
+  mediaId: number;
+  assetId: number | null;
+  imageId: number | null;
+  videoId?: number | null;
+  kind: QuickVideoMediaKind;
+  model: string | null;
+  promptSummary: string | null;
+  state: QuickVideoMediaState;
+  source: QuickVideoMediaSource;
+  errorReason?: string | null;
+}
+
+/** 镜头首帧引用：分镜草稿阶段可粘贴/替换/解除；确认后随快照冻结 */
+export interface ShotFirstFrame {
+  mediaId: number;
+  assetId: number;
+  imageId: number;
+  boundAt: number;
+}
+
+export type QuickVideoChatMode = "text" | "image";
+
 export interface QuickVideoShot {
   id: string;
   index: number;
@@ -40,6 +93,7 @@ export interface QuickVideoShot {
   imageRef: string | null;
   videoRef: string | null;
   errorReason: string | null;
+  firstFrame: ShotFirstFrame | null;
 }
 
 export interface QuickVideoBrief {
@@ -83,6 +137,7 @@ export interface QuickVideoGenerationSnapshot {
     dialogue: string;
     camera: string;
     assetRefs: ShotAssetRef[];
+    firstFrame: (ShotFirstFrame & { filePath: string }) | null;
   }[];
   materials: QuickVideoMaterialItem[];
   estimatedImageCount: number;

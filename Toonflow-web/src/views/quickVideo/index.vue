@@ -20,16 +20,35 @@
             @rename="handleSessionRename"
             @toggle-archive="handleSessionToggleArchive" />
           <t-chat-list :clear-history="false">
-            <t-chat-message
-              v-for="message in messages"
-              :key="message.id"
-              :message="message"
-              :name="(message as any).name"
-              :placement="message.role === 'user' ? 'right' : 'left'"
-              :variant="message.role === 'user' ? 'base' : 'outline'"
-              :handleActions="{}"
-              :status="message.status"
-              allowContentSegmentCustom></t-chat-message>
+            <template v-for="message in messages" :key="message.id">
+              <t-chat-message
+                :message="message"
+                :name="(message as any).name"
+                :placement="message.role === 'user' ? 'right' : 'left'"
+                :variant="message.role === 'user' ? 'base' : 'outline'"
+                :handleActions="{}"
+                :status="message.status"
+                allowContentSegmentCustom></t-chat-message>
+              <div v-if="mediaCardsOf(message).length" class="qvChatMediaRow">
+                <div v-for="card in mediaCardsOf(message)" :key="card.key" class="qvChatMediaCard">
+                  <div class="qvChatMediaThumb" @click="card.ext.state === 'done' && openMediaPreview(toMediaRefFromCard(card))">
+                    <t-image v-if="card.ext.state === 'done' && card.ext.kind === 'image' && card.url" :src="card.url" fit="cover" :style="{ width: '100%', height: '100%', cursor: 'pointer' }" />
+                    <video v-else-if="card.ext.state === 'done' && card.ext.kind === 'video' && card.url" :src="card.url" muted class="qvChatMediaVideo" />
+                    <div v-else-if="card.ext.state === 'generating'" class="qvChatMediaPlaceholder"><t-loading size="small" :loading="true" /></div>
+                    <div v-else class="qvChatMediaPlaceholder failed"><i-close-circle size="18" /></div>
+                  </div>
+                  <div class="qvChatMediaOps" v-if="card.ext.state === 'done'">
+                    <t-button size="small" variant="text" @click="copyMediaRef(toMediaRefFromCard(card))">{{ $t("workbench.quickVideo.copy") }}</t-button>
+                    <t-button v-if="card.ext.kind === 'image'" size="small" variant="text" theme="primary" @click="openFirstFramePicker(toMediaRefFromCard(card))">
+                      {{ $t("workbench.quickVideo.setFirstFrame") }}
+                    </t-button>
+                  </div>
+                  <div class="qvChatMediaOps" v-else-if="card.ext.state === 'failed'">
+                    <span class="qvChatMediaError">{{ card.ext.errorReason || $t("workbench.quickVideo.gen.failed") }}</span>
+                  </div>
+                </div>
+              </div>
+            </template>
           </t-chat-list>
           <t-chat-sender
             class="inputBox"
@@ -100,6 +119,30 @@
               {{ $t("workbench.quickVideo.close") }}
             </t-button>
           </div>
+          <AssetBoard
+            class="assetBoardBlock"
+            :title="$t('workbench.quickVideo.assetBoard')"
+            :items="assetBoardItems"
+            :loading="assetBoardLoading"
+            :total="assetBoardTotal"
+            :page="assetBoardPage"
+            :page-size="assetBoardPageSize"
+            :all-label="$t('workbench.quickVideo.all')"
+            :image-label="$t('workbench.quickVideo.image')"
+            :video-label="$t('workbench.quickVideo.video')"
+            :empty-text="$t('workbench.quickVideo.assetBoardEmpty')"
+            :copy-text="$t('workbench.quickVideo.copy')"
+            :set-first-frame-text="$t('workbench.quickVideo.setFirstFrame')"
+            :failed-text="$t('workbench.quickVideo.gen.failed')"
+            :generating-text="$t('workbench.quickVideo.gen.generating')"
+            :expand-text="$t('workbench.quickVideo.expand')"
+            :collapse-text="$t('workbench.quickVideo.collapse')"
+            @refresh="loadAssetBoard"
+            @page-change="handleAssetBoardPageChange"
+            @filter-change="handleAssetBoardFilterChange"
+            @zoom="openMediaPreview"
+            @copy="copyMediaRef"
+            @set-first-frame="openFirstFramePicker" />
           <div class="panelBody">
             <!-- 简报卡片 -->
             <div class="card">
@@ -174,6 +217,39 @@
                       {{ assetTypeLabel(a.type) }}:{{ a.name }}
                     </t-tag>
                     <span v-if="!row.assetRefs?.length">-</span>
+                  </template>
+                  <template #firstFrame="{ row }">
+                    <div class="firstFrameCell">
+                      <template v-if="row.firstFrame">
+                        <t-image
+                          v-if="mediaUrls[row.id]?.firstFrameUrl"
+                          :src="mediaUrls[row.id].firstFrameUrl!"
+                          fit="cover"
+                          shape="round"
+                          :style="{ width: '48px', height: '32px', cursor: 'pointer' }"
+                          @click="openImagePreview(mediaUrls[row.id].firstFrameUrl!)" />
+                        <span v-else class="noPreview">-</span>
+                        <div class="firstFrameOps" v-if="canEditStoryboard">
+                          <t-button size="small" variant="text" :disabled="!clipboardMediaRef" @click="pasteFirstFrameFromClipboard(row.id)">
+                            {{ $t("workbench.quickVideo.replaceFirstFrame") }}
+                          </t-button>
+                          <t-button size="small" variant="text" theme="danger" @click="unbindFirstFrame(row.id)">
+                            {{ $t("workbench.quickVideo.unbindFirstFrame") }}
+                          </t-button>
+                        </div>
+                      </template>
+                      <template v-else>
+                        <t-button
+                          v-if="canEditStoryboard"
+                          size="small"
+                          variant="outline"
+                          :disabled="!clipboardMediaRef"
+                          @click="pasteFirstFrameFromClipboard(row.id)">
+                          {{ $t("workbench.quickVideo.pasteFirstFrame") }}
+                        </t-button>
+                        <span v-else class="noPreview">-</span>
+                      </template>
+                    </div>
                   </template>
                   <template #preview="{ row }">
                     <div class="shotPreview">
@@ -557,6 +633,28 @@
 
     <!-- 镜头图预览 -->
     <t-image-viewer v-model="imagePreviewVisible" :images="imagePreviewImages" :closeOnOverlay="true" />
+
+    <!-- 设为镜头首帧：选择目标草稿镜头 -->
+    <t-dialog
+      v-model:visible="firstFramePickerVisible"
+      :header="$t('workbench.quickVideo.setFirstFrame')"
+      width="480px"
+      placement="center"
+      :footer="false">
+      <div class="firstFramePickerBody">
+        <div class="firstFramePickerPreview" v-if="firstFramePickerTarget?.url">
+          <t-image :src="firstFramePickerTarget.url" fit="cover" :style="{ width: '100%', height: '160px', borderRadius: '8px' }" />
+        </div>
+        <t-empty v-if="!draftShots.length" :title="$t('workbench.quickVideo.noDraftShots')" />
+        <div v-else class="firstFramePickerList">
+          <div v-for="shot in draftShots" :key="shot.id" class="firstFramePickerItem" @click="confirmFirstFramePicker(shot.id)">
+            <span class="firstFramePickerIndex">#{{ shot.index }}</span>
+            <span class="firstFramePickerDesc">{{ shot.description }}</span>
+            <i-check v-if="shot.firstFrame?.mediaId === firstFramePickerTarget?.mediaId" size="16" />
+          </div>
+        </div>
+      </div>
+    </t-dialog>
   </div>
 </template>
 
@@ -565,9 +663,10 @@ import { Splitpanes, Pane } from "splitpanes";
 import axios from "@/utils/axios";
 import projectStore from "@/stores/project";
 import quickVideoStore from "@/stores/quickVideo";
-import type { QuickVideoDuration, QuickVideoRatio, QuickVideoStage, QuickVideoShot, QuickVideoSession } from "@/types/quickVideo";
+import type { QuickVideoDuration, QuickVideoRatio, QuickVideoStage, QuickVideoShot, QuickVideoSession, MediaRef, ChatMediaExt } from "@/types/quickVideo";
 import modelSelect from "@/components/modelSelect.vue";
 import SessionList from "./components/SessionList.vue";
+import AssetBoard from "./components/AssetBoard.vue";
 import dayjs from "dayjs";
 import ExportProgress from "./ExportProgress.vue";
 import { useTimelinePlayer } from "./timelinePlayer";
@@ -575,8 +674,10 @@ import { estimateExportBytes, formatBytes, formatTime } from "./timelineCore";
 
 const { project } = storeToRefs(projectStore());
 const quickVideoStoreRef = quickVideoStore();
-const { connected, messages, status, workbench, state, loadingWorkbench, sessions, loadingSessions, currentSessionId, modelPreferences } = storeToRefs(quickVideoStoreRef);
-const { stopGenerate, getWorkbench, updateConfig, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference } = quickVideoStoreRef;
+const { connected, messages, status, workbench, state, loadingWorkbench, sessions, loadingSessions, currentSessionId, modelPreferences, isGenerating, clipboardMediaRef } =
+  storeToRefs(quickVideoStoreRef);
+const { stopGenerate, getWorkbench, updateConfig, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference, getAssetBoard, bindShotFirstFrame } =
+  quickVideoStoreRef;
 
 const inputValue = ref("");
 
@@ -626,6 +727,7 @@ async function handleSessionToggleArchive(sessionId: number) {
 
 onMounted(async () => {
   getWorkbench();
+  void loadAssetBoard();
   // 会话列表必须先加载完成、确定当前 session 后才能建立 socket 连接和拉取历史——
   // 否则握手时 sessionId 为空，会被服务端拒绝。
   await loadSessions();
@@ -646,13 +748,153 @@ const defMsg = [
 if (messages.value.length <= 0) messages.value = [...defMsg, ...messages.value] as any;
 
 function handleSend(text: string) {
+  const mode = activeModelType.value === "image" ? "image" : "text";
+  if (mode === "image" && !modelPreferences.value.image) {
+    window.$message.warning($t("workbench.quickVideo.selectImageModelFirst"));
+    return;
+  }
   // 切换文本模型不会新建或切换 session_id；socket 隔离键由服务端按当前会话固定。
-  quickVideoStoreRef.chat(text, undefined, modelPreferences.value.text || undefined);
+  quickVideoStoreRef.chat(text, undefined, modelPreferences.value.text || undefined, {
+    mode,
+    imageModel: mode === "image" ? modelPreferences.value.image : undefined,
+  });
   inputValue.value = "";
 }
 function handleStop() {
   quickVideoStoreRef.stopGenerate();
 }
+
+// ===== 资产白板（SIY-132） =====
+const assetBoardItems = ref<MediaRef[]>([]);
+const assetBoardTotal = ref(0);
+const assetBoardPage = ref(1);
+const assetBoardPageSize = 24;
+const assetBoardLoading = ref(false);
+const assetBoardKind = ref<"all" | "image" | "video">("all");
+
+async function loadAssetBoard() {
+  assetBoardLoading.value = true;
+  try {
+    const result = await getAssetBoard({ kind: assetBoardKind.value, page: assetBoardPage.value, pageSize: assetBoardPageSize });
+    assetBoardItems.value = result.items;
+    assetBoardTotal.value = result.total;
+  } catch (e: any) {
+    console.error("[quickVideo] 加载资产白板失败", e);
+  } finally {
+    assetBoardLoading.value = false;
+  }
+}
+
+function handleAssetBoardPageChange(page: number) {
+  assetBoardPage.value = page;
+  void loadAssetBoard();
+}
+
+function handleAssetBoardFilterChange(kind: "all" | "image" | "video") {
+  assetBoardKind.value = kind;
+  assetBoardPage.value = 1;
+  void loadAssetBoard();
+}
+
+// 聊天一轮结束后刷新一次白板：本轮如果生成了新图片，此时已经落库完成
+watch(isGenerating, (generating, prev) => {
+  if (prev && !generating) void loadAssetBoard();
+});
+
+// ===== 聊天图片卡片 / 白板卡片：复制、放大、设为首帧（共用同一套逻辑与绑定接口） =====
+
+interface ChatMediaCard {
+  key: string;
+  ext: ChatMediaExt;
+  url: string | null;
+  promptSummary: string | null;
+}
+
+function mediaCardsOf(message: any): ChatMediaCard[] {
+  const content = message?.content;
+  if (!Array.isArray(content)) return [];
+  return content
+    .filter((c: any) => (c.type === "image" || c.type === "video") && c.ext?.mediaId)
+    .map((c: any) => ({ key: `${message.id}-${c.id ?? c.ext.mediaId}`, ext: c.ext as ChatMediaExt, url: c.data?.url ?? null, promptSummary: c.ext?.promptSummary ?? null }));
+}
+
+function toMediaRefFromCard(card: ChatMediaCard): MediaRef {
+  return {
+    mediaId: card.ext.mediaId,
+    projectId: Number(project.value?.id),
+    kind: card.ext.kind,
+    assetId: card.ext.assetId,
+    imageId: card.ext.imageId,
+    videoId: card.ext.videoId ?? null,
+    state: card.ext.state,
+    model: card.ext.model,
+    promptSummary: card.promptSummary,
+    source: card.ext.source,
+    errorReason: card.ext.errorReason ?? null,
+    url: card.url,
+    createTime: Date.now(),
+  };
+}
+
+async function copyMediaRef(ref: MediaRef) {
+  clipboardMediaRef.value = ref;
+  let systemCopyOk = false;
+  try {
+    if (ref.url && ref.kind === "image" && typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+      const resp = await fetch(ref.url);
+      const blob = await resp.blob();
+      await navigator.clipboard.write([new ClipboardItem({ [blob.type || "image/png"]: blob })]);
+      systemCopyOk = true;
+    }
+  } catch {
+    // 系统剪贴板受限（权限/浏览器不支持）时静默降级为仅应用内部复制，不阻断流程
+  }
+  window.$message.success(systemCopyOk ? $t("workbench.quickVideo.copiedBoth") : $t("workbench.quickVideo.copiedInternalOnly"));
+}
+
+const firstFramePickerVisible = ref(false);
+const firstFramePickerTarget = ref<MediaRef | null>(null);
+
+function openFirstFramePicker(ref: MediaRef) {
+  if (ref.state !== "done" || ref.kind !== "image") return;
+  firstFramePickerTarget.value = ref;
+  firstFramePickerVisible.value = true;
+}
+
+async function confirmFirstFramePicker(shotId: string) {
+  const target = firstFramePickerTarget.value;
+  if (!target) return;
+  const result = await bindShotFirstFrame(shotId, target.mediaId);
+  if (!result.ok) {
+    window.$message.warning(result.error.message);
+    return;
+  }
+  firstFramePickerVisible.value = false;
+  window.$message.success($t("workbench.quickVideo.firstFrameBound"));
+}
+
+async function pasteFirstFrameFromClipboard(shotId: string) {
+  const ref = clipboardMediaRef.value;
+  if (!ref) return;
+  const result = await bindShotFirstFrame(shotId, ref.mediaId);
+  if (!result.ok) {
+    window.$message.warning(result.error.message);
+    return;
+  }
+  window.$message.success($t("workbench.quickVideo.firstFrameBound"));
+}
+
+async function unbindFirstFrame(shotId: string) {
+  const result = await bindShotFirstFrame(shotId, null);
+  if (!result.ok) window.$message.warning(result.error.message);
+}
+
+function openMediaPreview(ref: MediaRef) {
+  if (!ref.url) return;
+  if (ref.kind === "video") openVideoPreview(ref.url);
+  else openImagePreview(ref.url);
+}
+
 
 // ===== 阶段与状态展示 =====
 const stageLabels: Record<QuickVideoStage, string> = {
@@ -700,6 +942,8 @@ const totalDuration = computed(() => state.value?.storyboard?.shots.reduce((sum,
 
 const canEditBrief = computed(() => ["collect_brief", "brief_confirmed", "storyboard_draft"].includes(state.value?.stage ?? ""));
 const canEditStoryboard = computed(() => state.value?.stage === "storyboard_draft" && state.value?.storyboard?.status === "draft");
+/** 首帧选择器可选目标：仅草稿阶段的镜头允许粘贴/替换首帧 */
+const draftShots = computed(() => (canEditStoryboard.value ? state.value?.storyboard?.shots ?? [] : []));
 
 // ===== 项目基础配置编辑 =====
 interface QuickVideoConfigForm {
@@ -814,6 +1058,7 @@ const shotColumns = [
   { colKey: "dialogue", title: $t("workbench.quickVideo.shotDialogue"), ellipsis: true },
   { colKey: "camera", title: $t("workbench.quickVideo.shotCamera"), width: 110, ellipsis: true },
   { colKey: "assetRefs", title: $t("workbench.quickVideo.shotAssets"), width: 150 },
+  { colKey: "firstFrame", title: $t("workbench.quickVideo.firstFrame"), width: 130 },
   { colKey: "preview", title: $t("workbench.quickVideo.preview"), width: 110 },
   { colKey: "genState", title: $t("workbench.quickVideo.genState"), width: 175 },
   { colKey: "op", title: "", width: 110 },
@@ -981,15 +1226,15 @@ async function retryShots(shotIds: string[]) {
 }
 
 // ===== 镜头产物预览（imageRef/videoRef -> 访问地址） =====
-const mediaUrls = ref<Record<string, { imageUrl: string | null; videoUrl: string | null }>>({});
+const mediaUrls = ref<Record<string, { imageUrl: string | null; videoUrl: string | null; firstFrameUrl: string | null }>>({});
 const mediaSignature = computed(() =>
   shots.value
-    .map((s) => `${s.id}:${s.imageRef ?? ""}:${s.videoRef ?? ""}`)
+    .map((s) => `${s.id}:${s.imageRef ?? ""}:${s.videoRef ?? ""}:${s.firstFrame?.mediaId ?? ""}`)
     .join("|"),
 );
 watch(mediaSignature, async (sig, prev) => {
   if (sig === prev) return;
-  if (!shots.value.some((s) => s.imageRef || s.videoRef)) {
+  if (!shots.value.some((s) => s.imageRef || s.videoRef || s.firstFrame)) {
     mediaUrls.value = {};
     return;
   }
@@ -1238,6 +1483,51 @@ function cancelExport() {
         top: 10px;
         left: 10px;
       }
+      .qvChatMediaRow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: -4px 12px 10px 44px;
+      }
+      .qvChatMediaCard {
+        width: 96px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        .qvChatMediaThumb {
+          width: 96px;
+          height: 96px;
+          border-radius: 8px;
+          overflow: hidden;
+          background: var(--td-bg-color-secondarycontainer);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          .qvChatMediaVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+        }
+        .qvChatMediaPlaceholder {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          &.failed {
+            color: var(--td-error-color);
+          }
+        }
+        .qvChatMediaOps {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .qvChatMediaError {
+          font-size: 11px;
+          color: var(--td-error-color);
+          line-height: 1.4;
+        }
+      }
     }
   }
   .panel {
@@ -1278,6 +1568,9 @@ function cancelExport() {
         font-size: 13px;
         line-height: 1.6;
       }
+    }
+    .assetBoardBlock {
+      margin: 0 4px 12px;
     }
     .panelBody {
       flex: 1;
@@ -1349,6 +1642,18 @@ function cancelExport() {
         gap: 4px;
         .noPreview {
           opacity: 0.4;
+        }
+      }
+      .firstFrameCell {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        .noPreview {
+          opacity: 0.4;
+        }
+        .firstFrameOps {
+          display: flex;
+          gap: 2px;
         }
       }
       .estimateRow {
@@ -1424,6 +1729,42 @@ function cancelExport() {
     width: 100%;
     border-radius: 8px;
     background: #000;
+  }
+  .firstFramePickerBody {
+    .firstFramePickerPreview {
+      margin-bottom: 12px;
+    }
+    .firstFramePickerList {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .firstFramePickerItem {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      &:hover {
+        background: var(--td-bg-color-secondarycontainer);
+      }
+      .firstFramePickerIndex {
+        flex-shrink: 0;
+        opacity: 0.6;
+        font-size: 12px;
+      }
+      .firstFramePickerDesc {
+        flex: 1;
+        min-width: 0;
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
   }
   .assembleLayout {
     display: flex;
