@@ -219,6 +219,7 @@ export interface QuickVideoReject {
 // ---------------------------------------------------------------------------
 
 export type QuickVideoSessionStatus = "active" | "archived";
+export type QuickVideoSessionTitleStatus = "idle" | "running" | "done" | "failed";
 
 export interface QuickVideoSession {
   id: number;
@@ -228,6 +229,9 @@ export interface QuickVideoSession {
   textModel: string | null;
   imageModel: string | null;
   videoModel: string | null;
+  sequence: number | null;
+  userMessageCount: number | null;
+  titleStatus: QuickVideoSessionTitleStatus | null;
   createTime: number;
   updateTime: number;
 }

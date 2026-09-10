@@ -499,6 +499,19 @@ export default async (knex: Knex): Promise<void> => {
   await addColumn("o_agentWorkData", "sessionId", "integer");
   await addColumn("o_quickVideoSession", "status", "string");
   await addColumn("o_quickVideoSession", "title", "string");
+  // 会话标题智能生成（SIY-128 follow-up）：序号、发言计数、生成状态与时间戳
+  await addColumn("o_quickVideoSession", "sequence", "integer");
+  await addColumn("o_quickVideoSession", "userMessageCount", "integer");
+  await addColumn("o_quickVideoSession", "titleStatus", "string");
+  await addColumn("o_quickVideoSession", "titleGeneratedAt", "bigInteger");
+  await addColumn("o_quickVideoSession", "titleGenerationClaimedAt", "bigInteger");
+  // 矫正因软件异常退出导致的状态不一致问题：标题生成中途被打断的会话，退回失败态，
+  // 保留已有默认/旧标题，不自动重试（与下方各表的"生成中->生成失败"矫正是同一套约定）。
+  await db("o_quickVideoSession").where("titleStatus", "running").update({ titleStatus: "failed" });
+  // addColumn 只补列、不为存量行回填默认值：titleStatus/userMessageCount 缺省应等价于
+  // "从未开始"，而不是 NULL（NULL !== 'idle' 会让抢占逻辑永远读不到 idle，卡死不生成）。
+  await db("o_quickVideoSession").whereNull("titleStatus").update({ titleStatus: "idle" });
+  await db("o_quickVideoSession").whereNull("userMessageCount").update({ userMessageCount: 0 });
   {
     const legacyQuickVideoProjects = await db("o_project").where({ projectType: "quick_video" }).select("id");
     for (const p of legacyQuickVideoProjects) {
@@ -507,9 +520,25 @@ export default async (knex: Knex): Promise<void> => {
         // 兜底：即便该项目的默认会话在更早一次（未带记忆迁移的）部署中已经建好，
         // 只要旧版无 session 的隔离键下还有残留记忆，这里补迁移一次；已迁移过则是空操作。
         if (session) {
-          await db("memories")
-            .where({ isolationKey: `${p.id}:quickVideoAgent` })
-            .update({ isolationKey: `${p.id}:quickVideoAgent:${session.id}` });
+          const isolationKey = `${p.id}:quickVideoAgent:${session.id}`;
+          await db("memories").where({ isolationKey: `${p.id}:quickVideoAgent` }).update({ isolationKey });
+        }
+        // 序号缺失时按创建时间顺序补齐：不能假设该项目此时只有一个会话——用户可能在
+        // 序号字段上线前就已经手动建过多个会话，这里要覆盖同一项目下所有缺序号的会话，
+        // 不只是 ensureDefaultSession 刚好返回的那一个。
+        const missingSequence = await db("o_quickVideoSession").where({ projectId: p.id }).whereNull("sequence").orderBy("createTime", "asc").select("id");
+        if (missingSequence.length) {
+          const maxRow = (await db("o_quickVideoSession").where({ projectId: p.id }).whereNotNull("sequence").max("sequence as maxSequence").first()) as
+            | { maxSequence?: number | string }
+            | undefined;
+          let nextSequence = Number(maxRow?.maxSequence ?? 0) + 1;
+          for (const row of missingSequence) {
+            const rowIsolationKey = `${p.id}:quickVideoAgent:${row.id}`;
+            const userMessages = await db("memories").where({ isolationKey: rowIsolationKey, type: "message", role: "user" }).count<{ c: number }[]>({ c: "*" });
+            // 发言计数按实际已落库的用户消息数回填，避免老会话要重新攒够 5 句才触发智能标题。
+            await db("o_quickVideoSession").where({ id: row.id }).update({ sequence: nextSequence, userMessageCount: Number(userMessages[0]?.c ?? 0) });
+            nextSequence += 1;
+          }
         }
       } catch (err) {
         console.error(`[quickVideo] 项目 ${p.id} 补建默认会话失败:`, u.error(err as Error).message);

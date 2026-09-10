@@ -427,3 +427,14 @@ export function recordIdempotencyKey(state: QuickVideoState, key: string): boole
 export function buildSessionIsolationKey(projectId: number, sessionId: number): string {
   return `${projectId}:quickVideoAgent:${sessionId}`;
 }
+
+/** 达到这个用户消息轮次（第 N 条用户消息）时触发一次智能标题生成 */
+export const TITLE_GENERATION_TRIGGER_COUNT = 5;
+
+const DEFAULT_SESSION_TITLE = "默认会话";
+
+/** 新会话默认标题："<项目名称>-session<序号>"；项目名称缺失时退化为固定的默认会话文案 */
+export function buildDefaultSessionTitle(projectName: string | null | undefined, sequence: number): string {
+  const name = projectName?.trim();
+  return name ? `${name}-session${sequence}` : DEFAULT_SESSION_TITLE;
+}

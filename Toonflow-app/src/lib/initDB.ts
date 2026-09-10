@@ -1184,6 +1184,13 @@ export default async (knex: Knex, forceInit: boolean = false): Promise<void> => 
         table.string("textModel", 500);
         table.string("imageModel", 500);
         table.string("videoModel", 500);
+        // 项目内递增序号（默认标题 "<项目名称>-session<序号>" 用），归档/删除不复用
+        table.integer("sequence");
+        // 用户消息轮次计数，达到 TITLE_GENERATION_TRIGGER_COUNT 时触发一次智能标题生成
+        table.integer("userMessageCount").defaultTo(0);
+        table.string("titleStatus", 16).defaultTo("idle"); // 'idle' | 'running' | 'done' | 'failed'
+        table.bigInteger("titleGeneratedAt");
+        table.bigInteger("titleGenerationClaimedAt");
         table.bigInteger("createTime");
         table.bigInteger("updateTime");
         table.unique(["id"]);

@@ -58,7 +58,14 @@ function makeQuickVideoStore(projectId: string) {
 
     watch(isGenerating, (generating, prev) => {
       // Agent 一轮结束（流式中->空闲）后刷新工作台，同步工具写入的简报/分镜
-      if (prev && !generating) getWorkbench();
+      if (prev && !generating) {
+        getWorkbench();
+        // 智能标题生成是脱离聊天响应链路的异步任务，回复结束时未必已经写完；
+        // 立即刷新一次会话列表，并在几秒后再补一次，捕捉稍晚写完的标题，
+        // 不引入新的 socket 事件/房间机制。纯读请求，不会触发新的 Agent 回复。
+        loadSessions();
+        setTimeout(() => loadSessions(), 4000);
+      }
     });
 
     // 生成阶段自动轮询；离开生成阶段停止
