@@ -3,8 +3,9 @@ import u from "@/utils";
 import { Namespace, Socket } from "socket.io";
 import * as agent from "@/agents/quickVideoAgent/index";
 import ResTool from "@/socket/resTool";
-import { getOwnedSession, bumpSessionActivity } from "@/lib/quickVideo/session";
+import { getOwnedSession, bumpUserMessageCountAndMaybeClaimTitle } from "@/lib/quickVideo/session";
 import { buildSessionIsolationKey } from "@/lib/quickVideo/contract";
+import { generateSessionTitle } from "@/lib/quickVideo/title";
 
 async function verifyToken(rawToken: string): Promise<{ id: number; name: string; role: string } | null> {
   const setting = await u.db("o_setting").where("key", "tokenKey").select("value").first();
@@ -66,7 +67,10 @@ export default (nsp: Namespace) => {
       abortController = new AbortController();
       const currentController = abortController;
 
-      void bumpSessionActivity(sessionId);
+      // 计数 + 抢占放在 Agent 调用之前：拿到"这是不是第 5 条"的结论不依赖本轮 Agent
+      // 是否成功；但实际生成标题要等本轮用户消息真正落库（memory.add 在 Agent 内部
+      // 执行）之后才触发，否则第 5 条消息本身会被漏在标题上下文之外。
+      const claimedTitleGeneration = await bumpUserMessageCountAndMaybeClaimTitle(sessionId);
 
       const msg = resTool.newMessage("assistant", "快创助手");
       const ctx: agent.AgentContext = {
@@ -94,6 +98,13 @@ export default (nsp: Namespace) => {
         if (abortController === currentController) {
           abortController = null;
         }
+      }
+
+      // 脱离聊天响应链路异步生成，不阻塞、不延迟本轮回复；失败只留在 failed 状态。
+      if (claimedTitleGeneration) {
+        void generateSessionTitle({ projectId, sessionId, isolationKey, userId: user.id }).catch((err) =>
+          console.error("[quickVideoAgent] 会话标题生成异常:", u.error(err).message),
+        );
       }
     });
 

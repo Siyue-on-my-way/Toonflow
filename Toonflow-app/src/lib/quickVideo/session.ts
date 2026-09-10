@@ -9,7 +9,9 @@
 import { db as knexDb } from "@/utils/db";
 import u from "@/utils";
 import { QuickVideoError } from "./state";
-import { buildSessionIsolationKey } from "./contract";
+import { buildSessionIsolationKey, buildDefaultSessionTitle, TITLE_GENERATION_TRIGGER_COUNT } from "./contract";
+
+export type QuickVideoSessionTitleStatus = "idle" | "running" | "done" | "failed";
 
 export interface QuickVideoSessionRow {
   id: number;
@@ -19,31 +21,44 @@ export interface QuickVideoSessionRow {
   textModel: string | null;
   imageModel: string | null;
   videoModel: string | null;
+  sequence: number | null;
+  userMessageCount: number | null;
+  titleStatus: QuickVideoSessionTitleStatus | null;
+  titleGeneratedAt: number | null;
   createTime: number;
   updateTime: number;
 }
-
-const DEFAULT_SESSION_TITLE = "默认会话";
 
 async function nextSessionId(trx: any): Promise<number> {
   const maxRow = await trx("o_quickVideoSession").max("id as maxId").first();
   return Number(maxRow?.maxId ?? 0) + 1;
 }
 
+/** 项目内下一个会话序号：归档/删除的会话仍占用过的序号不会被复用（永远取历史最大值 + 1） */
+async function nextSessionSequence(trx: any, projectId: number): Promise<number> {
+  const maxRow = await trx("o_quickVideoSession").where({ projectId }).max("sequence as maxSequence").first();
+  return Number(maxRow?.maxSequence ?? 0) + 1;
+}
+
 /** 创建一个新会话；文本/图片/视频模型偏好从项目当前配置继承一次，之后各会话独立编辑、互不影响。 */
 export async function createQuickVideoSession(projectId: number, opts: { title?: string; trx?: any } = {}): Promise<QuickVideoSessionRow> {
   const runner = opts.trx ?? knexDb;
-  const project = await runner("o_project").where("id", projectId).select("textModel", "imageModel", "videoModel").first();
+  const project = await runner("o_project").where("id", projectId).select("name", "textModel", "imageModel", "videoModel").first();
   const now = Date.now();
   const id = await nextSessionId(runner);
+  const sequence = await nextSessionSequence(runner, projectId);
   const row: QuickVideoSessionRow = {
     id,
     projectId,
-    title: opts.title?.trim() || DEFAULT_SESSION_TITLE,
+    title: opts.title?.trim() || buildDefaultSessionTitle(project?.name, sequence),
     status: "active",
     textModel: project?.textModel || null,
     imageModel: project?.imageModel || null,
     videoModel: project?.videoModel || null,
+    sequence,
+    userMessageCount: 0,
+    titleStatus: "idle",
+    titleGeneratedAt: null,
     createTime: now,
     updateTime: now,
   };
@@ -103,18 +118,52 @@ export async function touchQuickVideoSession(
 ): Promise<QuickVideoSessionRow> {
   await getOwnedSession(projectId, sessionId);
   const update: Record<string, any> = { updateTime: Date.now() };
-  if (patch.title != null) update.title = patch.title.trim() || DEFAULT_SESSION_TITLE;
+  const trimmedTitle = patch.title?.trim();
+  if (trimmedTitle) update.title = trimmedTitle; // 提交空白标题视为不改名，而不是回填占位文案
   if (patch.status != null) update.status = patch.status;
   await u.db("o_quickVideoSession").where({ id: sessionId }).update(update);
   return getOwnedSession(projectId, sessionId);
 }
 
-/** 仅刷新 updateTime（聊天/生成活动时调用），让活跃会话排到列表顶部；失败不影响主流程 */
-export async function bumpSessionActivity(sessionId: number): Promise<void> {
+/**
+ * 每条用户聊天消息调用一次：原子地把 userMessageCount + 1，并在计数刚好达到
+ * TITLE_GENERATION_TRIGGER_COUNT 且当前是 idle 状态时，把标题生成状态抢占为
+ * running（同一事务内完成，天然避免并发消息重复抢占）。同时顺带刷新 updateTime，
+ * 让活跃会话排到列表顶部，不必再单独调一次。
+ * 返回 true 表示这次调用抢到了生成资格，调用方应在聊天轮次结束后触发一次标题生成。
+ */
+export async function bumpUserMessageCountAndMaybeClaimTitle(sessionId: number): Promise<boolean> {
   try {
-    await u.db("o_quickVideoSession").where({ id: sessionId }).update({ updateTime: Date.now() });
+    return await knexDb.transaction(async (trx) => {
+      const row = await trx("o_quickVideoSession").where({ id: sessionId }).forUpdate().first();
+      if (!row) return false;
+      const nextCount = Number(row.userMessageCount ?? 0) + 1;
+      const update: Record<string, any> = { userMessageCount: nextCount, updateTime: Date.now() };
+      const shouldClaim = nextCount === TITLE_GENERATION_TRIGGER_COUNT && row.titleStatus === "idle";
+      if (shouldClaim) {
+        update.titleStatus = "running";
+        update.titleGenerationClaimedAt = Date.now();
+      }
+      await trx("o_quickVideoSession").where({ id: sessionId }).update(update);
+      return shouldClaim;
+    });
   } catch (err) {
-    console.error("[quickVideo] 更新会话活跃时间失败:", u.error(err as Error).message);
+    console.error("[quickVideo] 更新会话发言计数失败:", u.error(err as Error).message);
+    return false;
+  }
+}
+
+/** 标题生成结束后回写：成功写入新标题并置为 done；失败保留原标题，置为 failed（不重试，也不影响聊天） */
+export async function finishTitleGeneration(sessionId: number, result: { title: string } | { error: string }): Promise<void> {
+  try {
+    if ("title" in result) {
+      await u.db("o_quickVideoSession").where({ id: sessionId }).update({ title: result.title, titleStatus: "done", titleGeneratedAt: Date.now() });
+    } else {
+      await u.db("o_quickVideoSession").where({ id: sessionId }).update({ titleStatus: "failed" });
+      console.error(`[quickVideo] 会话 ${sessionId} 智能标题生成失败:`, result.error);
+    }
+  } catch (err) {
+    console.error("[quickVideo] 回写会话标题状态失败:", u.error(err as Error).message);
   }
 }
 

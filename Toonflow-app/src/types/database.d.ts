@@ -143,10 +143,15 @@ export interface o_quickVideoSession {
   'id': number;
   'imageModel'?: string | null;
   'projectId': number;
+  'sequence'?: number | null;
   'status'?: string | null;
   'textModel'?: string | null;
   'title'?: string | null;
+  'titleGeneratedAt'?: number | null;
+  'titleGenerationClaimedAt'?: number | null;
+  'titleStatus'?: string | null;
   'updateTime'?: number | null;
+  'userMessageCount'?: number | null;
   'videoModel'?: string | null;
 }
 export interface o_script {

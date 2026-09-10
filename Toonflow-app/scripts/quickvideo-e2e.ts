@@ -15,6 +15,8 @@ import u from "@/utils";
 import { mutateQuickVideoState } from "@/lib/quickVideo/state";
 import { validateStoryboard, type QuickVideoShot } from "@/lib/quickVideo/contract";
 import { normalizeShotDuration } from "@/lib/quickVideo/shots";
+import { bumpUserMessageCountAndMaybeClaimTitle } from "@/lib/quickVideo/session";
+import { generateSessionTitle } from "@/lib/quickVideo/title";
 
 const BASE = process.env.BASE || "http://localhost:10588";
 
@@ -565,6 +567,51 @@ async function main() {
     await u.oss.deleteDirectory(`/${p2Id}/quickVideo`);
     console.log("已清理 e2e 测试对象");
   } catch {}
+
+  console.log("== 14. 会话标题：默认命名序号 + 第 5 条消息触发智能生成（SIY-128 follow-up） ==");
+  // 14.1 新建会话默认标题带项目内递增序号，不是固定的"默认会话"
+  const list5 = await api("/quickVideo/listSessions", { projectId });
+  const sessionASeq = list5.data.sessions.find((s: any) => s.id === sessionId)?.sequence;
+  const sessionBSeq = list5.data.sessions.find((s: any) => s.id === sessionId2)?.sequence;
+  assert(sessionASeq === 1 && sessionBSeq === 2, "同项目下序号按创建顺序递增，不重复", JSON.stringify({ sessionASeq, sessionBSeq }));
+
+  const createdSession3 = await api("/quickVideo/createSession", { projectId });
+  const sessionId3 = createdSession3.data.session.id;
+  assert(
+    createdSession3.data.session.sequence === 3 && String(createdSession3.data.session.title).endsWith("-session3"),
+    "不传标题时使用「项目名称-session序号」默认命名",
+    JSON.stringify(createdSession3.data.session),
+  );
+
+  // 14.2 归档会话B（序号 2）不会被后续新建会话复用序号
+  await api("/quickVideo/updateSession", { projectId, sessionId: sessionId2, status: "archived" });
+  const createdSession4 = await api("/quickVideo/createSession", { projectId });
+  assert(createdSession4.data.session.sequence === 4, "归档过的序号不复用，序号只会往上走", JSON.stringify(createdSession4.data.session));
+
+  // 14.3 用户消息计数：第 1-4 条不抢占生成资格，第 5 条抢占且只抢占一次
+  const claims: boolean[] = [];
+  for (let i = 0; i < 6; i++) claims.push(await bumpUserMessageCountAndMaybeClaimTitle(sessionId3));
+  assert(
+    claims.slice(0, 4).every((c) => c === false) && claims[4] === true && claims[5] === false,
+    "第 1-4 条消息不触发，第 5 条触发一次，第 6 条不重复触发",
+    JSON.stringify(claims),
+  );
+  const claimedState = await u.db("o_quickVideoSession").where({ id: sessionId3 }).first();
+  assert(claimedState?.userMessageCount === 6 && claimedState?.titleStatus === "running", "计数正确累加到 6；标题生成状态被抢占为 running", JSON.stringify({ count: claimedState?.userMessageCount, status: claimedState?.titleStatus }));
+
+  // 14.4 实际生成一次（真实调用 aibotplatform:gemini-3.1-pro-preview；供应商/网络不可用时按设计降级为 failed，不抛出、不影响聊天主流程）
+  await u.db("memories").insert([
+    { id: u.uuid(), isolationKey: `${projectId}:quickVideoAgent:${sessionId3}`, type: "message", role: "user", content: "帮我策划一支宠物零食的 15 秒广告", createTime: Date.now() },
+  ]);
+  await generateSessionTitle({ projectId, sessionId: sessionId3, isolationKey: `${projectId}:quickVideoAgent:${sessionId3}`, userId: 1 });
+  const afterGenerate = await u.db("o_quickVideoSession").where({ id: sessionId3 }).first();
+  assert(["done", "failed"].includes(String(afterGenerate?.titleStatus)), "生成结束后状态落定为 done 或 failed，不会卡在 running", afterGenerate?.titleStatus ?? "(未找到会话行)");
+  if (afterGenerate?.titleStatus === "done") {
+    assert(!!afterGenerate.title && afterGenerate.title.length <= 40, "生成成功时标题非空且长度受限", afterGenerate.title ?? "");
+    console.log(`  ℹ 生成的标题：${afterGenerate.title}`);
+  } else {
+    console.log("  ℹ 标题生成失败（供应商/网络不可用属预期降级路径，未影响其他断言）");
+  }
 
   console.log(`\n结果：${passed} 通过，${failed} 失败`);
   process.exit(failed > 0 ? 1 : 0);
