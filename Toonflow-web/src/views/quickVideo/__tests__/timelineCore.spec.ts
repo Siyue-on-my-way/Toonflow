@@ -3,7 +3,7 @@
  * 保证前端"以实际媒体时长重新适配"的数学与服务端规划一致。
  */
 import { describe, expect, it } from "vitest";
-import { buildSubtitleCues, buildTimelinePlan, estimateExportBytes, formatBytes, formatTime, toEmbedSubtitleStructs } from "../timelineCore";
+import { buildSubtitleCues, buildTimelinePlan, clampSubtitleText, estimateExportBytes, formatBytes, formatTime, toEmbedSubtitleStructs } from "../timelineCore";
 import type { QuickVideoDuration, QuickVideoRatio } from "@/types/quickVideo";
 
 const near = (a: number, b: number, eps = 1e-4) => Math.abs(a - b) < eps;
@@ -81,6 +81,13 @@ describe("buildSubtitleCues / 字幕轨", () => {
   it("toEmbedSubtitleStructs 转换为微秒（EmbedSubtitlesClip 数组入参约定）", () => {
     const structs = toEmbedSubtitleStructs([{ start: 1.5, end: 3.25, text: "你好" }]);
     expect(structs[0]).toEqual({ start: 1_500_000, end: 3_250_000, text: "你好" });
+  });
+
+  it("clampSubtitleText 限制字幕总字符数并保留 Unicode 字符边界", () => {
+    expect(clampSubtitleText("  你好   世界  ", 4, 2)).toBe("你好 世界");
+    expect(clampSubtitleText("一二三四五六七八", 4, 2)).toBe("一二三四五六七八");
+    expect(clampSubtitleText("一二三四五六七八九十", 4, 2)).toBe("一二三四五六七…");
+    expect(clampSubtitleText("", 4, 2)).toBe("");
   });
 });
 

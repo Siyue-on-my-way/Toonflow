@@ -1,7 +1,24 @@
 <template>
   <div class="quickVideo">
-    <Splitpanes class="default-theme data f">
-      <Pane :size="30" :min-size="15" class="operate">
+    <div class="workspaceLayout">
+      <nav class="quickNav" aria-label="Quick Video workspace navigation">
+        <button
+          v-for="item in navigationItems"
+          :key="item.key"
+          type="button"
+          class="quickNavButton"
+          :class="{ active: activePanel === item.key }"
+          :aria-current="activePanel === item.key ? 'page' : undefined"
+          :title="item.label"
+          @click="activePanel = item.key">
+          <component :is="item.icon" class="quickNavIcon" />
+          <span class="quickNavLabel">{{ item.label }}</span>
+        </button>
+      </nav>
+
+      <div class="workspacePanels">
+        <Splitpanes class="default-theme data f">
+          <Pane v-if="activePanel === 'chat'" :size="100" :min-size="100" class="operate">
         <div class="box pr">
           <SessionList
             :sessions="sessions"
@@ -81,8 +98,8 @@
           </t-chat-sender>
           <i-dot class="dot" theme="outline" :fill="connected ? 'green' : 'red'" />
         </div>
-      </Pane>
-      <Pane :size="70" :min-size="30" class="data">
+          </Pane>
+          <Pane v-if="activePanel !== 'chat'" :size="100" :min-size="100" class="data modulePane">
         <div class="panel" v-loading="loadingWorkbench && !state">
           <div class="panelHeader">
             <div class="title">{{ workbench.project?.name }}</div>
@@ -100,7 +117,8 @@
               </t-button>
             </div>
           </div>
-          <div v-if="storyboardRefreshHint" class="configNotice">
+          <t-alert v-if="workbenchError" theme="warning" :message="workbenchError" class="workbenchError" />
+          <div v-if="storyboardRefreshHint && (activePanel === 'brief' || activePanel === 'storyboard')" class="configNotice">
             <div class="configNoticeText">
               {{
                 $t("workbench.quickVideo.storyboardRefreshHint", {
@@ -120,6 +138,7 @@
             </t-button>
           </div>
           <AssetBoard
+            v-if="activePanel === 'assets'"
             class="assetBoardBlock"
             :title="$t('workbench.quickVideo.assetBoard')"
             :items="assetBoardItems"
@@ -145,7 +164,7 @@
             @set-first-frame="openFirstFramePicker" />
           <div class="panelBody">
             <!-- 简报卡片 -->
-            <div class="card">
+            <div v-if="activePanel === 'brief'" class="card">
               <div class="cardHeader">
                 <span>{{ $t("workbench.quickVideo.brief") }}</span>
                 <div class="actions">
@@ -182,7 +201,7 @@
             </div>
 
             <!-- 分镜表卡片 -->
-            <div class="card">
+            <div v-if="activePanel === 'storyboard'" class="card">
               <div class="cardHeader">
                 <span>
                   {{ $t("workbench.quickVideo.storyboard") }}
@@ -317,7 +336,7 @@
             </div>
 
             <!-- 素材与成本卡片（分镜确认后展示，素材/成本确认门） -->
-            <div class="card" v-if="showMaterialsCard">
+            <div class="card" v-if="activePanel === 'assets' && showMaterialsCard">
               <div class="cardHeader">
                 <span>
                   {{ $t("workbench.quickVideo.materials") }}
@@ -377,7 +396,7 @@
             </div>
 
             <!-- 生成进度卡片 -->
-            <div class="card" v-if="state?.stage === 'generating' || state?.stage === 'ready_to_assemble'">
+            <div class="card" v-if="activePanel === 'preview' && (state?.stage === 'generating' || state?.stage === 'ready_to_assemble')">
               <div class="cardHeader">
                 <span>{{ $t("workbench.quickVideo.generation") }}</span>
                 <div class="actions">
@@ -410,7 +429,7 @@
             </div>
 
             <!-- 装配与导出卡片（SIY-111：时间线预览 + 第三道确认门导出） -->
-            <div class="card" v-if="showAssembleCard">
+            <div class="card" v-if="activePanel === 'preview' && showAssembleCard">
               <div class="cardHeader">
                 <span>
                   {{ $t("workbench.quickVideo.assemble") }}
@@ -493,8 +512,10 @@
             </div>
           </div>
         </div>
-      </Pane>
-    </Splitpanes>
+          </Pane>
+        </Splitpanes>
+      </div>
+    </div>
 
     <!-- 第三道确认门：成片导出确认 -->
     <t-dialog
@@ -674,10 +695,21 @@ import { estimateExportBytes, formatBytes, formatTime } from "./timelineCore";
 
 const { project } = storeToRefs(projectStore());
 const quickVideoStoreRef = quickVideoStore();
-const { connected, messages, status, workbench, state, loadingWorkbench, sessions, loadingSessions, currentSessionId, modelPreferences, isGenerating, clipboardMediaRef } =
+const { connected, messages, status, workbench, state, loadingWorkbench, workbenchError, sessions, loadingSessions, currentSessionId, modelPreferences, isGenerating, clipboardMediaRef } =
   storeToRefs(quickVideoStoreRef);
 const { stopGenerate, getWorkbench, updateConfig, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference, getAssetBoard, bindShotFirstFrame } =
   quickVideoStoreRef;
+
+type QuickVideoPanel = "chat" | "brief" | "storyboard" | "assets" | "preview";
+
+const activePanel = ref<QuickVideoPanel>("chat");
+const navigationItems: { key: QuickVideoPanel; label: string; icon: string }[] = [
+  { key: "chat", label: $t("workbench.quickVideo.sessions.title"), icon: "i-chat" },
+  { key: "brief", label: $t("workbench.quickVideo.brief"), icon: "i-file" },
+  { key: "storyboard", label: $t("workbench.quickVideo.storyboard"), icon: "i-view-list" },
+  { key: "assets", label: $t("workbench.quickVideo.assetBoard"), icon: "i-image" },
+  { key: "preview", label: $t("workbench.quickVideo.preview"), icon: "i-play-circle" },
+];
 
 const inputValue = ref("");
 
@@ -726,6 +758,7 @@ async function handleSessionToggleArchive(sessionId: number) {
 }
 
 onMounted(async () => {
+  quickVideoStoreRef.resume();
   getWorkbench();
   void loadAssetBoard();
   // 会话列表必须先加载完成、确定当前 session 后才能建立 socket 连接和拉取历史——
@@ -1336,6 +1369,7 @@ watch(
 
 onBeforeUnmount(() => {
   timelinePlayer.destroy();
+  quickVideoStoreRef.dispose();
 });
 
 async function reloadTimeline() {
@@ -1436,15 +1470,76 @@ async function startExport() {
 
 function cancelExport() {
   exportSignal.cancelled = true;
+  timelinePlayer.cancelExport();
 }
 </script>
 
 <style lang="scss" scoped>
 .quickVideo {
   height: calc(100% - 16px);
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
+  .workspaceLayout {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    gap: 8px;
+  }
+  .workspacePanels {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    :deep(.splitpanes) {
+      height: 100%;
+    }
+  }
+  .quickNav {
+    flex: 0 0 72px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 8px 5px;
+    border: 1px solid var(--td-border-level-1-color);
+    border-radius: 10px;
+    background: var(--td-bg-color-container);
+  }
+  .quickNavButton {
+    min-height: 58px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 6px 3px;
+    border: 0;
+    border-radius: 8px;
+    color: var(--td-text-color-secondary);
+    background: transparent;
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+    &:hover {
+      color: var(--td-brand-color);
+      background: var(--td-bg-color-secondarycontainer);
+    }
+    &.active {
+      color: var(--td-brand-color);
+      background: var(--td-brand-color-1);
+      font-weight: 600;
+    }
+    .quickNavIcon {
+      flex-shrink: 0;
+      font-size: 19px;
+    }
+    .quickNavLabel {
+      max-width: 64px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 12px;
+      line-height: 1.2;
+    }
+  }
   :deep(.splitpanes__pane) {
     background-color: transparent !important;
   }
@@ -1561,6 +1656,9 @@ function cancelExport() {
         flex-wrap: wrap;
       }
     }
+    .workbenchError {
+      margin: 0 4px 12px;
+    }
     .configNotice {
       display: flex;
       align-items: center;
@@ -1590,6 +1688,11 @@ function cancelExport() {
         background-color: var(--td-border-level-2-color);
         border-radius: 4px;
       }
+    }
+  }
+  .modulePane {
+    .panelBody {
+      padding-right: 4px;
     }
   }
   .card {
@@ -1854,6 +1957,34 @@ function cancelExport() {
         label {
           min-width: 88px;
           opacity: 0.65;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 720px) {
+  .quickVideo {
+    .workspaceLayout {
+      gap: 4px;
+    }
+    .quickNav {
+      flex-basis: 54px;
+      padding: 6px 3px;
+    }
+    .quickNavButton {
+      min-height: 48px;
+      .quickNavLabel {
+        display: none;
+      }
+    }
+    .panel {
+      padding-left: 6px;
+      .panelHeader {
+        align-items: flex-start;
+        flex-direction: column;
+        .meta {
+          width: 100%;
         }
       }
     }

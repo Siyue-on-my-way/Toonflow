@@ -110,6 +110,21 @@ export function buildSubtitleCues(plan: QuickVideoTimelinePlan): { start: number
   return cues;
 }
 
+/**
+ * Keep a subtitle cue within a bounded number of rendered lines. WebAV does
+ * width wrapping itself, but it cannot prevent a very long dialogue from
+ * overflowing above the video frame. The cue timing stays intact; only the
+ * visual label is shortened with an ellipsis.
+ */
+export function clampSubtitleText(text: string, maxCharsPerLine: number, maxLines = 3): string {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) return "";
+  const maxChars = Math.max(1, Math.floor(maxCharsPerLine) * Math.max(1, Math.floor(maxLines)));
+  if (Array.from(normalized).length <= maxChars) return normalized;
+  const visibleChars = Math.max(1, maxChars - 1);
+  return `${Array.from(normalized).slice(0, visibleChars).join("")}…`;
+}
+
 /** 字幕轨（WebAV EmbedSubtitlesClip 的 SubtitleStruct[]，微秒） */
 export function toEmbedSubtitleStructs(cues: { start: number; end: number; text: string }[]): { start: number; end: number; text: string }[] {
   return cues.map((c) => ({ start: Math.round(c.start * 1e6), end: Math.round(c.end * 1e6), text: c.text }));

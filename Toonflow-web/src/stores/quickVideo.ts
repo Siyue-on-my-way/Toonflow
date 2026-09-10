@@ -30,8 +30,12 @@ function makeQuickVideoStore(projectId: string) {
     const workbench = ref<QuickVideoWorkbench>({ project: null, script: null, state: null, shotBounds: null });
     const state = computed<QuickVideoState | null>(() => workbench.value.state);
     const loadingWorkbench = ref(false);
+    const workbenchError = ref("");
     const loadingHistory = ref(false);
     let pollTimer: ReturnType<typeof setInterval> | null = null;
+    let titleRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+    let workbenchRequest: Promise<QuickVideoWorkbench> | null = null;
+    let lifecycleActive = false;
 
     // ===== 会话（session，SIY-128） =====
     const sessions = ref<QuickVideoSession[]>([]);
@@ -45,7 +49,7 @@ function makeQuickVideoStore(projectId: string) {
       video: currentSession.value?.videoModel || "",
     }));
 
-    const { connected, messages, chat, stopGenerate, socket, status, disconnect, connect, clearMessages, isGenerating } = useChat({
+    const { connected, messages, chat, stopGenerate, socket, status, disconnect, destroy: destroyChat, connect, clearMessages, isGenerating } = useChat({
       url: `${settingStore().baseUrl}/socket/quickVideoAgent`,
       // 只传 projectId + sessionId，不再由客户端拼隔离键：服务端会校验 sessionId
       // 真实属于该 projectId 后才据此构造 Agent 记忆隔离键，拒绝跨项目/跨会话访问。
@@ -55,6 +59,12 @@ function makeQuickVideoStore(projectId: string) {
       }),
       manageLifecycle: false,
       autoConnect: false,
+      // Tool calls write the workbench state through the same socket turn. If
+      // a provider/socket error ends that turn before the normal idle watcher
+      // runs, refresh once so the right-hand module does not stay stale.
+      onError: () => {
+        void getWorkbench();
+      },
     });
 
     watch(isGenerating, (generating, prev) => {
@@ -65,7 +75,11 @@ function makeQuickVideoStore(projectId: string) {
         // 立即刷新一次会话列表，并在几秒后再补一次，捕捉稍晚写完的标题，
         // 不引入新的 socket 事件/房间机制。纯读请求，不会触发新的 Agent 回复。
         loadSessions();
-        setTimeout(() => loadSessions(), 4000);
+        if (titleRefreshTimer) clearTimeout(titleRefreshTimer);
+        titleRefreshTimer = setTimeout(() => {
+          titleRefreshTimer = null;
+          void loadSessions();
+        }, 4000);
       }
     });
 
@@ -73,11 +87,18 @@ function makeQuickVideoStore(projectId: string) {
     watch(
       () => state.value?.stage,
       (stage) => {
-        if (stage === "generating") startPolling();
-        else stopPolling();
+        syncPolling(stage);
       },
       { immediate: true },
     );
+
+    function syncPolling(stage: QuickVideoState["stage"] | undefined) {
+      if (!lifecycleActive || stage !== "generating") {
+        stopPolling();
+        return;
+      }
+      startPolling();
+    }
 
     function startPolling() {
       if (pollTimer) return;
@@ -94,19 +115,55 @@ function makeQuickVideoStore(projectId: string) {
       }
     }
 
-    async function getWorkbench() {
-      loadingWorkbench.value = true;
+    async function getWorkbench(): Promise<QuickVideoWorkbench> {
+      // Polling, the socket idle watcher and explicit refreshes can converge
+      // on the same tick. Share one request so an older response cannot
+      // overwrite a newer state snapshot and loading cannot get stuck false
+      // while a second request is still in flight.
+      if (workbenchRequest) return workbenchRequest;
+
+      const request = (async () => {
+        loadingWorkbench.value = true;
+        workbenchError.value = "";
+        try {
+          // The shared Axios interceptor returns the HTTP response body directly,
+          // so `response.data` is already the endpoint's payload.
+          const response = await axios.post("/quickVideo/getWorkbench", { projectId: Number(projectId) });
+          const payload = response?.data ?? response;
+          if (payload && payload.code && payload.code !== 200) throw new Error(payload.message ?? "getWorkbench failed");
+          workbench.value = payload ?? { project: null, script: null, state: null, shotBounds: null };
+          syncPolling(workbench.value.state?.stage);
+        } catch (error: any) {
+          workbenchError.value = error?.message ?? "快创工作台状态加载失败";
+          console.error("[quickVideo] 加载工作台状态失败", error);
+        } finally {
+          loadingWorkbench.value = false;
+        }
+        return workbench.value;
+      })();
+
+      workbenchRequest = request;
       try {
-        // The shared Axios interceptor returns the HTTP response body directly,
-        // so `response.data` is already the endpoint's payload.
-        const response = await axios.post("/quickVideo/getWorkbench", { projectId: Number(projectId) });
-        const payload = response?.data ?? response;
-        if (payload && payload.code && payload.code !== 200) throw new Error(payload.message ?? "getWorkbench failed");
-        workbench.value = payload ?? { project: null, script: null, state: null, shotBounds: null };
+        return await request;
       } finally {
-        loadingWorkbench.value = false;
+        if (workbenchRequest === request) workbenchRequest = null;
       }
-      return workbench.value;
+    }
+
+    /** 路由离开时释放 store-owned socket、页面事件和生成轮询。 */
+    function resume() {
+      lifecycleActive = true;
+      syncPolling(state.value?.stage);
+    }
+
+    function dispose() {
+      lifecycleActive = false;
+      stopPolling();
+      if (titleRefreshTimer) {
+        clearTimeout(titleRefreshTimer);
+        titleRefreshTimer = null;
+      }
+      destroyChat();
     }
 
     /**
@@ -157,8 +214,7 @@ function makeQuickVideoStore(projectId: string) {
         if (fallback) {
           await switchSession(fallback.id);
         } else {
-          disconnect();
-          socket.value = null;
+          destroyChat();
           clearMessages();
           currentSessionId.value = null;
         }
@@ -179,8 +235,7 @@ function makeQuickVideoStore(projectId: string) {
       if (sessionId === currentSessionId.value) return;
       if (!sessions.value.some((s) => s.id === sessionId)) throw new Error("会话不存在");
 
-      disconnect();
-      socket.value = null;
+      destroyChat();
       clearMessages();
       currentSessionId.value = sessionId;
 
@@ -369,6 +424,7 @@ function makeQuickVideoStore(projectId: string) {
       workbench,
       state,
       loadingWorkbench,
+      workbenchError,
       loadingHistory,
       getWorkbench,
       getHistory,
@@ -388,6 +444,8 @@ function makeQuickVideoStore(projectId: string) {
       clipboardMediaRef,
       getAssetBoard,
       bindShotFirstFrame,
+      resume,
+      dispose,
     };
   });
 }

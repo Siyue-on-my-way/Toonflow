@@ -252,7 +252,11 @@ export async function startQuickVideoGeneration(
       s.generation.finishedAt = null;
     });
   } catch (err) {
-    console.error(`[quickVideo] 写入运行 ID 失败:`, u.error(err as Error).message);
+    // Do not launch a detached run if its run id could not be persisted. A
+    // process-local task with no durable marker cannot be recovered reliably
+    // after a restart and would leave the workbench in a misleading state.
+    runningGenerations.delete(projectId);
+    throw err;
   }
   // 分离运行：接口立刻返回，进度通过状态轮询观察
   runGeneration(projectId, userId, runId, sessionId)
@@ -350,15 +354,21 @@ export async function ensureGenerationRecovery(projectId: number): Promise<void>
       return;
     }
 
-    const stuck = shots.some((s) => s.imageState === "generating" || s.videoState === "generating");
-    if (!stuck) return;
+    // Pending is also an interrupted state: a process can die after the
+    // confirmation transaction but before the first shot worker gets a turn.
+    // Leaving pending shots untouched makes the UI show an endless
+    // generating stage with no retryable shot.
+    const interrupted = shots.some(
+      (s) => s.imageState === "generating" || s.videoState === "generating" || s.imageState === "pending" || s.videoState === "pending",
+    );
+    if (!interrupted) return;
     await mutateQuickVideoState(projectId, {}, (s) => {
       for (const shot of s.storyboard?.shots ?? []) {
-        if (shot.imageState === "generating") {
+        if (shot.imageState === "generating" || shot.imageState === "pending") {
           shot.imageState = "failed";
           shot.errorReason = "生成中断（服务重启或轮询中断），请重试该镜头";
         }
-        if (shot.videoState === "generating") {
+        if (shot.videoState === "generating" || shot.videoState === "pending") {
           shot.videoState = "failed";
           shot.errorReason = "生成中断（服务重启或轮询中断），请重试该镜头";
         }
@@ -388,6 +398,7 @@ async function runGeneration(projectId: number, userId: number, runId: string, s
   const snapshot = state?.generation?.snapshot;
   if (!snapshot) {
     console.error(`[quickVideo] 运行 ${runId} 缺少生成快照，终止`);
+    await markShotsFailed(projectId, state?.storyboard?.shots.map((shot) => shot.id) ?? [], "生成快照缺失，请重新确认素材并重试");
     return;
   }
 

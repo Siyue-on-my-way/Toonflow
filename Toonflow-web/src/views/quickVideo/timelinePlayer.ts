@@ -12,7 +12,7 @@ import { AVCanvas } from "@webav/av-canvas";
 import { AudioClip, EmbedSubtitlesClip, ImgClip, VisibleSprite, renderTxt2ImgBitmap } from "@webav/av-cliper";
 import type { IClip } from "@webav/av-cliper";
 import type { QuickVideoTimelinePlan } from "@/types/quickVideo";
-import { buildSubtitleCues, buildTimelinePlan, toEmbedSubtitleStructs } from "./timelineCore";
+import { buildSubtitleCues, buildTimelinePlan, clampSubtitleText, toEmbedSubtitleStructs } from "./timelineCore";
 
 /** split 裁剪安全边界（秒），与专业模式一致：过窄的窗口不裁，避免边界抖动 */
 const SPLIT_SAFETY_MARGIN = 0.05;
@@ -300,7 +300,13 @@ class NativeVideoClip implements IClip {
     const end = this.sourceEnd ?? this.sourceStart + this.metadata.duration / 1e6;
     const pre = new NativeVideoClip(this.source, this.sourceStart, splitAt);
     const post = new NativeVideoClip(this.source, splitAt, end);
-    await Promise.all([pre.ready, post.ready]);
+    try {
+      await Promise.all([pre.ready, post.ready]);
+    } catch (error) {
+      pre.destroy();
+      post.destroy();
+      throw error;
+    }
     return [pre, post] as [this, this];
   }
 
@@ -357,6 +363,8 @@ export function useTimelinePlayer() {
   let avCanvas: AVCanvas | null = null;
   let plan: QuickVideoTimelinePlan | null = null;
   const clips: NativeVideoClip[] = [];
+  /** Source clips plus every split derivative; all own a native-source ref. */
+  const ownedClips: NativeVideoClip[] = [];
   const sprites: VisibleSprite[] = [];
   let audioSprite: VisibleSprite | null = null;
   let musicPCM: Float32Array[] | null = null;
@@ -365,6 +373,32 @@ export function useTimelinePlayer() {
   let audioEncodingSupported = true;
   let unsubs: (() => void)[] = [];
   let currentPlanInput: PlanInput[] = [];
+  let loadGeneration = 0;
+  let loadAbortController: AbortController | null = null;
+  let activeExport: {
+    signal: { cancelled: boolean };
+    reader: ReadableStreamDefaultReader<Uint8Array> | null;
+    combinator: { destroy?: () => void } | null;
+  } | null = null;
+
+  function ownClip(clip: NativeVideoClip) {
+    ownedClips.push(clip);
+    return clip;
+  }
+
+  function assertCurrentLoad(generation: number) {
+    if (generation !== loadGeneration) throw new Error("TIMELINE_LOAD_CANCELLED");
+  }
+
+  function cancelActiveExport() {
+    const current = activeExport;
+    if (!current) return;
+    current.signal.cancelled = true;
+    void current.reader?.cancel().catch(() => {});
+    try {
+      current.combinator?.destroy?.();
+    } catch {}
+  }
 
   interface PlanInput {
     id: string;
@@ -374,6 +408,10 @@ export function useTimelinePlayer() {
   }
 
   async function load(opts: LoadTimelineOptions) {
+    const generation = ++loadGeneration;
+    loadAbortController?.abort();
+    const abortController = new AbortController();
+    loadAbortController = abortController;
     loading.value = true;
     loadError.value = "";
     ready.value = false;
@@ -381,7 +419,9 @@ export function useTimelinePlayer() {
     musicVolume = opts.musicVolume;
     currentPlanInput = [];
     try {
-      destroy();
+      cancelActiveExport();
+      destroyResources();
+      assertCurrentLoad(generation);
 
       // 1. 顺序拉取镜头片段，读真实时长（异常片段直接报错，交由上层提示重试）
       audioEncodingSupported = await supportsAacAudioEncoding();
@@ -391,10 +431,16 @@ export function useTimelinePlayer() {
       for (const shotId of orderedIds) {
         const url = opts.videoUrls[shotId];
         if (!url) throw new Error(`镜头 ${shotId} 缺少视频地址`);
-        const resp = await fetch(url);
+        const resp = await fetch(url, { signal: abortController.signal });
         if (!resp.ok || !resp.body) throw new Error(`镜头 ${shotId} 视频下载失败（${resp.status}）`);
-        const clip = new NativeVideoClip(await resp.blob());
-        await clip.ready;
+        const clip = ownClip(new NativeVideoClip(await resp.blob()));
+        try {
+          await clip.ready;
+          assertCurrentLoad(generation);
+        } catch (error) {
+          clip.destroy();
+          throw error;
+        }
         const planned = opts.serverPlan.clips.find((c) => c.shotId === shotId)?.sourceDuration ?? clip.meta.duration / 1e6;
         actualDurations[shotId] = Math.min(clip.meta.duration / 1e6, planned);
         clips.push(clip);
@@ -407,6 +453,7 @@ export function useTimelinePlayer() {
         duration: actualDurations[shotId],
         dialogue: dialogueById.get(shotId) ?? "",
       }));
+      assertCurrentLoad(generation);
       plan = buildTimelinePlan({
         shots: currentPlanInput,
         targetDuration: opts.serverPlan.targetDuration,
@@ -431,20 +478,23 @@ export function useTimelinePlayer() {
 
       // 4. 视频片段 sprite：裁剪源窗口 + 时间线三件套 + cover 适配 + crossfade 动画
       for (let i = 0; i < plan.clips.length; i++) {
+        assertCurrentLoad(generation);
         const clipPlan = plan.clips[i];
         let clip: NativeVideoClip = clips[i];
         let sourceDuration = clip.meta.duration / 1e6;
 
         // 裁剪：先用原片段 split 保留 [trimStart, trimEnd]（与专业模式同款）
         if (clipPlan.trimEnd < sourceDuration - SPLIT_SAFETY_MARGIN) {
-          const [keep] = await clip.split(clipPlan.trimEnd * 1e6);
-          clip = keep;
+          const [keep, unused] = await clip.split(clipPlan.trimEnd * 1e6);
+          unused.destroy();
+          clip = ownClip(keep);
           await clip.ready;
           sourceDuration = clip.meta.duration / 1e6;
         }
         if (clipPlan.trimStart > SPLIT_SAFETY_MARGIN && clipPlan.trimStart < sourceDuration - SPLIT_SAFETY_MARGIN) {
-          const [, keep] = await clip.split(clipPlan.trimStart * 1e6);
-          clip = keep;
+          const [unused, keep] = await clip.split(clipPlan.trimStart * 1e6);
+          unused.destroy();
+          clip = ownClip(keep);
           await clip.ready;
         }
 
@@ -460,12 +510,20 @@ export function useTimelinePlayer() {
       }
 
       // 5. 字幕轨（可见区间避开转场重叠；EmbedSubtitlesClip 的数组入参为微秒）
-      const cues = buildSubtitleCues(plan);
+      const subtitleFontSize = Math.max(24, Math.min(48, Math.round(Math.min(plan.width, plan.height) * 0.05)));
+      const maxSubtitleChars = Math.max(12, Math.floor((plan.width * 0.9) / (subtitleFontSize * 1.05)));
+      const cues = buildSubtitleCues(plan).map((cue) => ({
+        ...cue,
+        // EmbedSubtitlesClip wraps text by width, but an unbounded long
+        // dialogue can still create dozens of lines and paint above the
+        // frame. Keep the subtitle track readable without changing timing.
+        text: clampSubtitleText(cue.text, maxSubtitleChars, 3),
+      }));
       if (cues.length) {
         const subClip = new EmbedSubtitlesClip(toEmbedSubtitleStructs(cues), {
           videoWidth: plan.width,
           videoHeight: plan.height,
-          fontSize: Math.round(plan.height * 0.05),
+          fontSize: subtitleFontSize,
           bottomOffset: Math.round(plan.height * 0.06),
           color: "#FFF",
           strokeStyle: "#000",
@@ -536,10 +594,15 @@ export function useTimelinePlayer() {
       // 首帧按需渲染：避免预览解码器在用户尚未播放时占用 H.264 解码队列，
       // 导出时 Combinator 可以从干净的解码器状态开始。
     } catch (err: any) {
-      loadError.value = err?.message ?? String(err);
-      destroy();
+      if (generation === loadGeneration && err?.name !== "AbortError" && err?.message !== "TIMELINE_LOAD_CANCELLED") {
+        loadError.value = err?.message ?? String(err);
+        destroyResources();
+      }
     } finally {
-      loading.value = false;
+      if (generation === loadGeneration) {
+        loading.value = false;
+        loadAbortController = null;
+      }
     }
   }
 
@@ -642,15 +705,16 @@ export function useTimelinePlayer() {
     if (wasPlaying) play();
   }
 
-  function destroy() {
+  function destroyResources() {
     unsubs.forEach((off) => off());
     unsubs = [];
     detachMusic();
-    for (const clip of clips) {
+    for (const clip of ownedClips) {
       try {
         clip.destroy();
       } catch {}
     }
+    ownedClips.length = 0;
     clips.length = 0;
     sprites.length = 0;
     try {
@@ -662,54 +726,115 @@ export function useTimelinePlayer() {
     playing.value = false;
     currentTime.value = 0;
     duration.value = 0;
+    musicPCM = null;
+  }
+
+  function destroy() {
+    loadGeneration += 1;
+    loadAbortController?.abort();
+    loadAbortController = null;
+    cancelActiveExport();
+    destroyResources();
   }
 
   /**
    * 导出 MP4（浏览器端 WebAV 编码）：
    * - progress 回调 0-1；cancel() 中断并释放；结束后 combinator.destroy() 释放内存。
    * - 部分 Chromium 构建没有 AAC AudioEncoder。检测到该环境时关闭音轨，
-   *   保证视频仍能导出；在支持 AAC 的浏览器中保留原片音频与合成 BGM。
+   *   保证视频仍能导出；在支持 AAC 的浏览器中保留合成 BGM。
    */
   async function exportMp4(opts: { bitrate?: number; onProgress?: (p: number) => void; signal?: { cancelled: boolean } }): Promise<Blob> {
     if (!avCanvas || !plan || !ready.value) throw new Error("时间线未就绪，无法导出");
-    pause();
-    audioEncodingSupported = audioEncodingSupported && (await supportsAacAudioEncoding());
-    // Prime every source before Combinator starts. A native HTML video can
-    // decode a long-GOP clip sequentially, while asking it to seek once per
-    // 25fps output frame causes Chromium to repeatedly flush the decoder.
-    await Promise.all(clips.map((clip) => clip.prepareFrames()));
-    if (opts.signal?.cancelled) throw new Error("EXPORT_CANCELLED");
-    const exportScale = Math.min(1, EXPORT_MAX_DIMENSION / Math.max(plan.width, plan.height));
-    const exportWidth = Math.max(1, Math.round(plan.width * exportScale));
-    const exportHeight = Math.max(1, Math.round(plan.height * exportScale));
-    const originalRects = sprites.map((sprite) => ({
-      sprite,
-      x: sprite.rect.x,
-      y: sprite.rect.y,
-      w: sprite.rect.w,
-      h: sprite.rect.h,
-    }));
-    // AVCanvas copies sprite geometry into Combinator. Scale that copy only
-    // for the export canvas, then restore the preview geometry immediately.
-    // This keeps the preview at the selected ratio while avoiding a software
-    // 1280x720/720x1280 encode on machines without accelerated WebCodecs.
-    sprites.forEach((sprite) => {
-      sprite.rect.x *= exportScale;
-      sprite.rect.y *= exportScale;
-      sprite.rect.w *= exportScale;
-      sprite.rect.h *= exportScale;
-    });
-    let combinator;
+    const signal = opts.signal ?? { cancelled: false };
+    cancelActiveExport();
+    const exportRun = {
+      signal,
+      reader: null as ReadableStreamDefaultReader<Uint8Array> | null,
+      combinator: null as { destroy?: () => void } | null,
+    };
+    activeExport = exportRun;
+    let combinator: any = null;
+    let offProgress = () => {};
+    let offError = () => {};
+    let outputError: unknown = null;
+    let originalRects: { sprite: VisibleSprite; x: number; y: number; w: number; h: number }[] = [];
+
     try {
-      combinator = await avCanvas.createCombinator({
-      width: exportWidth,
-      height: exportHeight,
-      // 低资源浏览器使用 5fps 输出，减少软件 H.264 编码时的队列积压；
-      // 预览仍使用 SAMPLE_FPS 的采样缓存，不影响时间线定位。
-      fps: EXPORT_FPS,
-      bitrate: opts.bitrate ?? Math.min(5e6, Math.max(1.2e6, Math.round(exportWidth * exportHeight * 4.5))),
-      ...(audioEncodingSupported ? {} : { audio: false }),
+      pause();
+      audioEncodingSupported = audioEncodingSupported && (await supportsAacAudioEncoding());
+      // Prime every source before Combinator starts. A native HTML video can
+      // decode a long-GOP clip sequentially, while asking it to seek once per
+      // output frame causes Chromium to repeatedly flush the decoder.
+      await Promise.all(clips.map((clip) => clip.prepareFrames()));
+      if (signal.cancelled) throw new Error("EXPORT_CANCELLED");
+
+      const exportScale = Math.min(1, EXPORT_MAX_DIMENSION / Math.max(plan.width, plan.height));
+      const exportWidth = Math.max(1, Math.round(plan.width * exportScale));
+      const exportHeight = Math.max(1, Math.round(plan.height * exportScale));
+      originalRects = sprites.map((sprite) => ({
+        sprite,
+        x: sprite.rect.x,
+        y: sprite.rect.y,
+        w: sprite.rect.w,
+        h: sprite.rect.h,
+      }));
+      // AVCanvas copies sprite geometry into Combinator. Scale that copy only
+      // for the export canvas, then restore the preview geometry immediately.
+      sprites.forEach((sprite) => {
+        sprite.rect.x *= exportScale;
+        sprite.rect.y *= exportScale;
+        sprite.rect.w *= exportScale;
+        sprite.rect.h *= exportScale;
       });
+
+      try {
+        combinator = await avCanvas.createCombinator({
+          width: exportWidth,
+          height: exportHeight,
+          // 低资源浏览器使用 5fps 输出，减少软件 H.264 编码时的队列积压；
+          // 预览仍使用 SAMPLE_FPS 的采样缓存，不影响时间线定位。
+          fps: EXPORT_FPS,
+          bitrate: opts.bitrate ?? Math.min(5e6, Math.max(1.2e6, Math.round(exportWidth * exportHeight * 4.5))),
+          ...(audioEncodingSupported ? {} : { audio: false }),
+        });
+        exportRun.combinator = combinator;
+      } finally {
+        originalRects.forEach(({ sprite, x, y, w, h }) => {
+          sprite.rect.x = x;
+          sprite.rect.y = y;
+          sprite.rect.w = w;
+          sprite.rect.h = h;
+        });
+      }
+
+      offProgress = combinator.on("OutputProgress", (progress: number) => opts.onProgress?.(progress));
+      offError = combinator.on("error", (error: Error) => {
+        outputError ??= error;
+      });
+      const reader = combinator.output().getReader();
+      exportRun.reader = reader;
+      const chunks: Uint8Array[] = [];
+      while (true) {
+        if (signal.cancelled) {
+          try {
+            await reader.cancel();
+          } catch {}
+          throw new Error("EXPORT_CANCELLED");
+        }
+        let result: ReadableStreamReadResult<Uint8Array>;
+        try {
+          result = await reader.read();
+        } catch (error) {
+          if (signal.cancelled) throw new Error("EXPORT_CANCELLED");
+          throw error;
+        }
+        const { done, value } = result;
+        if (done) break;
+        if (value) chunks.push(value);
+      }
+      const output = new Blob(chunks as BlobPart[], { type: "video/mp4" });
+      if (outputError) throw outputError;
+      return output;
     } finally {
       originalRects.forEach(({ sprite, x, y, w, h }) => {
         sprite.rect.x = x;
@@ -717,42 +842,21 @@ export function useTimelinePlayer() {
         sprite.rect.w = w;
         sprite.rect.h = h;
       });
-    }
-    let output: Blob | null = null;
-    let outputError: unknown = null;
-    const offProgress = combinator.on("OutputProgress", (progress: number) => opts.onProgress?.(progress));
-    const offError = combinator.on("error", (error: Error) => {
-      outputError ??= error;
-    });
-    try {
-      const reader = combinator.output().getReader();
-      const chunks: Uint8Array[] = [];
-      while (true) {
-        if (opts.signal?.cancelled) {
-          try {
-            await reader.cancel();
-          } catch {}
-          throw new Error("EXPORT_CANCELLED");
-        }
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) chunks.push(value);
-      }
-      output = new Blob(chunks as BlobPart[], { type: "video/mp4" });
-    } catch (err) {
-      outputError = err;
-    } finally {
       offProgress();
       offError();
       try {
-        combinator.destroy();
+        combinator?.destroy();
       } catch {}
       clips.forEach((clip) => clip.releaseFrames());
+      exportRun.reader = null;
+      exportRun.combinator = null;
+      if (activeExport === exportRun) activeExport = null;
     }
-    if (outputError) throw outputError;
-    if (!output) throw new Error("导出未生成文件");
-    return output;
   }
 
-  return { containerEl, ready, loading, playing, currentTime, duration, loadError, plan: { current: () => plan }, load, play, pause, seek, setMusicVolume, exportMp4, destroy };
+  function cancelExport() {
+    cancelActiveExport();
+  }
+
+  return { containerEl, ready, loading, playing, currentTime, duration, loadError, plan: { current: () => plan }, load, play, pause, seek, setMusicVolume, exportMp4, cancelExport, destroy };
 }

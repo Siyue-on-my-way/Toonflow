@@ -63,6 +63,17 @@ export default router.post(
         await mutateQuickVideoState(projectId, {}, async (s, trx) => {
           if (s.generation.timeline?.storyboardVersion === storyboardVersion) return;
           if (s.stage !== "ready_to_assemble" && s.stage !== "completed") return; // 竞态保护
+          // A quick-video project can be sent back to storyboard_confirmed
+          // and generated again. Remove only the track rows owned by the
+          // previous quick-video timeline; never sweep the whole project,
+          // because o_videoTrack is also used by professional mode.
+          const previousTrackIds = s.generation.timeline?.trackIds ?? [];
+          if (previousTrackIds.length) {
+            await trx("o_videoTrack")
+              .where("projectId", projectId)
+              .whereIn("id", previousTrackIds)
+              .delete();
+          }
           // 该项目的轨道行全部归属快创时间线（快创项目无专业模式轨道），按镜头顺序重建
           const trackIds: number[] = [];
           for (const shot of [...s.storyboard!.shots].sort((a, b) => a.index - b.index)) {

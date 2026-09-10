@@ -117,6 +117,9 @@ export function useChat(options: UseChatOptions) {
   const hiddenXmlTags = normalizedXmlTagOptions.filter((item) => ((item.keepInMessage ?? keepXmlInMessage) ? false : true)).map((item) => item.tag);
   const emittedXmlState = new Map<string, Record<string, string>>();
   const rawContentState = new Map<string, string>();
+  let pageResumeListenersAttached = false;
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  let destroyed = false;
 
   // 计算属性 - 修复：增加对内容流状态的判断
   const isGenerating = computed(() => {
@@ -575,10 +578,30 @@ export function useChat(options: UseChatOptions) {
     if (document.visibilityState === "hidden") return;
     if (socket.value && !socket.value.connected && !connecting.value) connect();
   };
-  window.addEventListener("pageshow", handlePageResume);
-  document.addEventListener("visibilitychange", handlePageResume);
+
+  const attachPageResumeListeners = () => {
+    if (pageResumeListenersAttached) return;
+    window.addEventListener("pageshow", handlePageResume);
+    document.addEventListener("visibilitychange", handlePageResume);
+    pageResumeListenersAttached = true;
+  };
+
+  const detachPageResumeListeners = () => {
+    if (!pageResumeListenersAttached) return;
+    window.removeEventListener("pageshow", handlePageResume);
+    document.removeEventListener("visibilitychange", handlePageResume);
+    pageResumeListenersAttached = false;
+  };
+
+  attachPageResumeListeners();
 
   const connect = () => {
+    destroyed = false;
+    attachPageResumeListeners();
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
     if (socket.value?.connected || connecting.value) return;
 
     connecting.value = true;
@@ -606,9 +629,31 @@ export function useChat(options: UseChatOptions) {
     connecting.value = false;
   };
 
+  /**
+   * Explicitly release a store-owned chat connection. Store-backed chats set
+   * manageLifecycle=false because the Pinia store can outlive a route view;
+   * without an explicit disposer their socket listeners and page-resume
+   * handlers would survive every navigation to the workbench.
+   */
+  const destroy = () => {
+    destroyed = true;
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+    disconnect();
+    socket.value?.removeAllListeners();
+    socket.value = null;
+    detachPageResumeListeners();
+  };
+
   const reconnect = () => {
     disconnect();
-    setTimeout(connect, 100);
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      if (!destroyed) connect();
+    }, 100);
   };
 
   // 发送方法
@@ -745,11 +790,7 @@ export function useChat(options: UseChatOptions) {
     });
 
     onUnmounted(() => {
-      disconnect();
-      socket.value?.removeAllListeners();
-      socket.value = null;
-      window.removeEventListener("pageshow", handlePageResume);
-      document.removeEventListener("visibilitychange", handlePageResume);
+      destroy();
     });
   } else if (autoConnect) {
     connect();
@@ -768,6 +809,7 @@ export function useChat(options: UseChatOptions) {
     lastMessage,
     connect,
     disconnect,
+    destroy,
     reconnect,
     emit,
     on,
