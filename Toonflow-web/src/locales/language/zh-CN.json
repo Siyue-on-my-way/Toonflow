@@ -1724,6 +1724,7 @@
         "defaultTitle": "默认会话"
       },
       "welcomeMsg": "你好！我是快创助手。告诉我一句话创意或粘贴一段草稿脚本，我来帮你生成简报和 15-60 秒的分镜方案。",
+      "chatSidebarHint": "聊天会话常驻，你可以边查看产物边继续修改。",
       "inputPlaceholder": "描述你想创作的短视频，例如：一支 15 秒的奶茶新品宣传视频",
       "targetDuration": "目标时长",
       "editConfig": "编辑配置",

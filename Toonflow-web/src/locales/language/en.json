@@ -1620,6 +1620,7 @@
         "defaultTitle": "Default session"
       },
       "welcomeMsg": "Hi! I'm your Quick Video assistant. Give me a one-line idea or paste a draft script, and I'll create a brief and a 15-60s storyboard for you.",
+      "chatSidebarHint": "Keep the conversation visible while you refine each output.",
       "inputPlaceholder": "Describe the short video you want, e.g. a 15s promo for a new milk tea",
       "targetDuration": "Target duration",
       "editConfig": "Edit config",

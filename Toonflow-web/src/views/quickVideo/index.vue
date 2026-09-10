@@ -1,24 +1,21 @@
 <template>
   <div class="quickVideo">
     <div class="workspaceLayout">
-      <nav class="quickNav" aria-label="Quick Video workspace navigation">
-        <button
-          v-for="item in navigationItems"
-          :key="item.key"
-          type="button"
-          class="quickNavButton"
-          :class="{ active: activePanel === item.key }"
-          :aria-current="activePanel === item.key ? 'page' : undefined"
-          :title="item.label"
-          @click="activePanel = item.key">
-          <component :is="item.icon" class="quickNavIcon" />
-          <span class="quickNavLabel">{{ item.label }}</span>
-        </button>
-      </nav>
+      <aside class="chatSidebar operate" aria-label="Quick Video conversation" data-testid="quick-video-chat-sidebar">
+        <div class="chatSidebarHeader">
+          <div class="chatSidebarTitleRow">
+            <div class="chatSidebarTitle">
+              <i-chat class="chatSidebarIcon" size="18" />
+              <span>{{ $t("workbench.quickVideo.sessions.title") }}</span>
+            </div>
+            <i-dot class="chatSidebarStatus" theme="outline" :fill="connected ? 'green' : 'red'" />
+          </div>
+          <div class="chatSidebarProject" :title="workbench.project?.name || ''">
+            {{ workbench.project?.name || $t("workbench.quickVideo.sessions.defaultTitle") }}
+          </div>
+          <div class="chatSidebarHint">{{ $t("workbench.quickVideo.chatSidebarHint") }}</div>
+        </div>
 
-      <div class="workspacePanels">
-        <Splitpanes class="default-theme data f">
-          <Pane v-if="activePanel === 'chat'" :size="100" :min-size="100" class="operate">
         <div class="box pr">
           <SessionList
             :sessions="sessions"
@@ -96,10 +93,26 @@
               </div>
             </template>
           </t-chat-sender>
-          <i-dot class="dot" theme="outline" :fill="connected ? 'green' : 'red'" />
         </div>
-          </Pane>
-          <Pane v-if="activePanel !== 'chat'" :size="100" :min-size="100" class="data modulePane">
+      </aside>
+      <nav class="quickNav" aria-label="Quick Video workspace navigation" data-testid="quick-video-workspace-nav">
+        <button
+          v-for="item in navigationItems"
+          :key="item.key"
+          type="button"
+          class="quickNavButton"
+          :class="{ active: activePanel === item.key }"
+          :aria-current="activePanel === item.key ? 'page' : undefined"
+          :data-testid="`quick-video-nav-${item.key}`"
+          :title="item.label"
+          @click="activePanel = item.key">
+          <component :is="item.icon" class="quickNavIcon" />
+          <span class="quickNavLabel">{{ item.label }}</span>
+        </button>
+      </nav>
+
+      <div class="workspacePanels">
+        <div class="data modulePane" data-testid="quick-video-main-panel">
         <div class="panel" v-loading="loadingWorkbench && !state">
           <div class="panelHeader">
             <div class="title">{{ workbench.project?.name }}</div>
@@ -512,8 +525,7 @@
             </div>
           </div>
         </div>
-          </Pane>
-        </Splitpanes>
+        </div>
       </div>
     </div>
 
@@ -680,7 +692,6 @@
 </template>
 
 <script setup lang="ts">
-import { Splitpanes, Pane } from "splitpanes";
 import axios from "@/utils/axios";
 import projectStore from "@/stores/project";
 import quickVideoStore from "@/stores/quickVideo";
@@ -700,11 +711,10 @@ const { connected, messages, status, workbench, state, loadingWorkbench, workben
 const { stopGenerate, getWorkbench, updateConfig, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference, getAssetBoard, bindShotFirstFrame } =
   quickVideoStoreRef;
 
-type QuickVideoPanel = "chat" | "brief" | "storyboard" | "assets" | "preview";
+type QuickVideoPanel = "brief" | "storyboard" | "assets" | "preview";
 
-const activePanel = ref<QuickVideoPanel>("chat");
+const activePanel = ref<QuickVideoPanel>("brief");
 const navigationItems: { key: QuickVideoPanel; label: string; icon: string }[] = [
-  { key: "chat", label: $t("workbench.quickVideo.sessions.title"), icon: "i-chat" },
   { key: "brief", label: $t("workbench.quickVideo.brief"), icon: "i-file" },
   { key: "storyboard", label: $t("workbench.quickVideo.storyboard"), icon: "i-view-list" },
   { key: "assets", label: $t("workbench.quickVideo.assetBoard"), icon: "i-image" },
@@ -1303,7 +1313,7 @@ function openImagePreview(url: string) {
 const timelinePlayer = useTimelinePlayer();
 const playerContainer = timelinePlayer.containerEl;
 
-const showAssembleCard = computed(() => ["ready_to_assemble", "completed"].includes(state.value?.stage ?? ""));
+const showAssembleCard = computed(() => activePanel.value === "preview" && ["ready_to_assemble", "completed"].includes(state.value?.stage ?? ""));
 const bgmEnabled = ref(true);
 const bgmVolume = ref(0.35);
 const timelineReloading = ref(false);
@@ -1364,7 +1374,7 @@ watch(
     if (sig === prev) return;
     await reloadTimeline();
   },
-  { immediate: true },
+  { immediate: true, flush: "post" },
 );
 
 onBeforeUnmount(() => {
@@ -1377,6 +1387,9 @@ async function reloadTimeline() {
   timelineReloading.value = true;
   try {
     const payload: TimelinePayload | null = await getTimeline();
+    // Leaving the preview while media is loading must not recreate a player
+    // in a detached container or retain decoded frames after the panel is gone.
+    if (!showAssembleCard.value) return;
     timelineData.value = payload;
     if (payload?.timeline) {
       await timelinePlayer.load({
@@ -1387,7 +1400,9 @@ async function reloadTimeline() {
       });
     }
   } catch (e: any) {
-    window.$message.warning(e?.message ?? $t("workbench.quickVideo.opFailed"));
+    if (e?.message !== "TIMELINE_LOAD_CANCELLED") {
+      window.$message.warning(e?.message ?? $t("workbench.quickVideo.opFailed"));
+    }
   } finally {
     timelineReloading.value = false;
   }
@@ -1489,8 +1504,68 @@ function cancelExport() {
     min-width: 0;
     min-height: 0;
     overflow: hidden;
-    :deep(.splitpanes) {
-      height: 100%;
+  }
+  .chatSidebar {
+    flex: 0 1 clamp(248px, 28vw, 340px);
+    width: clamp(248px, 28vw, 340px);
+    min-width: 248px;
+    max-width: 340px;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--td-border-level-1-color);
+    border-radius: 10px;
+    background: var(--td-bg-color-container);
+    .chatSidebarHeader {
+      flex: 0 0 auto;
+      padding: 14px 14px 12px;
+      border-bottom: 1px solid var(--td-border-level-1-color);
+      background: linear-gradient(135deg, var(--td-brand-color-1), var(--td-bg-color-container) 68%);
+    }
+    .chatSidebarTitleRow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .chatSidebarTitle {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 14px;
+      font-weight: 650;
+    }
+    .chatSidebarIcon {
+      color: var(--td-brand-color);
+    }
+    .chatSidebarStatus {
+      flex-shrink: 0;
+    }
+    .chatSidebarProject {
+      margin-top: 8px;
+      overflow: hidden;
+      color: var(--td-text-color-primary);
+      font-size: 13px;
+      font-weight: 600;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .chatSidebarHint {
+      margin-top: 5px;
+      color: var(--td-text-color-secondary);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .box {
+      min-height: 0;
+      padding: 0 8px 8px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+    }
+    .box :deep(.t-chat-list) {
+      min-height: 0;
     }
   }
   .quickNav {
@@ -1539,13 +1614,6 @@ function cancelExport() {
       font-size: 12px;
       line-height: 1.2;
     }
-  }
-  :deep(.splitpanes__pane) {
-    background-color: transparent !important;
-  }
-  :deep(.splitpanes__splitter) {
-    border-left: none;
-    margin-left: 1px;
   }
   .operate {
     .box {
@@ -1632,6 +1700,13 @@ function cancelExport() {
       }
     }
   }
+  .chatSidebar .box {
+    height: auto;
+    padding: 0 8px 8px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
   .panel {
     height: 100%;
     display: flex;
@@ -1691,6 +1766,9 @@ function cancelExport() {
     }
   }
   .modulePane {
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
     .panelBody {
       padding-right: 4px;
     }
@@ -1963,10 +2041,41 @@ function cancelExport() {
   }
 }
 
+@media (max-width: 960px) {
+  .quickVideo {
+    .chatSidebar {
+      flex-basis: 280px;
+      width: 280px;
+      max-width: 280px;
+    }
+    .panel {
+      .panelHeader {
+        align-items: flex-start;
+        flex-direction: column;
+        .meta {
+          width: 100%;
+        }
+      }
+    }
+  }
+}
+
 @media (max-width: 720px) {
   .quickVideo {
     .workspaceLayout {
       gap: 4px;
+    }
+    .chatSidebar {
+      flex-basis: 220px;
+      width: 220px;
+      min-width: 220px;
+      max-width: 220px;
+      .chatSidebarHeader {
+        padding: 10px;
+      }
+      .chatSidebarHint {
+        display: none;
+      }
     }
     .quickNav {
       flex-basis: 54px;
