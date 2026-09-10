@@ -9,6 +9,7 @@
 import { db as knexDb } from "@/utils/db";
 import u from "@/utils";
 import { QuickVideoError } from "./state";
+import { buildSessionIsolationKey } from "./contract";
 
 export interface QuickVideoSessionRow {
   id: number;
@@ -62,7 +63,12 @@ export async function listQuickVideoSessions(projectId: number): Promise<QuickVi
   return created ? [created] : [];
 }
 
-/** 存量项目补建默认会话（幂等：已存在任意会话时直接返回最新一条，不重复创建） */
+/**
+ * 存量项目补建默认会话（幂等：已存在任意会话时直接返回最新一条，不重复创建）。
+ * 同一事务内把该项目在旧版单一隔离键（projectId:quickVideoAgent，无 sessionId 段）下的
+ * 聊天记忆整体迁移到新会话的隔离键上——否则老项目迁移后 getMemory 会按新的
+ * projectId:quickVideoAgent:sessionId 查询，查到空列表，表现为"历史记录丢了"。
+ */
 export async function ensureDefaultSession(projectId: number): Promise<QuickVideoSessionRow | null> {
   const existing = await u.db("o_quickVideoSession").where({ projectId }).orderBy("updateTime", "desc").first();
   if (existing) return existing as QuickVideoSessionRow;
@@ -73,6 +79,9 @@ export async function ensureDefaultSession(projectId: number): Promise<QuickVide
     if (raced) return raced as QuickVideoSessionRow;
     const created = await createQuickVideoSession(projectId, { trx });
     await trx("o_agentWorkData").where({ projectId, key: "quickVideoAgent" }).update({ sessionId: created.id });
+    await trx("memories")
+      .where({ isolationKey: `${projectId}:quickVideoAgent` })
+      .update({ isolationKey: buildSessionIsolationKey(projectId, created.id) });
     return created;
   });
 }

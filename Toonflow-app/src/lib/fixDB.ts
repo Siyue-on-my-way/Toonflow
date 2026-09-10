@@ -494,12 +494,23 @@ export default async (knex: Knex): Promise<void> => {
 
   // 单视频快创（SIY-128）：o_agentWorkData 补充 sessionId 留痕字段；存量 quick_video 项目
   // 补建默认会话，保证旧项目在未手动新建会话前，聊天历史与模型偏好仍可正常读写。
+  // initDB 只在表不存在时创建：这里额外用 addColumn 兜底早期试验性质的 o_quickVideoSession
+  // 表（缺 status/title 列）能被补齐，而不是让下面的补建默认会话静默失败到底。
   await addColumn("o_agentWorkData", "sessionId", "integer");
+  await addColumn("o_quickVideoSession", "status", "string");
+  await addColumn("o_quickVideoSession", "title", "string");
   {
     const legacyQuickVideoProjects = await db("o_project").where({ projectType: "quick_video" }).select("id");
     for (const p of legacyQuickVideoProjects) {
       try {
-        await ensureDefaultSession(Number(p.id));
+        const session = await ensureDefaultSession(Number(p.id));
+        // 兜底：即便该项目的默认会话在更早一次（未带记忆迁移的）部署中已经建好，
+        // 只要旧版无 session 的隔离键下还有残留记忆，这里补迁移一次；已迁移过则是空操作。
+        if (session) {
+          await db("memories")
+            .where({ isolationKey: `${p.id}:quickVideoAgent` })
+            .update({ isolationKey: `${p.id}:quickVideoAgent:${session.id}` });
+        }
       } catch (err) {
         console.error(`[quickVideo] 项目 ${p.id} 补建默认会话失败:`, u.error(err as Error).message);
       }
