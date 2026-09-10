@@ -585,7 +585,7 @@ async function runShotPipeline(projectId: number, userId: number, shotId: string
  * hasBoundFirstFrame 只影响报错文案——没有绑定首帧时走的是自动生成的分镜图回退，
  * 提示用户"解除首帧"并不适用（该镜头本来就没有绑定）。
  */
-async function assertVideoSupportsSingleImage(videoModelKey: string, hasBoundFirstFrame: boolean): Promise<void> {
+export async function assertVideoSupportsSingleImage(videoModelKey: string, hasBoundFirstFrame: boolean): Promise<void> {
   const sep = videoModelKey.indexOf(":");
   if (sep <= 0) return;
   const vendorId = videoModelKey.slice(0, sep);
@@ -704,7 +704,7 @@ async function buildShotImageReferences(
 // 工具函数
 // ---------------------------------------------------------------------------
 
-function castAspectRatio(ratio: QuickVideoRatio): "16:9" | "9:16" {
+export function castAspectRatio(ratio: QuickVideoRatio): "16:9" | "9:16" {
   // 供应商接口仅声明 16:9 / 9:16；1:1 项目按竖版生成，由前端裁剪展示
   return ratio === "9:16" ? "9:16" : "16:9";
 }

@@ -246,7 +246,9 @@ export default async function startServe(randomPort: Boolean = false) {
     res.status(err.status || 500).send(err);
   });
 
-  const port = randomPort ? 0 : 10588;
+  // Allow an isolated local instance to select another port during browser/E2E
+  // validation. Production keeps the historical 10588 default.
+  const port = randomPort ? 0 : Number(process.env.APP_PORT || 10588);
   return await new Promise((resolve) => {
     server.listen(port, async () => {
       const address = server.address();

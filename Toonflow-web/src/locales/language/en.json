@@ -1669,6 +1669,7 @@
       "briefRequired": "Theme and narrative outline are required",
       "shotRequired": "Description is required",
       "selectImageModelFirst": "Please select an image model first",
+      "selectVideoModelFirst": "Please select a video model first",
       "assetBoard": "Asset Board",
       "assetBoardEmpty": "No generated images/videos yet — try picking \"Image\" in the chat box and generate one",
       "all": "All",

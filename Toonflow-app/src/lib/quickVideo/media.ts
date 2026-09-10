@@ -105,6 +105,25 @@ export async function validateImageModelKey(modelKey: string): Promise<{ vendorI
   return { vendorId, modelName };
 }
 
+/**
+ * 校验形如 "vendorId:modelName" 的模型 key 是否确实是供应商目录中已启用的 video 类型模型（SIY-134）。
+ * 无效时抛出 QuickVideoError("VIDEO_MODEL_INVALID", ...)，调用方据此拒绝生成请求。
+ */
+export async function validateVideoModelKey(modelKey: string): Promise<{ vendorId: string; modelName: string }> {
+  const split = splitModelKey(modelKey);
+  if (!split) throw new QuickVideoError("VIDEO_MODEL_INVALID", "视频模型格式不正确，请重新在模型选择框中选择");
+  const { vendorId, modelName } = split;
+
+  const catalog = await getVendorModelCatalog(vendorId);
+  if (!catalog?.enabled) throw new QuickVideoError("VIDEO_MODEL_INVALID", "所选视频模型所属渠道未启用，请重新选择或联系管理员启用");
+
+  const hit = pickEnabledModel(catalog.models, catalog.enabledNames, modelName, "video");
+  if (!hit) {
+    throw new QuickVideoError("VIDEO_MODEL_INVALID", "所选视频模型不可用（未在渠道目录中或未启用），请重新选择");
+  }
+  return { vendorId, modelName };
+}
+
 // ---------------------------------------------------------------------------
 // 媒体落库（生成中占位 -> 完成/失败回写）
 // ---------------------------------------------------------------------------

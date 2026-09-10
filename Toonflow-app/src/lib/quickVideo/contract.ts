@@ -26,8 +26,8 @@ export type QuickVideoDuration = (typeof QUICK_VIDEO_DURATIONS)[number];
 export const QUICK_VIDEO_RATIOS = ["16:9", "9:16", "1:1"] as const;
 export type QuickVideoRatio = (typeof QUICK_VIDEO_RATIOS)[number];
 
-/** 聊天发送模式：text=普通文本对话，image=受限图片生成工具（SIY-132） */
-export const QUICK_VIDEO_CHAT_MODES = ["text", "image"] as const;
+/** 聊天发送模式：text=普通文本对话，image=受限图片生成工具（SIY-132），video=受限图生视频工具（SIY-134） */
+export const QUICK_VIDEO_CHAT_MODES = ["text", "image", "video"] as const;
 export type QuickVideoChatMode = (typeof QUICK_VIDEO_CHAT_MODES)[number];
 
 /** 镜头片段时长下限/上限（秒） */
@@ -117,7 +117,7 @@ export type ShotAssetRef = z.infer<typeof shotAssetRefSchema>;
 // 聊天生图/生视频媒体索引（SIY-132：聊天生图、资产白板与分镜首帧绑定）
 // ---------------------------------------------------------------------------
 
-/** 媒体种类：目前聊天生成只支持图片；视频保留给白板展示既有镜头产物用 */
+/** 媒体种类：聊天可生成图片（文生图/图生图）与视频（图生视频，SIY-134）；镜头分镜产物也归到白板同一份索引 */
 export const QUICK_VIDEO_MEDIA_KINDS = ["image", "video"] as const;
 export type QuickVideoMediaKind = (typeof QUICK_VIDEO_MEDIA_KINDS)[number];
 

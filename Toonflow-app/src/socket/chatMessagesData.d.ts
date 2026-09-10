@@ -18,6 +18,7 @@ export interface ChatBaseContent<T extends string, D> {
 export type TextContent = ChatBaseContent<'text', string>;
 export type MarkdownContent = ChatBaseContent<'markdown', string>;
 export type ImageContent = ChatBaseContent<'image', { name?: string; url?: string; width?: number; height?: number }>;
+export type VideoContent = ChatBaseContent<'video', { name?: string; url?: string; width?: number; height?: number; duration?: number }>;
 export type ThinkingContent = ChatBaseContent<'thinking', { text?: string; title?: string }>;
 export type SearchContent = ChatBaseContent<'search', { title?: string; references?: { title: string; icon?: string; type?: string; url?: string; content?: string; site?: string; date?: string }[] }>;
 export type SuggestionContent = ChatBaseContent<'suggestion', { title: string; prompt?: string }[]>;
@@ -26,7 +27,7 @@ export type ToolCallContent = ChatBaseContent<'toolcall', { toolCallId: string; 
 export type ActivityContent<T = Record<string, any>> = ChatBaseContent<'activity', { activityType: string; messageId?: string; content: T; deltaInfo?: { fromIndex: number; toIndex: number } }>;
 
 // 聚合内容类型
-export type AIMessageContent = TextContent | MarkdownContent | ImageContent | ThinkingContent | SearchContent | SuggestionContent | ReasoningContent | ToolCallContent | ActivityContent;
+export type AIMessageContent = TextContent | MarkdownContent | ImageContent | VideoContent | ThinkingContent | SearchContent | SuggestionContent | ReasoningContent | ToolCallContent | ActivityContent;
 export type ReasoningContent = ChatBaseContent<'reasoning', AIMessageContent[]>;
 export type UserMessageContent = TextContent | AttachmentContent;
 

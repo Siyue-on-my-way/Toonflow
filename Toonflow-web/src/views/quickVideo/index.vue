@@ -748,15 +748,22 @@ const defMsg = [
 if (messages.value.length <= 0) messages.value = [...defMsg, ...messages.value] as any;
 
 function handleSend(text: string) {
-  const mode = activeModelType.value === "image" ? "image" : "text";
+  const mode = activeModelType.value === "image" ? "image" : activeModelType.value === "video" ? "video" : "text";
   if (mode === "image" && !modelPreferences.value.image) {
     window.$message.warning($t("workbench.quickVideo.selectImageModelFirst"));
     return;
   }
-  // 切换文本模型不会新建或切换 session_id；socket 隔离键由服务端按当前会话固定。
+  if (mode === "video" && !modelPreferences.value.video) {
+    window.$message.warning($t("workbench.quickVideo.selectVideoModelFirst"));
+    return;
+  }
+  // 应用内部剪贴板选中的引用媒体一并带上，供图生图/图生视频使用（SIY-134）；
+  // 切换文本模型不会新建或切换 session_id，socket 隔离键由服务端按当前会话固定。
   quickVideoStoreRef.chat(text, undefined, modelPreferences.value.text || undefined, {
     mode,
     imageModel: mode === "image" ? modelPreferences.value.image : undefined,
+    videoModel: mode === "video" ? modelPreferences.value.video : undefined,
+    references: clipboardMediaRef.value ? [clipboardMediaRef.value.mediaId] : undefined,
   });
   inputValue.value = "";
 }

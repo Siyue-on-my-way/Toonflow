@@ -78,7 +78,7 @@ export interface ShotFirstFrame {
   boundAt: number;
 }
 
-export type QuickVideoChatMode = "text" | "image";
+export type QuickVideoChatMode = "text" | "image" | "video";
 
 export interface QuickVideoShot {
   id: string;

@@ -6,6 +6,7 @@ import type {
   TextContent,
   MarkdownContent,
   ImageContent,
+  VideoContent,
   ThinkingContent,
   SearchContent,
   SuggestionContent,
@@ -183,6 +184,25 @@ class MessageBuilder {
     const contentId = u.uuid();
     const content: ImageContent = {
       type: "image",
+      id: contentId,
+      data,
+      status: "complete",
+      ...(ext ? { ext } : {}),
+    };
+
+    this.socket.emit("content:add", {
+      messageId: this.messageId,
+      content,
+    });
+
+    return this;
+  }
+
+  // 添加视频内容；ext 语义与 image() 一致（携带 mediaId/assetId/videoId 等稳定引用），SIY-134
+  video(data: VideoContent["data"], ext?: Record<string, any>) {
+    const contentId = u.uuid();
+    const content: VideoContent = {
+      type: "video",
       id: contentId,
       data,
       status: "complete",

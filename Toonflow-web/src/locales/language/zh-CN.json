@@ -1773,6 +1773,7 @@
       "briefRequired": "主题和叙事大纲不能为空",
       "shotRequired": "画面描述不能为空",
       "selectImageModelFirst": "请先选择一个图片模型",
+      "selectVideoModelFirst": "请先选择一个视频模型",
       "assetBoard": "资产白板",
       "assetBoardEmpty": "暂无生成的图片/视频，试试在聊天框选择「图片」类别生成一张",
       "all": "全部",

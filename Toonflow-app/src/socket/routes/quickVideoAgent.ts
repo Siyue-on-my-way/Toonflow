@@ -6,7 +6,7 @@ import ResTool from "@/socket/resTool";
 import { getOwnedSession, bumpUserMessageCountAndMaybeClaimTitle } from "@/lib/quickVideo/session";
 import { buildSessionIsolationKey, QuickVideoChatMode } from "@/lib/quickVideo/contract";
 import { generateSessionTitle } from "@/lib/quickVideo/title";
-import { validateImageModelKey } from "@/lib/quickVideo/media";
+import { validateImageModelKey, validateVideoModelKey } from "@/lib/quickVideo/media";
 import { QuickVideoError } from "@/lib/quickVideo/state";
 
 async function verifyToken(rawToken: string): Promise<{ id: number; name: string; role: string } | null> {
@@ -63,28 +63,38 @@ export default (nsp: Namespace) => {
       thinlLevel: 0,
     };
 
-    socket.on("chat", async (data: { content: string; textModel?: string; mode?: string; imageModel?: string; references?: number[] }) => {
+    socket.on("chat", async (data: { content: string; textModel?: string; mode?: string; imageModel?: string; videoModel?: string; references?: number[] }) => {
       const { content, textModel } = data;
-      const mode: QuickVideoChatMode = data.mode === "image" ? "image" : "text";
+      const mode: QuickVideoChatMode = data.mode === "image" ? "image" : data.mode === "video" ? "video" : "text";
       abortController?.abort();
       abortController = new AbortController();
       const currentController = abortController;
 
       const msg = resTool.newMessage("assistant", "快创助手");
 
-      // 计数 + 抢占放在模型校验/Agent 调用之前：即使本轮因图片模型无效被提前拒绝，
-      // 用户也确实发了一条消息，仍应计入"第几条消息"的判断，避免图片模式的失败请求
+      // 计数 + 抢占放在模型校验/Agent 调用之前：即使本轮因图片/视频模型无效被提前拒绝，
+      // 用户也确实发了一条消息，仍应计入"第几条消息"的判断，避免图片/视频模式的失败请求
       // 让智能标题触发计数悄悄比实际对话轮次滞后。
       const claimedTitleGeneration = await bumpUserMessageCountAndMaybeClaimTitle(sessionId);
 
-      // 图片模式必须先在服务端校验模型确实存在、已启用、类型为 image，不盲信浏览器传入的字符串；
-      // 校验失败直接报错并结束本轮，不进入 Agent（Agent 拿到的 imageModel 视为已受信）。
+      // 图片/视频模式必须先在服务端校验模型确实存在、已启用、类型匹配，不盲信浏览器传入的字符串；
+      // 校验失败直接报错并结束本轮，不进入 Agent（Agent 拿到的 imageModel/videoModel 视为已受信）。
       let validatedImageModel: string | undefined;
+      let validatedVideoModel: string | undefined;
       if (mode === "image") {
         try {
           if (!data.imageModel) throw new QuickVideoError("IMAGE_MODEL_INVALID", "请先在模型选择框中选择一个图片模型");
           await validateImageModelKey(data.imageModel);
           validatedImageModel = data.imageModel;
+        } catch (err) {
+          msg.error(err instanceof QuickVideoError ? err.message : u.error(err as Error).message);
+          return;
+        }
+      } else if (mode === "video") {
+        try {
+          if (!data.videoModel) throw new QuickVideoError("VIDEO_MODEL_INVALID", "请先在模型选择框中选择一个视频模型");
+          await validateVideoModelKey(data.videoModel);
+          validatedVideoModel = data.videoModel;
         } catch (err) {
           msg.error(err instanceof QuickVideoError ? err.message : u.error(err as Error).message);
           return;
@@ -100,6 +110,7 @@ export default (nsp: Namespace) => {
         textModel: textModel as `${string}:${string}` | undefined,
         mode,
         imageModel: validatedImageModel,
+        videoModel: validatedVideoModel,
         references: Array.isArray(data.references) ? data.references.filter((n) => Number.isInteger(n)).slice(0, 4) : undefined,
         userMessageTime: new Date(msg.datetime).getTime() - 1,
         abortSignal: currentController.signal,

@@ -144,11 +144,48 @@ console.log("== 8. snapshotShotSchema：冻结快照携带 firstFrame（含 file
   assert(parsed2.success && parsed2.data.firstFrame === null, "未绑定首帧的镜头快照 firstFrame 默认回退为 null（生成引擎据此回退用 imageRef）");
 }
 
-console.log("== 9. 聊天发送模式枚举：text/image 两种，不包含尚未实现的 video 聊天生成 ==");
+console.log("== 9. 聊天发送模式枚举：text/image/video 三种（SIY-134 起支持聊天生视频） ==");
 {
-  assert(QUICK_VIDEO_CHAT_MODES.length === 2, "当前 MVP 只开放 text/image 两种聊天模式");
-  assert(QUICK_VIDEO_CHAT_MODES.includes("text") && QUICK_VIDEO_CHAT_MODES.includes("image"), "聊天模式包含 text 和 image");
-  assert(!(QUICK_VIDEO_CHAT_MODES as readonly string[]).includes("video"), "聊天生成视频不在本轮 MVP 范围内，不应出现在枚举里");
+  assert(QUICK_VIDEO_CHAT_MODES.length === 3, "当前支持 text/image/video 三种聊天模式");
+  assert(
+    QUICK_VIDEO_CHAT_MODES.includes("text") && QUICK_VIDEO_CHAT_MODES.includes("image") && QUICK_VIDEO_CHAT_MODES.includes("video"),
+    "聊天模式包含 text、image 和 video",
+  );
+}
+
+console.log("== 10. pickEnabledModel：video 类型模型的命中/越权阻断（generate_video 工具的模型校验依赖，SIY-134） ==");
+{
+  const models: VendorModelEntry[] = [
+    { modelName: "gpt-image-1", type: "image" },
+    { modelName: "sora-2", type: "video" },
+  ];
+  const hit = pickEnabledModel(models, [], "sora-2", "video");
+  assert(hit?.modelName === "sora-2", "目录中存在且类型为 video 的模型应放行（此前只测过 video 方向的不命中，未测过命中）");
+  const crossType = pickEnabledModel(models, [], "gpt-image-1", "video");
+  assert(crossType === null, "用 image 模型名当 videoModel 传入应被拒绝（模型越权阻断：不能拿图片模型冒充视频模型）");
+  const notInVideoEnabled = pickEnabledModel(models, ["gpt-image-1"], "sora-2", "video");
+  assert(notInVideoEnabled === null, "enabledNames 收紧且不含该视频模型时应拒绝，即使目录里存在");
+}
+
+console.log("== 11. MediaRef 契约：kind=video 时 videoId 有值、imageId 为 null（generate_video 落库产物的形状） ==");
+{
+  const videoRef = {
+    mediaId: 9,
+    projectId: 10,
+    kind: "video",
+    assetId: 11,
+    imageId: null,
+    videoId: 12,
+    state: "done",
+    model: "aibotplatform:sora-2",
+    promptSummary: "一段图生视频",
+    source: "chat",
+    errorReason: null,
+    url: "http://localhost/oss/1/quickVideo/chat-abcd1234.mp4",
+    createTime: Date.now(),
+  };
+  const parsed = mediaRefSchema.safeParse(videoRef);
+  assert(parsed.success, "kind=video 的 MediaRef（imageId null / videoId 有值）应通过校验", parsed.success ? "" : JSON.stringify((parsed as any).error?.issues));
 }
 
 console.log(`\n结果：${passed} 通过，${failed} 失败`);

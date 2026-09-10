@@ -2,7 +2,7 @@ import express from "express";
 import { success, error } from "@/lib/responseFormat";
 import { db } from "@/utils/db";
 import initDB from "@/lib/initDB";
-import { getTableNames } from "./tableNames";
+import { getTableNames } from "@/utils/tableNames";
 
 const router = express.Router();
 

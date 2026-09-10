@@ -113,20 +113,20 @@ var init_non_error = __esm({
             return (async () => {
               try {
                 return await result;
-              } catch (error69) {
-                if (error69 instanceof Error) {
-                  throw error69;
+              } catch (error70) {
+                if (error70 instanceof Error) {
+                  throw error70;
                 }
-                throw new _NonError(error69);
+                throw new _NonError(error70);
               }
             })();
           }
           return result;
-        } catch (error69) {
-          if (error69 instanceof Error) {
-            throw error69;
+        } catch (error70) {
+          if (error70 instanceof Error) {
+            throw error70;
           }
-          throw new _NonError(error69);
+          throw new _NonError(error70);
         }
       }
       static try(callback) {
@@ -785,14 +785,14 @@ var require_browser = __commonJS({
         } else {
           exports2.storage.removeItem("debug");
         }
-      } catch (error69) {
+      } catch (error70) {
       }
     }
     function load() {
       let r;
       try {
         r = exports2.storage.getItem("debug") || exports2.storage.getItem("DEBUG");
-      } catch (error69) {
+      } catch (error70) {
       }
       if (!r && typeof process !== "undefined" && "env" in process) {
         r = process.env.DEBUG;
@@ -802,7 +802,7 @@ var require_browser = __commonJS({
     function localstorage() {
       try {
         return localStorage;
-      } catch (error69) {
+      } catch (error70) {
       }
     }
     module2.exports = require_common()(exports2);
@@ -810,8 +810,8 @@ var require_browser = __commonJS({
     formatters.j = function(v) {
       try {
         return JSON.stringify(v);
-      } catch (error69) {
-        return "[UnexpectedJSONParseError]: " + error69.message;
+      } catch (error70) {
+        return "[UnexpectedJSONParseError]: " + error70.message;
       }
     };
   }
@@ -1026,7 +1026,7 @@ var require_node = __commonJS({
           221
         ];
       }
-    } catch (error69) {
+    } catch (error70) {
     }
     exports2.inspectOpts = Object.keys(process.env).filter((key) => {
       return /^debug_/i.test(key);
@@ -1379,30 +1379,30 @@ var require_depd = __commonJS({
       Object.defineProperty(obj, prop, descriptor);
     }
     function DeprecationError(namespace, message, stack) {
-      var error69 = new Error();
+      var error70 = new Error();
       var stackString;
-      Object.defineProperty(error69, "constructor", {
+      Object.defineProperty(error70, "constructor", {
         value: DeprecationError
       });
-      Object.defineProperty(error69, "message", {
+      Object.defineProperty(error70, "message", {
         configurable: true,
         enumerable: false,
         value: message,
         writable: true
       });
-      Object.defineProperty(error69, "name", {
+      Object.defineProperty(error70, "name", {
         enumerable: false,
         configurable: true,
         value: "DeprecationError",
         writable: true
       });
-      Object.defineProperty(error69, "namespace", {
+      Object.defineProperty(error70, "namespace", {
         configurable: true,
         enumerable: false,
         value: namespace,
         writable: true
       });
-      Object.defineProperty(error69, "stack", {
+      Object.defineProperty(error70, "stack", {
         configurable: true,
         enumerable: false,
         get: function() {
@@ -1415,7 +1415,7 @@ var require_depd = __commonJS({
           stackString = val;
         }
       });
-      return error69;
+      return error70;
     }
   }
 });
@@ -9708,11 +9708,11 @@ var require_on_finished = __commonJS({
       var eeMsg;
       var eeSocket;
       var finished = false;
-      function onFinish(error69) {
+      function onFinish(error70) {
         eeMsg.cancel();
         eeSocket.cancel();
         finished = true;
-        callback(error69);
+        callback(error70);
       }
       eeMsg = eeSocket = first([[msg, "end", "finish"]], onFinish);
       function onSocket(socket) {
@@ -19669,16 +19669,16 @@ var require_read = __commonJS({
         }));
       }
       debug("read body");
-      getBody(stream8, opts, function(error69, body) {
-        if (error69) {
+      getBody(stream8, opts, function(error70, body) {
+        if (error70) {
           var _error;
-          if (error69.type === "encoding.unsupported") {
+          if (error70.type === "encoding.unsupported") {
             _error = createError(415, 'unsupported charset "' + encoding.toUpperCase() + '"', {
               charset: encoding.toLowerCase(),
               type: "charset.unsupported"
             });
           } else {
-            _error = createError(400, error69);
+            _error = createError(400, error70);
           }
           if (stream8 !== req) {
             req.unpipe();
@@ -19830,17 +19830,17 @@ var require_json = __commonJS({
       var match = FIRST_CHAR_REGEXP.exec(str);
       return match ? match[1] : void 0;
     }
-    function normalizeJsonSyntaxError(error69, obj) {
-      var keys = Object.getOwnPropertyNames(error69);
+    function normalizeJsonSyntaxError(error70, obj) {
+      var keys = Object.getOwnPropertyNames(error70);
       for (var i = 0; i < keys.length; i++) {
         var key = keys[i];
         if (key !== "stack" && key !== "message") {
-          delete error69[key];
+          delete error70[key];
         }
       }
-      error69.stack = obj.stack.replace(error69.message, obj.message);
-      error69.message = obj.message;
-      return error69;
+      error70.stack = obj.stack.replace(error70.message, obj.message);
+      error70.message = obj.message;
+      return error70;
     }
   }
 });
@@ -23519,7 +23519,7 @@ var require_ipaddr = __commonJS({
         return new this(octets);
       };
       ipaddr2.IPv4.broadcastAddressFromCIDR = function(string5) {
-        var cidr, error69, i, ipInterfaceOctets, octets, subnetMaskOctets;
+        var cidr, error70, i, ipInterfaceOctets, octets, subnetMaskOctets;
         try {
           cidr = this.parseCIDR(string5);
           ipInterfaceOctets = cidr[0].toByteArray();
@@ -23532,12 +23532,12 @@ var require_ipaddr = __commonJS({
           }
           return new this(octets);
         } catch (error1) {
-          error69 = error1;
+          error70 = error1;
           throw new Error("ipaddr: the address does not have IPv4 CIDR format");
         }
       };
       ipaddr2.IPv4.networkAddressFromCIDR = function(string5) {
-        var cidr, error69, i, ipInterfaceOctets, octets, subnetMaskOctets;
+        var cidr, error70, i, ipInterfaceOctets, octets, subnetMaskOctets;
         try {
           cidr = this.parseCIDR(string5);
           ipInterfaceOctets = cidr[0].toByteArray();
@@ -23550,7 +23550,7 @@ var require_ipaddr = __commonJS({
           }
           return new this(octets);
         } catch (error1) {
-          error69 = error1;
+          error70 = error1;
           throw new Error("ipaddr: the address does not have IPv4 CIDR format");
         }
       };
@@ -24422,19 +24422,19 @@ var require_layer = __commonJS({
       }
       this.matchers = Array.isArray(path26) ? path26.map(matcher) : [matcher(path26)];
     }
-    Layer.prototype.handleError = function handleError(error69, req, res, next) {
+    Layer.prototype.handleError = function handleError(error70, req, res, next) {
       const fn = this.handle;
       if (fn.length !== 4) {
-        return next(error69);
+        return next(error70);
       }
       try {
-        const ret = fn(error69, req, res, next);
+        const ret = fn(error70, req, res, next);
         if (isPromise(ret)) {
           if (!(ret instanceof Promise)) {
             deprecate("handlers that are Promise-like are deprecated, use a native Promise instead");
           }
-          ret.then(null, function(error70) {
-            next(error70 || new Error("Rejected promise"));
+          ret.then(null, function(error71) {
+            next(error71 || new Error("Rejected promise"));
           });
         }
       } catch (err) {
@@ -24452,8 +24452,8 @@ var require_layer = __commonJS({
           if (!(ret instanceof Promise)) {
             deprecate("handlers that are Promise-like are deprecated, use a native Promise instead");
           }
-          ret.then(null, function(error69) {
-            next(error69 || new Error("Rejected promise"));
+          ret.then(null, function(error70) {
+            next(error70 || new Error("Rejected promise"));
           });
         }
       } catch (err) {
@@ -24650,16 +24650,16 @@ var require_router = __commonJS({
         return new Router(options);
       }
       const opts = options || {};
-      function router197(req, res, next) {
-        router197.handle(req, res, next);
+      function router202(req, res, next) {
+        router202.handle(req, res, next);
       }
-      Object.setPrototypeOf(router197, this);
-      router197.caseSensitive = opts.caseSensitive;
-      router197.mergeParams = opts.mergeParams;
-      router197.params = {};
-      router197.strict = opts.strict;
-      router197.stack = [];
-      return router197;
+      Object.setPrototypeOf(router202, this);
+      router202.caseSensitive = opts.caseSensitive;
+      router202.mergeParams = opts.mergeParams;
+      router202.params = {};
+      router202.strict = opts.strict;
+      router202.stack = [];
+      return router202;
     }
     Router.prototype = function() {
     };
@@ -24971,8 +24971,8 @@ var require_router = __commonJS({
             if (!(ret instanceof Promise)) {
               deprecate("parameters that are Promise-like are deprecated, use a native Promise instead");
             }
-            ret.then(null, function(error69) {
-              paramCallback(error69 || new Error("Rejected promise"));
+            ret.then(null, function(error70) {
+              paramCallback(error70 || new Error("Rejected promise"));
             });
           }
         } catch (e) {
@@ -25047,7 +25047,7 @@ var require_application = __commonJS({
     var app2 = exports2 = module2.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router197 = null;
+      var router202 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -25056,13 +25056,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router197 === null) {
-            router197 = new Router({
+          if (router202 === null) {
+            router202 = new Router({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router197;
+          return router202;
         }
       });
     };
@@ -25133,15 +25133,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router197 = this.router;
+      var router202 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router197.use(path26, fn2);
+          return router202.use(path26, fn2);
         }
         debug(".use app under %s", path26);
         fn2.mountpath = path26;
         fn2.parent = this;
-        router197.use(path26, function mounted_app(req, res, next) {
+        router202.use(path26, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -26585,7 +26585,7 @@ var require_send = __commonJS({
       this._root = opts.root ? resolve3(opts.root) : null;
     }
     util4.inherits(SendStream, Stream);
-    SendStream.prototype.error = function error69(status, err) {
+    SendStream.prototype.error = function error70(status, err) {
       if (hasListeners(this, "error")) {
         return this.emit("error", createHttpError(status, err));
       }
@@ -26650,15 +26650,15 @@ var require_send = __commonJS({
       var statusCode = this.res.statusCode;
       return statusCode >= 200 && statusCode < 300 || statusCode === 304;
     };
-    SendStream.prototype.onStatError = function onStatError(error69) {
-      switch (error69.code) {
+    SendStream.prototype.onStatError = function onStatError(error70) {
+      switch (error70.code) {
         case "ENAMETOOLONG":
         case "ENOENT":
         case "ENOTDIR":
-          this.error(404, error69);
+          this.error(404, error70);
           break;
         default:
-          this.error(500, error69);
+          this.error(500, error70);
           break;
       }
     };
@@ -27612,7 +27612,7 @@ var require_serve_static = __commonJS({
             forwardError = true;
           });
         }
-        stream8.on("error", function error69(err) {
+        stream8.on("error", function error70(err) {
           if (forwardError || !(err.statusCode < 500)) {
             next(err);
             return;
@@ -37580,7 +37580,7 @@ var require_parser_v3 = __commonJS({
       const results = new Array(ary.length);
       let count = 0;
       for (let i = 0; i < ary.length; i++) {
-        each(ary[i], (error69, msg) => {
+        each(ary[i], (error70, msg) => {
           results[i] = msg;
           if (++count === ary.length) {
             done(null, results);
@@ -39690,26 +39690,26 @@ var require_receiver = __commonJS({
         }
         const buf = this.consume(2);
         if ((buf[0] & 48) !== 0) {
-          const error69 = this.createError(
+          const error70 = this.createError(
             RangeError,
             "RSV2 and RSV3 must be clear",
             true,
             1002,
             "WS_ERR_UNEXPECTED_RSV_2_3"
           );
-          cb(error69);
+          cb(error70);
           return;
         }
         const compressed = (buf[0] & 64) === 64;
         if (compressed && !this._extensions[PerMessageDeflate.extensionName]) {
-          const error69 = this.createError(
+          const error70 = this.createError(
             RangeError,
             "RSV1 must be clear",
             true,
             1002,
             "WS_ERR_UNEXPECTED_RSV_1"
           );
-          cb(error69);
+          cb(error70);
           return;
         }
         this._fin = (buf[0] & 128) === 128;
@@ -39717,109 +39717,109 @@ var require_receiver = __commonJS({
         this._payloadLength = buf[1] & 127;
         if (this._opcode === 0) {
           if (compressed) {
-            const error69 = this.createError(
+            const error70 = this.createError(
               RangeError,
               "RSV1 must be clear",
               true,
               1002,
               "WS_ERR_UNEXPECTED_RSV_1"
             );
-            cb(error69);
+            cb(error70);
             return;
           }
           if (!this._fragmented) {
-            const error69 = this.createError(
+            const error70 = this.createError(
               RangeError,
               "invalid opcode 0",
               true,
               1002,
               "WS_ERR_INVALID_OPCODE"
             );
-            cb(error69);
+            cb(error70);
             return;
           }
           this._opcode = this._fragmented;
         } else if (this._opcode === 1 || this._opcode === 2) {
           if (this._fragmented) {
-            const error69 = this.createError(
+            const error70 = this.createError(
               RangeError,
               `invalid opcode ${this._opcode}`,
               true,
               1002,
               "WS_ERR_INVALID_OPCODE"
             );
-            cb(error69);
+            cb(error70);
             return;
           }
           this._compressed = compressed;
         } else if (this._opcode > 7 && this._opcode < 11) {
           if (!this._fin) {
-            const error69 = this.createError(
+            const error70 = this.createError(
               RangeError,
               "FIN must be set",
               true,
               1002,
               "WS_ERR_EXPECTED_FIN"
             );
-            cb(error69);
+            cb(error70);
             return;
           }
           if (compressed) {
-            const error69 = this.createError(
+            const error70 = this.createError(
               RangeError,
               "RSV1 must be clear",
               true,
               1002,
               "WS_ERR_UNEXPECTED_RSV_1"
             );
-            cb(error69);
+            cb(error70);
             return;
           }
           if (this._payloadLength > 125 || this._opcode === 8 && this._payloadLength === 1) {
-            const error69 = this.createError(
+            const error70 = this.createError(
               RangeError,
               `invalid payload length ${this._payloadLength}`,
               true,
               1002,
               "WS_ERR_INVALID_CONTROL_PAYLOAD_LENGTH"
             );
-            cb(error69);
+            cb(error70);
             return;
           }
         } else {
-          const error69 = this.createError(
+          const error70 = this.createError(
             RangeError,
             `invalid opcode ${this._opcode}`,
             true,
             1002,
             "WS_ERR_INVALID_OPCODE"
           );
-          cb(error69);
+          cb(error70);
           return;
         }
         if (!this._fin && !this._fragmented) this._fragmented = this._opcode;
         this._masked = (buf[1] & 128) === 128;
         if (this._isServer) {
           if (!this._masked) {
-            const error69 = this.createError(
+            const error70 = this.createError(
               RangeError,
               "MASK must be set",
               true,
               1002,
               "WS_ERR_EXPECTED_MASK"
             );
-            cb(error69);
+            cb(error70);
             return;
           }
         } else if (this._masked) {
-          const error69 = this.createError(
+          const error70 = this.createError(
             RangeError,
             "MASK must be clear",
             true,
             1002,
             "WS_ERR_UNEXPECTED_MASK"
           );
-          cb(error69);
+          cb(error70);
           return;
         }
         if (this._payloadLength === 126) this._state = GET_PAYLOAD_LENGTH_16;
@@ -39854,14 +39854,14 @@ var require_receiver = __commonJS({
         const buf = this.consume(8);
         const num = buf.readUInt32BE(0);
         if (num > Math.pow(2, 53 - 32) - 1) {
-          const error69 = this.createError(
+          const error70 = this.createError(
             RangeError,
             "Unsupported WebSocket frame: payload length > 2^53 - 1",
             false,
             1009,
             "WS_ERR_UNSUPPORTED_DATA_PAYLOAD_LENGTH"
           );
-          cb(error69);
+          cb(error70);
           return;
         }
         this._payloadLength = num * Math.pow(2, 32) + buf.readUInt32BE(4);
@@ -39877,14 +39877,14 @@ var require_receiver = __commonJS({
         if (this._payloadLength && this._opcode < 8) {
           this._totalPayloadLength += this._payloadLength;
           if (this._totalPayloadLength > this._maxPayload && this._maxPayload > 0) {
-            const error69 = this.createError(
+            const error70 = this.createError(
               RangeError,
               "Max payload size exceeded",
               false,
               1009,
               "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH"
             );
-            cb(error69);
+            cb(error70);
             return;
           }
         }
@@ -39951,14 +39951,14 @@ var require_receiver = __commonJS({
           if (buf.length) {
             this._messageLength += buf.length;
             if (this._messageLength > this._maxPayload && this._maxPayload > 0) {
-              const error69 = this.createError(
+              const error70 = this.createError(
                 RangeError,
                 "Max payload size exceeded",
                 false,
                 1009,
                 "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH"
               );
-              cb(error69);
+              cb(error70);
               return;
             }
             this._fragments.push(buf);
@@ -40009,14 +40009,14 @@ var require_receiver = __commonJS({
         } else {
           const buf = concat(fragments, messageLength);
           if (!this._skipUTF8Validation && !isValidUTF8(buf)) {
-            const error69 = this.createError(
+            const error70 = this.createError(
               Error,
               "invalid UTF-8 sequence",
               true,
               1007,
               "WS_ERR_INVALID_UTF8"
             );
-            cb(error69);
+            cb(error70);
             return;
           }
           if (this._state === INFLATING || this._allowSynchronousEvents) {
@@ -40048,14 +40048,14 @@ var require_receiver = __commonJS({
           } else {
             const code = data.readUInt16BE(0);
             if (!isValidStatusCode(code)) {
-              const error69 = this.createError(
+              const error70 = this.createError(
                 RangeError,
                 `invalid status code ${code}`,
                 true,
                 1002,
                 "WS_ERR_INVALID_CLOSE_CODE"
               );
-              cb(error69);
+              cb(error70);
               return;
             }
             const buf = new FastBuffer(
@@ -40064,14 +40064,14 @@ var require_receiver = __commonJS({
               data.length - 2
             );
             if (!this._skipUTF8Validation && !isValidUTF8(buf)) {
-              const error69 = this.createError(
+              const error70 = this.createError(
                 Error,
                 "invalid UTF-8 sequence",
                 true,
                 1007,
                 "WS_ERR_INVALID_UTF8"
               );
-              cb(error69);
+              cb(error70);
               return;
             }
             this._loop = false;
@@ -40780,10 +40780,10 @@ var require_event_target = __commonJS({
             callListener(handler, this, event);
           };
         } else if (type === "error") {
-          wrapper = function onError(error69) {
+          wrapper = function onError(error70) {
             const event = new ErrorEvent("error", {
-              error: error69,
-              message: error69.message
+              error: error70,
+              message: error70.message
             });
             event[kTarget] = this;
             callListener(handler, this, event);
@@ -41908,7 +41908,7 @@ var require_stream = __commonJS({
         const data = !isBinary && duplex._readableState.objectMode ? msg.toString() : msg;
         if (!duplex.push(data)) ws.pause();
       });
-      ws.once("error", function error69(err) {
+      ws.once("error", function error70(err) {
         if (duplex.destroyed) return;
         terminateOnDestroy = false;
         duplex.destroy(err);
@@ -41924,7 +41924,7 @@ var require_stream = __commonJS({
           return;
         }
         let called = false;
-        ws.once("error", function error69(err2) {
+        ws.once("error", function error70(err2) {
           called = true;
           callback(err2);
         });
@@ -48395,9 +48395,9 @@ var require_uws = __commonJS({
       const { size } = (0, fs_1.statSync)(filepath);
       const readStream2 = (0, fs_1.createReadStream)(filepath);
       const destroyReadStream = () => !readStream2.destroyed && readStream2.destroy();
-      const onError = (error69) => {
+      const onError = (error70) => {
         destroyReadStream();
-        throw error69;
+        throw error70;
       };
       const onDataChunk = (chunk) => {
         const arrayBufferChunk = toArrayBuffer(chunk);
@@ -49986,7 +49986,7 @@ var require_receiver2 = __commonJS({
         const buf = this.consume(2);
         if ((buf[0] & 48) !== 0) {
           this._loop = false;
-          return error69(
+          return error70(
             RangeError,
             "RSV2 and RSV3 must be clear",
             true,
@@ -49997,7 +49997,7 @@ var require_receiver2 = __commonJS({
         const compressed = (buf[0] & 64) === 64;
         if (compressed && !this._extensions[PerMessageDeflate.extensionName]) {
           this._loop = false;
-          return error69(
+          return error70(
             RangeError,
             "RSV1 must be clear",
             true,
@@ -50011,7 +50011,7 @@ var require_receiver2 = __commonJS({
         if (this._opcode === 0) {
           if (compressed) {
             this._loop = false;
-            return error69(
+            return error70(
               RangeError,
               "RSV1 must be clear",
               true,
@@ -50021,7 +50021,7 @@ var require_receiver2 = __commonJS({
           }
           if (!this._fragmented) {
             this._loop = false;
-            return error69(
+            return error70(
               RangeError,
               "invalid opcode 0",
               true,
@@ -50033,7 +50033,7 @@ var require_receiver2 = __commonJS({
         } else if (this._opcode === 1 || this._opcode === 2) {
           if (this._fragmented) {
             this._loop = false;
-            return error69(
+            return error70(
               RangeError,
               `invalid opcode ${this._opcode}`,
               true,
@@ -50045,7 +50045,7 @@ var require_receiver2 = __commonJS({
         } else if (this._opcode > 7 && this._opcode < 11) {
           if (!this._fin) {
             this._loop = false;
-            return error69(
+            return error70(
               RangeError,
               "FIN must be set",
               true,
@@ -50055,7 +50055,7 @@ var require_receiver2 = __commonJS({
           }
           if (compressed) {
             this._loop = false;
-            return error69(
+            return error70(
               RangeError,
               "RSV1 must be clear",
               true,
@@ -50065,7 +50065,7 @@ var require_receiver2 = __commonJS({
           }
           if (this._payloadLength > 125) {
             this._loop = false;
-            return error69(
+            return error70(
               RangeError,
               `invalid payload length ${this._payloadLength}`,
               true,
@@ -50075,7 +50075,7 @@ var require_receiver2 = __commonJS({
           }
         } else {
           this._loop = false;
-          return error69(
+          return error70(
             RangeError,
             `invalid opcode ${this._opcode}`,
             true,
@@ -50088,7 +50088,7 @@ var require_receiver2 = __commonJS({
         if (this._isServer) {
           if (!this._masked) {
             this._loop = false;
-            return error69(
+            return error70(
               RangeError,
               "MASK must be set",
               true,
@@ -50098,7 +50098,7 @@ var require_receiver2 = __commonJS({
           }
         } else if (this._masked) {
           this._loop = false;
-          return error69(
+          return error70(
             RangeError,
             "MASK must be clear",
             true,
@@ -50139,7 +50139,7 @@ var require_receiver2 = __commonJS({
         const num = buf.readUInt32BE(0);
         if (num > Math.pow(2, 53 - 32) - 1) {
           this._loop = false;
-          return error69(
+          return error70(
             RangeError,
             "Unsupported WebSocket frame: payload length > 2^53 - 1",
             false,
@@ -50161,7 +50161,7 @@ var require_receiver2 = __commonJS({
           this._totalPayloadLength += this._payloadLength;
           if (this._totalPayloadLength > this._maxPayload && this._maxPayload > 0) {
             this._loop = false;
-            return error69(
+            return error70(
               RangeError,
               "Max payload size exceeded",
               false,
@@ -50230,7 +50230,7 @@ var require_receiver2 = __commonJS({
             this._messageLength += buf.length;
             if (this._messageLength > this._maxPayload && this._maxPayload > 0) {
               return cb(
-                error69(
+                error70(
                   RangeError,
                   "Max payload size exceeded",
                   false,
@@ -50274,7 +50274,7 @@ var require_receiver2 = __commonJS({
             const buf = concat(fragments, messageLength);
             if (!isValidUTF8(buf)) {
               this._loop = false;
-              return error69(
+              return error70(
                 Error,
                 "invalid UTF-8 sequence",
                 true,
@@ -50301,7 +50301,7 @@ var require_receiver2 = __commonJS({
             this.emit("conclude", 1005, "");
             this.end();
           } else if (data.length === 1) {
-            return error69(
+            return error70(
               RangeError,
               "invalid payload length 1",
               true,
@@ -50311,7 +50311,7 @@ var require_receiver2 = __commonJS({
           } else {
             const code = data.readUInt16BE(0);
             if (!isValidStatusCode(code)) {
-              return error69(
+              return error70(
                 RangeError,
                 `invalid status code ${code}`,
                 true,
@@ -50321,7 +50321,7 @@ var require_receiver2 = __commonJS({
             }
             const buf = data.slice(2);
             if (!isValidUTF8(buf)) {
-              return error69(
+              return error70(
                 Error,
                 "invalid UTF-8 sequence",
                 true,
@@ -50341,11 +50341,11 @@ var require_receiver2 = __commonJS({
       }
     };
     module2.exports = Receiver;
-    function error69(ErrorCtor, message, prefix, statusCode, errorCode) {
+    function error70(ErrorCtor, message, prefix, statusCode, errorCode) {
       const err = new ErrorCtor(
         prefix ? `Invalid WebSocket frame: ${message}` : message
       );
-      Error.captureStackTrace(err, error69);
+      Error.captureStackTrace(err, error70);
       err.code = errorCode;
       err[kStatusCode] = statusCode;
       return err;
@@ -50781,10 +50781,10 @@ var require_event_target2 = __commonJS({
        * @param {WebSocket} target A reference to the target to which the event was
        *     dispatched
        */
-      constructor(error69, target) {
+      constructor(error70, target) {
         super("error", target);
-        this.message = error69.message;
-        this.error = error69;
+        this.message = error70.message;
+        this.error = error70;
       }
     };
     var EventTarget = {
@@ -50808,8 +50808,8 @@ var require_event_target2 = __commonJS({
         function onClose(code, message) {
           listener.call(this, new CloseEvent(code, message, this));
         }
-        function onError(error69) {
-          listener.call(this, new ErrorEvent(error69, this));
+        function onError(error70) {
+          listener.call(this, new ErrorEvent(error70, this));
         }
         function onOpen() {
           listener.call(this, new OpenEvent(this));
@@ -51956,7 +51956,7 @@ var require_stream2 = __commonJS({
           ws._socket.pause();
         }
       });
-      ws.once("error", function error69(err) {
+      ws.once("error", function error70(err) {
         if (duplex.destroyed) return;
         terminateOnDestroy = false;
         duplex.destroy(err);
@@ -51972,7 +51972,7 @@ var require_stream2 = __commonJS({
           return;
         }
         let called = false;
-        ws.once("error", function error69(err2) {
+        ws.once("error", function error70(err2) {
           called = true;
           callback(err2);
         });
@@ -52548,8 +52548,8 @@ var require_lib5 = __commonJS({
         getWss: function getWss() {
           return wsServer;
         },
-        applyTo: function applyTo(router197) {
-          (0, _addWsMethod2.default)(router197);
+        applyTo: function applyTo(router202) {
+          (0, _addWsMethod2.default)(router202);
         }
       };
     }
@@ -53132,11 +53132,11 @@ var require_on_finished2 = __commonJS({
       var eeMsg;
       var eeSocket;
       var finished = false;
-      function onFinish(error69) {
+      function onFinish(error70) {
         eeMsg.cancel();
         eeSocket.cancel();
         finished = true;
-        callback(error69);
+        callback(error70);
       }
       eeMsg = eeSocket = first([[msg, "end", "finish"]], onFinish);
       function onSocket(socket) {
@@ -54734,8 +54734,8 @@ var require_errno = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.isEnoentCodeError = void 0;
-    function isEnoentCodeError(error69) {
-      return error69.code === "ENOENT";
+    function isEnoentCodeError(error70) {
+      return error70.code === "ENOENT";
     }
     exports2.isEnoentCodeError = isEnoentCodeError;
   }
@@ -58278,7 +58278,7 @@ var require_stream3 = __commonJS({
     function merge4(streams) {
       const mergedStream = merge22(streams);
       streams.forEach((stream8) => {
-        stream8.once("error", (error69) => mergedStream.emit("error", error69));
+        stream8.once("error", (error70) => mergedStream.emit("error", error70));
       });
       mergedStream.once("close", () => propagateCloseEventToSources(streams));
       mergedStream.once("end", () => propagateCloseEventToSources(streams));
@@ -58460,8 +58460,8 @@ var require_async = __commonJS({
       });
     }
     exports2.read = read;
-    function callFailureCallback(callback, error69) {
-      callback(error69);
+    function callFailureCallback(callback, error70) {
+      callback(error70);
     }
     function callSuccessCallback(callback, result) {
       callback(null, result);
@@ -58486,11 +58486,11 @@ var require_sync = __commonJS({
           stat.isSymbolicLink = () => true;
         }
         return stat;
-      } catch (error69) {
+      } catch (error70) {
         if (!settings.throwErrorOnBrokenSymbolicLink) {
           return lstat;
         }
-        throw error69;
+        throw error70;
       }
     }
     exports2.read = read;
@@ -58782,9 +58782,9 @@ var require_async2 = __commonJS({
         const tasks = names.map((name28) => {
           const path26 = common.joinPathSegments(directory, name28, settings.pathSegmentSeparator);
           return (done) => {
-            fsStat.stat(path26, settings.fsStatSettings, (error69, stats) => {
-              if (error69 !== null) {
-                done(error69);
+            fsStat.stat(path26, settings.fsStatSettings, (error70, stats) => {
+              if (error70 !== null) {
+                done(error70);
                 return;
               }
               const entry = {
@@ -58809,8 +58809,8 @@ var require_async2 = __commonJS({
       });
     }
     exports2.readdir = readdir;
-    function callFailureCallback(callback, error69) {
-      callback(error69);
+    function callFailureCallback(callback, error70) {
+      callback(error70);
     }
     function callSuccessCallback(callback, result) {
       callback(null, result);
@@ -58847,9 +58847,9 @@ var require_sync2 = __commonJS({
           try {
             const stats = settings.fs.statSync(entry.path);
             entry.dirent = utils.fs.createDirentFromStats(entry.name, stats);
-          } catch (error69) {
+          } catch (error70) {
             if (settings.throwErrorOnBrokenSymbolicLink) {
-              throw error69;
+              throw error70;
             }
           }
         }
@@ -59043,7 +59043,7 @@ var require_queue = __commonJS({
         empty: noop3,
         kill,
         killAndDrain,
-        error: error69,
+        error: error70,
         abort
       };
       return self2;
@@ -59185,7 +59185,7 @@ var require_queue = __commonJS({
         }
         self2.drain = noop3;
       }
-      function error69(handler) {
+      function error70(handler) {
         errorHandler = handler;
       }
     }
@@ -59285,11 +59285,11 @@ var require_common3 = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.joinPathSegments = exports2.replacePathSegmentSeparator = exports2.isAppliedFilter = exports2.isFatalError = void 0;
-    function isFatalError(settings, error69) {
+    function isFatalError(settings, error70) {
       if (settings.errorFilter === null) {
         return true;
       }
-      return !settings.errorFilter(error69);
+      return !settings.errorFilter(error70);
     }
     exports2.isFatalError = isFatalError;
     function isAppliedFilter(filter6, value) {
@@ -59384,16 +59384,16 @@ var require_async3 = __commonJS({
       }
       _pushToQueue(directory, base) {
         const queueItem = { directory, base };
-        this._queue.push(queueItem, (error69) => {
-          if (error69 !== null) {
-            this._handleError(error69);
+        this._queue.push(queueItem, (error70) => {
+          if (error70 !== null) {
+            this._handleError(error70);
           }
         });
       }
       _worker(item, done) {
-        this._scandir(item.directory, this._settings.fsScandirSettings, (error69, entries) => {
-          if (error69 !== null) {
-            done(error69, void 0);
+        this._scandir(item.directory, this._settings.fsScandirSettings, (error70, entries) => {
+          if (error70 !== null) {
+            done(error70, void 0);
             return;
           }
           for (const entry of entries) {
@@ -59402,13 +59402,13 @@ var require_async3 = __commonJS({
           done(null, void 0);
         });
       }
-      _handleError(error69) {
-        if (this._isDestroyed || !common.isFatalError(this._settings, error69)) {
+      _handleError(error70) {
+        if (this._isDestroyed || !common.isFatalError(this._settings, error70)) {
           return;
         }
         this._isFatalError = true;
         this._isDestroyed = true;
-        this._emitter.emit("error", error69);
+        this._emitter.emit("error", error70);
       }
       _handleEntry(entry, base) {
         if (this._isDestroyed || this._isFatalError) {
@@ -59447,8 +59447,8 @@ var require_async4 = __commonJS({
         this._storage = [];
       }
       read(callback) {
-        this._reader.onError((error69) => {
-          callFailureCallback(callback, error69);
+        this._reader.onError((error70) => {
+          callFailureCallback(callback, error70);
         });
         this._reader.onEntry((entry) => {
           this._storage.push(entry);
@@ -59460,8 +59460,8 @@ var require_async4 = __commonJS({
       }
     };
     exports2.default = AsyncProvider;
-    function callFailureCallback(callback, error69) {
-      callback(error69);
+    function callFailureCallback(callback, error70) {
+      callback(error70);
     }
     function callSuccessCallback(callback, entries) {
       callback(null, entries);
@@ -59493,8 +59493,8 @@ var require_stream4 = __commonJS({
         });
       }
       read() {
-        this._reader.onError((error69) => {
-          this._stream.emit("error", error69);
+        this._reader.onError((error70) => {
+          this._stream.emit("error", error70);
         });
         this._reader.onEntry((entry) => {
           this._stream.push(entry);
@@ -59544,15 +59544,15 @@ var require_sync3 = __commonJS({
           for (const entry of entries) {
             this._handleEntry(entry, base);
           }
-        } catch (error69) {
-          this._handleError(error69);
+        } catch (error70) {
+          this._handleError(error70);
         }
       }
-      _handleError(error69) {
-        if (!common.isFatalError(this._settings, error69)) {
+      _handleError(error70) {
+        if (!common.isFatalError(this._settings, error70)) {
           return;
         }
-        throw error69;
+        throw error70;
       }
       _handleEntry(entry, base) {
         const fullpath = entry.path;
@@ -59697,8 +59697,8 @@ var require_reader2 = __commonJS({
         }
         return entry;
       }
-      _isFatalError(error69) {
-        return !utils.errno.isEnoentCodeError(error69) && !this._settings.suppressErrors;
+      _isFatalError(error70) {
+        return !utils.errno.isEnoentCodeError(error70) && !this._settings.suppressErrors;
       }
     };
     exports2.default = Reader;
@@ -59743,17 +59743,17 @@ var require_stream5 = __commonJS({
         return stream8;
       }
       _getEntry(filepath, pattern, options) {
-        return this._getStat(filepath).then((stats) => this._makeEntry(stats, pattern)).catch((error69) => {
-          if (options.errorFilter(error69)) {
+        return this._getStat(filepath).then((stats) => this._makeEntry(stats, pattern)).catch((error70) => {
+          if (options.errorFilter(error70)) {
             return null;
           }
-          throw error69;
+          throw error70;
         });
       }
       _getStat(filepath) {
         return new Promise((resolve3, reject) => {
-          this._stat(filepath, this._fsStatSettings, (error69, stats) => {
-            return error69 === null ? resolve3(stats) : reject(error69);
+          this._stat(filepath, this._fsStatSettings, (error70, stats) => {
+            return error70 === null ? resolve3(stats) : reject(error70);
           });
         });
       }
@@ -59778,11 +59778,11 @@ var require_async5 = __commonJS({
       }
       dynamic(root, options) {
         return new Promise((resolve3, reject) => {
-          this._walkAsync(root, options, (error69, entries) => {
-            if (error69 === null) {
+          this._walkAsync(root, options, (error70, entries) => {
+            if (error70 === null) {
               resolve3(entries);
             } else {
-              reject(error69);
+              reject(error70);
             }
           });
         });
@@ -60053,10 +60053,10 @@ var require_error = __commonJS({
         this._settings = _settings;
       }
       getFilter() {
-        return (error69) => this._isNonFatalError(error69);
+        return (error70) => this._isNonFatalError(error70);
       }
-      _isNonFatalError(error69) {
-        return utils.errno.isEnoentCodeError(error69) || this._settings.suppressErrors;
+      _isNonFatalError(error70) {
+        return utils.errno.isEnoentCodeError(error70) || this._settings.suppressErrors;
       }
     };
     exports2.default = ErrorFilter;
@@ -60197,7 +60197,7 @@ var require_stream6 = __commonJS({
         const source = this.api(root, task, options);
         const destination = new stream_1.Readable({ objectMode: true, read: () => {
         } });
-        source.once("error", (error69) => destination.emit("error", error69)).on("data", (entry) => destination.emit("data", options.transform(entry))).once("end", () => destination.emit("end"));
+        source.once("error", (error70) => destination.emit("error", error70)).on("data", (entry) => destination.emit("data", options.transform(entry))).once("end", () => destination.emit("end"));
         destination.once("close", () => source.destroy());
         return destination;
       }
@@ -60245,11 +60245,11 @@ var require_sync5 = __commonJS({
         try {
           const stats = this._getStat(filepath);
           return this._makeEntry(stats, pattern);
-        } catch (error69) {
-          if (options.errorFilter(error69)) {
+        } catch (error70) {
+          if (options.errorFilter(error70)) {
             return null;
           }
-          throw error69;
+          throw error70;
         }
       }
       _getStat(filepath) {
@@ -62010,6 +62010,33 @@ A medium tracking shot follows the woman from behind as she ascends and approach
             table4.unique(["id"]);
           }
         },
+        // 单视频快创：聊天/白板生成媒体索引（SIY-132）。只保存关系与元数据，媒体二进制仍走
+        // o_image/o_video + MinIO；projectId 隔离读写，idempotencyKey 防重复生成同一次请求的资产。
+        {
+          name: "o_quickVideoMedia",
+          builder: (table4) => {
+            table4.increments("id").primary();
+            table4.integer("projectId").notNullable();
+            table4.integer("sessionId");
+            table4.string("messageId", 64);
+            table4.string("kind", 16).notNullable();
+            table4.integer("assetId");
+            table4.integer("imageId");
+            table4.integer("videoId");
+            table4.string("model", 200);
+            table4.text("prompt");
+            table4.string("source", 20).notNullable().defaultTo("chat");
+            table4.string("state", 16).notNullable().defaultTo("generating");
+            table4.text("errorReason");
+            table4.string("idempotencyKey", 191).notNullable();
+            table4.bigInteger("deletedAt");
+            table4.bigInteger("createTime").notNullable();
+            table4.bigInteger("updateTime").notNullable();
+            table4.unique(["projectId", "idempotencyKey"]);
+            table4.index(["projectId", "kind", "state", "createTime"]);
+            table4.index(["projectId", "sessionId"]);
+          }
+        },
         //供应商配置表
         {
           name: "o_vendorConfig",
@@ -62545,6 +62572,28 @@ A medium tracking shot follows the woman from behind as she ascends and approach
             table4.primary(["id"]);
             table4.index(["type", "styleName"]);
           }
+        },
+        // 单视频快创（SIY-128）：项目内可切换的聊天会话；文本/图片/视频模型偏好按 session 隔离保存
+        {
+          name: "o_quickVideoSession",
+          builder: (table4) => {
+            table4.integer("id").notNullable();
+            table4.integer("projectId").notNullable();
+            table4.string("title", 200);
+            table4.string("status", 16).defaultTo("active");
+            table4.string("textModel", 500);
+            table4.string("imageModel", 500);
+            table4.string("videoModel", 500);
+            table4.integer("sequence");
+            table4.integer("userMessageCount").defaultTo(0);
+            table4.string("titleStatus", 16).defaultTo("idle");
+            table4.bigInteger("titleGeneratedAt");
+            table4.bigInteger("titleGenerationClaimedAt");
+            table4.bigInteger("createTime");
+            table4.bigInteger("updateTime");
+            table4.unique(["id"]);
+            table4.index(["projectId", "updateTime"]);
+          }
         }
       ];
       for (const t of tables) {
@@ -62961,17 +63010,17 @@ var init_runninghub_models = __esm({
 });
 
 // node_modules/@ai-sdk/provider/dist/index.mjs
-function getErrorMessage(error69) {
-  if (error69 == null) {
+function getErrorMessage(error70) {
+  if (error70 == null) {
     return "unknown error";
   }
-  if (typeof error69 === "string") {
-    return error69;
+  if (typeof error70 === "string") {
+    return error70;
   }
-  if (error69 instanceof Error) {
-    return error69.message;
+  if (error70 instanceof Error) {
+    return error70.message;
   }
-  return JSON.stringify(error69);
+  return JSON.stringify(error70);
 }
 var marker, symbol, _a, _b, AISDKError, name, marker2, symbol2, _a2, _b2, APICallError, name2, marker3, symbol3, _a3, _b3, EmptyResponseBodyError, name3, marker4, symbol4, _a4, _b4, InvalidArgumentError, name4, marker5, symbol5, _a5, _b5, InvalidPromptError, name5, marker6, symbol6, _a6, _b6, InvalidResponseDataError, name6, marker7, symbol7, _a7, _b7, JSONParseError, name7, marker8, symbol8, _a8, _b8, LoadAPIKeyError, name8, marker9, symbol9, _a9, _b9, LoadSettingError, name9, marker10, symbol10, _a10, _b10, NoContentGeneratedError, name10, marker11, symbol11, _a11, _b11, NoSuchModelError, name11, marker12, symbol12, _a12, _b12, TooManyEmbeddingValuesForCallError, name12, marker13, symbol13, _a13, _b13, TypeValidationError, name13, marker14, symbol14, _a14, _b14, UnsupportedFunctionalityError;
 var init_dist = __esm({
@@ -63003,12 +63052,12 @@ var init_dist = __esm({
        * @param {unknown} error - The error to check.
        * @returns {boolean} True if the error is an AI SDK Error, false otherwise.
        */
-      static isInstance(error69) {
-        return _AISDKError.hasMarker(error69, marker);
+      static isInstance(error70) {
+        return _AISDKError.hasMarker(error70, marker);
       }
-      static hasMarker(error69, marker153) {
+      static hasMarker(error70, marker153) {
         const markerSymbol = Symbol.for(marker153);
-        return error69 != null && typeof error69 === "object" && markerSymbol in error69 && typeof error69[markerSymbol] === "boolean" && error69[markerSymbol] === true;
+        return error70 != null && typeof error70 === "object" && markerSymbol in error70 && typeof error70[markerSymbol] === "boolean" && error70[markerSymbol] === true;
       }
     };
     name = "AI_APICallError";
@@ -63040,8 +63089,8 @@ var init_dist = __esm({
         this.isRetryable = isRetryable;
         this.data = data;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker2);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker2);
       }
     };
     name2 = "AI_EmptyResponseBodyError";
@@ -63053,8 +63102,8 @@ var init_dist = __esm({
         super({ name: name2, message });
         this[_a3] = true;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker3);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker3);
       }
     };
     name3 = "AI_InvalidArgumentError";
@@ -63070,8 +63119,8 @@ var init_dist = __esm({
         this[_a4] = true;
         this.argument = argument;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker4);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker4);
       }
     };
     name4 = "AI_InvalidPromptError";
@@ -63087,8 +63136,8 @@ var init_dist = __esm({
         this[_a5] = true;
         this.prompt = prompt;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker5);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker5);
       }
     };
     name5 = "AI_InvalidResponseDataError";
@@ -63103,8 +63152,8 @@ var init_dist = __esm({
         this[_a6] = true;
         this.data = data;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker6);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker6);
       }
     };
     name6 = "AI_JSONParseError";
@@ -63121,8 +63170,8 @@ Error message: ${getErrorMessage(cause)}`,
         this[_a7] = true;
         this.text = text2;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker7);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker7);
       }
     };
     name7 = "AI_LoadAPIKeyError";
@@ -63134,8 +63183,8 @@ Error message: ${getErrorMessage(cause)}`,
         super({ name: name7, message });
         this[_a8] = true;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker8);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker8);
       }
     };
     name8 = "AI_LoadSettingError";
@@ -63147,8 +63196,8 @@ Error message: ${getErrorMessage(cause)}`,
         super({ name: name8, message });
         this[_a9] = true;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker9);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker9);
       }
     };
     name9 = "AI_NoContentGeneratedError";
@@ -63162,8 +63211,8 @@ Error message: ${getErrorMessage(cause)}`,
         super({ name: name9, message });
         this[_a10] = true;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker10);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker10);
       }
     };
     name10 = "AI_NoSuchModelError";
@@ -63181,8 +63230,8 @@ Error message: ${getErrorMessage(cause)}`,
         this.modelId = modelId;
         this.modelType = modelType;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker11);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker11);
       }
     };
     name11 = "AI_TooManyEmbeddingValuesForCallError";
@@ -63200,8 +63249,8 @@ Error message: ${getErrorMessage(cause)}`,
         this.maxEmbeddingsPerCall = options.maxEmbeddingsPerCall;
         this.values = options.values;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker12);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker12);
       }
     };
     name12 = "AI_TypeValidationError";
@@ -63239,8 +63288,8 @@ Error message: ${getErrorMessage(cause)}`,
         this.value = value;
         this.context = context2;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker13);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker13);
       }
       /**
        * Wraps an error into a TypeValidationError.
@@ -63277,8 +63326,8 @@ Error message: ${getErrorMessage(cause)}`,
         this[_a14] = true;
         this.functionality = functionality;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker14);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker14);
       }
     };
   }
@@ -64051,10 +64100,10 @@ var init_util = __esm({
 });
 
 // node_modules/zod/v4/core/errors.js
-function flattenError(error69, mapper = (issue3) => issue3.message) {
+function flattenError(error70, mapper = (issue3) => issue3.message) {
   const fieldErrors = {};
   const formErrors = [];
-  for (const sub of error69.issues) {
+  for (const sub of error70.issues) {
     if (sub.path.length > 0) {
       fieldErrors[sub.path[0]] = fieldErrors[sub.path[0]] || [];
       fieldErrors[sub.path[0]].push(mapper(sub));
@@ -64064,10 +64113,10 @@ function flattenError(error69, mapper = (issue3) => issue3.message) {
   }
   return { formErrors, fieldErrors };
 }
-function formatError(error69, mapper = (issue3) => issue3.message) {
+function formatError(error70, mapper = (issue3) => issue3.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error70) => {
-    for (const issue3 of error70.issues) {
+  const processError = (error71) => {
+    for (const issue3 of error71.issues) {
       if (issue3.code === "invalid_union" && issue3.errors.length) {
         issue3.errors.map((issues) => processError({ issues }));
       } else if (issue3.code === "invalid_key") {
@@ -64094,14 +64143,14 @@ function formatError(error69, mapper = (issue3) => issue3.message) {
       }
     }
   };
-  processError(error69);
+  processError(error70);
   return fieldErrors;
 }
-function treeifyError(error69, mapper = (issue3) => issue3.message) {
+function treeifyError(error70, mapper = (issue3) => issue3.message) {
   const result = { errors: [] };
-  const processError = (error70, path26 = []) => {
+  const processError = (error71, path26 = []) => {
     var _a31, _b27;
-    for (const issue3 of error70.issues) {
+    for (const issue3 of error71.issues) {
       if (issue3.code === "invalid_union" && issue3.errors.length) {
         issue3.errors.map((issues) => processError({ issues }, issue3.path));
       } else if (issue3.code === "invalid_key") {
@@ -64136,7 +64185,7 @@ function treeifyError(error69, mapper = (issue3) => issue3.message) {
       }
     }
   };
-  processError(error69);
+  processError(error70);
   return result;
 }
 function toDotPath(_path) {
@@ -64157,9 +64206,9 @@ function toDotPath(_path) {
   }
   return segs.join("");
 }
-function prettifyError(error69) {
+function prettifyError(error70) {
   const lines = [];
-  const issues = [...error69.issues].sort((a, b) => (a.path ?? []).length - (b.path ?? []).length);
+  const issues = [...error70.issues].sort((a, b) => (a.path ?? []).length - (b.path ?? []).length);
   for (const issue3 of issues) {
     lines.push(`\u2716 ${issue3.message}`);
     if (issue3.path?.length)
@@ -77873,8 +77922,8 @@ var init_ZodError = __esm({
           return issue3.message;
         };
         const fieldErrors = { _errors: [] };
-        const processError = (error69) => {
-          for (const issue3 of error69.issues) {
+        const processError = (error70) => {
+          for (const issue3 of error70.issues) {
             if (issue3.code === "invalid_union") {
               issue3.unionErrors.map(processError);
             } else if (issue3.code === "invalid_return_type") {
@@ -77937,8 +77986,8 @@ var init_ZodError = __esm({
       }
     };
     ZodError2.create = (issues) => {
-      const error69 = new ZodError2(issues);
-      return error69;
+      const error70 = new ZodError2(issues);
+      return error70;
     };
   }
 });
@@ -78408,8 +78457,8 @@ var init_types = __esm({
           get error() {
             if (this._error)
               return this._error;
-            const error69 = new ZodError2(ctx.common.issues);
-            this._error = error69;
+            const error70 = new ZodError2(ctx.common.issues);
+            this._error = error70;
             return this._error;
           }
         };
@@ -80906,25 +80955,25 @@ var init_types = __esm({
           });
           return INVALID;
         }
-        function makeArgsIssue(args, error69) {
+        function makeArgsIssue(args, error70) {
           return makeIssue({
             data: args,
             path: ctx.path,
             errorMaps: [ctx.common.contextualErrorMap, ctx.schemaErrorMap, getErrorMap2(), en_default2].filter((x) => !!x),
             issueData: {
               code: ZodIssueCode2.invalid_arguments,
-              argumentsError: error69
+              argumentsError: error70
             }
           });
         }
-        function makeReturnsIssue(returns, error69) {
+        function makeReturnsIssue(returns, error70) {
           return makeIssue({
             data: returns,
             path: ctx.path,
             errorMaps: [ctx.common.contextualErrorMap, ctx.schemaErrorMap, getErrorMap2(), en_default2].filter((x) => !!x),
             issueData: {
               code: ZodIssueCode2.invalid_return_type,
-              returnTypeError: error69
+              returnTypeError: error70
             }
           });
         }
@@ -80933,15 +80982,15 @@ var init_types = __esm({
         if (this._def.returns instanceof ZodPromise2) {
           const me = this;
           return OK(async function(...args) {
-            const error69 = new ZodError2([]);
+            const error70 = new ZodError2([]);
             const parsedArgs = await me._def.args.parseAsync(args, params).catch((e) => {
-              error69.addIssue(makeArgsIssue(args, e));
-              throw error69;
+              error70.addIssue(makeArgsIssue(args, e));
+              throw error70;
             });
             const result = await Reflect.apply(fn, this, parsedArgs);
             const parsedReturns = await me._def.returns._def.type.parseAsync(result, params).catch((e) => {
-              error69.addIssue(makeReturnsIssue(result, e));
-              throw error69;
+              error70.addIssue(makeReturnsIssue(result, e));
+              throw error70;
             });
             return parsedReturns;
           });
@@ -81761,8 +81810,8 @@ var init_stream = __esm({
               onEvent: (event) => {
                 controller.enqueue(event);
               },
-              onError(error69) {
-                onError === "terminate" ? controller.error(error69) : typeof onError == "function" && onError(error69);
+              onError(error70) {
+                onError === "terminate" ? controller.error(error70) : typeof onError == "function" && onError(error70);
               },
               onRetry,
               onComment
@@ -82058,49 +82107,49 @@ async function downloadBlob(url4, options) {
     });
     const contentType = (_b27 = response.headers.get("content-type")) != null ? _b27 : void 0;
     return new Blob([data], contentType ? { type: contentType } : void 0);
-  } catch (error69) {
-    if (DownloadError.isInstance(error69)) {
-      throw error69;
+  } catch (error70) {
+    if (DownloadError.isInstance(error70)) {
+      throw error70;
     }
-    throw new DownloadError({ url: url4, cause: error69 });
+    throw new DownloadError({ url: url4, cause: error70 });
   }
 }
-function getErrorMessage2(error69) {
-  if (error69 == null) {
+function getErrorMessage2(error70) {
+  if (error70 == null) {
     return "unknown error";
   }
-  if (typeof error69 === "string") {
-    return error69;
+  if (typeof error70 === "string") {
+    return error70;
   }
-  if (error69 instanceof Error) {
-    return error69.message;
+  if (error70 instanceof Error) {
+    return error70.message;
   }
-  return JSON.stringify(error69);
+  return JSON.stringify(error70);
 }
-function isAbortError(error69) {
-  return (error69 instanceof Error || error69 instanceof DOMException) && (error69.name === "AbortError" || error69.name === "ResponseAborted" || // Next.js
-  error69.name === "TimeoutError");
+function isAbortError(error70) {
+  return (error70 instanceof Error || error70 instanceof DOMException) && (error70.name === "AbortError" || error70.name === "ResponseAborted" || // Next.js
+  error70.name === "TimeoutError");
 }
-function isBunNetworkError(error69) {
-  if (!(error69 instanceof Error)) {
+function isBunNetworkError(error70) {
+  if (!(error70 instanceof Error)) {
     return false;
   }
-  const code = error69.code;
+  const code = error70.code;
   if (typeof code === "string" && BUN_ERROR_CODES.includes(code)) {
     return true;
   }
   return false;
 }
 function handleFetchError({
-  error: error69,
+  error: error70,
   url: url4,
   requestBodyValues
 }) {
-  if (isAbortError(error69)) {
-    return error69;
+  if (isAbortError(error70)) {
+    return error70;
   }
-  if (error69 instanceof TypeError && FETCH_FAILED_ERROR_MESSAGES.includes(error69.message.toLowerCase())) {
-    const cause = error69.cause;
+  if (error70 instanceof TypeError && FETCH_FAILED_ERROR_MESSAGES.includes(error70.message.toLowerCase())) {
+    const cause = error70.cause;
     if (cause != null) {
       return new APICallError({
         message: `Cannot connect to API: ${cause.message}`,
@@ -82112,16 +82161,16 @@ function handleFetchError({
       });
     }
   }
-  if (isBunNetworkError(error69)) {
+  if (isBunNetworkError(error70)) {
     return new APICallError({
-      message: `Cannot connect to API: ${error69.message}`,
-      cause: error69,
+      message: `Cannot connect to API: ${error70.message}`,
+      cause: error70,
       url: url4,
       requestBodyValues,
       isRetryable: true
     });
   }
-  return error69;
+  return error70;
 }
 function getRuntimeEnvironmentUserAgent(globalThisAny = globalThis) {
   var _a211, _b27, _c;
@@ -83213,10 +83262,10 @@ async function safeValidateTypes({
       error: TypeValidationError.wrap({ value, cause: result.error, context: context2 }),
       rawValue: value
     };
-  } catch (error69) {
+  } catch (error70) {
     return {
       success: false,
-      error: TypeValidationError.wrap({ value, cause: error69, context: context2 }),
+      error: TypeValidationError.wrap({ value, cause: error70, context: context2 }),
       rawValue: value
     };
   }
@@ -83231,11 +83280,11 @@ async function parseJSON({
       return value;
     }
     return validateTypes({ value, schema });
-  } catch (error69) {
-    if (JSONParseError.isInstance(error69) || TypeValidationError.isInstance(error69)) {
-      throw error69;
+  } catch (error70) {
+    if (JSONParseError.isInstance(error70) || TypeValidationError.isInstance(error70)) {
+      throw error70;
     }
-    throw new JSONParseError({ text: text2, cause: error69 });
+    throw new JSONParseError({ text: text2, cause: error70 });
   }
 }
 async function safeParseJSON({
@@ -83248,10 +83297,10 @@ async function safeParseJSON({
       return { success: true, value, rawValue: value };
     }
     return await safeValidateTypes({ value, schema });
-  } catch (error69) {
+  } catch (error70) {
     return {
       success: false,
-      error: JSONParseError.isInstance(error69) ? error69 : new JSONParseError({ text: text2, cause: error69 }),
+      error: JSONParseError.isInstance(error70) ? error70 : new JSONParseError({ text: text2, cause: error70 }),
       rawValue: void 0
     };
   }
@@ -83436,11 +83485,11 @@ var init_dist3 = __esm({
           (_a211 = this._resolve) == null ? void 0 : _a211.call(this, value);
         }
       }
-      reject(error69) {
+      reject(error70) {
         var _a211;
-        this.status = { type: "rejected", error: error69 };
+        this.status = { type: "rejected", error: error70 };
         if (this._promise) {
-          (_a211 = this._reject) == null ? void 0 : _a211.call(this, error69);
+          (_a211 = this._reject) == null ? void 0 : _a211.call(this, error70);
         }
       }
       isResolved() {
@@ -83471,8 +83520,8 @@ var init_dist3 = __esm({
         this.statusCode = statusCode;
         this.statusText = statusText;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker15);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker15);
       }
     };
     DEFAULT_MAX_DOWNLOAD_SIZE = 2 * 1024 * 1024 * 1024;
@@ -83541,13 +83590,13 @@ var init_dist3 = __esm({
               url: url4,
               requestBodyValues: {}
             });
-          } catch (error69) {
-            if (isAbortError(error69) || APICallError.isInstance(error69)) {
-              throw error69;
+          } catch (error70) {
+            if (isAbortError(error70) || APICallError.isInstance(error70)) {
+              throw error70;
             }
             throw new APICallError({
               message: "Failed to process error response",
-              cause: error69,
+              cause: error70,
               statusCode: response.status,
               url: url4,
               responseHeaders,
@@ -83562,23 +83611,23 @@ var init_dist3 = __esm({
             url: url4,
             requestBodyValues: {}
           });
-        } catch (error69) {
-          if (error69 instanceof Error) {
-            if (isAbortError(error69) || APICallError.isInstance(error69)) {
-              throw error69;
+        } catch (error70) {
+          if (error70 instanceof Error) {
+            if (isAbortError(error70) || APICallError.isInstance(error70)) {
+              throw error70;
             }
           }
           throw new APICallError({
             message: "Failed to process successful response",
-            cause: error69,
+            cause: error70,
             statusCode: response.status,
             url: url4,
             responseHeaders,
             requestBodyValues: {}
           });
         }
-      } catch (error69) {
-        throw handleFetchError({ error: error69, url: url4, requestBodyValues: {} });
+      } catch (error70) {
+        throw handleFetchError({ error: error70, url: url4, requestBodyValues: {} });
       }
     };
     suspectProtoRx = /"(?:_|\\u005[Ff])(?:_|\\u005[Ff])(?:p|\\u0070)(?:r|\\u0072)(?:o|\\u006[Ff])(?:t|\\u0074)(?:o|\\u006[Ff])(?:_|\\u005[Ff])(?:_|\\u005[Ff])"\s*:/;
@@ -83993,13 +84042,13 @@ var init_dist3 = __esm({
               url: url4,
               requestBodyValues: body.values
             });
-          } catch (error69) {
-            if (isAbortError(error69) || APICallError.isInstance(error69)) {
-              throw error69;
+          } catch (error70) {
+            if (isAbortError(error70) || APICallError.isInstance(error70)) {
+              throw error70;
             }
             throw new APICallError({
               message: "Failed to process error response",
-              cause: error69,
+              cause: error70,
               statusCode: response.status,
               url: url4,
               responseHeaders,
@@ -84014,23 +84063,23 @@ var init_dist3 = __esm({
             url: url4,
             requestBodyValues: body.values
           });
-        } catch (error69) {
-          if (error69 instanceof Error) {
-            if (isAbortError(error69) || APICallError.isInstance(error69)) {
-              throw error69;
+        } catch (error70) {
+          if (error70 instanceof Error) {
+            if (isAbortError(error70) || APICallError.isInstance(error70)) {
+              throw error70;
             }
           }
           throw new APICallError({
             message: "Failed to process successful response",
-            cause: error69,
+            cause: error70,
             statusCode: response.status,
             url: url4,
             responseHeaders,
             requestBodyValues: body.values
           });
         }
-      } catch (error69) {
-        throw handleFetchError({ error: error69, url: url4, requestBodyValues: body.values });
+      } catch (error70) {
+        throw handleFetchError({ error: error70, url: url4, requestBodyValues: body.values });
       }
     };
     createJsonErrorResponseHandler = ({
@@ -84142,7 +84191,7 @@ var init_dist3 = __esm({
           responseHeaders,
           value: new Uint8Array(buffer)
         };
-      } catch (error69) {
+      } catch (error70) {
         throw new APICallError({
           message: "Failed to read response as array buffer",
           url: url4,
@@ -84150,7 +84199,7 @@ var init_dist3 = __esm({
           statusCode: response.status,
           responseHeaders,
           responseBody: void 0,
-          cause: error69
+          cause: error70
         });
       }
     };
@@ -100111,17 +100160,17 @@ var require_iterate = __commonJS({
     module2.exports = iterate;
     function iterate(list2, iterator2, state, callback) {
       var key = state["keyedList"] ? state["keyedList"][state.index] : state.index;
-      state.jobs[key] = runJob(iterator2, key, list2[key], function(error69, output) {
+      state.jobs[key] = runJob(iterator2, key, list2[key], function(error70, output) {
         if (!(key in state.jobs)) {
           return;
         }
         delete state.jobs[key];
-        if (error69) {
+        if (error70) {
           abort(state);
         } else {
           state.results[key] = output;
         }
-        callback(error69, state.results);
+        callback(error70, state.results);
       });
     }
     function runJob(iterator2, key, item, callback) {
@@ -100188,9 +100237,9 @@ var require_parallel = __commonJS({
     function parallel(list2, iterator2, callback) {
       var state = initState(list2);
       while (state.index < (state["keyedList"] || list2).length) {
-        iterate(list2, iterator2, state, function(error69, result) {
-          if (error69) {
-            callback(error69, result);
+        iterate(list2, iterator2, state, function(error70, result) {
+          if (error70) {
+            callback(error70, result);
             return;
           }
           if (Object.keys(state.jobs).length === 0) {
@@ -100217,9 +100266,9 @@ var require_serialOrdered = __commonJS({
     module2.exports.descending = descending;
     function serialOrdered(list2, iterator2, sortMethod, callback) {
       var state = initState(list2, sortMethod);
-      iterate(list2, iterator2, state, function iteratorHandler(error69, result) {
-        if (error69) {
-          callback(error69, result);
+      iterate(list2, iterator2, state, function iteratorHandler(error70, result) {
+        if (error70) {
+          callback(error70, result);
           return;
         }
         state.index++;
@@ -100612,10 +100661,10 @@ var require_form_data = __commonJS({
         this.pipe(request2);
         if (cb) {
           var onResponse;
-          var callback = function(error69, responce) {
+          var callback = function(error70, responce) {
             request2.removeListener("error", callback);
             request2.removeListener("response", onResponse);
-            return cb.call(this, error69, responce);
+            return cb.call(this, error70, responce);
           };
           onResponse = callback.bind(this, null);
           request2.on("error", callback);
@@ -101092,12 +101141,12 @@ var init_AxiosError = __esm({
     "use strict";
     init_utils();
     AxiosError = class _AxiosError extends Error {
-      static from(error69, code, config3, request2, response, customProps) {
-        const axiosError = new _AxiosError(error69.message, code || error69.code, config3, request2, response);
-        axiosError.cause = error69;
-        axiosError.name = error69.name;
-        if (error69.status != null && axiosError.status == null) {
-          axiosError.status = error69.status;
+      static from(error70, code, config3, request2, response, customProps) {
+        const axiosError = new _AxiosError(error70.message, code || error70.code, config3, request2, response);
+        axiosError.cause = error70;
+        axiosError.name = error70.name;
+        if (error70.status != null && axiosError.status == null) {
+          axiosError.status = error70.status;
         }
         customProps && Object.assign(axiosError, customProps);
         return axiosError;
@@ -102259,7 +102308,7 @@ var require_debug3 = __commonJS({
       if (!debug) {
         try {
           debug = require_src()("follow-redirects");
-        } catch (error69) {
+        } catch (error70) {
         }
         if (typeof debug !== "function") {
           debug = function() {
@@ -102293,8 +102342,8 @@ var require_follow_redirects = __commonJS({
     var useNativeURL = false;
     try {
       assert3(new URL2(""));
-    } catch (error69) {
-      useNativeURL = error69.code === "ERR_INVALID_URL";
+    } catch (error70) {
+      useNativeURL = error70.code === "ERR_INVALID_URL";
     }
     var preservedUrlFields = [
       "auth",
@@ -102368,9 +102417,9 @@ var require_follow_redirects = __commonJS({
       this._currentRequest.abort();
       this.emit("abort");
     };
-    RedirectableRequest.prototype.destroy = function(error69) {
-      destroyRequest(this._currentRequest, error69);
-      destroy.call(this, error69);
+    RedirectableRequest.prototype.destroy = function(error70) {
+      destroyRequest(this._currentRequest, error70);
+      destroy.call(this, error70);
       return this;
     };
     RedirectableRequest.prototype.write = function(data, encoding, callback) {
@@ -102537,10 +102586,10 @@ var require_follow_redirects = __commonJS({
         var i = 0;
         var self2 = this;
         var buffers = this._requestBodyBuffers;
-        (function writeNext(error69) {
+        (function writeNext(error70) {
           if (request2 === self2._currentRequest) {
-            if (error69) {
-              self2.emit("error", error69);
+            if (error70) {
+              self2.emit("error", error70);
             } else if (i < buffers.length) {
               var buffer = buffers[i++];
               if (!request2.finished) {
@@ -102739,12 +102788,12 @@ var require_follow_redirects = __commonJS({
       });
       return CustomError;
     }
-    function destroyRequest(request2, error69) {
+    function destroyRequest(request2, error70) {
       for (var event of events) {
         request2.removeListener(event, eventHandlers[event]);
       }
       request2.on("error", noop3);
-      request2.destroy(error69);
+      request2.destroy(error70);
     }
     function isSubdomain(subdomain, domain3) {
       assert3(isString3(subdomain) && isString3(domain3));
@@ -105114,15 +105163,15 @@ var init_Axios = __esm({
           const onRejected = requestInterceptorChain[i++];
           try {
             newConfig = onFulfilled(newConfig);
-          } catch (error69) {
-            onRejected.call(this, error69);
+          } catch (error70) {
+            onRejected.call(this, error70);
             break;
           }
         }
         try {
           promise3 = dispatchRequest.call(this, newConfig);
-        } catch (error69) {
-          return Promise.reject(error69);
+        } catch (error70) {
+          return Promise.reject(error70);
         }
         i = 0;
         len = responseInterceptorChain.length;
@@ -105870,7 +105919,7 @@ var init_dist5 = __esm({
         this.config = config3;
         this.failedResponseHandler = createJsonErrorResponseHandler({
           errorSchema: deepSeekErrorSchema,
-          errorToMessage: (error69) => error69.error.message
+          errorToMessage: (error70) => error70.error.message
         });
       }
       get provider() {
@@ -106246,17 +106295,17 @@ var init_dist5 = __esm({
 });
 
 // node_modules/zhipu-ai-provider/node_modules/@ai-sdk/provider/dist/index.mjs
-function getErrorMessage3(error69) {
-  if (error69 == null) {
+function getErrorMessage3(error70) {
+  if (error70 == null) {
     return "unknown error";
   }
-  if (typeof error69 === "string") {
-    return error69;
+  if (typeof error70 === "string") {
+    return error70;
   }
-  if (error69 instanceof Error) {
-    return error69.message;
+  if (error70 instanceof Error) {
+    return error70.message;
   }
-  return JSON.stringify(error69);
+  return JSON.stringify(error70);
 }
 var marker16, symbol17, _a17, _b16, AISDKError2, name15, marker22, symbol22, _a22, _b22, APICallError2, name22, marker32, symbol32, _a32, _b32, EmptyResponseBodyError2, name32, marker42, symbol42, _a42, _b42, InvalidArgumentError2, name42, marker52, symbol52, _a52, _b52, InvalidPromptError2, name52, marker62, symbol62, _a62, _b62, InvalidResponseDataError2, name62, marker72, symbol72, _a72, _b72, JSONParseError2, name72, marker82, symbol82, _a82, _b82, LoadAPIKeyError2, name82, marker92, symbol92, _a92, _b92, LoadSettingError2, name92, marker102, symbol102, _a102, _b102, NoContentGeneratedError2, name102, marker112, symbol112, _a112, _b112, NoSuchModelError2, name112, marker122, symbol122, _a122, _b122, TooManyEmbeddingValuesForCallError2, name122, marker132, symbol132, _a132, _b132, TypeValidationError2, name132, marker142, symbol142, _a142, _b142, UnsupportedFunctionalityError2;
 var init_dist6 = __esm({
@@ -106288,12 +106337,12 @@ var init_dist6 = __esm({
        * @param {unknown} error - The error to check.
        * @returns {boolean} True if the error is an AI SDK Error, false otherwise.
        */
-      static isInstance(error69) {
-        return _AISDKError2.hasMarker(error69, marker16);
+      static isInstance(error70) {
+        return _AISDKError2.hasMarker(error70, marker16);
       }
-      static hasMarker(error69, marker153) {
+      static hasMarker(error70, marker153) {
         const markerSymbol = Symbol.for(marker153);
-        return error69 != null && typeof error69 === "object" && markerSymbol in error69 && typeof error69[markerSymbol] === "boolean" && error69[markerSymbol] === true;
+        return error70 != null && typeof error70 === "object" && markerSymbol in error70 && typeof error70[markerSymbol] === "boolean" && error70[markerSymbol] === true;
       }
     };
     name15 = "AI_APICallError";
@@ -106325,8 +106374,8 @@ var init_dist6 = __esm({
         this.isRetryable = isRetryable;
         this.data = data;
       }
-      static isInstance(error69) {
-        return AISDKError2.hasMarker(error69, marker22);
+      static isInstance(error70) {
+        return AISDKError2.hasMarker(error70, marker22);
       }
     };
     name22 = "AI_EmptyResponseBodyError";
@@ -106338,8 +106387,8 @@ var init_dist6 = __esm({
         super({ name: name22, message });
         this[_a32] = true;
       }
-      static isInstance(error69) {
-        return AISDKError2.hasMarker(error69, marker32);
+      static isInstance(error70) {
+        return AISDKError2.hasMarker(error70, marker32);
       }
     };
     name32 = "AI_InvalidArgumentError";
@@ -106355,8 +106404,8 @@ var init_dist6 = __esm({
         this[_a42] = true;
         this.argument = argument;
       }
-      static isInstance(error69) {
-        return AISDKError2.hasMarker(error69, marker42);
+      static isInstance(error70) {
+        return AISDKError2.hasMarker(error70, marker42);
       }
     };
     name42 = "AI_InvalidPromptError";
@@ -106372,8 +106421,8 @@ var init_dist6 = __esm({
         this[_a52] = true;
         this.prompt = prompt;
       }
-      static isInstance(error69) {
-        return AISDKError2.hasMarker(error69, marker52);
+      static isInstance(error70) {
+        return AISDKError2.hasMarker(error70, marker52);
       }
     };
     name52 = "AI_InvalidResponseDataError";
@@ -106388,8 +106437,8 @@ var init_dist6 = __esm({
         this[_a62] = true;
         this.data = data;
       }
-      static isInstance(error69) {
-        return AISDKError2.hasMarker(error69, marker62);
+      static isInstance(error70) {
+        return AISDKError2.hasMarker(error70, marker62);
       }
     };
     name62 = "AI_JSONParseError";
@@ -106406,8 +106455,8 @@ Error message: ${getErrorMessage3(cause)}`,
         this[_a72] = true;
         this.text = text2;
       }
-      static isInstance(error69) {
-        return AISDKError2.hasMarker(error69, marker72);
+      static isInstance(error70) {
+        return AISDKError2.hasMarker(error70, marker72);
       }
     };
     name72 = "AI_LoadAPIKeyError";
@@ -106419,8 +106468,8 @@ Error message: ${getErrorMessage3(cause)}`,
         super({ name: name72, message });
         this[_a82] = true;
       }
-      static isInstance(error69) {
-        return AISDKError2.hasMarker(error69, marker82);
+      static isInstance(error70) {
+        return AISDKError2.hasMarker(error70, marker82);
       }
     };
     name82 = "AI_LoadSettingError";
@@ -106432,8 +106481,8 @@ Error message: ${getErrorMessage3(cause)}`,
         super({ name: name82, message });
         this[_a92] = true;
       }
-      static isInstance(error69) {
-        return AISDKError2.hasMarker(error69, marker92);
+      static isInstance(error70) {
+        return AISDKError2.hasMarker(error70, marker92);
       }
     };
     name92 = "AI_NoContentGeneratedError";
@@ -106447,8 +106496,8 @@ Error message: ${getErrorMessage3(cause)}`,
         super({ name: name92, message });
         this[_a102] = true;
       }
-      static isInstance(error69) {
-        return AISDKError2.hasMarker(error69, marker102);
+      static isInstance(error70) {
+        return AISDKError2.hasMarker(error70, marker102);
       }
     };
     name102 = "AI_NoSuchModelError";
@@ -106466,8 +106515,8 @@ Error message: ${getErrorMessage3(cause)}`,
         this.modelId = modelId;
         this.modelType = modelType;
       }
-      static isInstance(error69) {
-        return AISDKError2.hasMarker(error69, marker112);
+      static isInstance(error70) {
+        return AISDKError2.hasMarker(error70, marker112);
       }
     };
     name112 = "AI_TooManyEmbeddingValuesForCallError";
@@ -106485,8 +106534,8 @@ Error message: ${getErrorMessage3(cause)}`,
         this.maxEmbeddingsPerCall = options.maxEmbeddingsPerCall;
         this.values = options.values;
       }
-      static isInstance(error69) {
-        return AISDKError2.hasMarker(error69, marker122);
+      static isInstance(error70) {
+        return AISDKError2.hasMarker(error70, marker122);
       }
     };
     name122 = "AI_TypeValidationError";
@@ -106503,8 +106552,8 @@ Error message: ${getErrorMessage3(cause)}`,
         this[_a132] = true;
         this.value = value;
       }
-      static isInstance(error69) {
-        return AISDKError2.hasMarker(error69, marker132);
+      static isInstance(error70) {
+        return AISDKError2.hasMarker(error70, marker132);
       }
       /**
        * Wraps an error into a TypeValidationError.
@@ -106535,8 +106584,8 @@ Error message: ${getErrorMessage3(cause)}`,
         this[_a142] = true;
         this.functionality = functionality;
       }
-      static isInstance(error69) {
-        return AISDKError2.hasMarker(error69, marker142);
+      static isInstance(error70) {
+        return AISDKError2.hasMarker(error70, marker142);
       }
     };
   }
@@ -106562,20 +106611,20 @@ function combineHeaders2(...headers) {
 function extractResponseHeaders2(response) {
   return Object.fromEntries([...response.headers]);
 }
-function isAbortError2(error69) {
-  return (error69 instanceof Error || error69 instanceof DOMException) && (error69.name === "AbortError" || error69.name === "ResponseAborted" || // Next.js
-  error69.name === "TimeoutError");
+function isAbortError2(error70) {
+  return (error70 instanceof Error || error70 instanceof DOMException) && (error70.name === "AbortError" || error70.name === "ResponseAborted" || // Next.js
+  error70.name === "TimeoutError");
 }
 function handleFetchError2({
-  error: error69,
+  error: error70,
   url: url4,
   requestBodyValues
 }) {
-  if (isAbortError2(error69)) {
-    return error69;
+  if (isAbortError2(error70)) {
+    return error70;
   }
-  if (error69 instanceof TypeError && FETCH_FAILED_ERROR_MESSAGES2.includes(error69.message.toLowerCase())) {
-    const cause = error69.cause;
+  if (error70 instanceof TypeError && FETCH_FAILED_ERROR_MESSAGES2.includes(error70.message.toLowerCase())) {
+    const cause = error70.cause;
     if (cause != null) {
       return new APICallError2({
         message: `Cannot connect to API: ${cause.message}`,
@@ -106587,7 +106636,7 @@ function handleFetchError2({
       });
     }
   }
-  return error69;
+  return error70;
 }
 function getRuntimeEnvironmentUserAgent2(globalThisAny = globalThis) {
   var _a211, _b27, _c;
@@ -106761,10 +106810,10 @@ async function safeValidateTypes2({
       error: TypeValidationError2.wrap({ value, cause: result.error }),
       rawValue: value
     };
-  } catch (error69) {
+  } catch (error70) {
     return {
       success: false,
-      error: TypeValidationError2.wrap({ value, cause: error69 }),
+      error: TypeValidationError2.wrap({ value, cause: error70 }),
       rawValue: value
     };
   }
@@ -106779,11 +106828,11 @@ async function parseJSON2({
       return value;
     }
     return validateTypes2({ value, schema });
-  } catch (error69) {
-    if (JSONParseError2.isInstance(error69) || TypeValidationError2.isInstance(error69)) {
-      throw error69;
+  } catch (error70) {
+    if (JSONParseError2.isInstance(error70) || TypeValidationError2.isInstance(error70)) {
+      throw error70;
     }
-    throw new JSONParseError2({ text: text2, cause: error69 });
+    throw new JSONParseError2({ text: text2, cause: error70 });
   }
 }
 async function safeParseJSON2({
@@ -106796,10 +106845,10 @@ async function safeParseJSON2({
       return { success: true, value, rawValue: value };
     }
     return await safeValidateTypes2({ value, schema });
-  } catch (error69) {
+  } catch (error70) {
     return {
       success: false,
-      error: JSONParseError2.isInstance(error69) ? error69 : new JSONParseError2({ text: text2, cause: error69 }),
+      error: JSONParseError2.isInstance(error70) ? error70 : new JSONParseError2({ text: text2, cause: error70 }),
       rawValue: void 0
     };
   }
@@ -106873,8 +106922,8 @@ var init_dist8 = __esm({
         this.statusCode = statusCode;
         this.statusText = statusText;
       }
-      static isInstance(error69) {
-        return AISDKError2.hasMarker(error69, marker17);
+      static isInstance(error70) {
+        return AISDKError2.hasMarker(error70, marker17);
       }
     };
     DEFAULT_MAX_DOWNLOAD_SIZE2 = 2 * 1024 * 1024 * 1024;
@@ -106962,13 +107011,13 @@ var init_dist8 = __esm({
               url: url4,
               requestBodyValues: body.values
             });
-          } catch (error69) {
-            if (isAbortError2(error69) || APICallError2.isInstance(error69)) {
-              throw error69;
+          } catch (error70) {
+            if (isAbortError2(error70) || APICallError2.isInstance(error70)) {
+              throw error70;
             }
             throw new APICallError2({
               message: "Failed to process error response",
-              cause: error69,
+              cause: error70,
               statusCode: response.status,
               url: url4,
               responseHeaders,
@@ -106983,23 +107032,23 @@ var init_dist8 = __esm({
             url: url4,
             requestBodyValues: body.values
           });
-        } catch (error69) {
-          if (error69 instanceof Error) {
-            if (isAbortError2(error69) || APICallError2.isInstance(error69)) {
-              throw error69;
+        } catch (error70) {
+          if (error70 instanceof Error) {
+            if (isAbortError2(error70) || APICallError2.isInstance(error70)) {
+              throw error70;
             }
           }
           throw new APICallError2({
             message: "Failed to process successful response",
-            cause: error69,
+            cause: error70,
             statusCode: response.status,
             url: url4,
             responseHeaders,
             requestBodyValues: body.values
           });
         }
-      } catch (error69) {
-        throw handleFetchError2({ error: error69, url: url4, requestBodyValues: body.values });
+      } catch (error70) {
+        throw handleFetchError2({ error: error70, url: url4, requestBodyValues: body.values });
       }
     };
     createJsonErrorResponseHandler2 = ({
@@ -121927,12 +121976,12 @@ var require_dist4 = __commonJS({
        * @param {unknown} error - The error to check.
        * @returns {boolean} True if the error is an AI SDK Error, false otherwise.
        */
-      static isInstance(error69) {
-        return _AISDKError5.hasMarker(error69, marker29);
+      static isInstance(error70) {
+        return _AISDKError5.hasMarker(error70, marker29);
       }
-      static hasMarker(error69, marker153) {
+      static hasMarker(error70, marker153) {
         const markerSymbol = Symbol.for(marker153);
-        return error69 != null && typeof error69 === "object" && markerSymbol in error69 && typeof error69[markerSymbol] === "boolean" && error69[markerSymbol] === true;
+        return error70 != null && typeof error70 === "object" && markerSymbol in error70 && typeof error70[markerSymbol] === "boolean" && error70[markerSymbol] === true;
       }
     };
     var name28 = "AI_APICallError";
@@ -121966,8 +122015,8 @@ var require_dist4 = __commonJS({
         this.isRetryable = isRetryable;
         this.data = data;
       }
-      static isInstance(error69) {
-        return AISDKError5.hasMarker(error69, marker210);
+      static isInstance(error70) {
+        return AISDKError5.hasMarker(error70, marker210);
       }
     };
     var name29 = "AI_EmptyResponseBodyError";
@@ -121981,21 +122030,21 @@ var require_dist4 = __commonJS({
         super({ name: name29, message });
         this[_a37] = true;
       }
-      static isInstance(error69) {
-        return AISDKError5.hasMarker(error69, marker37);
+      static isInstance(error70) {
+        return AISDKError5.hasMarker(error70, marker37);
       }
     };
-    function getErrorMessage6(error69) {
-      if (error69 == null) {
+    function getErrorMessage6(error70) {
+      if (error70 == null) {
         return "unknown error";
       }
-      if (typeof error69 === "string") {
-        return error69;
+      if (typeof error70 === "string") {
+        return error70;
       }
-      if (error69 instanceof Error) {
-        return error69.message;
+      if (error70 instanceof Error) {
+        return error70.message;
       }
-      return JSON.stringify(error69);
+      return JSON.stringify(error70);
     }
     var name37 = "AI_InvalidArgumentError";
     var marker47 = `vercel.ai.error.${name37}`;
@@ -122012,8 +122061,8 @@ var require_dist4 = __commonJS({
         this[_a47] = true;
         this.argument = argument;
       }
-      static isInstance(error69) {
-        return AISDKError5.hasMarker(error69, marker47);
+      static isInstance(error70) {
+        return AISDKError5.hasMarker(error70, marker47);
       }
     };
     var name47 = "AI_InvalidPromptError";
@@ -122031,8 +122080,8 @@ var require_dist4 = __commonJS({
         this[_a57] = true;
         this.prompt = prompt;
       }
-      static isInstance(error69) {
-        return AISDKError5.hasMarker(error69, marker57);
+      static isInstance(error70) {
+        return AISDKError5.hasMarker(error70, marker57);
       }
     };
     var name57 = "AI_InvalidResponseDataError";
@@ -122049,8 +122098,8 @@ var require_dist4 = __commonJS({
         this[_a67] = true;
         this.data = data;
       }
-      static isInstance(error69) {
-        return AISDKError5.hasMarker(error69, marker67);
+      static isInstance(error70) {
+        return AISDKError5.hasMarker(error70, marker67);
       }
     };
     var name67 = "AI_JSONParseError";
@@ -122069,8 +122118,8 @@ Error message: ${getErrorMessage6(cause)}`,
         this[_a77] = true;
         this.text = text2;
       }
-      static isInstance(error69) {
-        return AISDKError5.hasMarker(error69, marker77);
+      static isInstance(error70) {
+        return AISDKError5.hasMarker(error70, marker77);
       }
     };
     var name77 = "AI_LoadAPIKeyError";
@@ -122084,8 +122133,8 @@ Error message: ${getErrorMessage6(cause)}`,
         super({ name: name77, message });
         this[_a87] = true;
       }
-      static isInstance(error69) {
-        return AISDKError5.hasMarker(error69, marker87);
+      static isInstance(error70) {
+        return AISDKError5.hasMarker(error70, marker87);
       }
     };
     var name86 = "AI_LoadSettingError";
@@ -122099,8 +122148,8 @@ Error message: ${getErrorMessage6(cause)}`,
         super({ name: name86, message });
         this[_a96] = true;
       }
-      static isInstance(error69) {
-        return AISDKError5.hasMarker(error69, marker96);
+      static isInstance(error70) {
+        return AISDKError5.hasMarker(error70, marker96);
       }
     };
     var name96 = "AI_NoContentGeneratedError";
@@ -122116,8 +122165,8 @@ Error message: ${getErrorMessage6(cause)}`,
         super({ name: name96, message });
         this[_a106] = true;
       }
-      static isInstance(error69) {
-        return AISDKError5.hasMarker(error69, marker106);
+      static isInstance(error70) {
+        return AISDKError5.hasMarker(error70, marker106);
       }
     };
     var name106 = "AI_NoSuchModelError";
@@ -122137,8 +122186,8 @@ Error message: ${getErrorMessage6(cause)}`,
         this.modelId = modelId;
         this.modelType = modelType;
       }
-      static isInstance(error69) {
-        return AISDKError5.hasMarker(error69, marker116);
+      static isInstance(error70) {
+        return AISDKError5.hasMarker(error70, marker116);
       }
     };
     var name116 = "AI_TooManyEmbeddingValuesForCallError";
@@ -122158,8 +122207,8 @@ Error message: ${getErrorMessage6(cause)}`,
         this.maxEmbeddingsPerCall = options.maxEmbeddingsPerCall;
         this.values = options.values;
       }
-      static isInstance(error69) {
-        return AISDKError5.hasMarker(error69, marker126);
+      static isInstance(error70) {
+        return AISDKError5.hasMarker(error70, marker126);
       }
     };
     var name126 = "AI_TypeValidationError";
@@ -122199,8 +122248,8 @@ Error message: ${getErrorMessage6(cause)}`,
         this.value = value;
         this.context = context2;
       }
-      static isInstance(error69) {
-        return AISDKError5.hasMarker(error69, marker136);
+      static isInstance(error70) {
+        return AISDKError5.hasMarker(error70, marker136);
       }
       /**
        * Wraps an error into a TypeValidationError.
@@ -122239,8 +122288,8 @@ Error message: ${getErrorMessage6(cause)}`,
         this[_a146] = true;
         this.functionality = functionality;
       }
-      static isInstance(error69) {
-        return AISDKError5.hasMarker(error69, marker146);
+      static isInstance(error70) {
+        return AISDKError5.hasMarker(error70, marker146);
       }
     };
     function isJSONValue(value) {
@@ -123088,10 +123137,10 @@ var require_errors = __commonJS({
     };
     exports2.$ZodError = (0, core_js_1.$constructor)("$ZodError", initializer4);
     exports2.$ZodRealError = (0, core_js_1.$constructor)("$ZodError", initializer4, { Parent: Error });
-    function flattenError3(error69, mapper = (issue3) => issue3.message) {
+    function flattenError3(error70, mapper = (issue3) => issue3.message) {
       const fieldErrors = {};
       const formErrors = [];
-      for (const sub of error69.issues) {
+      for (const sub of error70.issues) {
         if (sub.path.length > 0) {
           fieldErrors[sub.path[0]] = fieldErrors[sub.path[0]] || [];
           fieldErrors[sub.path[0]].push(mapper(sub));
@@ -123101,10 +123150,10 @@ var require_errors = __commonJS({
       }
       return { formErrors, fieldErrors };
     }
-    function formatError3(error69, mapper = (issue3) => issue3.message) {
+    function formatError3(error70, mapper = (issue3) => issue3.message) {
       const fieldErrors = { _errors: [] };
-      const processError = (error70) => {
-        for (const issue3 of error70.issues) {
+      const processError = (error71) => {
+        for (const issue3 of error71.issues) {
           if (issue3.code === "invalid_union" && issue3.errors.length) {
             issue3.errors.map((issues) => processError({ issues }));
           } else if (issue3.code === "invalid_key") {
@@ -123131,14 +123180,14 @@ var require_errors = __commonJS({
           }
         }
       };
-      processError(error69);
+      processError(error70);
       return fieldErrors;
     }
-    function treeifyError3(error69, mapper = (issue3) => issue3.message) {
+    function treeifyError3(error70, mapper = (issue3) => issue3.message) {
       const result = { errors: [] };
-      const processError = (error70, path26 = []) => {
+      const processError = (error71, path26 = []) => {
         var _a31, _b27;
-        for (const issue3 of error70.issues) {
+        for (const issue3 of error71.issues) {
           if (issue3.code === "invalid_union" && issue3.errors.length) {
             issue3.errors.map((issues) => processError({ issues }, issue3.path));
           } else if (issue3.code === "invalid_key") {
@@ -123173,7 +123222,7 @@ var require_errors = __commonJS({
           }
         }
       };
-      processError(error69);
+      processError(error70);
       return result;
     }
     function toDotPath3(_path) {
@@ -123194,9 +123243,9 @@ var require_errors = __commonJS({
       }
       return segs.join("");
     }
-    function prettifyError3(error69) {
+    function prettifyError3(error70) {
       const lines = [];
-      const issues = [...error69.issues].sort((a, b) => (a.path ?? []).length - (b.path ?? []).length);
+      const issues = [...error70.issues].sort((a, b) => (a.path ?? []).length - (b.path ?? []).length);
       for (const issue3 of issues) {
         lines.push(`\u2716 ${issue3.message}`);
         if (issue3.path?.length)
@@ -126181,7 +126230,7 @@ var require_ar = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "\u062D\u0631\u0641", verb: "\u0623\u0646 \u064A\u062D\u0648\u064A" },
         file: { unit: "\u0628\u0627\u064A\u062A", verb: "\u0623\u0646 \u064A\u062D\u0648\u064A" },
@@ -126283,7 +126332,7 @@ var require_ar = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -126324,7 +126373,7 @@ var require_az = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "simvol", verb: "olmal\u0131d\u0131r" },
         file: { unit: "bayt", verb: "olmal\u0131d\u0131r" },
@@ -126425,7 +126474,7 @@ var require_az = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -126481,7 +126530,7 @@ var require_be = __commonJS({
       }
       return many;
     }
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: {
           unit: {
@@ -126618,7 +126667,7 @@ var require_be = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -126659,7 +126708,7 @@ var require_bg = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "\u0441\u0438\u043C\u0432\u043E\u043B\u0430", verb: "\u0434\u0430 \u0441\u044A\u0434\u044A\u0440\u0436\u0430" },
         file: { unit: "\u0431\u0430\u0439\u0442\u0430", verb: "\u0434\u0430 \u0441\u044A\u0434\u044A\u0440\u0436\u0430" },
@@ -126775,7 +126824,7 @@ var require_bg = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -126816,7 +126865,7 @@ var require_ca = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "car\xE0cters", verb: "contenir" },
         file: { unit: "bytes", verb: "contenir" },
@@ -126920,7 +126969,7 @@ var require_ca = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -126961,7 +127010,7 @@ var require_cs = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "znak\u016F", verb: "m\xEDt" },
         file: { unit: "bajt\u016F", verb: "m\xEDt" },
@@ -127068,7 +127117,7 @@ var require_cs = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -127109,7 +127158,7 @@ var require_da = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "tegn", verb: "havde" },
         file: { unit: "bytes", verb: "havde" },
@@ -127220,7 +127269,7 @@ var require_da = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -127261,7 +127310,7 @@ var require_de = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "Zeichen", verb: "zu haben" },
         file: { unit: "Bytes", verb: "zu haben" },
@@ -127365,7 +127414,7 @@ var require_de = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -127406,7 +127455,7 @@ var require_en = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "characters", verb: "to have" },
         file: { unit: "bytes", verb: "to have" },
@@ -127510,7 +127559,7 @@ var require_en = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -127551,7 +127600,7 @@ var require_eo = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "karaktrojn", verb: "havi" },
         file: { unit: "bajtojn", verb: "havi" },
@@ -127656,7 +127705,7 @@ var require_eo = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -127697,7 +127746,7 @@ var require_es = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "caracteres", verb: "tener" },
         file: { unit: "bytes", verb: "tener" },
@@ -127825,7 +127874,7 @@ var require_es = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -127866,7 +127915,7 @@ var require_fa = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "\u06A9\u0627\u0631\u0627\u06A9\u062A\u0631", verb: "\u062F\u0627\u0634\u062A\u0647 \u0628\u0627\u0634\u062F" },
         file: { unit: "\u0628\u0627\u06CC\u062A", verb: "\u062F\u0627\u0634\u062A\u0647 \u0628\u0627\u0634\u062F" },
@@ -127976,7 +128025,7 @@ var require_fa = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -128017,7 +128066,7 @@ var require_fi = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "merkki\xE4", subject: "merkkijonon" },
         file: { unit: "tavua", subject: "tiedoston" },
@@ -128125,7 +128174,7 @@ var require_fi = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -128166,7 +128215,7 @@ var require_fr = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "caract\xE8res", verb: "avoir" },
         file: { unit: "octets", verb: "avoir" },
@@ -128270,7 +128319,7 @@ var require_fr = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -128311,7 +128360,7 @@ var require_fr_CA = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "caract\xE8res", verb: "avoir" },
         file: { unit: "octets", verb: "avoir" },
@@ -128414,7 +128463,7 @@ var require_fr_CA = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -128455,7 +128504,7 @@ var require_he = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const TypeNames = {
         string: { label: "\u05DE\u05D7\u05E8\u05D5\u05D6\u05EA", gender: "f" },
         number: { label: "\u05DE\u05E1\u05E4\u05E8", gender: "m" },
@@ -128645,7 +128694,7 @@ var require_he = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -128686,7 +128735,7 @@ var require_hu = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "karakter", verb: "legyen" },
         file: { unit: "byte", verb: "legyen" },
@@ -128790,7 +128839,7 @@ var require_hu = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -128841,7 +128890,7 @@ var require_hy = __commonJS({
       const lastChar = word[word.length - 1];
       return word + (vowels.includes(lastChar) ? "\u0576" : "\u0568");
     }
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: {
           unit: {
@@ -128974,7 +129023,7 @@ var require_hy = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -129015,7 +129064,7 @@ var require_id = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "karakter", verb: "memiliki" },
         file: { unit: "byte", verb: "memiliki" },
@@ -129117,7 +129166,7 @@ var require_id = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -129158,7 +129207,7 @@ var require_is = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "stafi", verb: "a\xF0 hafa" },
         file: { unit: "b\xE6ti", verb: "a\xF0 hafa" },
@@ -129263,7 +129312,7 @@ var require_is = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -129304,7 +129353,7 @@ var require_it = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "caratteri", verb: "avere" },
         file: { unit: "byte", verb: "avere" },
@@ -129408,7 +129457,7 @@ var require_it = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -129449,7 +129498,7 @@ var require_ja = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "\u6587\u5B57", verb: "\u3067\u3042\u308B" },
         file: { unit: "\u30D0\u30A4\u30C8", verb: "\u3067\u3042\u308B" },
@@ -129552,7 +129601,7 @@ var require_ja = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -129593,7 +129642,7 @@ var require_ka = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "\u10E1\u10D8\u10DB\u10D1\u10DD\u10DA\u10DD", verb: "\u10E3\u10DC\u10D3\u10D0 \u10E8\u10D4\u10D8\u10EA\u10D0\u10D5\u10D3\u10D4\u10E1" },
         file: { unit: "\u10D1\u10D0\u10D8\u10E2\u10D8", verb: "\u10E3\u10DC\u10D3\u10D0 \u10E8\u10D4\u10D8\u10EA\u10D0\u10D5\u10D3\u10D4\u10E1" },
@@ -129701,7 +129750,7 @@ var require_ka = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -129742,7 +129791,7 @@ var require_km = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "\u178F\u17BD\u17A2\u1780\u17D2\u179F\u179A", verb: "\u1782\u17BD\u179A\u1798\u17B6\u1793" },
         file: { unit: "\u1794\u17C3", verb: "\u1782\u17BD\u179A\u1798\u17B6\u1793" },
@@ -129848,7 +129897,7 @@ var require_km = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -129906,7 +129955,7 @@ var require_ko = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "\uBB38\uC790", verb: "to have" },
         file: { unit: "\uBC14\uC774\uD2B8", verb: "to have" },
@@ -130013,7 +130062,7 @@ var require_ko = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -130067,7 +130116,7 @@ var require_lt = __commonJS({
         return "one";
       return "few";
     }
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: {
           unit: {
@@ -130253,7 +130302,7 @@ var require_lt = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -130294,7 +130343,7 @@ var require_mk = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "\u0437\u043D\u0430\u0446\u0438", verb: "\u0434\u0430 \u0438\u043C\u0430\u0430\u0442" },
         file: { unit: "\u0431\u0430\u0458\u0442\u0438", verb: "\u0434\u0430 \u0438\u043C\u0430\u0430\u0442" },
@@ -130399,7 +130448,7 @@ var require_mk = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -130440,7 +130489,7 @@ var require_ms4 = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "aksara", verb: "mempunyai" },
         file: { unit: "bait", verb: "mempunyai" },
@@ -130543,7 +130592,7 @@ var require_ms4 = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -130584,7 +130633,7 @@ var require_nl = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "tekens", verb: "heeft" },
         file: { unit: "bytes", verb: "heeft" },
@@ -130690,7 +130739,7 @@ var require_nl = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -130731,7 +130780,7 @@ var require_no = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "tegn", verb: "\xE5 ha" },
         file: { unit: "bytes", verb: "\xE5 ha" },
@@ -130835,7 +130884,7 @@ var require_no = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -130876,7 +130925,7 @@ var require_ota = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "harf", verb: "olmal\u0131d\u0131r" },
         file: { unit: "bayt", verb: "olmal\u0131d\u0131r" },
@@ -130981,7 +131030,7 @@ var require_ota = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -131022,7 +131071,7 @@ var require_ps = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "\u062A\u0648\u06A9\u064A", verb: "\u0648\u0644\u0631\u064A" },
         file: { unit: "\u0628\u0627\u06CC\u067C\u0633", verb: "\u0648\u0644\u0631\u064A" },
@@ -131132,7 +131181,7 @@ var require_ps = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -131173,7 +131222,7 @@ var require_pl = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "znak\xF3w", verb: "mie\u0107" },
         file: { unit: "bajt\xF3w", verb: "mie\u0107" },
@@ -131278,7 +131327,7 @@ var require_pl = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -131319,7 +131368,7 @@ var require_pt = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "caracteres", verb: "ter" },
         file: { unit: "bytes", verb: "ter" },
@@ -131423,7 +131472,7 @@ var require_pt = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -131479,7 +131528,7 @@ var require_ru = __commonJS({
       }
       return many;
     }
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: {
           unit: {
@@ -131616,7 +131665,7 @@ var require_ru = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -131657,7 +131706,7 @@ var require_sl = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "znakov", verb: "imeti" },
         file: { unit: "bajtov", verb: "imeti" },
@@ -131762,7 +131811,7 @@ var require_sl = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -131803,7 +131852,7 @@ var require_sv = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "tecken", verb: "att ha" },
         file: { unit: "bytes", verb: "att ha" },
@@ -131909,7 +131958,7 @@ var require_sv = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -131950,7 +131999,7 @@ var require_ta = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "\u0B8E\u0BB4\u0BC1\u0BA4\u0BCD\u0BA4\u0BC1\u0B95\u0BCD\u0B95\u0BB3\u0BCD", verb: "\u0B95\u0BCA\u0BA3\u0BCD\u0B9F\u0BBF\u0BB0\u0BC1\u0B95\u0BCD\u0B95 \u0BB5\u0BC7\u0BA3\u0BCD\u0B9F\u0BC1\u0BAE\u0BCD" },
         file: { unit: "\u0BAA\u0BC8\u0B9F\u0BCD\u0B9F\u0BC1\u0B95\u0BB3\u0BCD", verb: "\u0B95\u0BCA\u0BA3\u0BCD\u0B9F\u0BBF\u0BB0\u0BC1\u0B95\u0BCD\u0B95 \u0BB5\u0BC7\u0BA3\u0BCD\u0B9F\u0BC1\u0BAE\u0BCD" },
@@ -132056,7 +132105,7 @@ var require_ta = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -132097,7 +132146,7 @@ var require_th = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "\u0E15\u0E31\u0E27\u0E2D\u0E31\u0E01\u0E29\u0E23", verb: "\u0E04\u0E27\u0E23\u0E21\u0E35" },
         file: { unit: "\u0E44\u0E1A\u0E15\u0E4C", verb: "\u0E04\u0E27\u0E23\u0E21\u0E35" },
@@ -132203,7 +132252,7 @@ var require_th = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -132244,7 +132293,7 @@ var require_tr = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "karakter", verb: "olmal\u0131" },
         file: { unit: "bayt", verb: "olmal\u0131" },
@@ -132345,7 +132394,7 @@ var require_tr = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -132386,7 +132435,7 @@ var require_uk = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "\u0441\u0438\u043C\u0432\u043E\u043B\u0456\u0432", verb: "\u043C\u0430\u0442\u0438\u043C\u0435" },
         file: { unit: "\u0431\u0430\u0439\u0442\u0456\u0432", verb: "\u043C\u0430\u0442\u0438\u043C\u0435" },
@@ -132490,7 +132539,7 @@ var require_uk = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -132548,7 +132597,7 @@ var require_ur = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "\u062D\u0631\u0648\u0641", verb: "\u06C1\u0648\u0646\u0627" },
         file: { unit: "\u0628\u0627\u0626\u0679\u0633", verb: "\u06C1\u0648\u0646\u0627" },
@@ -132654,7 +132703,7 @@ var require_ur = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -132695,7 +132744,7 @@ var require_uz = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "belgi", verb: "bo\u2018lishi kerak" },
         file: { unit: "bayt", verb: "bo\u2018lishi kerak" },
@@ -132800,7 +132849,7 @@ var require_uz = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -132841,7 +132890,7 @@ var require_vi = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "k\xFD t\u1EF1", verb: "c\xF3" },
         file: { unit: "byte", verb: "c\xF3" },
@@ -132945,7 +132994,7 @@ var require_vi = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -132986,7 +133035,7 @@ var require_zh_CN = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "\u5B57\u7B26", verb: "\u5305\u542B" },
         file: { unit: "\u5B57\u8282", verb: "\u5305\u542B" },
@@ -133091,7 +133140,7 @@ var require_zh_CN = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -133132,7 +133181,7 @@ var require_zh_TW = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "\u5B57\u5143", verb: "\u64C1\u6709" },
         file: { unit: "\u4F4D\u5143\u7D44", verb: "\u64C1\u6709" },
@@ -133235,7 +133284,7 @@ var require_zh_TW = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -133276,7 +133325,7 @@ var require_yo = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.default = default_1;
     var util4 = __importStar(require_util());
-    var error69 = () => {
+    var error70 = () => {
       const Sizable = {
         string: { unit: "\xE0mi", verb: "n\xED" },
         file: { unit: "bytes", verb: "n\xED" },
@@ -133379,7 +133428,7 @@ var require_yo = __commonJS({
     };
     function default_1() {
       return {
-        localeError: error69()
+        localeError: error70()
       };
     }
     module2.exports = exports2.default;
@@ -138512,8 +138561,8 @@ var require_ZodError = __commonJS({
           return issue3.message;
         };
         const fieldErrors = { _errors: [] };
-        const processError = (error69) => {
-          for (const issue3 of error69.issues) {
+        const processError = (error70) => {
+          for (const issue3 of error70.issues) {
             if (issue3.code === "invalid_union") {
               issue3.unionErrors.map(processError);
             } else if (issue3.code === "invalid_return_type") {
@@ -138577,8 +138626,8 @@ var require_ZodError = __commonJS({
     };
     exports2.ZodError = ZodError4;
     ZodError4.create = (issues) => {
-      const error69 = new ZodError4(issues);
-      return error69;
+      const error70 = new ZodError4(issues);
+      return error70;
     };
   }
 });
@@ -138916,8 +138965,8 @@ var require_types = __commonJS({
           get error() {
             if (this._error)
               return this._error;
-            const error69 = new ZodError_js_1.ZodError(ctx.common.issues);
-            this._error = error69;
+            const error70 = new ZodError_js_1.ZodError(ctx.common.issues);
+            this._error = error70;
             return this._error;
           }
         };
@@ -141596,25 +141645,25 @@ var require_types = __commonJS({
           });
           return parseUtil_js_1.INVALID;
         }
-        function makeArgsIssue(args, error69) {
+        function makeArgsIssue(args, error70) {
           return (0, parseUtil_js_1.makeIssue)({
             data: args,
             path: ctx.path,
             errorMaps: [ctx.common.contextualErrorMap, ctx.schemaErrorMap, (0, errors_js_1.getErrorMap)(), errors_js_1.defaultErrorMap].filter((x) => !!x),
             issueData: {
               code: ZodError_js_1.ZodIssueCode.invalid_arguments,
-              argumentsError: error69
+              argumentsError: error70
             }
           });
         }
-        function makeReturnsIssue(returns, error69) {
+        function makeReturnsIssue(returns, error70) {
           return (0, parseUtil_js_1.makeIssue)({
             data: returns,
             path: ctx.path,
             errorMaps: [ctx.common.contextualErrorMap, ctx.schemaErrorMap, (0, errors_js_1.getErrorMap)(), errors_js_1.defaultErrorMap].filter((x) => !!x),
             issueData: {
               code: ZodError_js_1.ZodIssueCode.invalid_return_type,
-              returnTypeError: error69
+              returnTypeError: error70
             }
           });
         }
@@ -141623,15 +141672,15 @@ var require_types = __commonJS({
         if (this._def.returns instanceof ZodPromise4) {
           const me = this;
           return (0, parseUtil_js_1.OK)(async function(...args) {
-            const error69 = new ZodError_js_1.ZodError([]);
+            const error70 = new ZodError_js_1.ZodError([]);
             const parsedArgs = await me._def.args.parseAsync(args, params).catch((e) => {
-              error69.addIssue(makeArgsIssue(args, e));
-              throw error69;
+              error70.addIssue(makeArgsIssue(args, e));
+              throw error70;
             });
             const result = await Reflect.apply(fn, this, parsedArgs);
             const parsedReturns = await me._def.returns._def.type.parseAsync(result, params).catch((e) => {
-              error69.addIssue(makeReturnsIssue(result, e));
-              throw error69;
+              error70.addIssue(makeReturnsIssue(result, e));
+              throw error70;
             });
             return parsedReturns;
           });
@@ -142612,8 +142661,8 @@ var require_stream7 = __commonJS({
               onEvent: (event) => {
                 controller.enqueue(event);
               },
-              onError(error69) {
-                onError === "terminate" ? controller.error(error69) : typeof onError == "function" && onError(error69);
+              onError(error70) {
+                onError === "terminate" ? controller.error(error70) : typeof onError == "function" && onError(error70);
               },
               onRetry,
               onComment
@@ -142753,8 +142802,8 @@ var require_dist6 = __commonJS({
             } else {
               controller.enqueue(value);
             }
-          } catch (error69) {
-            controller.error(error69);
+          } catch (error70) {
+            controller.error(error70);
           }
         },
         /**
@@ -142856,11 +142905,11 @@ var require_dist6 = __commonJS({
           (_a211 = this._resolve) == null ? void 0 : _a211.call(this, value);
         }
       }
-      reject(error69) {
+      reject(error70) {
         var _a211;
-        this.status = { type: "rejected", error: error69 };
+        this.status = { type: "rejected", error: error70 };
         if (this._promise) {
-          (_a211 = this._reject) == null ? void 0 : _a211.call(this, error69);
+          (_a211 = this._reject) == null ? void 0 : _a211.call(this, error70);
         }
       }
       isResolved() {
@@ -142938,8 +142987,8 @@ var require_dist6 = __commonJS({
         this.statusCode = statusCode;
         this.statusText = statusText;
       }
-      static isInstance(error69) {
-        return import_provider103.AISDKError.hasMarker(error69, marker29);
+      static isInstance(error70) {
+        return import_provider103.AISDKError.hasMarker(error70, marker29);
       }
     };
     var DEFAULT_MAX_DOWNLOAD_SIZE3 = 2 * 1024 * 1024 * 1024;
@@ -143113,11 +143162,11 @@ var require_dist6 = __commonJS({
         });
         const contentType = (_b28 = response.headers.get("content-type")) != null ? _b28 : void 0;
         return new Blob([data], contentType ? { type: contentType } : void 0);
-      } catch (error69) {
-        if (DownloadError5.isInstance(error69)) {
-          throw error69;
+      } catch (error70) {
+        if (DownloadError5.isInstance(error70)) {
+          throw error70;
         }
-        throw new DownloadError5({ url: url4, cause: error69 });
+        throw new DownloadError5({ url: url4, cause: error70 });
       }
     }
     var import_provider210 = require_dist4();
@@ -143147,23 +143196,23 @@ var require_dist6 = __commonJS({
       return () => `${prefix}${separator}${generator()}`;
     };
     var generateId6 = createIdGenerator5();
-    function getErrorMessage6(error69) {
-      if (error69 == null) {
+    function getErrorMessage6(error70) {
+      if (error70 == null) {
         return "unknown error";
       }
-      if (typeof error69 === "string") {
-        return error69;
+      if (typeof error70 === "string") {
+        return error70;
       }
-      if (error69 instanceof Error) {
-        return error69.message;
+      if (error70 instanceof Error) {
+        return error70.message;
       }
-      return JSON.stringify(error69);
+      return JSON.stringify(error70);
     }
     var import_provider410 = require_dist4();
     var import_provider310 = require_dist4();
-    function isAbortError5(error69) {
-      return (error69 instanceof Error || error69 instanceof DOMException) && (error69.name === "AbortError" || error69.name === "ResponseAborted" || // Next.js
-      error69.name === "TimeoutError");
+    function isAbortError5(error70) {
+      return (error70 instanceof Error || error70 instanceof DOMException) && (error70.name === "AbortError" || error70.name === "ResponseAborted" || // Next.js
+      error70.name === "TimeoutError");
     }
     var FETCH_FAILED_ERROR_MESSAGES5 = ["fetch failed", "failed to fetch"];
     var BUN_ERROR_CODES2 = [
@@ -143175,26 +143224,26 @@ var require_dist6 = __commonJS({
       "ETIMEDOUT",
       "EPIPE"
     ];
-    function isBunNetworkError2(error69) {
-      if (!(error69 instanceof Error)) {
+    function isBunNetworkError2(error70) {
+      if (!(error70 instanceof Error)) {
         return false;
       }
-      const code = error69.code;
+      const code = error70.code;
       if (typeof code === "string" && BUN_ERROR_CODES2.includes(code)) {
         return true;
       }
       return false;
     }
     function handleFetchError5({
-      error: error69,
+      error: error70,
       url: url4,
       requestBodyValues
     }) {
-      if (isAbortError5(error69)) {
-        return error69;
+      if (isAbortError5(error70)) {
+        return error70;
       }
-      if (error69 instanceof TypeError && FETCH_FAILED_ERROR_MESSAGES5.includes(error69.message.toLowerCase())) {
-        const cause = error69.cause;
+      if (error70 instanceof TypeError && FETCH_FAILED_ERROR_MESSAGES5.includes(error70.message.toLowerCase())) {
+        const cause = error70.cause;
         if (cause != null) {
           return new import_provider310.APICallError({
             message: `Cannot connect to API: ${cause.message}`,
@@ -143206,16 +143255,16 @@ var require_dist6 = __commonJS({
           });
         }
       }
-      if (isBunNetworkError2(error69)) {
+      if (isBunNetworkError2(error70)) {
         return new import_provider310.APICallError({
-          message: `Cannot connect to API: ${error69.message}`,
-          cause: error69,
+          message: `Cannot connect to API: ${error70.message}`,
+          cause: error70,
           url: url4,
           requestBodyValues,
           isRetryable: true
         });
       }
-      return error69;
+      return error70;
     }
     function getRuntimeEnvironmentUserAgent5(globalThisAny = globalThis) {
       var _a211, _b28, _c;
@@ -143292,13 +143341,13 @@ var require_dist6 = __commonJS({
               url: url4,
               requestBodyValues: {}
             });
-          } catch (error69) {
-            if (isAbortError5(error69) || import_provider410.APICallError.isInstance(error69)) {
-              throw error69;
+          } catch (error70) {
+            if (isAbortError5(error70) || import_provider410.APICallError.isInstance(error70)) {
+              throw error70;
             }
             throw new import_provider410.APICallError({
               message: "Failed to process error response",
-              cause: error69,
+              cause: error70,
               statusCode: response.status,
               url: url4,
               responseHeaders,
@@ -143313,23 +143362,23 @@ var require_dist6 = __commonJS({
             url: url4,
             requestBodyValues: {}
           });
-        } catch (error69) {
-          if (error69 instanceof Error) {
-            if (isAbortError5(error69) || import_provider410.APICallError.isInstance(error69)) {
-              throw error69;
+        } catch (error70) {
+          if (error70 instanceof Error) {
+            if (isAbortError5(error70) || import_provider410.APICallError.isInstance(error70)) {
+              throw error70;
             }
           }
           throw new import_provider410.APICallError({
             message: "Failed to process successful response",
-            cause: error69,
+            cause: error70,
             statusCode: response.status,
             url: url4,
             responseHeaders,
             requestBodyValues: {}
           });
         }
-      } catch (error69) {
-        throw handleFetchError5({ error: error69, url: url4, requestBodyValues: {} });
+      } catch (error70) {
+        throw handleFetchError5({ error: error70, url: url4, requestBodyValues: {} });
       }
     };
     var DEFAULT_SCHEMA_PREFIX = "JSON schema:";
@@ -144793,10 +144842,10 @@ var require_dist6 = __commonJS({
           error: import_provider810.TypeValidationError.wrap({ value, cause: result.error, context: context2 }),
           rawValue: value
         };
-      } catch (error69) {
+      } catch (error70) {
         return {
           success: false,
-          error: import_provider810.TypeValidationError.wrap({ value, cause: error69, context: context2 }),
+          error: import_provider810.TypeValidationError.wrap({ value, cause: error70, context: context2 }),
           rawValue: value
         };
       }
@@ -144811,11 +144860,11 @@ var require_dist6 = __commonJS({
           return value;
         }
         return validateTypes5({ value, schema });
-      } catch (error69) {
-        if (import_provider910.JSONParseError.isInstance(error69) || import_provider910.TypeValidationError.isInstance(error69)) {
-          throw error69;
+      } catch (error70) {
+        if (import_provider910.JSONParseError.isInstance(error70) || import_provider910.TypeValidationError.isInstance(error70)) {
+          throw error70;
         }
-        throw new import_provider910.JSONParseError({ text: text2, cause: error69 });
+        throw new import_provider910.JSONParseError({ text: text2, cause: error70 });
       }
     }
     async function safeParseJSON5({
@@ -144828,10 +144877,10 @@ var require_dist6 = __commonJS({
           return { success: true, value, rawValue: value };
         }
         return await safeValidateTypes5({ value, schema });
-      } catch (error69) {
+      } catch (error70) {
         return {
           success: false,
-          error: import_provider910.JSONParseError.isInstance(error69) ? error69 : new import_provider910.JSONParseError({ text: text2, cause: error69 }),
+          error: import_provider910.JSONParseError.isInstance(error70) ? error70 : new import_provider910.JSONParseError({ text: text2, cause: error70 }),
           rawValue: void 0
         };
       }
@@ -144956,13 +145005,13 @@ var require_dist6 = __commonJS({
               url: url4,
               requestBodyValues: body.values
             });
-          } catch (error69) {
-            if (isAbortError5(error69) || import_provider112.APICallError.isInstance(error69)) {
-              throw error69;
+          } catch (error70) {
+            if (isAbortError5(error70) || import_provider112.APICallError.isInstance(error70)) {
+              throw error70;
             }
             throw new import_provider112.APICallError({
               message: "Failed to process error response",
-              cause: error69,
+              cause: error70,
               statusCode: response.status,
               url: url4,
               responseHeaders,
@@ -144977,23 +145026,23 @@ var require_dist6 = __commonJS({
             url: url4,
             requestBodyValues: body.values
           });
-        } catch (error69) {
-          if (error69 instanceof Error) {
-            if (isAbortError5(error69) || import_provider112.APICallError.isInstance(error69)) {
-              throw error69;
+        } catch (error70) {
+          if (error70 instanceof Error) {
+            if (isAbortError5(error70) || import_provider112.APICallError.isInstance(error70)) {
+              throw error70;
             }
           }
           throw new import_provider112.APICallError({
             message: "Failed to process successful response",
-            cause: error69,
+            cause: error70,
             statusCode: response.status,
             url: url4,
             responseHeaders,
             requestBodyValues: body.values
           });
         }
-      } catch (error69) {
-        throw handleFetchError5({ error: error69, url: url4, requestBodyValues: body.values });
+      } catch (error70) {
+        throw handleFetchError5({ error: error70, url: url4, requestBodyValues: body.values });
       }
     };
     function tool3(tool22) {
@@ -145179,7 +145228,7 @@ var require_dist6 = __commonJS({
           responseHeaders,
           value: new Uint8Array(buffer)
         };
-      } catch (error69) {
+      } catch (error70) {
         throw new import_provider122.APICallError({
           message: "Failed to read response as array buffer",
           url: url4,
@@ -145187,7 +145236,7 @@ var require_dist6 = __commonJS({
           statusCode: response.status,
           responseHeaders,
           responseBody: void 0,
-          cause: error69
+          cause: error70
         });
       }
     };
@@ -145510,17 +145559,17 @@ var require_dist7 = __commonJS({
       };
     }
     var import_provider_utils210 = require_dist6();
-    var import_zod179 = require_zod();
-    var qwenErrorDataSchema = import_zod179.z.object({
-      object: import_zod179.z.literal("error"),
-      message: import_zod179.z.string(),
-      type: import_zod179.z.string(),
-      param: import_zod179.z.string().nullable(),
-      code: import_zod179.z.string().nullable()
+    var import_zod185 = require_zod();
+    var qwenErrorDataSchema = import_zod185.z.object({
+      object: import_zod185.z.literal("error"),
+      message: import_zod185.z.string(),
+      type: import_zod185.z.string(),
+      param: import_zod185.z.string().nullable(),
+      code: import_zod185.z.string().nullable()
     });
     var qwenFailedResponseHandler = (0, import_provider_utils210.createJsonErrorResponseHandler)({
       errorSchema: qwenErrorDataSchema,
-      errorToMessage: (error69) => error69.message
+      errorToMessage: (error70) => error70.message
     });
     var defaultQwenErrorStructure = {
       errorSchema: qwenErrorDataSchema,
@@ -145845,13 +145894,13 @@ var require_dist7 = __commonJS({
         const body = JSON.stringify(requestBody);
         const metadataExtractor = (_a31 = this.config.metadataExtractor) == null ? void 0 : _a31.createStreamExtractor();
         const sleep2 = (ms) => new Promise((resolve3) => setTimeout(resolve3, ms));
-        const shouldRetryQwenStreamRequest = (error69) => {
+        const shouldRetryQwenStreamRequest = (error70) => {
           var _a211;
-          if (!import_provider210.APICallError.isInstance(error69))
+          if (!import_provider210.APICallError.isInstance(error70))
             return false;
-          if (error69.statusCode !== 500)
+          if (error70.statusCode !== 500)
             return false;
-          const message = String((_a211 = error69.message) != null ? _a211 : "");
+          const message = String((_a211 = error70.message) != null ? _a211 : "");
           return message.includes("list index out of range") && (message.includes("InternalServerError") || message.toLowerCase().includes("internal server error"));
         };
         const request2 = () => (0, import_provider_utils310.postJsonToApi)({
@@ -145877,9 +145926,9 @@ var require_dist7 = __commonJS({
             responseHeaders = result.responseHeaders;
             response = result.value;
             break;
-          } catch (error69) {
-            if (attempt === maxRetries || !shouldRetryQwenStreamRequest(error69)) {
-              throw error69;
+          } catch (error70) {
+            if (attempt === maxRetries || !shouldRetryQwenStreamRequest(error70)) {
+              throw error70;
             }
             await sleep2(100 * (attempt + 1));
           }
@@ -154006,15 +154055,15 @@ var init_dist11 = __esm({
             result = await firstChunkReader.read();
           }
           if (((_b27 = result.value) == null ? void 0 : _b27.type) === "error") {
-            const error69 = result.value.error;
+            const error70 = result.value.error;
             throw new APICallError({
-              message: error69.message,
+              message: error70.message,
               url: url4,
               requestBodyValues: body,
-              statusCode: error69.type === "overloaded_error" ? 529 : 500,
+              statusCode: error70.type === "overloaded_error" ? 529 : 500,
               responseHeaders,
-              responseBody: JSON.stringify(error69),
-              isRetryable: error69.type === "overloaded_error"
+              responseBody: JSON.stringify(error70),
+              isRetryable: error70.type === "overloaded_error"
             });
           }
         } finally {
@@ -159069,17 +159118,17 @@ var init_dist13 = __esm({
 });
 
 // node_modules/vercel-minimax-ai-provider/node_modules/@ai-sdk/anthropic/node_modules/@ai-sdk/provider/dist/index.mjs
-function getErrorMessage4(error69) {
-  if (error69 == null) {
+function getErrorMessage4(error70) {
+  if (error70 == null) {
     return "unknown error";
   }
-  if (typeof error69 === "string") {
-    return error69;
+  if (typeof error70 === "string") {
+    return error70;
   }
-  if (error69 instanceof Error) {
-    return error69.message;
+  if (error70 instanceof Error) {
+    return error70.message;
   }
-  return JSON.stringify(error69);
+  return JSON.stringify(error70);
 }
 var marker18, symbol20, _a20, _b18, AISDKError3, name17, marker23, symbol23, _a24, _b23, APICallError3, name23, marker33, symbol33, _a33, _b33, EmptyResponseBodyError3, name33, marker43, symbol43, _a43, _b43, InvalidArgumentError3, name43, marker53, symbol53, _a53, _b53, InvalidPromptError3, name53, marker63, symbol63, _a63, _b63, InvalidResponseDataError3, name63, marker73, symbol73, _a73, _b73, JSONParseError3, name73, marker83, symbol83, _a83, _b83, LoadAPIKeyError3, name83, marker93, symbol93, _a93, _b93, LoadSettingError3, name93, marker103, symbol103, _a103, _b103, NoContentGeneratedError3, name103, marker113, symbol113, _a113, _b113, NoSuchModelError3, name113, marker123, symbol123, _a123, _b123, TooManyEmbeddingValuesForCallError3, name123, marker133, symbol133, _a133, _b133, TypeValidationError3, name133, marker143, symbol143, _a143, _b143, UnsupportedFunctionalityError3;
 var init_dist14 = __esm({
@@ -159111,12 +159160,12 @@ var init_dist14 = __esm({
        * @param {unknown} error - The error to check.
        * @returns {boolean} True if the error is an AI SDK Error, false otherwise.
        */
-      static isInstance(error69) {
-        return _AISDKError3.hasMarker(error69, marker18);
+      static isInstance(error70) {
+        return _AISDKError3.hasMarker(error70, marker18);
       }
-      static hasMarker(error69, marker153) {
+      static hasMarker(error70, marker153) {
         const markerSymbol = Symbol.for(marker153);
-        return error69 != null && typeof error69 === "object" && markerSymbol in error69 && typeof error69[markerSymbol] === "boolean" && error69[markerSymbol] === true;
+        return error70 != null && typeof error70 === "object" && markerSymbol in error70 && typeof error70[markerSymbol] === "boolean" && error70[markerSymbol] === true;
       }
     };
     name17 = "AI_APICallError";
@@ -159148,8 +159197,8 @@ var init_dist14 = __esm({
         this.isRetryable = isRetryable;
         this.data = data;
       }
-      static isInstance(error69) {
-        return AISDKError3.hasMarker(error69, marker23);
+      static isInstance(error70) {
+        return AISDKError3.hasMarker(error70, marker23);
       }
     };
     name23 = "AI_EmptyResponseBodyError";
@@ -159161,8 +159210,8 @@ var init_dist14 = __esm({
         super({ name: name23, message });
         this[_a33] = true;
       }
-      static isInstance(error69) {
-        return AISDKError3.hasMarker(error69, marker33);
+      static isInstance(error70) {
+        return AISDKError3.hasMarker(error70, marker33);
       }
     };
     name33 = "AI_InvalidArgumentError";
@@ -159178,8 +159227,8 @@ var init_dist14 = __esm({
         this[_a43] = true;
         this.argument = argument;
       }
-      static isInstance(error69) {
-        return AISDKError3.hasMarker(error69, marker43);
+      static isInstance(error70) {
+        return AISDKError3.hasMarker(error70, marker43);
       }
     };
     name43 = "AI_InvalidPromptError";
@@ -159195,8 +159244,8 @@ var init_dist14 = __esm({
         this[_a53] = true;
         this.prompt = prompt;
       }
-      static isInstance(error69) {
-        return AISDKError3.hasMarker(error69, marker53);
+      static isInstance(error70) {
+        return AISDKError3.hasMarker(error70, marker53);
       }
     };
     name53 = "AI_InvalidResponseDataError";
@@ -159211,8 +159260,8 @@ var init_dist14 = __esm({
         this[_a63] = true;
         this.data = data;
       }
-      static isInstance(error69) {
-        return AISDKError3.hasMarker(error69, marker63);
+      static isInstance(error70) {
+        return AISDKError3.hasMarker(error70, marker63);
       }
     };
     name63 = "AI_JSONParseError";
@@ -159229,8 +159278,8 @@ Error message: ${getErrorMessage4(cause)}`,
         this[_a73] = true;
         this.text = text2;
       }
-      static isInstance(error69) {
-        return AISDKError3.hasMarker(error69, marker73);
+      static isInstance(error70) {
+        return AISDKError3.hasMarker(error70, marker73);
       }
     };
     name73 = "AI_LoadAPIKeyError";
@@ -159242,8 +159291,8 @@ Error message: ${getErrorMessage4(cause)}`,
         super({ name: name73, message });
         this[_a83] = true;
       }
-      static isInstance(error69) {
-        return AISDKError3.hasMarker(error69, marker83);
+      static isInstance(error70) {
+        return AISDKError3.hasMarker(error70, marker83);
       }
     };
     name83 = "AI_LoadSettingError";
@@ -159255,8 +159304,8 @@ Error message: ${getErrorMessage4(cause)}`,
         super({ name: name83, message });
         this[_a93] = true;
       }
-      static isInstance(error69) {
-        return AISDKError3.hasMarker(error69, marker93);
+      static isInstance(error70) {
+        return AISDKError3.hasMarker(error70, marker93);
       }
     };
     name93 = "AI_NoContentGeneratedError";
@@ -159270,8 +159319,8 @@ Error message: ${getErrorMessage4(cause)}`,
         super({ name: name93, message });
         this[_a103] = true;
       }
-      static isInstance(error69) {
-        return AISDKError3.hasMarker(error69, marker103);
+      static isInstance(error70) {
+        return AISDKError3.hasMarker(error70, marker103);
       }
     };
     name103 = "AI_NoSuchModelError";
@@ -159289,8 +159338,8 @@ Error message: ${getErrorMessage4(cause)}`,
         this.modelId = modelId;
         this.modelType = modelType;
       }
-      static isInstance(error69) {
-        return AISDKError3.hasMarker(error69, marker113);
+      static isInstance(error70) {
+        return AISDKError3.hasMarker(error70, marker113);
       }
     };
     name113 = "AI_TooManyEmbeddingValuesForCallError";
@@ -159308,8 +159357,8 @@ Error message: ${getErrorMessage4(cause)}`,
         this.maxEmbeddingsPerCall = options.maxEmbeddingsPerCall;
         this.values = options.values;
       }
-      static isInstance(error69) {
-        return AISDKError3.hasMarker(error69, marker123);
+      static isInstance(error70) {
+        return AISDKError3.hasMarker(error70, marker123);
       }
     };
     name123 = "AI_TypeValidationError";
@@ -159326,8 +159375,8 @@ Error message: ${getErrorMessage4(cause)}`,
         this[_a133] = true;
         this.value = value;
       }
-      static isInstance(error69) {
-        return AISDKError3.hasMarker(error69, marker133);
+      static isInstance(error70) {
+        return AISDKError3.hasMarker(error70, marker133);
       }
       /**
        * Wraps an error into a TypeValidationError.
@@ -159358,8 +159407,8 @@ Error message: ${getErrorMessage4(cause)}`,
         this[_a143] = true;
         this.functionality = functionality;
       }
-      static isInstance(error69) {
-        return AISDKError3.hasMarker(error69, marker143);
+      static isInstance(error70) {
+        return AISDKError3.hasMarker(error70, marker143);
       }
     };
   }
@@ -159412,20 +159461,20 @@ function convertUint8ArrayToBase643(array4) {
 function convertToBase642(value) {
   return value instanceof Uint8Array ? convertUint8ArrayToBase643(value) : value;
 }
-function isAbortError3(error69) {
-  return (error69 instanceof Error || error69 instanceof DOMException) && (error69.name === "AbortError" || error69.name === "ResponseAborted" || // Next.js
-  error69.name === "TimeoutError");
+function isAbortError3(error70) {
+  return (error70 instanceof Error || error70 instanceof DOMException) && (error70.name === "AbortError" || error70.name === "ResponseAborted" || // Next.js
+  error70.name === "TimeoutError");
 }
 function handleFetchError3({
-  error: error69,
+  error: error70,
   url: url4,
   requestBodyValues
 }) {
-  if (isAbortError3(error69)) {
-    return error69;
+  if (isAbortError3(error70)) {
+    return error70;
   }
-  if (error69 instanceof TypeError && FETCH_FAILED_ERROR_MESSAGES3.includes(error69.message.toLowerCase())) {
-    const cause = error69.cause;
+  if (error70 instanceof TypeError && FETCH_FAILED_ERROR_MESSAGES3.includes(error70.message.toLowerCase())) {
+    const cause = error70.cause;
     if (cause != null) {
       return new APICallError3({
         message: `Cannot connect to API: ${cause.message}`,
@@ -159437,7 +159486,7 @@ function handleFetchError3({
       });
     }
   }
-  return error69;
+  return error70;
 }
 function getRuntimeEnvironmentUserAgent3(globalThisAny = globalThis) {
   var _a211, _b27, _c;
@@ -160454,10 +160503,10 @@ async function safeValidateTypes3({
       error: TypeValidationError3.wrap({ value, cause: result.error }),
       rawValue: value
     };
-  } catch (error69) {
+  } catch (error70) {
     return {
       success: false,
-      error: TypeValidationError3.wrap({ value, cause: error69 }),
+      error: TypeValidationError3.wrap({ value, cause: error70 }),
       rawValue: value
     };
   }
@@ -160472,11 +160521,11 @@ async function parseJSON3({
       return value;
     }
     return validateTypes3({ value, schema });
-  } catch (error69) {
-    if (JSONParseError3.isInstance(error69) || TypeValidationError3.isInstance(error69)) {
-      throw error69;
+  } catch (error70) {
+    if (JSONParseError3.isInstance(error70) || TypeValidationError3.isInstance(error70)) {
+      throw error70;
     }
-    throw new JSONParseError3({ text: text2, cause: error69 });
+    throw new JSONParseError3({ text: text2, cause: error70 });
   }
 }
 async function safeParseJSON3({
@@ -160489,10 +160538,10 @@ async function safeParseJSON3({
       return { success: true, value, rawValue: value };
     }
     return await safeValidateTypes3({ value, schema });
-  } catch (error69) {
+  } catch (error70) {
     return {
       success: false,
-      error: JSONParseError3.isInstance(error69) ? error69 : new JSONParseError3({ text: text2, cause: error69 }),
+      error: JSONParseError3.isInstance(error70) ? error70 : new JSONParseError3({ text: text2, cause: error70 }),
       rawValue: void 0
     };
   }
@@ -160635,8 +160684,8 @@ var init_dist15 = __esm({
         this.statusCode = statusCode;
         this.statusText = statusText;
       }
-      static isInstance(error69) {
-        return AISDKError3.hasMarker(error69, marker19);
+      static isInstance(error70) {
+        return AISDKError3.hasMarker(error70, marker19);
       }
     };
     createIdGenerator3 = ({
@@ -161059,13 +161108,13 @@ var init_dist15 = __esm({
               url: url4,
               requestBodyValues: body.values
             });
-          } catch (error69) {
-            if (isAbortError3(error69) || APICallError3.isInstance(error69)) {
-              throw error69;
+          } catch (error70) {
+            if (isAbortError3(error70) || APICallError3.isInstance(error70)) {
+              throw error70;
             }
             throw new APICallError3({
               message: "Failed to process error response",
-              cause: error69,
+              cause: error70,
               statusCode: response.status,
               url: url4,
               responseHeaders,
@@ -161080,23 +161129,23 @@ var init_dist15 = __esm({
             url: url4,
             requestBodyValues: body.values
           });
-        } catch (error69) {
-          if (error69 instanceof Error) {
-            if (isAbortError3(error69) || APICallError3.isInstance(error69)) {
-              throw error69;
+        } catch (error70) {
+          if (error70 instanceof Error) {
+            if (isAbortError3(error70) || APICallError3.isInstance(error70)) {
+              throw error70;
             }
           }
           throw new APICallError3({
             message: "Failed to process successful response",
-            cause: error69,
+            cause: error70,
             statusCode: response.status,
             url: url4,
             responseHeaders,
             requestBodyValues: body.values
           });
         }
-      } catch (error69) {
-        throw handleFetchError3({ error: error69, url: url4, requestBodyValues: body.values });
+      } catch (error70) {
+        throw handleFetchError3({ error: error70, url: url4, requestBodyValues: body.values });
       }
     };
     createJsonErrorResponseHandler3 = ({
@@ -164927,15 +164976,15 @@ var init_internal = __esm({
             result = await firstChunkReader.read();
           }
           if (((_b27 = result.value) == null ? void 0 : _b27.type) === "error") {
-            const error69 = result.value.error;
+            const error70 = result.value.error;
             throw new APICallError3({
-              message: error69.message,
+              message: error70.message,
               url: url4,
               requestBodyValues: body,
-              statusCode: error69.type === "overloaded_error" ? 529 : 500,
+              statusCode: error70.type === "overloaded_error" ? 529 : 500,
               responseHeaders,
-              responseBody: JSON.stringify(error69),
-              isRetryable: error69.type === "overloaded_error"
+              responseBody: JSON.stringify(error70),
+              isRetryable: error70.type === "overloaded_error"
             });
           }
         } finally {
@@ -165158,17 +165207,17 @@ var init_internal = __esm({
 });
 
 // node_modules/vercel-minimax-ai-provider/node_modules/@ai-sdk/provider/dist/index.mjs
-function getErrorMessage5(error69) {
-  if (error69 == null) {
+function getErrorMessage5(error70) {
+  if (error70 == null) {
     return "unknown error";
   }
-  if (typeof error69 === "string") {
-    return error69;
+  if (typeof error70 === "string") {
+    return error70;
   }
-  if (error69 instanceof Error) {
-    return error69.message;
+  if (error70 instanceof Error) {
+    return error70.message;
   }
-  return JSON.stringify(error69);
+  return JSON.stringify(error70);
 }
 var marker20, symbol24, _a25, _b20, AISDKError4, name19, marker24, symbol25, _a26, _b24, APICallError4, name24, marker34, symbol34, _a34, _b34, EmptyResponseBodyError4, name34, marker44, symbol44, _a44, _b44, InvalidArgumentError4, name44, marker54, symbol54, _a54, _b54, InvalidPromptError4, name54, marker64, symbol64, _a64, _b64, InvalidResponseDataError4, name64, marker74, symbol74, _a74, _b74, JSONParseError4, name74, marker84, symbol84, _a84, _b84, LoadAPIKeyError4, name84, marker94, symbol94, _a94, _b94, LoadSettingError4, name94, marker104, symbol104, _a104, _b104, NoContentGeneratedError4, name104, marker114, symbol114, _a114, _b114, NoSuchModelError4, name114, marker124, symbol124, _a124, _b124, TooManyEmbeddingValuesForCallError4, name124, marker134, symbol134, _a134, _b134, TypeValidationError4, name134, marker144, symbol144, _a144, _b144, UnsupportedFunctionalityError4;
 var init_dist16 = __esm({
@@ -165200,12 +165249,12 @@ var init_dist16 = __esm({
        * @param {unknown} error - The error to check.
        * @returns {boolean} True if the error is an AI SDK Error, false otherwise.
        */
-      static isInstance(error69) {
-        return _AISDKError4.hasMarker(error69, marker20);
+      static isInstance(error70) {
+        return _AISDKError4.hasMarker(error70, marker20);
       }
-      static hasMarker(error69, marker153) {
+      static hasMarker(error70, marker153) {
         const markerSymbol = Symbol.for(marker153);
-        return error69 != null && typeof error69 === "object" && markerSymbol in error69 && typeof error69[markerSymbol] === "boolean" && error69[markerSymbol] === true;
+        return error70 != null && typeof error70 === "object" && markerSymbol in error70 && typeof error70[markerSymbol] === "boolean" && error70[markerSymbol] === true;
       }
     };
     name19 = "AI_APICallError";
@@ -165237,8 +165286,8 @@ var init_dist16 = __esm({
         this.isRetryable = isRetryable;
         this.data = data;
       }
-      static isInstance(error69) {
-        return AISDKError4.hasMarker(error69, marker24);
+      static isInstance(error70) {
+        return AISDKError4.hasMarker(error70, marker24);
       }
     };
     name24 = "AI_EmptyResponseBodyError";
@@ -165250,8 +165299,8 @@ var init_dist16 = __esm({
         super({ name: name24, message });
         this[_a34] = true;
       }
-      static isInstance(error69) {
-        return AISDKError4.hasMarker(error69, marker34);
+      static isInstance(error70) {
+        return AISDKError4.hasMarker(error70, marker34);
       }
     };
     name34 = "AI_InvalidArgumentError";
@@ -165267,8 +165316,8 @@ var init_dist16 = __esm({
         this[_a44] = true;
         this.argument = argument;
       }
-      static isInstance(error69) {
-        return AISDKError4.hasMarker(error69, marker44);
+      static isInstance(error70) {
+        return AISDKError4.hasMarker(error70, marker44);
       }
     };
     name44 = "AI_InvalidPromptError";
@@ -165284,8 +165333,8 @@ var init_dist16 = __esm({
         this[_a54] = true;
         this.prompt = prompt;
       }
-      static isInstance(error69) {
-        return AISDKError4.hasMarker(error69, marker54);
+      static isInstance(error70) {
+        return AISDKError4.hasMarker(error70, marker54);
       }
     };
     name54 = "AI_InvalidResponseDataError";
@@ -165300,8 +165349,8 @@ var init_dist16 = __esm({
         this[_a64] = true;
         this.data = data;
       }
-      static isInstance(error69) {
-        return AISDKError4.hasMarker(error69, marker64);
+      static isInstance(error70) {
+        return AISDKError4.hasMarker(error70, marker64);
       }
     };
     name64 = "AI_JSONParseError";
@@ -165318,8 +165367,8 @@ Error message: ${getErrorMessage5(cause)}`,
         this[_a74] = true;
         this.text = text2;
       }
-      static isInstance(error69) {
-        return AISDKError4.hasMarker(error69, marker74);
+      static isInstance(error70) {
+        return AISDKError4.hasMarker(error70, marker74);
       }
     };
     name74 = "AI_LoadAPIKeyError";
@@ -165331,8 +165380,8 @@ Error message: ${getErrorMessage5(cause)}`,
         super({ name: name74, message });
         this[_a84] = true;
       }
-      static isInstance(error69) {
-        return AISDKError4.hasMarker(error69, marker84);
+      static isInstance(error70) {
+        return AISDKError4.hasMarker(error70, marker84);
       }
     };
     name84 = "AI_LoadSettingError";
@@ -165344,8 +165393,8 @@ Error message: ${getErrorMessage5(cause)}`,
         super({ name: name84, message });
         this[_a94] = true;
       }
-      static isInstance(error69) {
-        return AISDKError4.hasMarker(error69, marker94);
+      static isInstance(error70) {
+        return AISDKError4.hasMarker(error70, marker94);
       }
     };
     name94 = "AI_NoContentGeneratedError";
@@ -165359,8 +165408,8 @@ Error message: ${getErrorMessage5(cause)}`,
         super({ name: name94, message });
         this[_a104] = true;
       }
-      static isInstance(error69) {
-        return AISDKError4.hasMarker(error69, marker104);
+      static isInstance(error70) {
+        return AISDKError4.hasMarker(error70, marker104);
       }
     };
     name104 = "AI_NoSuchModelError";
@@ -165378,8 +165427,8 @@ Error message: ${getErrorMessage5(cause)}`,
         this.modelId = modelId;
         this.modelType = modelType;
       }
-      static isInstance(error69) {
-        return AISDKError4.hasMarker(error69, marker114);
+      static isInstance(error70) {
+        return AISDKError4.hasMarker(error70, marker114);
       }
     };
     name114 = "AI_TooManyEmbeddingValuesForCallError";
@@ -165397,8 +165446,8 @@ Error message: ${getErrorMessage5(cause)}`,
         this.maxEmbeddingsPerCall = options.maxEmbeddingsPerCall;
         this.values = options.values;
       }
-      static isInstance(error69) {
-        return AISDKError4.hasMarker(error69, marker124);
+      static isInstance(error70) {
+        return AISDKError4.hasMarker(error70, marker124);
       }
     };
     name124 = "AI_TypeValidationError";
@@ -165415,8 +165464,8 @@ Error message: ${getErrorMessage5(cause)}`,
         this[_a134] = true;
         this.value = value;
       }
-      static isInstance(error69) {
-        return AISDKError4.hasMarker(error69, marker134);
+      static isInstance(error70) {
+        return AISDKError4.hasMarker(error70, marker134);
       }
       /**
        * Wraps an error into a TypeValidationError.
@@ -165447,8 +165496,8 @@ Error message: ${getErrorMessage5(cause)}`,
         this[_a144] = true;
         this.functionality = functionality;
       }
-      static isInstance(error69) {
-        return AISDKError4.hasMarker(error69, marker144);
+      static isInstance(error70) {
+        return AISDKError4.hasMarker(error70, marker144);
       }
     };
   }
@@ -165477,20 +165526,20 @@ function convertUint8ArrayToBase644(array4) {
 function convertToBase643(value) {
   return value instanceof Uint8Array ? convertUint8ArrayToBase644(value) : value;
 }
-function isAbortError4(error69) {
-  return (error69 instanceof Error || error69 instanceof DOMException) && (error69.name === "AbortError" || error69.name === "ResponseAborted" || // Next.js
-  error69.name === "TimeoutError");
+function isAbortError4(error70) {
+  return (error70 instanceof Error || error70 instanceof DOMException) && (error70.name === "AbortError" || error70.name === "ResponseAborted" || // Next.js
+  error70.name === "TimeoutError");
 }
 function handleFetchError4({
-  error: error69,
+  error: error70,
   url: url4,
   requestBodyValues
 }) {
-  if (isAbortError4(error69)) {
-    return error69;
+  if (isAbortError4(error70)) {
+    return error70;
   }
-  if (error69 instanceof TypeError && FETCH_FAILED_ERROR_MESSAGES4.includes(error69.message.toLowerCase())) {
-    const cause = error69.cause;
+  if (error70 instanceof TypeError && FETCH_FAILED_ERROR_MESSAGES4.includes(error70.message.toLowerCase())) {
+    const cause = error70.cause;
     if (cause != null) {
       return new APICallError4({
         message: `Cannot connect to API: ${cause.message}`,
@@ -165502,7 +165551,7 @@ function handleFetchError4({
       });
     }
   }
-  return error69;
+  return error70;
 }
 function getRuntimeEnvironmentUserAgent4(globalThisAny = globalThis) {
   var _a211, _b27, _c;
@@ -166539,10 +166588,10 @@ async function safeValidateTypes4({
       error: TypeValidationError4.wrap({ value, cause: result.error }),
       rawValue: value
     };
-  } catch (error69) {
+  } catch (error70) {
     return {
       success: false,
-      error: TypeValidationError4.wrap({ value, cause: error69 }),
+      error: TypeValidationError4.wrap({ value, cause: error70 }),
       rawValue: value
     };
   }
@@ -166557,11 +166606,11 @@ async function parseJSON4({
       return value;
     }
     return validateTypes4({ value, schema });
-  } catch (error69) {
-    if (JSONParseError4.isInstance(error69) || TypeValidationError4.isInstance(error69)) {
-      throw error69;
+  } catch (error70) {
+    if (JSONParseError4.isInstance(error70) || TypeValidationError4.isInstance(error70)) {
+      throw error70;
     }
-    throw new JSONParseError4({ text: text2, cause: error69 });
+    throw new JSONParseError4({ text: text2, cause: error70 });
   }
 }
 async function safeParseJSON4({
@@ -166574,10 +166623,10 @@ async function safeParseJSON4({
       return { success: true, value, rawValue: value };
     }
     return await safeValidateTypes4({ value, schema });
-  } catch (error69) {
+  } catch (error70) {
     return {
       success: false,
-      error: JSONParseError4.isInstance(error69) ? error69 : new JSONParseError4({ text: text2, cause: error69 }),
+      error: JSONParseError4.isInstance(error70) ? error70 : new JSONParseError4({ text: text2, cause: error70 }),
       rawValue: void 0
     };
   }
@@ -166667,8 +166716,8 @@ var init_dist17 = __esm({
         this.statusCode = statusCode;
         this.statusText = statusText;
       }
-      static isInstance(error69) {
-        return AISDKError4.hasMarker(error69, marker21);
+      static isInstance(error70) {
+        return AISDKError4.hasMarker(error70, marker21);
       }
     };
     createIdGenerator4 = ({
@@ -167091,13 +167140,13 @@ var init_dist17 = __esm({
               url: url4,
               requestBodyValues: body.values
             });
-          } catch (error69) {
-            if (isAbortError4(error69) || APICallError4.isInstance(error69)) {
-              throw error69;
+          } catch (error70) {
+            if (isAbortError4(error70) || APICallError4.isInstance(error70)) {
+              throw error70;
             }
             throw new APICallError4({
               message: "Failed to process error response",
-              cause: error69,
+              cause: error70,
               statusCode: response.status,
               url: url4,
               responseHeaders,
@@ -167112,23 +167161,23 @@ var init_dist17 = __esm({
             url: url4,
             requestBodyValues: body.values
           });
-        } catch (error69) {
-          if (error69 instanceof Error) {
-            if (isAbortError4(error69) || APICallError4.isInstance(error69)) {
-              throw error69;
+        } catch (error70) {
+          if (error70 instanceof Error) {
+            if (isAbortError4(error70) || APICallError4.isInstance(error70)) {
+              throw error70;
             }
           }
           throw new APICallError4({
             message: "Failed to process successful response",
-            cause: error69,
+            cause: error70,
             statusCode: response.status,
             url: url4,
             responseHeaders,
             requestBodyValues: body.values
           });
         }
-      } catch (error69) {
-        throw handleFetchError4({ error: error69, url: url4, requestBodyValues: body.values });
+      } catch (error70) {
+        throw handleFetchError4({ error: error70, url: url4, requestBodyValues: body.values });
       }
     };
     createJsonErrorResponseHandler4 = ({
@@ -168878,14 +168927,14 @@ var require_decode = __commonJS({
 var require_JsonWebTokenError = __commonJS({
   "node_modules/jsonwebtoken/lib/JsonWebTokenError.js"(exports2, module2) {
     "use strict";
-    var JsonWebTokenError = function(message, error69) {
+    var JsonWebTokenError = function(message, error70) {
       Error.call(this, message);
       if (Error.captureStackTrace) {
         Error.captureStackTrace(this, this.constructor);
       }
       this.name = "JsonWebTokenError";
       this.message = message;
-      if (error69) this.inner = error69;
+      if (error70) this.inner = error70;
     };
     JsonWebTokenError.prototype = Object.create(Error.prototype);
     JsonWebTokenError.prototype.constructor = JsonWebTokenError;
@@ -171737,8 +171786,8 @@ var require_sign2 = __commonJS({
       } else if (isObjectPayload) {
         try {
           validatePayload(payload);
-        } catch (error69) {
-          return failure(error69);
+        } catch (error70) {
+          return failure(error70);
         }
         if (!options.mutatePayload) {
           payload = Object.assign({}, payload);
@@ -171759,14 +171808,14 @@ var require_sign2 = __commonJS({
       }
       try {
         validateOptions(options);
-      } catch (error69) {
-        return failure(error69);
+      } catch (error70) {
+        return failure(error70);
       }
       if (!options.allowInvalidAsymmetricKeyTypes) {
         try {
           validateAsymmetricKey(header.alg, secretOrPrivateKey);
-        } catch (error69) {
-          return failure(error69);
+        } catch (error70) {
+          return failure(error70);
         }
       }
       const timestamp = payload.iat || Math.floor(Date.now() / 1e3);
@@ -172165,8 +172214,8 @@ function createVendorAPI2(inputValues, hooks = {}) {
           };
         }
         return { completed: false };
-      } catch (error69) {
-        logger(`[RunningHub] \u67E5\u8BE2\u5F02\u5E38: ${error69.message}`);
+      } catch (error70) {
+        logger(`[RunningHub] \u67E5\u8BE2\u5F02\u5E38: ${error70.message}`);
         return { completed: false };
       }
     }, 5e3, 6e5);
@@ -172365,6 +172414,569 @@ var init_runninghub = __esm({
   }
 });
 
+// node_modules/zod/index.js
+var zod_default;
+var init_zod = __esm({
+  "node_modules/zod/index.js"() {
+    "use strict";
+    init_external();
+    init_external();
+    zod_default = external_exports;
+  }
+});
+
+// src/lib/quickVideo/contract.ts
+function canTransitionStage(from, to) {
+  return STAGE_TRANSITIONS[from]?.includes(to) ?? false;
+}
+function shotCountBounds(targetDuration) {
+  const max = Math.max(1, Math.min(SHOT_COUNT_MAX, Math.floor(targetDuration / SHOT_DURATION_MIN)));
+  const min = Math.max(1, Math.min(5, Math.floor(targetDuration / SHOT_DURATION_MAX) || 1));
+  return { min, max };
+}
+function validateStoryboard(targetDuration, shots) {
+  const errors = [];
+  const { min, max } = shotCountBounds(targetDuration);
+  if (shots.length < min || shots.length > max) {
+    errors.push(`\u955C\u5934\u6570\u91CF\u9700\u5728 ${min}-${max} \u4E2A\u4E4B\u95F4\uFF08\u76EE\u6807\u65F6\u957F ${targetDuration} \u79D2\uFF0C\u5F53\u524D ${shots.length} \u4E2A\uFF09`);
+  }
+  const total = shots.reduce((sum, s) => sum + s.duration, 0);
+  const tolerance = Math.max(3, Math.round(targetDuration * 0.2));
+  if (Math.abs(total - targetDuration) > tolerance) {
+    errors.push(`\u955C\u5934\u603B\u65F6\u957F ${total} \u79D2\u4E0E\u76EE\u6807\u65F6\u957F ${targetDuration} \u79D2\u504F\u5DEE\u8D85\u8FC7 ${tolerance} \u79D2`);
+  }
+  const ids = /* @__PURE__ */ new Set();
+  shots.forEach((shot, i) => {
+    if (ids.has(shot.id)) errors.push(`\u955C\u5934 ID \u91CD\u590D\uFF1A${shot.id}`);
+    ids.add(shot.id);
+    if (shot.duration < SHOT_DURATION_MIN || shot.duration > SHOT_DURATION_MAX) {
+      errors.push(`\u955C\u5934 ${i + 1} \u65F6\u957F\u9700\u5728 ${SHOT_DURATION_MIN}-${SHOT_DURATION_MAX} \u79D2`);
+    }
+  });
+  return errors;
+}
+function computeGenerationEstimate(shots, materials) {
+  const toGenerateCount = materials.filter((m) => m.source === "to_generate").length;
+  const imageCount = shots.length + toGenerateCount;
+  const videoCount = shots.length;
+  const totalVideoSeconds = shots.reduce((sum, s) => sum + s.duration, 0);
+  const estimatedCostYuan = Math.round((imageCount * ESTIMATE_IMAGE_COST_YUAN + totalVideoSeconds * ESTIMATE_VIDEO_COST_PER_SECOND_YUAN) * 100) / 100;
+  const estimatedSeconds = imageCount * ESTIMATE_IMAGE_SECONDS + totalVideoSeconds * ESTIMATE_VIDEO_SECONDS;
+  return { estimatedImageCount: imageCount, estimatedVideoCount: videoCount, estimatedCostYuan, estimatedSeconds };
+}
+function recordIdempotencyKey(state, key) {
+  if (!key) return true;
+  if (state.appliedKeys[key] != null) return false;
+  const next = { ...state.appliedKeys, [key]: Date.now() };
+  const keys = Object.keys(next);
+  if (keys.length > IDEMPOTENCY_MAX_KEYS) {
+    keys.sort((a, b) => next[a] - next[b]);
+    for (const k of keys.slice(0, keys.length - IDEMPOTENCY_MAX_KEYS)) delete next[k];
+  }
+  state.appliedKeys = next;
+  return true;
+}
+function buildSessionIsolationKey(projectId, sessionId) {
+  return `${projectId}:quickVideoAgent:${sessionId}`;
+}
+function buildDefaultSessionTitle(projectName, sequence) {
+  const name28 = projectName?.trim();
+  return name28 ? `${name28}-session${sequence}` : DEFAULT_SESSION_TITLE;
+}
+var QUICK_VIDEO_AGENT_KEY, QUICK_VIDEO_SCHEMA_VERSION, QUICK_VIDEO_PROJECT_TYPE, QUICK_VIDEO_RATIOS, SHOT_DURATION_MIN, SHOT_DURATION_MAX, SHOT_COUNT_MAX, QUICK_VIDEO_STAGES, STAGE_TRANSITIONS, SHOT_GEN_STATES, shotAssetRefSchema, QUICK_VIDEO_MEDIA_KINDS, QUICK_VIDEO_MEDIA_STATES, QUICK_VIDEO_MEDIA_SOURCES, mediaRefSchema, shotFirstFrameSchema, snapshotFirstFrameSchema, quickVideoShotSchema, quickVideoBriefSchema, quickVideoStoryboardSchema, materialItemSchema, snapshotShotSchema, generationSnapshotSchema, TIMELINE_TRANSITION_DURATION_S, TIMELINE_MAX_SPEED, TIMELINE_MIN_SPEED, QUICK_VIDEO_DIMENSIONS, timelineClipPlanSchema, timelineTransitionSchema, timelineTailPadSchema, timelinePlanSchema, timelineMetaSchema, quickVideoExportInfoSchema, quickVideoGenerationSchema, GENERATION_CONCURRENCY, GENERATION_IMAGE_TIMEOUT_MS, GENERATION_VIDEO_TIMEOUT_MS, ESTIMATE_IMAGE_COST_YUAN, ESTIMATE_VIDEO_COST_PER_SECOND_YUAN, ESTIMATE_IMAGE_SECONDS, ESTIMATE_VIDEO_SECONDS, quickVideoStateSchema, IDEMPOTENCY_MAX_KEYS, TITLE_GENERATION_TRIGGER_COUNT, DEFAULT_SESSION_TITLE;
+var init_contract = __esm({
+  "src/lib/quickVideo/contract.ts"() {
+    "use strict";
+    init_zod();
+    QUICK_VIDEO_AGENT_KEY = "quickVideoAgent";
+    QUICK_VIDEO_SCHEMA_VERSION = 1;
+    QUICK_VIDEO_PROJECT_TYPE = "quick_video";
+    QUICK_VIDEO_RATIOS = ["16:9", "9:16", "1:1"];
+    SHOT_DURATION_MIN = 5;
+    SHOT_DURATION_MAX = 15;
+    SHOT_COUNT_MAX = 12;
+    QUICK_VIDEO_STAGES = [
+      "collect_brief",
+      "brief_confirmed",
+      "storyboard_draft",
+      "storyboard_confirmed",
+      "generating",
+      "ready_to_assemble",
+      "completed"
+    ];
+    STAGE_TRANSITIONS = {
+      collect_brief: ["brief_confirmed"],
+      brief_confirmed: ["storyboard_draft", "collect_brief"],
+      storyboard_draft: ["storyboard_confirmed", "brief_confirmed"],
+      storyboard_confirmed: ["generating", "storyboard_draft"],
+      generating: ["ready_to_assemble", "storyboard_confirmed"],
+      ready_to_assemble: ["completed", "generating"],
+      completed: []
+    };
+    SHOT_GEN_STATES = ["pending", "generating", "done", "failed"];
+    shotAssetRefSchema = external_exports.object({
+      type: external_exports.enum(["role", "scene", "tool"]).describe("\u8D44\u4EA7\u7C7B\u578B\uFF1Arole=\u89D2\u8272 / scene=\u573A\u666F / tool=\u9053\u5177"),
+      name: external_exports.string().min(1).max(60).describe("\u8D44\u4EA7\u540D\u79F0"),
+      desc: external_exports.string().max(300).default("").describe("\u8D44\u4EA7\u5916\u89C2/\u89C6\u89C9\u63CF\u8FF0")
+    });
+    QUICK_VIDEO_MEDIA_KINDS = ["image", "video"];
+    QUICK_VIDEO_MEDIA_STATES = ["generating", "done", "failed"];
+    QUICK_VIDEO_MEDIA_SOURCES = ["chat", "asset_board", "generated", "upload"];
+    mediaRefSchema = external_exports.object({
+      mediaId: external_exports.number().int().positive(),
+      projectId: external_exports.number().int().positive(),
+      kind: external_exports.enum(QUICK_VIDEO_MEDIA_KINDS),
+      assetId: external_exports.number().int().positive().nullable(),
+      imageId: external_exports.number().int().positive().nullable(),
+      videoId: external_exports.number().int().positive().nullable(),
+      state: external_exports.enum(QUICK_VIDEO_MEDIA_STATES),
+      model: external_exports.string().max(200).nullable(),
+      promptSummary: external_exports.string().max(200).nullable(),
+      source: external_exports.enum(QUICK_VIDEO_MEDIA_SOURCES),
+      errorReason: external_exports.string().max(1e3).nullable(),
+      url: external_exports.string().max(1e3).nullable().describe("\u6309\u9700\u7B7E\u53D1\u7684\u77ED\u671F\u9884\u89C8/\u64AD\u653E\u5730\u5740\uFF0C\u4E0D\u6301\u4E45\u5316"),
+      width: external_exports.number().int().nullable().optional(),
+      height: external_exports.number().int().nullable().optional(),
+      createTime: external_exports.number().int()
+    });
+    shotFirstFrameSchema = external_exports.object({
+      mediaId: external_exports.number().int().positive(),
+      assetId: external_exports.number().int().positive(),
+      imageId: external_exports.number().int().positive(),
+      boundAt: external_exports.number().int()
+    });
+    snapshotFirstFrameSchema = shotFirstFrameSchema.extend({
+      filePath: external_exports.string().max(500)
+    });
+    quickVideoShotSchema = external_exports.object({
+      id: external_exports.string().min(1).max(40).describe("\u955C\u5934\u7A33\u5B9A ID\uFF0C\u5982 shot-1"),
+      index: external_exports.number().int().min(1).describe("\u955C\u5934\u5E8F\u53F7\uFF081 \u5F00\u59CB\uFF0C\u6309\u64AD\u653E\u987A\u5E8F\uFF09"),
+      duration: external_exports.number().int().min(SHOT_DURATION_MIN).max(SHOT_DURATION_MAX).describe(`\u955C\u5934\u65F6\u957F\uFF08\u79D2\uFF09\uFF0C${SHOT_DURATION_MIN}-${SHOT_DURATION_MAX} \u79D2`),
+      description: external_exports.string().min(1).max(2e3).describe("\u753B\u9762\u63CF\u8FF0\uFF08\u955C\u5934\u5185\u5BB9\u3001\u52A8\u4F5C\u3001\u6C1B\u56F4\uFF09"),
+      dialogue: external_exports.string().max(500).default("").describe("\u53F0\u8BCD/\u65C1\u767D\uFF08\u7528\u4F5C\u5B57\u5E55\uFF0C\u53EF\u4E3A\u7A7A\uFF09"),
+      camera: external_exports.string().max(200).default("").describe("\u666F\u522B/\u8FD0\u955C\uFF08\u5982 \u5168\u666F\u3001\u7F13\u6162\u63A8\u8FDB\uFF09"),
+      assetRefs: external_exports.array(shotAssetRefSchema).max(10).default([]).describe("\u8BE5\u955C\u5934\u5F15\u7528\u7684\u8D44\u4EA7\u5217\u8868"),
+      imageState: external_exports.enum(SHOT_GEN_STATES).default("pending").describe("\u5206\u955C\u56FE\u751F\u6210\u72B6\u6001"),
+      videoState: external_exports.enum(SHOT_GEN_STATES).default("pending").describe("\u89C6\u9891\u7247\u6BB5\u751F\u6210\u72B6\u6001"),
+      imageRef: external_exports.string().max(500).nullable().default(null).describe("\u5206\u955C\u56FE\u6587\u4EF6\u5F15\u7528\uFF08OSS key\uFF09"),
+      videoRef: external_exports.string().max(500).nullable().default(null).describe("\u89C6\u9891\u7247\u6BB5\u6587\u4EF6\u5F15\u7528\uFF08OSS key\uFF09"),
+      errorReason: external_exports.string().max(1e3).nullable().default(null).describe("\u6700\u8FD1\u4E00\u6B21\u751F\u6210\u5931\u8D25\u539F\u56E0"),
+      /** 视频生成首帧输入（人工绑定，与 imageRef 分开建模）；未绑定时生成引擎回退用 imageRef */
+      firstFrame: shotFirstFrameSchema.nullable().default(null)
+    });
+    quickVideoBriefSchema = external_exports.object({
+      theme: external_exports.string().min(1).max(500).describe("\u4E3B\u9898/\u6838\u5FC3\u521B\u610F"),
+      hook: external_exports.string().max(500).default("").describe("\u5F00\u573A\u94A9\u5B50"),
+      narrative: external_exports.string().max(3e3).describe("\u53D9\u4E8B\u5927\u7EB2\uFF08\u6309\u65F6\u95F4\u7EBF\u7684\u4E00\u6BB5\u8BDD\uFF09"),
+      cta: external_exports.string().max(500).default("").describe("\u7ED3\u5C3E/\u884C\u52A8\u53F7\u53EC"),
+      keywords: external_exports.array(external_exports.string().min(1).max(60)).max(20).default([]).describe("\u98CE\u683C/\u5185\u5BB9\u5173\u952E\u8BCD"),
+      confirmed: external_exports.boolean().default(false).describe("\u7528\u6237\u662F\u5426\u5DF2\u786E\u8BA4\u8BE5\u7B80\u62A5"),
+      confirmedAt: external_exports.number().nullable().default(null).describe("\u786E\u8BA4\u65F6\u95F4\u6233")
+    });
+    quickVideoStoryboardSchema = external_exports.object({
+      version: external_exports.number().int().min(1).describe("\u5206\u955C\u7248\u672C\u53F7\uFF0C\u6BCF\u6B21 propose \u81EA\u589E"),
+      status: external_exports.enum(["draft", "confirmed"]).describe("\u5206\u955C\u786E\u8BA4\u72B6\u6001"),
+      confirmedAt: external_exports.number().nullable().default(null).describe("\u786E\u8BA4\u65F6\u95F4\u6233"),
+      summary: external_exports.string().max(1e3).default("").describe("\u672C\u7248\u5206\u955C\u7684\u6574\u4F53\u8BF4\u660E"),
+      shots: external_exports.array(quickVideoShotSchema).min(1).max(SHOT_COUNT_MAX).describe("\u955C\u5934\u5217\u8868\uFF08\u6309\u64AD\u653E\u987A\u5E8F\uFF09")
+    });
+    materialItemSchema = external_exports.object({
+      type: external_exports.enum(["role", "scene", "tool"]).describe("\u8D44\u4EA7\u7C7B\u578B"),
+      name: external_exports.string().min(1).max(60).describe("\u8D44\u4EA7\u540D\u79F0"),
+      desc: external_exports.string().max(300).default("").describe("\u8D44\u4EA7\u5916\u89C2/\u89C6\u89C9\u63CF\u8FF0"),
+      source: external_exports.enum(["matched", "to_generate"]).describe("\u89E3\u6790\u7ED3\u679C"),
+      assetId: external_exports.number().int().nullable().default(null).describe("\u547D\u4E2D\u7684 o_assets.id"),
+      imageId: external_exports.number().int().nullable().default(null).describe("\u547D\u4E2D\u7684 o_image.id"),
+      filePath: external_exports.string().max(500).nullable().default(null).describe("\u547D\u4E2D\u8D44\u4EA7\u56FE\u7684 OSS \u8DEF\u5F84")
+    });
+    snapshotShotSchema = external_exports.object({
+      id: external_exports.string().min(1).max(40),
+      index: external_exports.number().int().min(1),
+      duration: external_exports.number().int().min(SHOT_DURATION_MIN).max(SHOT_DURATION_MAX),
+      description: external_exports.string().min(1).max(2e3),
+      dialogue: external_exports.string().max(500).default(""),
+      camera: external_exports.string().max(200).default(""),
+      assetRefs: external_exports.array(shotAssetRefSchema).max(10).default([]),
+      /** 冻结的首帧引用（含 filePath，生成引擎直接读取）；无人工首帧时为 null，回退用分镜图 imageRef */
+      firstFrame: snapshotFirstFrameSchema.nullable().default(null)
+    });
+    generationSnapshotSchema = external_exports.object({
+      storyboardVersion: external_exports.number().int().min(1).describe("\u5FEB\u7167\u5BF9\u5E94\u7684\u5206\u955C\u7248\u672C"),
+      targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]),
+      videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS),
+      artStyle: external_exports.string().max(500).default(""),
+      shots: external_exports.array(snapshotShotSchema).min(1).max(SHOT_COUNT_MAX),
+      materials: external_exports.array(materialItemSchema).max(30).default([]),
+      estimatedImageCount: external_exports.number().int().min(0).default(0).describe("\u9884\u8BA1\u56FE\u7247\u4EFB\u52A1\u6570\uFF08\u5206\u955C\u56FE + \u9700\u8865\u751F\u6210\u7684\u7D20\u6750\u56FE\uFF09"),
+      estimatedVideoCount: external_exports.number().int().min(0).default(0).describe("\u9884\u8BA1\u89C6\u9891\u4EFB\u52A1\u6570"),
+      estimatedCostYuan: external_exports.number().min(0).default(0).describe("\u9884\u4F30\u8D39\u7528\uFF08\u5143\uFF0C\u7C97\u4F30\u503C\uFF09"),
+      estimatedSeconds: external_exports.number().int().min(0).default(0).describe("\u9884\u4F30\u603B\u8017\u65F6\uFF08\u79D2\uFF0C\u7C97\u4F30\u503C\uFF09")
+    });
+    TIMELINE_TRANSITION_DURATION_S = 0.5;
+    TIMELINE_MAX_SPEED = 1.5;
+    TIMELINE_MIN_SPEED = 0.75;
+    QUICK_VIDEO_DIMENSIONS = {
+      "16:9": { width: 1280, height: 720 },
+      "9:16": { width: 720, height: 1280 },
+      "1:1": { width: 960, height: 960 }
+    };
+    timelineClipPlanSchema = external_exports.object({
+      shotId: external_exports.string().min(1).max(40),
+      index: external_exports.number().int().min(1),
+      /** 镜头规划源时长（秒） */
+      sourceDuration: external_exports.number().min(SHOT_DURATION_MIN).max(SHOT_DURATION_MAX),
+      /** 源视频使用窗口 [trimStart, trimEnd]（秒，不超过源时长） */
+      trimStart: external_exports.number().min(0).default(0),
+      trimEnd: external_exports.number().min(0),
+      /** 播放速率（1 = 原速） */
+      playbackRate: external_exports.number().min(0.1).max(4),
+      /** 时间线上的起止时间（秒，相邻片段在转场处重叠） */
+      start: external_exports.number().min(0),
+      end: external_exports.number().min(0),
+      /** 字幕文本（台词/旁白，可为空） */
+      subtitleText: external_exports.string().max(500).default("")
+    });
+    timelineTransitionSchema = external_exports.object({
+      afterShotId: external_exports.string().min(1).max(40).describe("\u4E0E\u4E0B\u4E00\u955C\u5934\u4E4B\u95F4\u7684\u8F6C\u573A\uFF0C\u4F4D\u4E8E\u8BE5\u955C\u5934\u4E4B\u540E"),
+      type: external_exports.literal("crossfade"),
+      duration: external_exports.number().min(0)
+    });
+    timelineTailPadSchema = external_exports.object({
+      type: external_exports.literal("endcard"),
+      duration: external_exports.number().min(0),
+      text: external_exports.string().max(500).default("")
+    });
+    timelinePlanSchema = external_exports.object({
+      targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]),
+      videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS),
+      width: external_exports.number().int().min(1),
+      height: external_exports.number().int().min(1),
+      /** 成片总时长（秒，含片尾补齐） */
+      totalDuration: external_exports.number().min(1),
+      clips: external_exports.array(timelineClipPlanSchema).min(1).max(SHOT_COUNT_MAX),
+      transitions: external_exports.array(timelineTransitionSchema).max(SHOT_COUNT_MAX).default([]),
+      tailPad: timelineTailPadSchema.nullable().default(null)
+    });
+    timelineMetaSchema = external_exports.object({
+      storyboardVersion: external_exports.number().int().min(1),
+      assembledAt: external_exports.number().int().min(1),
+      clipCount: external_exports.number().int().min(1),
+      totalDuration: external_exports.number().min(1),
+      trackIds: external_exports.array(external_exports.number().int()).default([])
+    });
+    quickVideoExportInfoSchema = external_exports.object({
+      exportedAt: external_exports.number().int().min(1),
+      fileName: external_exports.string().min(1).max(200),
+      sizeBytes: external_exports.number().int().min(0),
+      durationSeconds: external_exports.number().min(0)
+    });
+    quickVideoGenerationSchema = external_exports.object({
+      /** 最近一次素材解析快照（素材确认前可反复刷新） */
+      snapshot: generationSnapshotSchema.nullable().default(null),
+      materialsConfirmed: external_exports.boolean().default(false).describe("\u7D20\u6750/\u6210\u672C\u786E\u8BA4\u95E8\u662F\u5426\u5DF2\u901A\u8FC7"),
+      materialsConfirmedAt: external_exports.number().nullable().default(null),
+      /** 最近一次生成运行 ID */
+      runId: external_exports.string().max(64).nullable().default(null),
+      startedAt: external_exports.number().nullable().default(null),
+      finishedAt: external_exports.number().nullable().default(null),
+      /** 运行期产物：需补生成的素材图 名称 -> OSS 路径（生成引擎写入） */
+      materialImages: external_exports.record(external_exports.string(), external_exports.string().max(500)).default({}),
+      /** 最近一次时间线装配元数据（getTimeline 落库，SIY-111） */
+      timeline: timelineMetaSchema.nullable().default(null),
+      /** 最近一次导出结果（导出确认门通过后回写，SIY-111） */
+      exportInfo: quickVideoExportInfoSchema.nullable().default(null)
+    });
+    GENERATION_CONCURRENCY = 2;
+    GENERATION_IMAGE_TIMEOUT_MS = 10 * 60 * 1e3;
+    GENERATION_VIDEO_TIMEOUT_MS = 15 * 60 * 1e3;
+    ESTIMATE_IMAGE_COST_YUAN = 0.3;
+    ESTIMATE_VIDEO_COST_PER_SECOND_YUAN = 0.5;
+    ESTIMATE_IMAGE_SECONDS = 30;
+    ESTIMATE_VIDEO_SECONDS = 90;
+    quickVideoStateSchema = external_exports.object({
+      schemaVersion: external_exports.literal(QUICK_VIDEO_SCHEMA_VERSION).default(QUICK_VIDEO_SCHEMA_VERSION),
+      /** 乐观锁版本号，每次成功写入自增 */
+      version: external_exports.number().int().min(1),
+      stage: external_exports.enum(QUICK_VIDEO_STAGES),
+      targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]),
+      videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS),
+      artStyle: external_exports.string().max(500).default(""),
+      /** 创建幂等键（createProject 用，防重复建项目） */
+      createIdempotencyKey: external_exports.string().min(8).max(64),
+      brief: quickVideoBriefSchema.nullable().default(null),
+      storyboard: quickVideoStoryboardSchema.nullable().default(null),
+      /** 素材/成本确认门与生成运行态（存量状态行缺该字段时补默认值） */
+      generation: external_exports.preprocess((v) => v ?? {}, quickVideoGenerationSchema),
+      /** 已确认完成的幂等键记录（key -> 应用时间），写入去重用，最多保留 IDEMPOTENCY_MAX_KEYS 条 */
+      appliedKeys: external_exports.record(external_exports.string(), external_exports.number()).default({}),
+      /** 最近的聊天时间，用于工作台展示 */
+      lastChatAt: external_exports.number().nullable().default(null),
+      updateTime: external_exports.number()
+    });
+    IDEMPOTENCY_MAX_KEYS = 50;
+    TITLE_GENERATION_TRIGGER_COUNT = 5;
+    DEFAULT_SESSION_TITLE = "\u9ED8\u8BA4\u4F1A\u8BDD";
+  }
+});
+
+// src/lib/quickVideo/state.ts
+var state_exports = {};
+__export(state_exports, {
+  QuickVideoError: () => QuickVideoError,
+  findProjectByCreateIdempotencyKey: () => findProjectByCreateIdempotencyKey,
+  getQuickVideoStateRow: () => getQuickVideoStateRow,
+  initQuickVideoStateRow: () => initQuickVideoStateRow,
+  loadQuickVideoState: () => loadQuickVideoState,
+  mutateQuickVideoState: () => mutateQuickVideoState
+});
+function parseState(row) {
+  let raw = {};
+  try {
+    raw = JSON.parse(row.data ?? "{}");
+  } catch {
+    throw new QuickVideoError("STATE_CORRUPTED", "quickVideoAgent \u72B6\u6001\u6570\u636E\u635F\u574F\uFF0C\u65E0\u6CD5\u89E3\u6790");
+  }
+  const parsed = quickVideoStateSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new QuickVideoError("STATE_INVALID", `quickVideoAgent \u72B6\u6001\u6570\u636E\u4E0D\u6EE1\u8DB3\u5951\u7EA6\uFF1A${parsed.error.issues.map((i) => i.path.join(".")).join(", ")}`);
+  }
+  return parsed.data;
+}
+async function getQuickVideoStateRow(projectId) {
+  return utils_default2.db("o_agentWorkData").where({ projectId: String(projectId), key: QUICK_VIDEO_AGENT_KEY }).first();
+}
+async function loadQuickVideoState(projectId) {
+  const row = await getQuickVideoStateRow(projectId);
+  return row ? parseState(row) : null;
+}
+async function mutateQuickVideoState(projectId, opts, mutator) {
+  return db.transaction(async (trx) => {
+    const row = await trx("o_agentWorkData").where({ projectId: String(projectId), key: QUICK_VIDEO_AGENT_KEY }).forUpdate().first();
+    if (!row) throw new QuickVideoError("STATE_NOT_FOUND", "\u672A\u627E\u5230 quickVideoAgent \u72B6\u6001\uFF0C\u8BF7\u5148\u521B\u5EFA quick_video \u9879\u76EE");
+    const current = parseState(row);
+    if (opts.idempotencyKey && current.appliedKeys[opts.idempotencyKey] != null) {
+      return { state: current, idempotentHit: true };
+    }
+    if (opts.expectedVersion != null && opts.expectedVersion !== current.version) {
+      throw new QuickVideoError(
+        "VERSION_CONFLICT",
+        `\u72B6\u6001\u7248\u672C\u51B2\u7A81\uFF1A\u670D\u52A1\u7AEF\u5F53\u524D\u7248\u672C ${current.version}\uFF0C\u8BF7\u6C42\u57FA\u4E8E\u7248\u672C ${opts.expectedVersion}\uFF0C\u8BF7\u5237\u65B0\u540E\u91CD\u8BD5`,
+        current.version
+      );
+    }
+    const state = JSON.parse(JSON.stringify(current));
+    if (opts.stageTransition) {
+      const { from, to } = opts.stageTransition;
+      if (state.stage !== from) {
+        throw new QuickVideoError("STAGE_MISMATCH", `\u9636\u6BB5\u4E0D\u7B26\uFF1A\u5F53\u524D\u5904\u4E8E ${state.stage}\uFF0C\u8BE5\u64CD\u4F5C\u8981\u6C42 ${from}`, state.version);
+      }
+      if (!canTransitionStage(from, to)) {
+        throw new QuickVideoError("STAGE_FORBIDDEN", `\u4E0D\u5141\u8BB8\u7684\u9636\u6BB5\u8F6C\u79FB\uFF1A${from} -> ${to}`, state.version);
+      }
+    }
+    await mutator(state, trx);
+    if (state.stage !== current.stage && !canTransitionStage(current.stage, state.stage)) {
+      throw new QuickVideoError("STAGE_FORBIDDEN", `\u4E0D\u5141\u8BB8\u7684\u9636\u6BB5\u8F6C\u79FB\uFF1A${current.stage} -> ${state.stage}`, current.version);
+    }
+    if (!QUICK_VIDEO_STAGES.includes(state.stage)) {
+      throw new QuickVideoError("STAGE_INVALID", `\u672A\u77E5\u9636\u6BB5\uFF1A${state.stage}`, current.version);
+    }
+    if (opts.idempotencyKey && !recordIdempotencyKey(state, opts.idempotencyKey)) {
+      return { state: current, idempotentHit: true };
+    }
+    state.schemaVersion = QUICK_VIDEO_SCHEMA_VERSION;
+    state.updateTime = Date.now();
+    state.version = current.version + 1;
+    const parsed = quickVideoStateSchema.safeParse(state);
+    if (!parsed.success) {
+      throw new QuickVideoError(
+        "STATE_INVALID",
+        `\u5199\u5165\u88AB\u62D2\u7EDD\uFF0C\u72B6\u6001\u4E0D\u6EE1\u8DB3\u5951\u7EA6\uFF1A${parsed.error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`,
+        current.version
+      );
+    }
+    await trx("o_agentWorkData").where({ id: row.id }).update({
+      data: JSON.stringify(parsed.data),
+      updateTime: Date.now(),
+      ...opts.sessionId != null ? { sessionId: opts.sessionId } : {}
+    });
+    return { state: parsed.data, idempotentHit: false };
+  });
+}
+async function findProjectByCreateIdempotencyKey(idempotencyKey) {
+  if (!idempotencyKey) return null;
+  const rows = await utils_default2.db("o_agentWorkData").where("key", QUICK_VIDEO_AGENT_KEY).andWhere("data", "like", `%${idempotencyKey}%`).orderBy("id", "desc").limit(20).select("projectId", "data");
+  for (const row of rows) {
+    try {
+      const data = JSON.parse(row.data ?? "{}");
+      if (data?.createIdempotencyKey === idempotencyKey && Number(row.projectId)) {
+        return Number(row.projectId);
+      }
+    } catch {
+    }
+  }
+  return null;
+}
+async function initQuickVideoStateRow(trx, { projectId, idempotencyKey, targetDuration, videoRatio, artStyle }) {
+  const now2 = Date.now();
+  const state = quickVideoStateSchema.parse({
+    version: 1,
+    stage: "collect_brief",
+    targetDuration,
+    videoRatio,
+    artStyle,
+    createIdempotencyKey: idempotencyKey,
+    brief: null,
+    storyboard: null,
+    appliedKeys: {},
+    lastChatAt: null,
+    updateTime: now2
+  });
+  const maxRow = await trx("o_agentWorkData").max("id as maxId").first();
+  const id = Number(maxRow?.maxId ?? 0) + 1;
+  await trx("o_agentWorkData").insert({
+    id,
+    projectId,
+    key: QUICK_VIDEO_AGENT_KEY,
+    data: JSON.stringify(state),
+    createTime: now2,
+    updateTime: now2
+  });
+  return state;
+}
+var QuickVideoError;
+var init_state = __esm({
+  "src/lib/quickVideo/state.ts"() {
+    "use strict";
+    init_db();
+    init_utils3();
+    init_contract();
+    QuickVideoError = class extends Error {
+      code;
+      currentVersion;
+      constructor(code, message, currentVersion) {
+        super(message);
+        this.code = code;
+        this.currentVersion = currentVersion;
+      }
+    };
+  }
+});
+
+// src/lib/quickVideo/session.ts
+async function nextSessionId(trx) {
+  const maxRow = await trx("o_quickVideoSession").max("id as maxId").first();
+  return Number(maxRow?.maxId ?? 0) + 1;
+}
+async function nextSessionSequence(trx, projectId) {
+  const maxRow = await trx("o_quickVideoSession").where({ projectId }).max("sequence as maxSequence").first();
+  return Number(maxRow?.maxSequence ?? 0) + 1;
+}
+async function createQuickVideoSession(projectId, opts = {}) {
+  const runner = opts.trx ?? db;
+  const project = await runner("o_project").where("id", projectId).select("name", "textModel", "imageModel", "videoModel").first();
+  const now2 = Date.now();
+  const id = await nextSessionId(runner);
+  const sequence = await nextSessionSequence(runner, projectId);
+  const row = {
+    id,
+    projectId,
+    title: opts.title?.trim() || buildDefaultSessionTitle(project?.name, sequence),
+    status: "active",
+    textModel: project?.textModel || null,
+    imageModel: project?.imageModel || null,
+    videoModel: project?.videoModel || null,
+    sequence,
+    userMessageCount: 0,
+    titleStatus: "idle",
+    titleGeneratedAt: null,
+    createTime: now2,
+    updateTime: now2
+  };
+  await runner("o_quickVideoSession").insert(row);
+  return row;
+}
+async function listQuickVideoSessions(projectId) {
+  const rows = await utils_default2.db("o_quickVideoSession").where({ projectId }).orderBy("updateTime", "desc").select("*");
+  if (rows.length) return rows;
+  const created = await ensureDefaultSession(projectId);
+  return created ? [created] : [];
+}
+async function ensureDefaultSession(projectId) {
+  const existing = await utils_default2.db("o_quickVideoSession").where({ projectId }).orderBy("updateTime", "desc").first();
+  if (existing) return existing;
+  return db.transaction(async (trx) => {
+    const raced = await trx("o_quickVideoSession").where({ projectId }).orderBy("updateTime", "desc").first();
+    if (raced) return raced;
+    const created = await createQuickVideoSession(projectId, { trx });
+    await trx("o_agentWorkData").where({ projectId, key: "quickVideoAgent" }).update({ sessionId: created.id });
+    await trx("memories").where({ isolationKey: `${projectId}:quickVideoAgent` }).update({ isolationKey: buildSessionIsolationKey(projectId, created.id) });
+    return created;
+  });
+}
+async function getOwnedSession(projectId, sessionId) {
+  const row = await utils_default2.db("o_quickVideoSession").where({ id: sessionId }).first();
+  if (!row || Number(row.projectId) !== Number(projectId)) {
+    throw new QuickVideoError("SESSION_NOT_FOUND", "\u4F1A\u8BDD\u4E0D\u5B58\u5728\u6216\u4E0D\u5C5E\u4E8E\u5F53\u524D\u9879\u76EE");
+  }
+  return row;
+}
+async function touchQuickVideoSession(projectId, sessionId, patch = {}) {
+  await getOwnedSession(projectId, sessionId);
+  const update = { updateTime: Date.now() };
+  const trimmedTitle = patch.title?.trim();
+  if (trimmedTitle) update.title = trimmedTitle;
+  if (patch.status != null) update.status = patch.status;
+  await utils_default2.db("o_quickVideoSession").where({ id: sessionId }).update(update);
+  return getOwnedSession(projectId, sessionId);
+}
+async function bumpUserMessageCountAndMaybeClaimTitle(sessionId) {
+  try {
+    return await db.transaction(async (trx) => {
+      const row = await trx("o_quickVideoSession").where({ id: sessionId }).forUpdate().first();
+      if (!row) return false;
+      const nextCount = Number(row.userMessageCount ?? 0) + 1;
+      const update = { userMessageCount: nextCount, updateTime: Date.now() };
+      const shouldClaim = nextCount === TITLE_GENERATION_TRIGGER_COUNT && row.titleStatus === "idle";
+      if (shouldClaim) {
+        update.titleStatus = "running";
+        update.titleGenerationClaimedAt = Date.now();
+      }
+      await trx("o_quickVideoSession").where({ id: sessionId }).update(update);
+      return shouldClaim;
+    });
+  } catch (err) {
+    console.error("[quickVideo] \u66F4\u65B0\u4F1A\u8BDD\u53D1\u8A00\u8BA1\u6570\u5931\u8D25:", utils_default2.error(err).message);
+    return false;
+  }
+}
+async function finishTitleGeneration(sessionId, result) {
+  try {
+    if ("title" in result) {
+      await utils_default2.db("o_quickVideoSession").where({ id: sessionId }).update({ title: result.title, titleStatus: "done", titleGeneratedAt: Date.now() });
+    } else {
+      await utils_default2.db("o_quickVideoSession").where({ id: sessionId }).update({ titleStatus: "failed" });
+      console.error(`[quickVideo] \u4F1A\u8BDD ${sessionId} \u667A\u80FD\u6807\u9898\u751F\u6210\u5931\u8D25:`, result.error);
+    }
+  } catch (err) {
+    console.error("[quickVideo] \u56DE\u5199\u4F1A\u8BDD\u6807\u9898\u72B6\u6001\u5931\u8D25:", utils_default2.error(err).message);
+  }
+}
+async function saveSessionModels(projectId, sessionId, models) {
+  await getOwnedSession(projectId, sessionId);
+  await utils_default2.db("o_quickVideoSession").where({ id: sessionId }).update({ ...models, updateTime: Date.now() });
+  return getOwnedSession(projectId, sessionId);
+}
+var init_session = __esm({
+  "src/lib/quickVideo/session.ts"() {
+    "use strict";
+    init_db();
+    init_utils3();
+    init_state();
+    init_contract();
+  }
+});
+
 // src/lib/fixDB.ts
 var fixDB_default;
 var init_fixDB = __esm({
@@ -172375,6 +172987,7 @@ var init_fixDB = __esm({
     init_runninghub_models();
     init_aibotplatform();
     init_runninghub();
+    init_session();
     fixDB_default = async (knex2) => {
       const addColumn = async (table4, column, type) => {
         if (!await knex2.schema.hasTable(table4)) return;
@@ -172444,6 +173057,10 @@ var init_fixDB = __esm({
       await db_default("o_video").where("state", "\u751F\u6210\u4E2D").update({
         state: "\u751F\u6210\u5931\u8D25",
         errorReason: "\u8F6F\u4EF6\u9000\u51FA\u5BFC\u81F4\u5931\u8D25"
+      });
+      await db_default("o_quickVideoMedia").where("state", "generating").update({
+        state: "failed",
+        errorReason: "\u670D\u52A1\u91CD\u542F\u5BFC\u81F4\u751F\u6210\u4E2D\u65AD\uFF0C\u8BF7\u91CD\u65B0\u53D1\u9001\u751F\u6210\u8BF7\u6C42"
       });
       await addColumn("o_project", "textModel", "string");
       await addColumn("o_prompt", "useData", "text");
@@ -172800,6 +173417,42 @@ var init_fixDB = __esm({
         await knex2.raw(
           "ALTER TABLE `o_assets2Storyboard` ADD COLUMN `id` INT NOT NULL AUTO_INCREMENT, ADD UNIQUE KEY `o_assets2Storyboard_id_unique` (`id`)"
         );
+      }
+      await addColumn("o_agentWorkData", "sessionId", "integer");
+      await addColumn("o_quickVideoSession", "status", "string");
+      await addColumn("o_quickVideoSession", "title", "string");
+      await addColumn("o_quickVideoSession", "sequence", "integer");
+      await addColumn("o_quickVideoSession", "userMessageCount", "integer");
+      await addColumn("o_quickVideoSession", "titleStatus", "string");
+      await addColumn("o_quickVideoSession", "titleGeneratedAt", "bigInteger");
+      await addColumn("o_quickVideoSession", "titleGenerationClaimedAt", "bigInteger");
+      await db_default("o_quickVideoSession").where("titleStatus", "running").update({ titleStatus: "failed" });
+      await db_default("o_quickVideoSession").whereNull("titleStatus").update({ titleStatus: "idle" });
+      await db_default("o_quickVideoSession").whereNull("userMessageCount").update({ userMessageCount: 0 });
+      {
+        const legacyQuickVideoProjects = await db_default("o_project").where({ projectType: "quick_video" }).select("id");
+        for (const p3 of legacyQuickVideoProjects) {
+          try {
+            const session = await ensureDefaultSession(Number(p3.id));
+            if (session) {
+              const isolationKey = `${p3.id}:quickVideoAgent:${session.id}`;
+              await db_default("memories").where({ isolationKey: `${p3.id}:quickVideoAgent` }).update({ isolationKey });
+            }
+            const missingSequence = await db_default("o_quickVideoSession").where({ projectId: p3.id }).whereNull("sequence").orderBy("createTime", "asc").select("id");
+            if (missingSequence.length) {
+              const maxRow = await db_default("o_quickVideoSession").where({ projectId: p3.id }).whereNotNull("sequence").max("sequence as maxSequence").first();
+              let nextSequence = Number(maxRow?.maxSequence ?? 0) + 1;
+              for (const row of missingSequence) {
+                const rowIsolationKey = `${p3.id}:quickVideoAgent:${row.id}`;
+                const userMessages = await db_default("memories").where({ isolationKey: rowIsolationKey, type: "message", role: "user" }).count({ c: "*" });
+                await db_default("o_quickVideoSession").where({ id: row.id }).update({ sequence: nextSequence, userMessageCount: Number(userMessages[0]?.c ?? 0) });
+                nextSequence += 1;
+              }
+            }
+          } catch (err) {
+            console.error(`[quickVideo] \u9879\u76EE ${p3.id} \u8865\u5EFA\u9ED8\u8BA4\u4F1A\u8BDD\u5931\u8D25:`, utils_default2.error(err).message);
+          }
+        }
       }
       await db_default("o_prompt").where("type", "scriptAssetExtraction").update({
         data: `---
@@ -173625,9 +174278,9 @@ var require_async8 = __commonJS({
           invokeCallback(callback, err && (err instanceof Error || err.message) ? err : new Error(err));
         });
       }
-      function invokeCallback(callback, error69, value) {
+      function invokeCallback(callback, error70, value) {
         try {
-          callback(error69, value);
+          callback(error70, value);
         } catch (err) {
           setImmediate$1((e) => {
             throw e;
@@ -174933,10 +175586,10 @@ var require_async8 = __commonJS({
       function reflect(fn) {
         var _fn = wrapAsync2(fn);
         return initialParams(function reflectOn(args, reflectCallback) {
-          args.push((error69, ...cbArgs) => {
+          args.push((error70, ...cbArgs) => {
             let retVal = {};
-            if (error69) {
-              retVal.error = error69;
+            if (error70) {
+              retVal.error = error70;
             }
             if (cbArgs.length > 0) {
               var value = cbArgs;
@@ -175092,13 +175745,13 @@ var require_async8 = __commonJS({
           var timer;
           function timeoutCallback() {
             var name28 = asyncFn.name || "anonymous";
-            var error69 = new Error('Callback function "' + name28 + '" timed out.');
-            error69.code = "ETIMEDOUT";
+            var error70 = new Error('Callback function "' + name28 + '" timed out.');
+            error70.code = "ETIMEDOUT";
             if (info) {
-              error69.info = info;
+              error70.info = info;
             }
             timedOut = true;
-            callback(error69);
+            callback(error70);
           }
           args.push((...cbArgs) => {
             if (!timedOut) {
@@ -175141,7 +175794,7 @@ var require_async8 = __commonJS({
         return callback[PROMISE_SYMBOL];
       }
       function tryEach(tasks, callback) {
-        var error69 = null;
+        var error70 = null;
         var result;
         return eachSeries$1(tasks, (task, taskCb) => {
           wrapAsync2(task)((err, ...args) => {
@@ -175151,10 +175804,10 @@ var require_async8 = __commonJS({
             } else {
               result = args;
             }
-            error69 = err;
+            error70 = err;
             taskCb(err ? null : {});
           });
-        }, () => callback(error69, result));
+        }, () => callback(error70, result));
       }
       var tryEach$1 = awaitify(tryEach);
       function unmemoize(fn) {
@@ -176859,9 +177512,9 @@ var require_async_iterator = __commonJS({
       },
       next: function next() {
         var _this = this;
-        var error69 = this[kError];
-        if (error69 !== null) {
-          return Promise.reject(error69);
+        var error70 = this[kError];
+        if (error70 !== null) {
+          return Promise.reject(error70);
         }
         if (this[kEnded]) {
           return Promise.resolve(createIterResult(void 0, true));
@@ -176974,8 +177627,8 @@ var require_from = __commonJS({
       try {
         var info = gen[key](arg);
         var value = info.value;
-      } catch (error69) {
-        reject(error69);
+      } catch (error70) {
+        reject(error70);
         return;
       }
       if (info.done) {
@@ -178005,16 +178658,16 @@ var require_pipeline = __commonJS({
       if (streams.length < 2) {
         throw new ERR_MISSING_ARGS("streams");
       }
-      var error69;
+      var error70;
       var destroys = streams.map(function(stream8, i) {
         var reading = i < streams.length - 1;
         var writing = i > 0;
         return destroyer(stream8, reading, writing, function(err) {
-          if (!error69) error69 = err;
+          if (!error70) error70 = err;
           if (err) destroys.forEach(call);
           if (reading) return;
           destroys.forEach(call);
-          callback(error69);
+          callback(error70);
         });
       });
       return streams.reduce(pipe3);
@@ -184293,8 +184946,8 @@ var require_XMLDOMErrorHandler = __commonJS({
       module2.exports = XMLDOMErrorHandler = (function() {
         function XMLDOMErrorHandler2() {
         }
-        XMLDOMErrorHandler2.prototype.handleError = function(error69) {
-          throw new Error(error69);
+        XMLDOMErrorHandler2.prototype.handleError = function(error70) {
+          throw new Error(error70);
         };
         return XMLDOMErrorHandler2;
       })();
@@ -188223,7 +188876,7 @@ var require_sax = __commonJS({
                 parser.script = "";
                 break;
               default:
-                error69(parser, "Max buffer length exceeded: " + buffers[i]);
+                error70(parser, "Max buffer length exceeded: " + buffers[i]);
             }
           }
           maxActual = Math.max(maxActual, len);
@@ -188823,7 +189476,7 @@ var require_sax = __commonJS({
         if (opt.normalize) text2 = text2.replace(/\s+/g, " ");
         return text2;
       }
-      function error69(parser, er) {
+      function error70(parser, er) {
         closeText(parser);
         if (parser.trackPosition) {
           er += "\nLine: " + parser.line + "\nColumn: " + parser.column + "\nChar: " + parser.c;
@@ -188837,7 +189490,7 @@ var require_sax = __commonJS({
         if (parser.sawRoot && !parser.closedRoot)
           strictFail(parser, "Unclosed root tag");
         if (parser.state !== S.BEGIN && parser.state !== S.BEGIN_WHITESPACE && parser.state !== S.TEXT) {
-          error69(parser, "Unexpected end");
+          error70(parser, "Unexpected end");
         }
         closeText(parser);
         parser.c = "";
@@ -188851,7 +189504,7 @@ var require_sax = __commonJS({
           throw new Error("bad call to strictFail");
         }
         if (parser.strict) {
-          error69(parser, message);
+          error70(parser, message);
         }
       }
       function newTag(parser) {
@@ -189096,7 +189749,7 @@ var require_sax = __commonJS({
           throw this.error;
         }
         if (parser.closed) {
-          return error69(
+          return error70(
             parser,
             "Cannot write after close. Assign an onready handler."
           );
@@ -189492,7 +190145,7 @@ var require_sax = __commonJS({
                 parser.state = S.ATTRIB_VALUE_QUOTED;
               } else {
                 if (!parser.opt.unquotedAttributeValues) {
-                  error69(parser, "Unquoted attribute value");
+                  error70(parser, "Unquoted attribute value");
                 }
                 parser.state = S.ATTRIB_VALUE_UNQUOTED;
                 parser.attribValue = c;
@@ -189605,13 +190258,13 @@ var require_sax = __commonJS({
                 var parsedEntity = parseEntity(parser);
                 if (parser.opt.unparsedEntities && !Object.values(sax.XML_ENTITIES).includes(parsedEntity)) {
                   if ((parser.entityCount += 1) > parser.opt.maxEntityCount) {
-                    error69(
+                    error70(
                       parser,
                       "Parsed entity count exceeds max entity count"
                     );
                   }
                   if ((parser.entityDepth += 1) > parser.opt.maxEntityDepth) {
-                    error69(
+                    error70(
                       parser,
                       "Parsed entity depth exceeds max entity depth"
                     );
@@ -189877,11 +190530,11 @@ var require_parser = __commonJS({
           });
           this.saxParser.errThrown = false;
           this.saxParser.onerror = /* @__PURE__ */ (function(_this) {
-            return function(error69) {
+            return function(error70) {
               _this.saxParser.resume();
               if (!_this.saxParser.errThrown) {
                 _this.saxParser.errThrown = true;
-                return _this.emit("error", error69);
+                return _this.emit("error", error70);
               }
             };
           })(this);
@@ -204877,8 +205530,8 @@ var require_Parser = __commonJS({
       static checkedParse(input, reviver, errorIndicator) {
         try {
           return JSON.parse(input, reviver);
-        } catch (error69) {
-          if (typeof errorIndicator == "function") return errorIndicator(error69, input, reviver);
+        } catch (error70) {
+          if (typeof errorIndicator == "function") return errorIndicator(error70, input, reviver);
         }
         return errorIndicator;
       }
@@ -204911,8 +205564,8 @@ var require_Parser = __commonJS({
         callback(null);
       }
       _flush(callback) {
-        super._flush((error69) => {
-          if (error69) return callback(error69);
+        super._flush((error70) => {
+          if (error70) return callback(error70);
           if (this._rest) {
             this.push({ key: this._counter++, value: JSON.parse(this._rest, this._reviver) });
             this._rest = "";
@@ -204939,8 +205592,8 @@ var require_Parser = __commonJS({
         callback(null);
       }
       _suppressed_flush(callback) {
-        super._flush((error69) => {
-          if (error69) return callback(error69);
+        super._flush((error70) => {
+          if (error70) return callback(error70);
           if (this._rest) {
             const value = _JsonlParser.checkedParse(this._rest, this._reviver, this._errorIndicator);
             value !== void 0 && this.push({ key: this._counter++, value });
@@ -204969,8 +205622,8 @@ var require_Parser = __commonJS({
         callback(null);
       }
       _checked_flush(callback) {
-        super._flush((error69) => {
-          if (error69) return callback(error69);
+        super._flush((error70) => {
+          if (error70) return callback(error70);
           if (this._rest) {
             try {
               this.push({ key: this._counter++, value: JSON.parse(this._rest, this._reviver) });
@@ -209936,36 +210589,36 @@ var init_getConfig = __esm({
 });
 
 // src/utils/error.ts
-function normalizeError(error69) {
-  if (isAxiosError2(error69)) {
+function normalizeError(error70) {
+  if (isAxiosError2(error70)) {
     return {
       name: "AxiosError",
-      message: error69.response?.data?.error?.message || error69.response?.data?.message || error69.message,
-      code: error69.code,
-      status: error69.response?.status,
-      stack: error69.stack,
-      responseData: error69.response?.data,
+      message: error70.response?.data?.error?.message || error70.response?.data?.message || error70.message,
+      code: error70.code,
+      status: error70.response?.status,
+      stack: error70.stack,
+      responseData: error70.response?.data,
       meta: {
-        url: error69.config?.url,
-        method: error69.config?.method
+        url: error70.config?.url,
+        method: error70.config?.method
       }
     };
   }
-  if (error69 instanceof Error) {
-    const serialized = serializeError(error69);
+  if (error70 instanceof Error) {
+    const serialized = serializeError(error70);
     return {
       name: serialized.name || "Error",
       message: serialized.message || "\u672A\u77E5\u9519\u8BEF",
       code: serialized.code,
       stack: serialized.stack,
-      cause: error69.cause ? normalizeError(error69.cause) : void 0,
+      cause: error70.cause ? normalizeError(error70.cause) : void 0,
       meta: extractMeta(serialized)
     };
   }
   return {
     name: "UnknownError",
-    message: String(error69),
-    meta: { raw: serializeError(error69) }
+    message: String(error70),
+    meta: { raw: serializeError(error70) }
   };
 }
 function extractMeta(obj) {
@@ -210130,17 +210783,6 @@ var init_taskRecord = __esm({
       "1": "\u5DF2\u5B8C\u6210",
       "-1": "\u751F\u6210\u5931\u8D25"
     };
-  }
-});
-
-// node_modules/zod/index.js
-var zod_default;
-var init_zod = __esm({
-  "node_modules/zod/index.js"() {
-    "use strict";
-    init_external();
-    init_external();
-    zod_default = external_exports;
   }
 });
 
@@ -210361,7 +211003,7 @@ var require_auth_config = __commonJS({
           return null;
         }
         return JSON.parse(content);
-      } catch (error69) {
+      } catch (error70) {
         return null;
       }
     }
@@ -210561,7 +211203,7 @@ var require_token_util = __commonJS({
         }
         (0, import_auth_config.writeAuthConfig)(updatedConfig);
         return updatedConfig.token ?? null;
-      } catch (error69) {
+      } catch (error70) {
         (0, import_auth_config.writeAuthConfig)({});
         return null;
       }
@@ -210754,8 +211396,8 @@ var require_get_vercel_oidc_token = __commonJS({
       let err;
       try {
         token = getVercelOidcTokenSync2();
-      } catch (error69) {
-        err = error69;
+      } catch (error70) {
+        err = error70;
       }
       try {
         const [{ getTokenPayload, isExpired }, { refreshToken }] = await Promise.all([
@@ -210766,16 +211408,16 @@ var require_get_vercel_oidc_token = __commonJS({
           await refreshToken();
           token = getVercelOidcTokenSync2();
         }
-      } catch (error69) {
+      } catch (error70) {
         let message = err instanceof Error ? err.message : "";
-        if (error69 instanceof Error) {
+        if (error70 instanceof Error) {
           message = `${message}
-${error69.message}`;
+${error70.message}`;
         }
         if (message) {
           throw new import_token_error.VercelOidcTokenError(message);
         }
-        throw error69;
+        throw error70;
       }
       return token;
     }
@@ -210904,11 +211546,11 @@ async function createGatewayErrorFromResponse({
       });
   }
 }
-function isTimeoutError(error69) {
-  if (!(error69 instanceof Error)) {
+function isTimeoutError(error70) {
+  if (!(error70 instanceof Error)) {
     return false;
   }
-  const errorCode = error69.code;
+  const errorCode = error70.code;
   if (typeof errorCode === "string") {
     const undiciTimeoutCodes = [
       "UND_ERR_HEADERS_TIMEOUT",
@@ -210919,49 +211561,49 @@ function isTimeoutError(error69) {
   }
   return false;
 }
-async function asGatewayError(error69, authMethod) {
+async function asGatewayError(error70, authMethod) {
   var _a96;
-  if (GatewayError.isInstance(error69)) {
-    return error69;
+  if (GatewayError.isInstance(error70)) {
+    return error70;
   }
-  if (isTimeoutError(error69)) {
+  if (isTimeoutError(error70)) {
     return GatewayTimeoutError.createTimeoutError({
-      originalMessage: error69 instanceof Error ? error69.message : "Unknown error",
-      cause: error69
+      originalMessage: error70 instanceof Error ? error70.message : "Unknown error",
+      cause: error70
     });
   }
-  if (APICallError.isInstance(error69)) {
-    if (error69.cause && isTimeoutError(error69.cause)) {
+  if (APICallError.isInstance(error70)) {
+    if (error70.cause && isTimeoutError(error70.cause)) {
       return GatewayTimeoutError.createTimeoutError({
-        originalMessage: error69.message,
-        cause: error69
+        originalMessage: error70.message,
+        cause: error70
       });
     }
     return await createGatewayErrorFromResponse({
-      response: extractApiCallResponse(error69),
-      statusCode: (_a96 = error69.statusCode) != null ? _a96 : 500,
+      response: extractApiCallResponse(error70),
+      statusCode: (_a96 = error70.statusCode) != null ? _a96 : 500,
       defaultMessage: "Gateway request failed",
-      cause: error69,
+      cause: error70,
       authMethod
     });
   }
   return await createGatewayErrorFromResponse({
     response: {},
     statusCode: 500,
-    defaultMessage: error69 instanceof Error ? `Gateway request failed: ${error69.message}` : "Unknown Gateway error",
-    cause: error69,
+    defaultMessage: error70 instanceof Error ? `Gateway request failed: ${error70.message}` : "Unknown Gateway error",
+    cause: error70,
     authMethod
   });
 }
-function extractApiCallResponse(error69) {
-  if (error69.data !== void 0) {
-    return error69.data;
+function extractApiCallResponse(error70) {
+  if (error70.data !== void 0) {
+    return error70.data;
   }
-  if (error69.responseBody != null) {
+  if (error70.responseBody != null) {
     try {
-      return JSON.parse(error69.responseBody);
+      return JSON.parse(error70.responseBody);
     } catch (e) {
-      return error69.responseBody;
+      return error70.responseBody;
     }
   }
   return {};
@@ -211014,12 +211656,12 @@ function createGatewayProvider(options = {}) {
         },
         `ai-sdk/gateway/${VERSION14}`
       );
-    } catch (error69) {
+    } catch (error70) {
       throw GatewayAuthenticationError.createContextualError({
         apiKeyProvided: false,
         oidcTokenProvided: false,
         statusCode: 401,
-        cause: error69
+        cause: error70
       });
     }
   };
@@ -211072,9 +211714,9 @@ function createGatewayProvider(options = {}) {
       }).getAvailableModels().then((metadata) => {
         metadataCache = metadata;
         return metadata;
-      }).catch(async (error69) => {
+      }).catch(async (error70) => {
         throw await asGatewayError(
-          error69,
+          error70,
           await parseAuthMethod(await getHeaders())
         );
       });
@@ -211086,9 +211728,9 @@ function createGatewayProvider(options = {}) {
       baseURL,
       headers: getHeaders,
       fetch: options.fetch
-    }).getCredits().catch(async (error69) => {
+    }).getCredits().catch(async (error70) => {
       throw await asGatewayError(
-        error69,
+        error70,
         await parseAuthMethod(await getHeaders())
       );
     });
@@ -211098,9 +211740,9 @@ function createGatewayProvider(options = {}) {
       baseURL,
       headers: getHeaders,
       fetch: options.fetch
-    }).getSpendReport(params).catch(async (error69) => {
+    }).getSpendReport(params).catch(async (error70) => {
       throw await asGatewayError(
-        error69,
+        error70,
         await parseAuthMethod(await getHeaders())
       );
     });
@@ -211110,9 +211752,9 @@ function createGatewayProvider(options = {}) {
       baseURL,
       headers: getHeaders,
       fetch: options.fetch
-    }).getGenerationInfo(params).catch(async (error69) => {
+    }).getGenerationInfo(params).catch(async (error70) => {
       throw await asGatewayError(
-        error69,
+        error70,
         await parseAuthMethod(await getHeaders())
       );
     });
@@ -211238,11 +211880,11 @@ var init_dist20 = __esm({
        * @param {unknown} error - The error to check.
        * @returns {boolean} True if the error is a Gateway Error, false otherwise.
        */
-      static isInstance(error69) {
-        return _GatewayError.hasMarker(error69);
+      static isInstance(error70) {
+        return _GatewayError.hasMarker(error70);
       }
-      static hasMarker(error69) {
-        return typeof error69 === "object" && error69 !== null && symbol27 in error69 && error69[symbol27] === true;
+      static hasMarker(error70) {
+        return typeof error70 === "object" && error70 !== null && symbol27 in error70 && error70[symbol27] === true;
       }
     };
     name21 = "GatewayAuthenticationError";
@@ -211260,8 +211902,8 @@ var init_dist20 = __esm({
         this.name = name21;
         this.type = "authentication_error";
       }
-      static isInstance(error69) {
-        return GatewayError.hasMarker(error69) && symbol28 in error69;
+      static isInstance(error70) {
+        return GatewayError.hasMarker(error70) && symbol28 in error70;
       }
       /**
        * Creates a contextual error message when authentication fails
@@ -211320,8 +211962,8 @@ Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the toke
         this.name = name25;
         this.type = "invalid_request_error";
       }
-      static isInstance(error69) {
-        return GatewayError.hasMarker(error69) && symbol35 in error69;
+      static isInstance(error70) {
+        return GatewayError.hasMarker(error70) && symbol35 in error70;
       }
     };
     name35 = "GatewayRateLimitError";
@@ -211339,8 +211981,8 @@ Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the toke
         this.name = name35;
         this.type = "rate_limit_exceeded";
       }
-      static isInstance(error69) {
-        return GatewayError.hasMarker(error69) && symbol45 in error69;
+      static isInstance(error70) {
+        return GatewayError.hasMarker(error70) && symbol45 in error70;
       }
     };
     name45 = "GatewayModelNotFoundError";
@@ -211367,8 +212009,8 @@ Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the toke
         this.type = "model_not_found";
         this.modelId = modelId;
       }
-      static isInstance(error69) {
-        return GatewayError.hasMarker(error69) && symbol55 in error69;
+      static isInstance(error70) {
+        return GatewayError.hasMarker(error70) && symbol55 in error70;
       }
     };
     name55 = "GatewayInternalServerError";
@@ -211386,8 +212028,8 @@ Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the toke
         this.name = name55;
         this.type = "internal_server_error";
       }
-      static isInstance(error69) {
-        return GatewayError.hasMarker(error69) && symbol65 in error69;
+      static isInstance(error70) {
+        return GatewayError.hasMarker(error70) && symbol65 in error70;
       }
     };
     name65 = "GatewayResponseError";
@@ -211409,8 +212051,8 @@ Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the toke
         this.response = response;
         this.validationError = validationError;
       }
-      static isInstance(error69) {
-        return GatewayError.hasMarker(error69) && symbol75 in error69;
+      static isInstance(error70) {
+        return GatewayError.hasMarker(error70) && symbol75 in error70;
       }
     };
     gatewayErrorResponseSchema = lazySchema(
@@ -211441,8 +212083,8 @@ Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the toke
         this.name = name75;
         this.type = "timeout_error";
       }
-      static isInstance(error69) {
-        return GatewayError.hasMarker(error69) && symbol85 in error69;
+      static isInstance(error70) {
+        return GatewayError.hasMarker(error70) && symbol85 in error70;
       }
       /**
        * Creates a helpful timeout error message with troubleshooting guidance
@@ -211487,8 +212129,8 @@ Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the toke
             fetch: this.config.fetch
           });
           return value;
-        } catch (error69) {
-          throw await asGatewayError(error69);
+        } catch (error70) {
+          throw await asGatewayError(error70);
         }
       }
       async getCredits() {
@@ -211507,8 +212149,8 @@ Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the toke
             fetch: this.config.fetch
           });
           return value;
-        } catch (error69) {
-          throw await asGatewayError(error69);
+        } catch (error70) {
+          throw await asGatewayError(error70);
         }
       }
     };
@@ -211599,8 +212241,8 @@ Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the toke
             fetch: this.config.fetch
           });
           return value;
-        } catch (error69) {
-          throw await asGatewayError(error69);
+        } catch (error70) {
+          throw await asGatewayError(error70);
         }
       }
     };
@@ -211673,8 +212315,8 @@ Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the toke
             fetch: this.config.fetch
           });
           return value;
-        } catch (error69) {
-          throw await asGatewayError(error69);
+        } catch (error70) {
+          throw await asGatewayError(error70);
         }
       }
     };
@@ -211785,8 +212427,8 @@ Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the toke
             response: { headers: responseHeaders, body: rawResponse },
             warnings
           };
-        } catch (error69) {
-          throw await asGatewayError(error69, await parseAuthMethod(resolvedHeaders));
+        } catch (error70) {
+          throw await asGatewayError(error70, await parseAuthMethod(resolvedHeaders));
         }
       }
       async doStream(options) {
@@ -211840,8 +212482,8 @@ Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the toke
             request: { body: args },
             response: { headers: responseHeaders }
           };
-        } catch (error69) {
-          throw await asGatewayError(error69, await parseAuthMethod(resolvedHeaders));
+        } catch (error70) {
+          throw await asGatewayError(error70, await parseAuthMethod(resolvedHeaders));
         }
       }
       isFilePart(part) {
@@ -211934,8 +212576,8 @@ Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the toke
             response: { headers: responseHeaders, body: rawValue },
             warnings: []
           };
-        } catch (error69) {
-          throw await asGatewayError(error69, await parseAuthMethod(resolvedHeaders));
+        } catch (error70) {
+          throw await asGatewayError(error70, await parseAuthMethod(resolvedHeaders));
         }
       }
       getUrl() {
@@ -212034,8 +212676,8 @@ Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the toke
               }
             }
           };
-        } catch (error69) {
-          throw await asGatewayError(error69, await parseAuthMethod(resolvedHeaders));
+        } catch (error70) {
+          throw await asGatewayError(error70, await parseAuthMethod(resolvedHeaders));
         }
       }
       getUrl() {
@@ -212206,8 +212848,8 @@ Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the toke
               headers: responseHeaders
             }
           };
-        } catch (error69) {
-          throw await asGatewayError(error69, await parseAuthMethod(resolvedHeaders));
+        } catch (error70) {
+          throw await asGatewayError(error70, await parseAuthMethod(resolvedHeaders));
         }
       }
       getUrl() {
@@ -212623,8 +213265,8 @@ var init_ComponentLogger = __esm({
       var i = m.call(o), r, ar = [], e;
       try {
         while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-      } catch (error69) {
-        e = { error: error69 };
+      } catch (error70) {
+        e = { error: error70 };
       } finally {
         try {
           if (r && !r.done && (m = i["return"])) m.call(i);
@@ -212751,8 +213393,8 @@ var init_diag = __esm({
       var i = m.call(o), r, ar = [], e;
       try {
         while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-      } catch (error69) {
-        e = { error: error69 };
+      } catch (error70) {
+        e = { error: error70 };
       } finally {
         try {
           if (r && !r.done && (m = i["return"])) m.call(i);
@@ -212881,8 +213523,8 @@ var init_NoopContextManager = __esm({
       var i = m.call(o), r, ar = [], e;
       try {
         while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-      } catch (error69) {
-        e = { error: error69 };
+      } catch (error70) {
+        e = { error: error70 };
       } finally {
         try {
           if (r && !r.done && (m = i["return"])) m.call(i);
@@ -212943,8 +213585,8 @@ var init_context2 = __esm({
       var i = m.call(o), r, ar = [], e;
       try {
         while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-      } catch (error69) {
-        e = { error: error69 };
+      } catch (error70) {
+        e = { error: error70 };
       } finally {
         try {
           if (r && !r.done && (m = i["return"])) m.call(i);
@@ -213583,7 +214225,7 @@ function splitDataUrl(dataUrl) {
       mediaType: header.split(";")[0].split(":")[1],
       base64Content
     };
-  } catch (error69) {
+  } catch (error70) {
     return {
       mediaType: void 0,
       base64Content: void 0
@@ -213600,7 +214242,7 @@ function convertToLanguageModelV3DataContent(content) {
   if (typeof content === "string") {
     try {
       content = new URL(content);
-    } catch (error69) {
+    } catch (error70) {
     }
   }
   if (content instanceof URL && content.protocol === "data:") {
@@ -214202,9 +214844,9 @@ async function standardizePrompt(prompt) {
     system: prompt.system
   };
 }
-function wrapGatewayError(error69) {
-  if (!GatewayAuthenticationError.isInstance(error69))
-    return error69;
+function wrapGatewayError(error70) {
+  if (!GatewayAuthenticationError.isInstance(error70))
+    return error70;
   const isProductionEnv = (process == null ? void 0 : process.env.NODE_ENV) === "production";
   const moreInfoURL = "https://ai-sdk.dev/unauthenticated-ai-gateway";
   if (isProductionEnv) {
@@ -214310,27 +214952,27 @@ async function recordSpan({
           span.end();
         }
         return result;
-      } catch (error69) {
+      } catch (error70) {
         try {
-          recordErrorOnSpan(span, error69);
+          recordErrorOnSpan(span, error70);
         } finally {
           span.end();
         }
-        throw error69;
+        throw error70;
       }
     }
   );
 }
-function recordErrorOnSpan(span, error69) {
-  if (error69 instanceof Error) {
+function recordErrorOnSpan(span, error70) {
+  if (error70 instanceof Error) {
     span.recordException({
-      name: error69.name,
-      message: error69.message,
-      stack: error69.stack
+      name: error70.name,
+      message: error70.message,
+      stack: error70.stack
     });
     span.setStatus({
       code: SpanStatusCode.ERROR,
-      message: error69.message
+      message: error70.message
     });
   } else {
     span.setStatus({ code: SpanStatusCode.ERROR });
@@ -214537,10 +215179,10 @@ function mergeObjects(base, overrides) {
   return result;
 }
 function getRetryDelayInMs({
-  error: error69,
+  error: error70,
   exponentialBackoffDelay
 }) {
-  const headers = error69.responseHeaders;
+  const headers = error70.responseHeaders;
   if (!headers)
     return exponentialBackoffDelay;
   let ms;
@@ -214573,15 +215215,15 @@ async function _retryWithExponentialBackoff(f, {
 }, errors = []) {
   try {
     return await f();
-  } catch (error69) {
-    if (isAbortError(error69)) {
-      throw error69;
+  } catch (error70) {
+    if (isAbortError(error70)) {
+      throw error70;
     }
     if (maxRetries === 0) {
-      throw error69;
+      throw error70;
     }
-    const errorMessage = getErrorMessage2(error69);
-    const newErrors = [...errors, error69];
+    const errorMessage = getErrorMessage2(error70);
+    const newErrors = [...errors, error70];
     const tryNumber = newErrors.length;
     if (tryNumber > maxRetries) {
       throw new RetryError({
@@ -214590,10 +215232,10 @@ async function _retryWithExponentialBackoff(f, {
         errors: newErrors
       });
     }
-    if (error69 instanceof Error && APICallError.isInstance(error69) && error69.isRetryable === true && tryNumber <= maxRetries) {
+    if (error70 instanceof Error && APICallError.isInstance(error70) && error70.isRetryable === true && tryNumber <= maxRetries) {
       await delay(
         getRetryDelayInMs({
-          error: error69,
+          error: error70,
           exponentialBackoffDelay: delayInMs
         }),
         { abortSignal }
@@ -214610,7 +215252,7 @@ async function _retryWithExponentialBackoff(f, {
       );
     }
     if (tryNumber === 1) {
-      throw error69;
+      throw error70;
     }
     throw new RetryError({
       message: `Failed after ${tryNumber} attempts with non-retryable error: '${errorMessage}'`,
@@ -214798,24 +215440,24 @@ async function executeToolCall({
             output = part.output;
           }
         }
-      } catch (error69) {
+      } catch (error70) {
         const durationMs2 = now() - startTime;
         await notify({
           event: {
             ...baseCallbackEvent,
             success: false,
-            error: error69,
+            error: error70,
             durationMs: durationMs2
           },
           callbacks: onToolCallFinish
         });
-        recordErrorOnSpan(span, error69);
+        recordErrorOnSpan(span, error70);
         return {
           type: "tool-error",
           toolCallId,
           toolName,
           input,
-          error: error69,
+          error: error70,
           dynamic: tool22.type === "dynamic",
           ...toolCall.providerMetadata != null ? { providerMetadata: toolCall.providerMetadata } : {}
         };
@@ -215235,9 +215877,9 @@ async function parseToolCall({
     }
     try {
       return await doParseToolCall({ toolCall, tools });
-    } catch (error69) {
-      if (repairToolCall == null || !(NoSuchToolError.isInstance(error69) || InvalidToolInputError.isInstance(error69))) {
-        throw error69;
+    } catch (error70) {
+      if (repairToolCall == null || !(NoSuchToolError.isInstance(error70) || InvalidToolInputError.isInstance(error70))) {
+        throw error70;
       }
       let repairedToolCall = null;
       try {
@@ -215250,20 +215892,20 @@ async function parseToolCall({
           },
           system,
           messages,
-          error: error69
+          error: error70
         });
       } catch (repairError) {
         throw new ToolCallRepairError({
           cause: repairError,
-          originalError: error69
+          originalError: error70
         });
       }
       if (repairedToolCall == null) {
-        throw error69;
+        throw error70;
       }
       return await doParseToolCall({ toolCall: repairedToolCall, tools });
     }
-  } catch (error69) {
+  } catch (error70) {
     const parsedInput = await safeParseJSON({ text: toolCall.input });
     const input = parsedInput.success ? parsedInput.value : toolCall.input;
     return {
@@ -215273,7 +215915,7 @@ async function parseToolCall({
       input,
       dynamic: true,
       invalid: true,
-      error: error69,
+      error: error70,
       title: (_a212 = tools == null ? void 0 : tools[toolCall.toolName]) == null ? void 0 : _a212.title,
       providerExecuted: toolCall.providerExecuted,
       providerMetadata: toolCall.providerMetadata
@@ -216164,8 +216806,8 @@ async function generateText({
         });
       }
     });
-  } catch (error69) {
-    throw wrapGatewayError(error69);
+  } catch (error70) {
+    throw wrapGatewayError(error70);
   }
 }
 async function executeTools({
@@ -216375,8 +217017,8 @@ function writeToServerResponse({
           });
         }
       }
-    } catch (error69) {
-      throw error69;
+    } catch (error70) {
+      throw error70;
     } finally {
       response.end();
     }
@@ -217063,8 +217705,8 @@ function handleUIMessageStreamFinish({
           structuredClone(state.message)
         ]
       });
-    } catch (error69) {
-      onError(error69);
+    } catch (error70) {
+      onError(error70);
     }
   };
   return processUIMessageStream({
@@ -217184,8 +217826,8 @@ async function consumeStream({
       if (done)
         break;
     }
-  } catch (error69) {
-    onError == null ? void 0 : onError(error69);
+  } catch (error70) {
+    onError == null ? void 0 : onError(error70);
   } finally {
     reader.releaseLock();
   }
@@ -217237,8 +217879,8 @@ function createStitchableStream() {
       } else {
         controller == null ? void 0 : controller.enqueue(value);
       }
-    } catch (error69) {
-      controller == null ? void 0 : controller.error(error69);
+    } catch (error70) {
+      controller == null ? void 0 : controller.error(error70);
       innerStreamReaders.shift();
       terminate();
     }
@@ -217448,18 +218090,18 @@ function runToolsTransformation({
                 }
               }).then((result) => {
                 toolResultsStreamController.enqueue(result);
-              }).catch((error69) => {
+              }).catch((error70) => {
                 toolResultsStreamController.enqueue({
                   type: "error",
-                  error: error69
+                  error: error70
                 });
               }).finally(() => {
                 outstandingToolResults.delete(toolExecutionId);
                 attemptClose();
               });
             }
-          } catch (error69) {
-            toolResultsStreamController.enqueue({ type: "error", error: error69 });
+          } catch (error70) {
+            toolResultsStreamController.enqueue({ type: "error", error: error70 });
           }
           break;
         }
@@ -217551,8 +218193,8 @@ function streamText({
   experimental_download: download2,
   includeRawChunks = false,
   onChunk,
-  onError = ({ error: error69 }) => {
-    console.error(error69);
+  onError = ({ error: error70 }) => {
+    console.error(error70);
   },
   onFinish,
   onAbort,
@@ -217936,8 +218578,8 @@ var init_dist21 = __esm({
         this.parameter = parameter;
         this.value = value;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker27);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker27);
       }
     };
     _a30 = symbol29;
@@ -217957,8 +218599,8 @@ var init_dist21 = __esm({
         this[_a36] = true;
         this.approvalId = approvalId;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker36);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker36);
       }
     };
     _a36 = symbol36;
@@ -217977,8 +218619,8 @@ var init_dist21 = __esm({
         this.toolInput = toolInput;
         this.toolName = toolName;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker46);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker46);
       }
     };
     _a46 = symbol46;
@@ -217998,8 +218640,8 @@ var init_dist21 = __esm({
         this.toolCallId = toolCallId;
         this.approvalId = approvalId;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker56);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker56);
       }
     };
     _a56 = symbol56;
@@ -218017,8 +218659,8 @@ var init_dist21 = __esm({
         this[_a66] = true;
         this.toolCallIds = toolCallIds;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker66);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker66);
       }
     };
     _a66 = symbol66;
@@ -218045,8 +218687,8 @@ var init_dist21 = __esm({
         this.usage = usage;
         this.finishReason = finishReason;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker86);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker86);
       }
     };
     _a86 = symbol86;
@@ -218062,8 +218704,8 @@ var init_dist21 = __esm({
         super({ name: name95, message, cause });
         this[_a95] = true;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker95);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker95);
       }
     };
     _a95 = symbol95;
@@ -218093,8 +218735,8 @@ var init_dist21 = __esm({
         this.toolName = toolName;
         this.availableTools = availableTools;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker135);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker135);
       }
     };
     _a135 = symbol135;
@@ -218111,8 +218753,8 @@ var init_dist21 = __esm({
         this[_a145] = true;
         this.originalError = originalError;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker145);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker145);
       }
     };
     _a145 = symbol145;
@@ -218141,8 +218783,8 @@ var init_dist21 = __esm({
         this.chunkType = chunkType;
         this.chunkId = chunkId;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker152);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker152);
       }
     };
     _a152 = symbol152;
@@ -218162,8 +218804,8 @@ var init_dist21 = __esm({
         this[_a172] = true;
         this.role = role;
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker172);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker172);
       }
     };
     _a172 = symbol172;
@@ -218186,8 +218828,8 @@ var init_dist21 = __esm({
         this.errors = errors;
         this.lastError = errors[errors.length - 1];
       }
-      static isInstance(error69) {
-        return AISDKError.hasMarker(error69, marker192);
+      static isInstance(error70) {
+        return AISDKError.hasMarker(error70, marker192);
       }
     };
     _a192 = symbol192;
@@ -218344,11 +218986,11 @@ var init_dist21 = __esm({
           data,
           mediaType: (_a212 = response.headers.get("content-type")) != null ? _a212 : void 0
         };
-      } catch (error69) {
-        if (DownloadError.isInstance(error69)) {
-          throw error69;
+      } catch (error70) {
+        if (DownloadError.isInstance(error70)) {
+          throw error70;
         }
-        throw new DownloadError({ url: urlText, cause: error69 });
+        throw new DownloadError({ url: urlText, cause: error70 });
       }
     };
     createDefaultDownloadFunction = (download2 = download) => (requestedDownloads) => Promise.all(
@@ -219543,13 +220185,13 @@ var init_dist21 = __esm({
             var _a212, _b27, _c, _d, _e, _f, _g;
             try {
               if (recordedSteps.length === 0) {
-                const error69 = (abortSignal == null ? void 0 : abortSignal.aborted) ? abortSignal.reason : new NoOutputGeneratedError({
+                const error70 = (abortSignal == null ? void 0 : abortSignal.aborted) ? abortSignal.reason : new NoOutputGeneratedError({
                   message: "No output generated. Check the stream for errors."
                 });
-                self2._finishReason.reject(error69);
-                self2._rawFinishReason.reject(error69);
-                self2._totalUsage.reject(error69);
-                self2._steps.reject(error69);
+                self2._finishReason.reject(error70);
+                self2._rawFinishReason.reject(error70);
+                self2._totalUsage.reject(error70);
+                self2._steps.reject(error70);
                 return;
               }
               const finishReason = recordedFinishReason != null ? recordedFinishReason : "other";
@@ -219624,8 +220266,8 @@ var init_dist21 = __esm({
                   }
                 })
               );
-            } catch (error69) {
-              controller.error(error69);
+            } catch (error70) {
+              controller.error(error70);
             } finally {
               rootSpan.end();
             }
@@ -219662,11 +220304,11 @@ var init_dist21 = __esm({
                 return;
               }
               controller.enqueue(value);
-            } catch (error69) {
-              if (isAbortError(error69) && (abortSignal == null ? void 0 : abortSignal.aborted)) {
+            } catch (error70) {
+              if (isAbortError(error70) && (abortSignal == null ? void 0 : abortSignal.aborted)) {
                 abort();
               } else {
-                controller.error(error69);
+                controller.error(error70);
               }
             }
           },
@@ -220267,7 +220909,7 @@ var init_dist21 = __esm({
                               }
                             })
                           );
-                        } catch (error69) {
+                        } catch (error70) {
                         }
                         controller.enqueue({
                           type: "finish-step",
@@ -220303,7 +220945,7 @@ var init_dist21 = __esm({
                               }
                             })
                           );
-                        } catch (error69) {
+                        } catch (error70) {
                         } finally {
                           doStreamSpan.end();
                         }
@@ -220360,10 +221002,10 @@ var init_dist21 = __esm({
                               responseMessages,
                               usage: combinedUsage
                             });
-                          } catch (error69) {
+                          } catch (error70) {
                             controller.enqueue({
                               type: "error",
-                              error: error69
+                              error: error70
                             });
                             self2.closeStream();
                           }
@@ -220391,11 +221033,11 @@ var init_dist21 = __esm({
               usage: createNullLanguageModelUsage()
             });
           }
-        }).catch((error69) => {
+        }).catch((error70) => {
           self2.addStream(
             new ReadableStream({
               start(controller) {
-                controller.enqueue({ type: "error", error: error69 });
+                controller.enqueue({ type: "error", error: error70 });
                 controller.close();
               }
             })
@@ -220517,8 +221159,8 @@ var init_dist21 = __esm({
             stream: this.fullStream,
             onError: options == null ? void 0 : options.onError
           });
-        } catch (error69) {
-          (_a212 = options == null ? void 0 : options.onError) == null ? void 0 : _a212.call(options, error69);
+        } catch (error70) {
+          (_a212 = options == null ? void 0 : options.onError) == null ? void 0 : _a212.call(options, error70);
         }
       }
       get experimental_partialOutputStream() {
@@ -221450,17 +222092,17 @@ var init_dist22 = __esm({
               raw_response: result.response?.body ? JSON.stringify(result.response.body) : null
             });
             return result;
-          } catch (error69) {
+          } catch (error70) {
             const durationMs = Date.now() - startTime;
             await updateStepResult(stepId, {
               duration_ms: durationMs,
               output: null,
               usage: null,
-              error: error69 instanceof Error ? error69.message : String(error69),
+              error: error70 instanceof Error ? error70.message : String(error70),
               raw_request: null,
               raw_response: null
             });
-            throw error69;
+            throw error70;
           }
         },
         wrapStream: async ({ doStream, params, model }) => {
@@ -221597,19 +222239,19 @@ var init_dist22 = __esm({
               response,
               ...rest
             };
-          } catch (error69) {
+          } catch (error70) {
             activeSteps.delete(stepId);
             const durationMs = Date.now() - startTime;
             await updateStepResult(stepId, {
               duration_ms: durationMs,
               output: null,
               usage: null,
-              error: error69 instanceof Error ? error69.message : String(error69),
+              error: error70 instanceof Error ? error70.message : String(error70),
               raw_request: null,
               raw_response: null,
               raw_chunks: null
             });
-            throw error69;
+            throw error70;
           }
         }
       };
@@ -225685,398 +226327,6 @@ var init_utils3 = __esm({
   }
 });
 
-// src/lib/quickVideo/contract.ts
-function canTransitionStage(from, to) {
-  return STAGE_TRANSITIONS[from]?.includes(to) ?? false;
-}
-function shotCountBounds(targetDuration) {
-  const max = Math.max(1, Math.min(SHOT_COUNT_MAX, Math.floor(targetDuration / SHOT_DURATION_MIN)));
-  const min = Math.max(1, Math.min(5, Math.floor(targetDuration / SHOT_DURATION_MAX) || 1));
-  return { min, max };
-}
-function validateStoryboard(targetDuration, shots) {
-  const errors = [];
-  const { min, max } = shotCountBounds(targetDuration);
-  if (shots.length < min || shots.length > max) {
-    errors.push(`\u955C\u5934\u6570\u91CF\u9700\u5728 ${min}-${max} \u4E2A\u4E4B\u95F4\uFF08\u76EE\u6807\u65F6\u957F ${targetDuration} \u79D2\uFF0C\u5F53\u524D ${shots.length} \u4E2A\uFF09`);
-  }
-  const total = shots.reduce((sum, s) => sum + s.duration, 0);
-  const tolerance = Math.max(3, Math.round(targetDuration * 0.2));
-  if (Math.abs(total - targetDuration) > tolerance) {
-    errors.push(`\u955C\u5934\u603B\u65F6\u957F ${total} \u79D2\u4E0E\u76EE\u6807\u65F6\u957F ${targetDuration} \u79D2\u504F\u5DEE\u8D85\u8FC7 ${tolerance} \u79D2`);
-  }
-  const ids = /* @__PURE__ */ new Set();
-  shots.forEach((shot, i) => {
-    if (ids.has(shot.id)) errors.push(`\u955C\u5934 ID \u91CD\u590D\uFF1A${shot.id}`);
-    ids.add(shot.id);
-    if (shot.duration < SHOT_DURATION_MIN || shot.duration > SHOT_DURATION_MAX) {
-      errors.push(`\u955C\u5934 ${i + 1} \u65F6\u957F\u9700\u5728 ${SHOT_DURATION_MIN}-${SHOT_DURATION_MAX} \u79D2`);
-    }
-  });
-  return errors;
-}
-function computeGenerationEstimate(shots, materials) {
-  const toGenerateCount = materials.filter((m) => m.source === "to_generate").length;
-  const imageCount = shots.length + toGenerateCount;
-  const videoCount = shots.length;
-  const totalVideoSeconds = shots.reduce((sum, s) => sum + s.duration, 0);
-  const estimatedCostYuan = Math.round((imageCount * ESTIMATE_IMAGE_COST_YUAN + totalVideoSeconds * ESTIMATE_VIDEO_COST_PER_SECOND_YUAN) * 100) / 100;
-  const estimatedSeconds = imageCount * ESTIMATE_IMAGE_SECONDS + totalVideoSeconds * ESTIMATE_VIDEO_SECONDS;
-  return { estimatedImageCount: imageCount, estimatedVideoCount: videoCount, estimatedCostYuan, estimatedSeconds };
-}
-function recordIdempotencyKey(state, key) {
-  if (!key) return true;
-  if (state.appliedKeys[key] != null) return false;
-  const next = { ...state.appliedKeys, [key]: Date.now() };
-  const keys = Object.keys(next);
-  if (keys.length > IDEMPOTENCY_MAX_KEYS) {
-    keys.sort((a, b) => next[a] - next[b]);
-    for (const k of keys.slice(0, keys.length - IDEMPOTENCY_MAX_KEYS)) delete next[k];
-  }
-  state.appliedKeys = next;
-  return true;
-}
-var QUICK_VIDEO_AGENT_KEY, QUICK_VIDEO_SCHEMA_VERSION, QUICK_VIDEO_PROJECT_TYPE, QUICK_VIDEO_RATIOS, SHOT_DURATION_MIN, SHOT_DURATION_MAX, SHOT_COUNT_MAX, QUICK_VIDEO_STAGES, STAGE_TRANSITIONS, SHOT_GEN_STATES, shotAssetRefSchema, quickVideoShotSchema, quickVideoBriefSchema, quickVideoStoryboardSchema, materialItemSchema, snapshotShotSchema, generationSnapshotSchema, TIMELINE_TRANSITION_DURATION_S, TIMELINE_MAX_SPEED, TIMELINE_MIN_SPEED, QUICK_VIDEO_DIMENSIONS, timelineClipPlanSchema, timelineTransitionSchema, timelineTailPadSchema, timelinePlanSchema, timelineMetaSchema, quickVideoExportInfoSchema, quickVideoGenerationSchema, GENERATION_CONCURRENCY, GENERATION_IMAGE_TIMEOUT_MS, GENERATION_VIDEO_TIMEOUT_MS, ESTIMATE_IMAGE_COST_YUAN, ESTIMATE_VIDEO_COST_PER_SECOND_YUAN, ESTIMATE_IMAGE_SECONDS, ESTIMATE_VIDEO_SECONDS, quickVideoStateSchema, IDEMPOTENCY_MAX_KEYS;
-var init_contract = __esm({
-  "src/lib/quickVideo/contract.ts"() {
-    "use strict";
-    init_zod();
-    QUICK_VIDEO_AGENT_KEY = "quickVideoAgent";
-    QUICK_VIDEO_SCHEMA_VERSION = 1;
-    QUICK_VIDEO_PROJECT_TYPE = "quick_video";
-    QUICK_VIDEO_RATIOS = ["16:9", "9:16", "1:1"];
-    SHOT_DURATION_MIN = 5;
-    SHOT_DURATION_MAX = 15;
-    SHOT_COUNT_MAX = 12;
-    QUICK_VIDEO_STAGES = [
-      "collect_brief",
-      "brief_confirmed",
-      "storyboard_draft",
-      "storyboard_confirmed",
-      "generating",
-      "ready_to_assemble",
-      "completed"
-    ];
-    STAGE_TRANSITIONS = {
-      collect_brief: ["brief_confirmed"],
-      brief_confirmed: ["storyboard_draft", "collect_brief"],
-      storyboard_draft: ["storyboard_confirmed", "brief_confirmed"],
-      storyboard_confirmed: ["generating", "storyboard_draft"],
-      generating: ["ready_to_assemble", "storyboard_confirmed"],
-      ready_to_assemble: ["completed", "generating"],
-      completed: []
-    };
-    SHOT_GEN_STATES = ["pending", "generating", "done", "failed"];
-    shotAssetRefSchema = external_exports.object({
-      type: external_exports.enum(["role", "scene", "tool"]).describe("\u8D44\u4EA7\u7C7B\u578B\uFF1Arole=\u89D2\u8272 / scene=\u573A\u666F / tool=\u9053\u5177"),
-      name: external_exports.string().min(1).max(60).describe("\u8D44\u4EA7\u540D\u79F0"),
-      desc: external_exports.string().max(300).default("").describe("\u8D44\u4EA7\u5916\u89C2/\u89C6\u89C9\u63CF\u8FF0")
-    });
-    quickVideoShotSchema = external_exports.object({
-      id: external_exports.string().min(1).max(40).describe("\u955C\u5934\u7A33\u5B9A ID\uFF0C\u5982 shot-1"),
-      index: external_exports.number().int().min(1).describe("\u955C\u5934\u5E8F\u53F7\uFF081 \u5F00\u59CB\uFF0C\u6309\u64AD\u653E\u987A\u5E8F\uFF09"),
-      duration: external_exports.number().int().min(SHOT_DURATION_MIN).max(SHOT_DURATION_MAX).describe(`\u955C\u5934\u65F6\u957F\uFF08\u79D2\uFF09\uFF0C${SHOT_DURATION_MIN}-${SHOT_DURATION_MAX} \u79D2`),
-      description: external_exports.string().min(1).max(2e3).describe("\u753B\u9762\u63CF\u8FF0\uFF08\u955C\u5934\u5185\u5BB9\u3001\u52A8\u4F5C\u3001\u6C1B\u56F4\uFF09"),
-      dialogue: external_exports.string().max(500).default("").describe("\u53F0\u8BCD/\u65C1\u767D\uFF08\u7528\u4F5C\u5B57\u5E55\uFF0C\u53EF\u4E3A\u7A7A\uFF09"),
-      camera: external_exports.string().max(200).default("").describe("\u666F\u522B/\u8FD0\u955C\uFF08\u5982 \u5168\u666F\u3001\u7F13\u6162\u63A8\u8FDB\uFF09"),
-      assetRefs: external_exports.array(shotAssetRefSchema).max(10).default([]).describe("\u8BE5\u955C\u5934\u5F15\u7528\u7684\u8D44\u4EA7\u5217\u8868"),
-      imageState: external_exports.enum(SHOT_GEN_STATES).default("pending").describe("\u5206\u955C\u56FE\u751F\u6210\u72B6\u6001"),
-      videoState: external_exports.enum(SHOT_GEN_STATES).default("pending").describe("\u89C6\u9891\u7247\u6BB5\u751F\u6210\u72B6\u6001"),
-      imageRef: external_exports.string().max(500).nullable().default(null).describe("\u5206\u955C\u56FE\u6587\u4EF6\u5F15\u7528\uFF08OSS key\uFF09"),
-      videoRef: external_exports.string().max(500).nullable().default(null).describe("\u89C6\u9891\u7247\u6BB5\u6587\u4EF6\u5F15\u7528\uFF08OSS key\uFF09"),
-      errorReason: external_exports.string().max(1e3).nullable().default(null).describe("\u6700\u8FD1\u4E00\u6B21\u751F\u6210\u5931\u8D25\u539F\u56E0")
-    });
-    quickVideoBriefSchema = external_exports.object({
-      theme: external_exports.string().min(1).max(500).describe("\u4E3B\u9898/\u6838\u5FC3\u521B\u610F"),
-      hook: external_exports.string().max(500).default("").describe("\u5F00\u573A\u94A9\u5B50"),
-      narrative: external_exports.string().max(3e3).describe("\u53D9\u4E8B\u5927\u7EB2\uFF08\u6309\u65F6\u95F4\u7EBF\u7684\u4E00\u6BB5\u8BDD\uFF09"),
-      cta: external_exports.string().max(500).default("").describe("\u7ED3\u5C3E/\u884C\u52A8\u53F7\u53EC"),
-      keywords: external_exports.array(external_exports.string().min(1).max(60)).max(20).default([]).describe("\u98CE\u683C/\u5185\u5BB9\u5173\u952E\u8BCD"),
-      confirmed: external_exports.boolean().default(false).describe("\u7528\u6237\u662F\u5426\u5DF2\u786E\u8BA4\u8BE5\u7B80\u62A5"),
-      confirmedAt: external_exports.number().nullable().default(null).describe("\u786E\u8BA4\u65F6\u95F4\u6233")
-    });
-    quickVideoStoryboardSchema = external_exports.object({
-      version: external_exports.number().int().min(1).describe("\u5206\u955C\u7248\u672C\u53F7\uFF0C\u6BCF\u6B21 propose \u81EA\u589E"),
-      status: external_exports.enum(["draft", "confirmed"]).describe("\u5206\u955C\u786E\u8BA4\u72B6\u6001"),
-      confirmedAt: external_exports.number().nullable().default(null).describe("\u786E\u8BA4\u65F6\u95F4\u6233"),
-      summary: external_exports.string().max(1e3).default("").describe("\u672C\u7248\u5206\u955C\u7684\u6574\u4F53\u8BF4\u660E"),
-      shots: external_exports.array(quickVideoShotSchema).min(1).max(SHOT_COUNT_MAX).describe("\u955C\u5934\u5217\u8868\uFF08\u6309\u64AD\u653E\u987A\u5E8F\uFF09")
-    });
-    materialItemSchema = external_exports.object({
-      type: external_exports.enum(["role", "scene", "tool"]).describe("\u8D44\u4EA7\u7C7B\u578B"),
-      name: external_exports.string().min(1).max(60).describe("\u8D44\u4EA7\u540D\u79F0"),
-      desc: external_exports.string().max(300).default("").describe("\u8D44\u4EA7\u5916\u89C2/\u89C6\u89C9\u63CF\u8FF0"),
-      source: external_exports.enum(["matched", "to_generate"]).describe("\u89E3\u6790\u7ED3\u679C"),
-      assetId: external_exports.number().int().nullable().default(null).describe("\u547D\u4E2D\u7684 o_assets.id"),
-      imageId: external_exports.number().int().nullable().default(null).describe("\u547D\u4E2D\u7684 o_image.id"),
-      filePath: external_exports.string().max(500).nullable().default(null).describe("\u547D\u4E2D\u8D44\u4EA7\u56FE\u7684 OSS \u8DEF\u5F84")
-    });
-    snapshotShotSchema = external_exports.object({
-      id: external_exports.string().min(1).max(40),
-      index: external_exports.number().int().min(1),
-      duration: external_exports.number().int().min(SHOT_DURATION_MIN).max(SHOT_DURATION_MAX),
-      description: external_exports.string().min(1).max(2e3),
-      dialogue: external_exports.string().max(500).default(""),
-      camera: external_exports.string().max(200).default(""),
-      assetRefs: external_exports.array(shotAssetRefSchema).max(10).default([])
-    });
-    generationSnapshotSchema = external_exports.object({
-      storyboardVersion: external_exports.number().int().min(1).describe("\u5FEB\u7167\u5BF9\u5E94\u7684\u5206\u955C\u7248\u672C"),
-      targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]),
-      videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS),
-      artStyle: external_exports.string().max(500).default(""),
-      shots: external_exports.array(snapshotShotSchema).min(1).max(SHOT_COUNT_MAX),
-      materials: external_exports.array(materialItemSchema).max(30).default([]),
-      estimatedImageCount: external_exports.number().int().min(0).default(0).describe("\u9884\u8BA1\u56FE\u7247\u4EFB\u52A1\u6570\uFF08\u5206\u955C\u56FE + \u9700\u8865\u751F\u6210\u7684\u7D20\u6750\u56FE\uFF09"),
-      estimatedVideoCount: external_exports.number().int().min(0).default(0).describe("\u9884\u8BA1\u89C6\u9891\u4EFB\u52A1\u6570"),
-      estimatedCostYuan: external_exports.number().min(0).default(0).describe("\u9884\u4F30\u8D39\u7528\uFF08\u5143\uFF0C\u7C97\u4F30\u503C\uFF09"),
-      estimatedSeconds: external_exports.number().int().min(0).default(0).describe("\u9884\u4F30\u603B\u8017\u65F6\uFF08\u79D2\uFF0C\u7C97\u4F30\u503C\uFF09")
-    });
-    TIMELINE_TRANSITION_DURATION_S = 0.5;
-    TIMELINE_MAX_SPEED = 1.5;
-    TIMELINE_MIN_SPEED = 0.75;
-    QUICK_VIDEO_DIMENSIONS = {
-      "16:9": { width: 1280, height: 720 },
-      "9:16": { width: 720, height: 1280 },
-      "1:1": { width: 960, height: 960 }
-    };
-    timelineClipPlanSchema = external_exports.object({
-      shotId: external_exports.string().min(1).max(40),
-      index: external_exports.number().int().min(1),
-      /** 镜头规划源时长（秒） */
-      sourceDuration: external_exports.number().min(SHOT_DURATION_MIN).max(SHOT_DURATION_MAX),
-      /** 源视频使用窗口 [trimStart, trimEnd]（秒，不超过源时长） */
-      trimStart: external_exports.number().min(0).default(0),
-      trimEnd: external_exports.number().min(0),
-      /** 播放速率（1 = 原速） */
-      playbackRate: external_exports.number().min(0.1).max(4),
-      /** 时间线上的起止时间（秒，相邻片段在转场处重叠） */
-      start: external_exports.number().min(0),
-      end: external_exports.number().min(0),
-      /** 字幕文本（台词/旁白，可为空） */
-      subtitleText: external_exports.string().max(500).default("")
-    });
-    timelineTransitionSchema = external_exports.object({
-      afterShotId: external_exports.string().min(1).max(40).describe("\u4E0E\u4E0B\u4E00\u955C\u5934\u4E4B\u95F4\u7684\u8F6C\u573A\uFF0C\u4F4D\u4E8E\u8BE5\u955C\u5934\u4E4B\u540E"),
-      type: external_exports.literal("crossfade"),
-      duration: external_exports.number().min(0)
-    });
-    timelineTailPadSchema = external_exports.object({
-      type: external_exports.literal("endcard"),
-      duration: external_exports.number().min(0),
-      text: external_exports.string().max(500).default("")
-    });
-    timelinePlanSchema = external_exports.object({
-      targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]),
-      videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS),
-      width: external_exports.number().int().min(1),
-      height: external_exports.number().int().min(1),
-      /** 成片总时长（秒，含片尾补齐） */
-      totalDuration: external_exports.number().min(1),
-      clips: external_exports.array(timelineClipPlanSchema).min(1).max(SHOT_COUNT_MAX),
-      transitions: external_exports.array(timelineTransitionSchema).max(SHOT_COUNT_MAX).default([]),
-      tailPad: timelineTailPadSchema.nullable().default(null)
-    });
-    timelineMetaSchema = external_exports.object({
-      storyboardVersion: external_exports.number().int().min(1),
-      assembledAt: external_exports.number().int().min(1),
-      clipCount: external_exports.number().int().min(1),
-      totalDuration: external_exports.number().min(1),
-      trackIds: external_exports.array(external_exports.number().int()).default([])
-    });
-    quickVideoExportInfoSchema = external_exports.object({
-      exportedAt: external_exports.number().int().min(1),
-      fileName: external_exports.string().min(1).max(200),
-      sizeBytes: external_exports.number().int().min(0),
-      durationSeconds: external_exports.number().min(0)
-    });
-    quickVideoGenerationSchema = external_exports.object({
-      /** 最近一次素材解析快照（素材确认前可反复刷新） */
-      snapshot: generationSnapshotSchema.nullable().default(null),
-      materialsConfirmed: external_exports.boolean().default(false).describe("\u7D20\u6750/\u6210\u672C\u786E\u8BA4\u95E8\u662F\u5426\u5DF2\u901A\u8FC7"),
-      materialsConfirmedAt: external_exports.number().nullable().default(null),
-      /** 最近一次生成运行 ID */
-      runId: external_exports.string().max(64).nullable().default(null),
-      startedAt: external_exports.number().nullable().default(null),
-      finishedAt: external_exports.number().nullable().default(null),
-      /** 运行期产物：需补生成的素材图 名称 -> OSS 路径（生成引擎写入） */
-      materialImages: external_exports.record(external_exports.string(), external_exports.string().max(500)).default({}),
-      /** 最近一次时间线装配元数据（getTimeline 落库，SIY-111） */
-      timeline: timelineMetaSchema.nullable().default(null),
-      /** 最近一次导出结果（导出确认门通过后回写，SIY-111） */
-      exportInfo: quickVideoExportInfoSchema.nullable().default(null)
-    });
-    GENERATION_CONCURRENCY = 2;
-    GENERATION_IMAGE_TIMEOUT_MS = 10 * 60 * 1e3;
-    GENERATION_VIDEO_TIMEOUT_MS = 15 * 60 * 1e3;
-    ESTIMATE_IMAGE_COST_YUAN = 0.3;
-    ESTIMATE_VIDEO_COST_PER_SECOND_YUAN = 0.5;
-    ESTIMATE_IMAGE_SECONDS = 30;
-    ESTIMATE_VIDEO_SECONDS = 90;
-    quickVideoStateSchema = external_exports.object({
-      schemaVersion: external_exports.literal(QUICK_VIDEO_SCHEMA_VERSION).default(QUICK_VIDEO_SCHEMA_VERSION),
-      /** 乐观锁版本号，每次成功写入自增 */
-      version: external_exports.number().int().min(1),
-      stage: external_exports.enum(QUICK_VIDEO_STAGES),
-      targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]),
-      videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS),
-      artStyle: external_exports.string().max(500).default(""),
-      /** 创建幂等键（createProject 用，防重复建项目） */
-      createIdempotencyKey: external_exports.string().min(8).max(64),
-      brief: quickVideoBriefSchema.nullable().default(null),
-      storyboard: quickVideoStoryboardSchema.nullable().default(null),
-      /** 素材/成本确认门与生成运行态（存量状态行缺该字段时补默认值） */
-      generation: external_exports.preprocess((v) => v ?? {}, quickVideoGenerationSchema),
-      /** 已确认完成的幂等键记录（key -> 应用时间），写入去重用，最多保留 IDEMPOTENCY_MAX_KEYS 条 */
-      appliedKeys: external_exports.record(external_exports.string(), external_exports.number()).default({}),
-      /** 最近的聊天时间，用于工作台展示 */
-      lastChatAt: external_exports.number().nullable().default(null),
-      updateTime: external_exports.number()
-    });
-    IDEMPOTENCY_MAX_KEYS = 50;
-  }
-});
-
-// src/lib/quickVideo/state.ts
-var state_exports = {};
-__export(state_exports, {
-  QuickVideoError: () => QuickVideoError,
-  findProjectByCreateIdempotencyKey: () => findProjectByCreateIdempotencyKey,
-  getQuickVideoStateRow: () => getQuickVideoStateRow,
-  initQuickVideoStateRow: () => initQuickVideoStateRow,
-  loadQuickVideoState: () => loadQuickVideoState,
-  mutateQuickVideoState: () => mutateQuickVideoState
-});
-function parseState(row) {
-  let raw = {};
-  try {
-    raw = JSON.parse(row.data ?? "{}");
-  } catch {
-    throw new QuickVideoError("STATE_CORRUPTED", "quickVideoAgent \u72B6\u6001\u6570\u636E\u635F\u574F\uFF0C\u65E0\u6CD5\u89E3\u6790");
-  }
-  const parsed = quickVideoStateSchema.safeParse(raw);
-  if (!parsed.success) {
-    throw new QuickVideoError("STATE_INVALID", `quickVideoAgent \u72B6\u6001\u6570\u636E\u4E0D\u6EE1\u8DB3\u5951\u7EA6\uFF1A${parsed.error.issues.map((i) => i.path.join(".")).join(", ")}`);
-  }
-  return parsed.data;
-}
-async function getQuickVideoStateRow(projectId) {
-  return utils_default2.db("o_agentWorkData").where({ projectId: String(projectId), key: QUICK_VIDEO_AGENT_KEY }).first();
-}
-async function loadQuickVideoState(projectId) {
-  const row = await getQuickVideoStateRow(projectId);
-  return row ? parseState(row) : null;
-}
-async function mutateQuickVideoState(projectId, opts, mutator) {
-  return db.transaction(async (trx) => {
-    const row = await trx("o_agentWorkData").where({ projectId: String(projectId), key: QUICK_VIDEO_AGENT_KEY }).forUpdate().first();
-    if (!row) throw new QuickVideoError("STATE_NOT_FOUND", "\u672A\u627E\u5230 quickVideoAgent \u72B6\u6001\uFF0C\u8BF7\u5148\u521B\u5EFA quick_video \u9879\u76EE");
-    const current = parseState(row);
-    if (opts.idempotencyKey && current.appliedKeys[opts.idempotencyKey] != null) {
-      return { state: current, idempotentHit: true };
-    }
-    if (opts.expectedVersion != null && opts.expectedVersion !== current.version) {
-      throw new QuickVideoError(
-        "VERSION_CONFLICT",
-        `\u72B6\u6001\u7248\u672C\u51B2\u7A81\uFF1A\u670D\u52A1\u7AEF\u5F53\u524D\u7248\u672C ${current.version}\uFF0C\u8BF7\u6C42\u57FA\u4E8E\u7248\u672C ${opts.expectedVersion}\uFF0C\u8BF7\u5237\u65B0\u540E\u91CD\u8BD5`,
-        current.version
-      );
-    }
-    const state = JSON.parse(JSON.stringify(current));
-    if (opts.stageTransition) {
-      const { from, to } = opts.stageTransition;
-      if (state.stage !== from) {
-        throw new QuickVideoError("STAGE_MISMATCH", `\u9636\u6BB5\u4E0D\u7B26\uFF1A\u5F53\u524D\u5904\u4E8E ${state.stage}\uFF0C\u8BE5\u64CD\u4F5C\u8981\u6C42 ${from}`, state.version);
-      }
-      if (!canTransitionStage(from, to)) {
-        throw new QuickVideoError("STAGE_FORBIDDEN", `\u4E0D\u5141\u8BB8\u7684\u9636\u6BB5\u8F6C\u79FB\uFF1A${from} -> ${to}`, state.version);
-      }
-    }
-    await mutator(state, trx);
-    if (state.stage !== current.stage && !canTransitionStage(current.stage, state.stage)) {
-      throw new QuickVideoError("STAGE_FORBIDDEN", `\u4E0D\u5141\u8BB8\u7684\u9636\u6BB5\u8F6C\u79FB\uFF1A${current.stage} -> ${state.stage}`, current.version);
-    }
-    if (!QUICK_VIDEO_STAGES.includes(state.stage)) {
-      throw new QuickVideoError("STAGE_INVALID", `\u672A\u77E5\u9636\u6BB5\uFF1A${state.stage}`, current.version);
-    }
-    if (opts.idempotencyKey && !recordIdempotencyKey(state, opts.idempotencyKey)) {
-      return { state: current, idempotentHit: true };
-    }
-    state.schemaVersion = QUICK_VIDEO_SCHEMA_VERSION;
-    state.updateTime = Date.now();
-    state.version = current.version + 1;
-    const parsed = quickVideoStateSchema.safeParse(state);
-    if (!parsed.success) {
-      throw new QuickVideoError(
-        "STATE_INVALID",
-        `\u5199\u5165\u88AB\u62D2\u7EDD\uFF0C\u72B6\u6001\u4E0D\u6EE1\u8DB3\u5951\u7EA6\uFF1A${parsed.error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`,
-        current.version
-      );
-    }
-    await trx("o_agentWorkData").where({ id: row.id }).update({ data: JSON.stringify(parsed.data), updateTime: Date.now() });
-    return { state: parsed.data, idempotentHit: false };
-  });
-}
-async function findProjectByCreateIdempotencyKey(idempotencyKey) {
-  if (!idempotencyKey) return null;
-  const rows = await utils_default2.db("o_agentWorkData").where("key", QUICK_VIDEO_AGENT_KEY).andWhere("data", "like", `%${idempotencyKey}%`).orderBy("id", "desc").limit(20).select("projectId", "data");
-  for (const row of rows) {
-    try {
-      const data = JSON.parse(row.data ?? "{}");
-      if (data?.createIdempotencyKey === idempotencyKey && Number(row.projectId)) {
-        return Number(row.projectId);
-      }
-    } catch {
-    }
-  }
-  return null;
-}
-async function initQuickVideoStateRow(trx, { projectId, idempotencyKey, targetDuration, videoRatio, artStyle }) {
-  const now2 = Date.now();
-  const state = quickVideoStateSchema.parse({
-    version: 1,
-    stage: "collect_brief",
-    targetDuration,
-    videoRatio,
-    artStyle,
-    createIdempotencyKey: idempotencyKey,
-    brief: null,
-    storyboard: null,
-    appliedKeys: {},
-    lastChatAt: null,
-    updateTime: now2
-  });
-  const maxRow = await trx("o_agentWorkData").max("id as maxId").first();
-  const id = Number(maxRow?.maxId ?? 0) + 1;
-  await trx("o_agentWorkData").insert({
-    id,
-    projectId,
-    key: QUICK_VIDEO_AGENT_KEY,
-    data: JSON.stringify(state),
-    createTime: now2,
-    updateTime: now2
-  });
-  return state;
-}
-var QuickVideoError;
-var init_state = __esm({
-  "src/lib/quickVideo/state.ts"() {
-    "use strict";
-    init_db();
-    init_utils3();
-    init_contract();
-    QuickVideoError = class extends Error {
-      code;
-      currentVersion;
-      constructor(code, message, currentVersion) {
-        super(message);
-        this.code = code;
-        this.currentVersion = currentVersion;
-      }
-    };
-  }
-});
-
 // src/lib/quickVideo/shots.ts
 function ensureStoryboardEditable(state) {
   if (!state.storyboard) throw new QuickVideoError("NO_STORYBOARD", "\u6682\u65E0\u5206\u955C\uFF0C\u8BF7\u5148\u786E\u8BA4\u7B80\u62A5\u540E\u7531 Agent \u751F\u6210\u6216\u63D0\u4EA4\u5206\u955C", state.version);
@@ -226159,6 +226409,222 @@ var init_metrics = __esm({
   }
 });
 
+// src/lib/quickVideo/modelValidation.ts
+function pickEnabledModel(models, enabledNames, modelName, type) {
+  const hit = models.find((m) => m.modelName === modelName && m.type === type);
+  if (!hit) return null;
+  if (enabledNames.length > 0 && !enabledNames.includes(modelName)) return null;
+  return hit;
+}
+var init_modelValidation = __esm({
+  "src/lib/quickVideo/modelValidation.ts"() {
+    "use strict";
+  }
+});
+
+// src/lib/quickVideo/media.ts
+function splitModelKey(modelKey) {
+  const sep2 = modelKey.indexOf(":");
+  if (sep2 <= 0 || sep2 === modelKey.length - 1) return null;
+  return { vendorId: modelKey.slice(0, sep2), modelName: modelKey.slice(sep2 + 1) };
+}
+async function getVendorModelCatalog(vendorId) {
+  const row = await utils_default2.db("o_vendorConfig").where("id", vendorId).first();
+  if (!row) return null;
+  let models = [];
+  try {
+    const parsed = JSON.parse(row.models || "[]");
+    if (Array.isArray(parsed)) models = parsed;
+  } catch {
+    models = [];
+  }
+  let enabledNames = [];
+  try {
+    const parsed = JSON.parse(row.enabledModels || "[]");
+    if (Array.isArray(parsed)) enabledNames = parsed;
+  } catch {
+    enabledNames = [];
+  }
+  return { enabled: !!row.enable, models, enabledNames };
+}
+async function validateImageModelKey(modelKey) {
+  const split = splitModelKey(modelKey);
+  if (!split) throw new QuickVideoError("IMAGE_MODEL_INVALID", "\u56FE\u7247\u6A21\u578B\u683C\u5F0F\u4E0D\u6B63\u786E\uFF0C\u8BF7\u91CD\u65B0\u5728\u6A21\u578B\u9009\u62E9\u6846\u4E2D\u9009\u62E9");
+  const { vendorId, modelName } = split;
+  const catalog = await getVendorModelCatalog(vendorId);
+  if (!catalog?.enabled) throw new QuickVideoError("IMAGE_MODEL_INVALID", "\u6240\u9009\u56FE\u7247\u6A21\u578B\u6240\u5C5E\u6E20\u9053\u672A\u542F\u7528\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6216\u8054\u7CFB\u7BA1\u7406\u5458\u542F\u7528");
+  const hit = pickEnabledModel(catalog.models, catalog.enabledNames, modelName, "image");
+  if (!hit) {
+    throw new QuickVideoError("IMAGE_MODEL_INVALID", "\u6240\u9009\u56FE\u7247\u6A21\u578B\u4E0D\u53EF\u7528\uFF08\u672A\u5728\u6E20\u9053\u76EE\u5F55\u4E2D\u6216\u672A\u542F\u7528\uFF09\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
+  }
+  return { vendorId, modelName };
+}
+async function validateVideoModelKey(modelKey) {
+  const split = splitModelKey(modelKey);
+  if (!split) throw new QuickVideoError("VIDEO_MODEL_INVALID", "\u89C6\u9891\u6A21\u578B\u683C\u5F0F\u4E0D\u6B63\u786E\uFF0C\u8BF7\u91CD\u65B0\u5728\u6A21\u578B\u9009\u62E9\u6846\u4E2D\u9009\u62E9");
+  const { vendorId, modelName } = split;
+  const catalog = await getVendorModelCatalog(vendorId);
+  if (!catalog?.enabled) throw new QuickVideoError("VIDEO_MODEL_INVALID", "\u6240\u9009\u89C6\u9891\u6A21\u578B\u6240\u5C5E\u6E20\u9053\u672A\u542F\u7528\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6216\u8054\u7CFB\u7BA1\u7406\u5458\u542F\u7528");
+  const hit = pickEnabledModel(catalog.models, catalog.enabledNames, modelName, "video");
+  if (!hit) {
+    throw new QuickVideoError("VIDEO_MODEL_INVALID", "\u6240\u9009\u89C6\u9891\u6A21\u578B\u4E0D\u53EF\u7528\uFF08\u672A\u5728\u6E20\u9053\u76EE\u5F55\u4E2D\u6216\u672A\u542F\u7528\uFF09\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
+  }
+  return { vendorId, modelName };
+}
+async function createChatMedia(input) {
+  const idempotencyKey = input.idempotencyKey.slice(0, 191);
+  return db.transaction(async (trx) => {
+    const existing = await trx("o_quickVideoMedia").where({ projectId: input.projectId, idempotencyKey }).first();
+    if (existing) return { media: existing, idempotentHit: true };
+    const now2 = Date.now();
+    let imageId = null;
+    let videoId = null;
+    if (input.kind === "image") {
+      const [id] = await trx("o_image").insert({ state: LEGACY_STATE_GENERATING, model: input.model, type: CHAT_MEDIA_ASSET_TYPE });
+      imageId = id;
+    } else {
+      const [id] = await trx("o_video").insert({ state: LEGACY_STATE_GENERATING, time: now2, projectId: input.projectId });
+      videoId = id;
+    }
+    const [assetId] = await trx("o_assets").insert({
+      name: input.prompt.slice(0, 60) || "\u804A\u5929\u751F\u6210\u5A92\u4F53",
+      prompt: input.prompt,
+      type: CHAT_MEDIA_ASSET_TYPE,
+      describe: input.prompt,
+      projectId: input.projectId,
+      imageId: imageId ?? void 0,
+      sourceType: input.source,
+      promptState: LEGACY_STATE_DONE
+    });
+    if (input.kind === "image") await trx("o_image").where("id", imageId).update({ assetsId: assetId });
+    const [mediaId] = await trx("o_quickVideoMedia").insert({
+      projectId: input.projectId,
+      sessionId: input.sessionId,
+      messageId: input.messageId,
+      kind: input.kind,
+      assetId,
+      imageId,
+      videoId,
+      model: input.model,
+      prompt: input.prompt,
+      source: input.source,
+      state: "generating",
+      idempotencyKey,
+      createTime: now2,
+      updateTime: now2
+    });
+    const media = await trx("o_quickVideoMedia").where("id", mediaId).first();
+    return { media, idempotentHit: false };
+  });
+}
+async function markChatMediaDone(mediaId, filePath) {
+  const media = await utils_default2.db("o_quickVideoMedia").where("id", mediaId).first();
+  if (!media) return;
+  await db.transaction(async (trx) => {
+    if (media.kind === "image" && media.imageId) {
+      await trx("o_image").where("id", media.imageId).update({ state: LEGACY_STATE_DONE, filePath });
+    } else if (media.kind === "video" && media.videoId) {
+      await trx("o_video").where("id", media.videoId).update({ state: LEGACY_STATE_DONE, filePath });
+    }
+    await trx("o_quickVideoMedia").where("id", mediaId).update({ state: "done", errorReason: null, updateTime: Date.now() });
+  });
+}
+async function markChatMediaFailed(mediaId, reason) {
+  const media = await utils_default2.db("o_quickVideoMedia").where("id", mediaId).first();
+  if (!media) return;
+  await db.transaction(async (trx) => {
+    if (media.kind === "image" && media.imageId) {
+      await trx("o_image").where("id", media.imageId).update({ state: LEGACY_STATE_FAILED, errorReason: reason });
+    } else if (media.kind === "video" && media.videoId) {
+      await trx("o_video").where("id", media.videoId).update({ state: LEGACY_STATE_FAILED, errorReason: reason });
+    }
+    await trx("o_quickVideoMedia").where("id", mediaId).update({ state: "failed", errorReason: reason, updateTime: Date.now() });
+  });
+}
+async function getImageFilePath(imageId) {
+  const image = await utils_default2.db("o_image").where("id", imageId).select("filePath").first();
+  return image?.filePath ?? null;
+}
+async function resolveMediaUrl(row) {
+  try {
+    if (row.kind === "image" && row.imageId) {
+      const filePath = await getImageFilePath(row.imageId);
+      return filePath ? await utils_default2.oss.getFileUrl(filePath) : null;
+    }
+    if (row.kind === "video" && row.videoId) {
+      const video = await utils_default2.db("o_video").where("id", row.videoId).select("filePath").first();
+      if (!video?.filePath) return null;
+      return await utils_default2.oss.getFileUrl(video.filePath);
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+async function toMediaRef(row) {
+  const url4 = row.state === "done" ? await resolveMediaUrl(row) : null;
+  return {
+    mediaId: row.id,
+    projectId: row.projectId,
+    kind: row.kind,
+    assetId: row.assetId,
+    imageId: row.imageId,
+    videoId: row.videoId,
+    state: row.state,
+    model: row.model,
+    promptSummary: row.prompt ? row.prompt.slice(0, 200) : null,
+    source: row.source,
+    errorReason: row.errorReason,
+    url: url4,
+    createTime: row.createTime
+  };
+}
+async function getAssetBoard(projectId, opts = {}) {
+  const page = Math.max(1, opts.page ?? 1);
+  const pageSize = Math.min(60, Math.max(1, opts.pageSize ?? 24));
+  const query = utils_default2.db("o_quickVideoMedia").where({ projectId }).whereNull("deletedAt");
+  if (opts.kind && opts.kind !== "all") query.andWhere("kind", opts.kind);
+  if (opts.state && opts.state !== "all") query.andWhere("state", opts.state);
+  if (opts.sessionId != null) query.andWhere("sessionId", opts.sessionId);
+  const countRow = await query.clone().count({ c: "*" }).first();
+  const total = Number(countRow?.c ?? 0);
+  const rows = await query.clone().orderBy("createTime", "desc").offset((page - 1) * pageSize).limit(pageSize);
+  const items = await Promise.all(rows.map(toMediaRef));
+  return { items, total, page, pageSize };
+}
+async function resolveReadyImageMedia(projectId, mediaId, purpose) {
+  const row = await utils_default2.db("o_quickVideoMedia").where({ id: mediaId, projectId }).first();
+  if (!row || row.deletedAt) throw new QuickVideoError("MEDIA_NOT_FOUND", "\u672A\u627E\u5230\u8BE5\u5A92\u4F53\uFF0C\u6216\u4E0D\u5C5E\u4E8E\u5F53\u524D\u9879\u76EE");
+  if (row.kind !== "image") throw new QuickVideoError("MEDIA_NOT_IMAGE", `\u53EA\u80FD\u4F7F\u7528\u56FE\u7247\u4F5C\u4E3A${purpose}`);
+  if (row.state !== "done" || !row.imageId || !row.assetId) {
+    throw new QuickVideoError("MEDIA_NOT_READY", `\u8BE5\u56FE\u7247\u5C1A\u672A\u751F\u6210\u5B8C\u6210\u6216\u5DF2\u5931\u8D25\uFF0C\u65E0\u6CD5\u8BBE\u4E3A${purpose}`);
+  }
+  const filePath = await getImageFilePath(row.imageId);
+  if (!filePath) throw new QuickVideoError("MEDIA_FILE_MISSING", `\u8BE5\u56FE\u7247\u6587\u4EF6\u5DF2\u5931\u6548\uFF0C\u65E0\u6CD5\u8BBE\u4E3A${purpose}`);
+  return { assetId: row.assetId, imageId: row.imageId, filePath };
+}
+function resolveMediaForFirstFrame(projectId, mediaId) {
+  return resolveReadyImageMedia(projectId, mediaId, "\u9996\u5E27");
+}
+async function resolveMediaImageBase64(projectId, mediaId) {
+  const { filePath } = await resolveReadyImageMedia(projectId, mediaId, "\u53C2\u8003\u56FE");
+  return utils_default2.oss.getImageBase64(filePath);
+}
+var CHAT_MEDIA_ASSET_TYPE, LEGACY_STATE_GENERATING, LEGACY_STATE_DONE, LEGACY_STATE_FAILED;
+var init_media = __esm({
+  "src/lib/quickVideo/media.ts"() {
+    "use strict";
+    init_db();
+    init_utils3();
+    init_state();
+    init_modelValidation();
+    CHAT_MEDIA_ASSET_TYPE = "chat_media";
+    LEGACY_STATE_GENERATING = "\u751F\u6210\u4E2D";
+    LEGACY_STATE_DONE = "\u5DF2\u5B8C\u6210";
+    LEGACY_STATE_FAILED = "\u751F\u6210\u5931\u8D25";
+  }
+});
+
 // src/lib/quickVideo/generate.ts
 function isGenerationActive(projectId) {
   if (runningGenerations.has(projectId)) return true;
@@ -226184,17 +226650,31 @@ async function resolveMaterialsSnapshot(projectId, opts = {}) {
 async function buildSnapshot(projectId, state) {
   if (!state.storyboard) throw new QuickVideoError("NO_STORYBOARD", "\u6682\u65E0\u5206\u955C\uFF0C\u65E0\u6CD5\u89E3\u6790\u7D20\u6750", state.version);
   const materials = await buildMaterials(projectId, state.storyboard.shots);
-  const snapshotShots = state.storyboard.shots.map((s) => ({
-    id: s.id,
-    index: s.index,
-    duration: s.duration,
-    description: s.description,
-    dialogue: s.dialogue,
-    camera: s.camera,
-    assetRefs: s.assetRefs
-  }));
+  const snapshotShots = await Promise.all(
+    state.storyboard.shots.map(async (s) => ({
+      id: s.id,
+      index: s.index,
+      duration: s.duration,
+      description: s.description,
+      dialogue: s.dialogue,
+      camera: s.camera,
+      assetRefs: s.assetRefs,
+      firstFrame: await resolveSnapshotFirstFrame(s)
+    }))
+  );
   const estimate = computeGenerationEstimate(snapshotShots, materials);
   return { materials, estimate, snapshotShots };
+}
+async function resolveSnapshotFirstFrame(shot) {
+  if (!shot.firstFrame) return null;
+  const image = await utils_default2.db("o_image").where("id", shot.firstFrame.imageId).select("filePath").first();
+  if (!image?.filePath) {
+    throw new QuickVideoError(
+      "FIRST_FRAME_MISSING",
+      `\u955C\u5934 ${shot.id} \u7ED1\u5B9A\u7684\u9996\u5E27\u5DF2\u5931\u6548\uFF0C\u8BF7\u5728\u5206\u955C\u8349\u7A3F\u9636\u6BB5\u91CD\u65B0\u7ED1\u5B9A\u6216\u89E3\u9664\u540E\u518D\u786E\u8BA4`
+    );
+  }
+  return { ...shot.firstFrame, filePath: image.filePath };
 }
 function applySnapshotToState(s, storyboardVersion, snapshotShots, materials, estimate) {
   s.generation.snapshot = {
@@ -226232,7 +226712,7 @@ async function buildMaterials(projectId, shots) {
   return materials;
 }
 async function matchProjectAsset(projectId, ref) {
-  const rows = await utils_default2.db("o_assets").leftJoin("o_image", "o_assets.imageId", "o_image.id").where("o_assets.projectId", projectId).andWhere("o_assets.name", ref.name).select("o_assets.id as assetId", "o_assets.type as assetType", "o_image.id as imageId", "o_image.filePath as filePath");
+  const rows = await utils_default2.db("o_assets").leftJoin("o_image", "o_assets.imageId", "o_image.id").where("o_assets.projectId", projectId).andWhere("o_assets.name", ref.name).andWhereNot("o_assets.type", CHAT_MEDIA_ASSET_TYPE).select("o_assets.id as assetId", "o_assets.type as assetType", "o_image.id as imageId", "o_image.filePath as filePath");
   const hit = rows.find((r) => r.assetType === ref.type && r.filePath) ?? rows.find((r) => r.filePath);
   if (!hit?.filePath) return null;
   return { assetId: hit.assetId, imageId: hit.imageId, filePath: hit.filePath };
@@ -226253,10 +226733,11 @@ async function findFirstAvailableModel(type) {
   }
   return "";
 }
-async function resolveGenerationModels(projectId) {
+async function resolveGenerationModels(projectId, sessionId) {
   const project = await utils_default2.db("o_project").where("id", projectId).first();
-  let imageModel = String(project?.imageModel ?? "");
-  let videoModel = String(project?.videoModel ?? "");
+  const session = sessionId ? await utils_default2.db("o_quickVideoSession").where({ id: sessionId, projectId }).first() : null;
+  let imageModel = String(session?.imageModel || project?.imageModel || "");
+  let videoModel = String(session?.videoModel || project?.videoModel || "");
   if (!imageModel) imageModel = await findFirstAvailableModel("image");
   if (!videoModel) videoModel = await findFirstAvailableModel("video");
   if (!imageModel || !videoModel) {
@@ -226264,7 +226745,7 @@ async function resolveGenerationModels(projectId) {
   }
   return { imageModel, videoModel };
 }
-async function startQuickVideoGeneration(projectId, userId2) {
+async function startQuickVideoGeneration(projectId, userId2, sessionId) {
   const active = runningGenerations.get(projectId);
   if (active) return { started: false, alreadyRunning: true, runId: active.runId };
   const state = await loadQuickVideoState(projectId);
@@ -226278,7 +226759,7 @@ async function startQuickVideoGeneration(projectId, userId2) {
   const runId = `run-${utils_default2.uuid().slice(0, 8)}`;
   runningGenerations.set(projectId, { runId });
   try {
-    await mutateQuickVideoState(projectId, {}, (s) => {
+    await mutateQuickVideoState(projectId, { sessionId: sessionId ?? void 0 }, (s) => {
       s.generation.runId = runId;
       s.generation.startedAt = Date.now();
       s.generation.finishedAt = null;
@@ -226286,14 +226767,14 @@ async function startQuickVideoGeneration(projectId, userId2) {
   } catch (err) {
     console.error(`[quickVideo] \u5199\u5165\u8FD0\u884C ID \u5931\u8D25:`, utils_default2.error(err).message);
   }
-  runGeneration(projectId, userId2, runId).catch((err) => console.error(`[quickVideo] \u751F\u6210\u8FD0\u884C ${runId} \u5F02\u5E38\u7EC8\u6B62:`, utils_default2.error(err).message)).finally(() => {
+  runGeneration(projectId, userId2, runId, sessionId).catch((err) => console.error(`[quickVideo] \u751F\u6210\u8FD0\u884C ${runId} \u5F02\u5E38\u7EC8\u6B62:`, utils_default2.error(err).message)).finally(() => {
     if (runningGenerations.get(projectId)?.runId === runId) runningGenerations.delete(projectId);
     maybeFinishGeneration(projectId).catch(() => {
     });
   });
   return { started: true, alreadyRunning: false, runId };
 }
-async function retryQuickVideoShots(projectId, userId2, shotIds) {
+async function retryQuickVideoShots(projectId, userId2, shotIds, sessionId) {
   const state = await loadQuickVideoState(projectId);
   if (!state) throw new QuickVideoError("STATE_NOT_FOUND", "\u672A\u627E\u5230 quickVideoAgent \u72B6\u6001");
   if (state.stage !== "generating") {
@@ -226316,7 +226797,7 @@ async function retryQuickVideoShots(projectId, userId2, shotIds) {
     }
   }
   const runId = `retry-${utils_default2.uuid().slice(0, 8)}`;
-  const { state: next } = await mutateQuickVideoState(projectId, {}, (s) => {
+  const { state: next } = await mutateQuickVideoState(projectId, { sessionId: sessionId ?? void 0 }, (s) => {
     s.generation.runId = runId;
     for (const shotId of shotIds) {
       const shot = s.storyboard?.shots.find((x) => x.id === shotId);
@@ -226327,15 +226808,15 @@ async function retryQuickVideoShots(projectId, userId2, shotIds) {
     }
   });
   for (const shotId of shotIds) {
-    launchShotPipeline(projectId, userId2, runId, shotId);
+    launchShotPipeline(projectId, userId2, runId, shotId, sessionId);
   }
   return { state: next, retried: shotIds, runId };
 }
-function launchShotPipeline(projectId, userId2, runId, shotId) {
+function launchShotPipeline(projectId, userId2, runId, shotId, sessionId) {
   const key = `${projectId}:${shotId}`;
   if (runningShots.has(key)) return;
   runningShots.set(key, { runId });
-  runShotPipeline(projectId, userId2, shotId).catch((err) => console.error(`[quickVideo] \u955C\u5934 ${shotId} \u7BA1\u7EBF\u5F02\u5E38:`, utils_default2.error(err).message)).finally(() => {
+  runShotPipeline(projectId, userId2, shotId, void 0, sessionId).catch((err) => console.error(`[quickVideo] \u955C\u5934 ${shotId} \u7BA1\u7EBF\u5F02\u5E38:`, utils_default2.error(err).message)).finally(() => {
     runningShots.delete(key);
     maybeFinishGeneration(projectId).catch(() => {
     });
@@ -226377,7 +226858,7 @@ async function ensureGenerationRecovery(projectId) {
     console.error(`[quickVideo] \u9879\u76EE ${projectId} \u751F\u6210\u6062\u590D\u68C0\u67E5\u5931\u8D25:`, utils_default2.error(err).message);
   }
 }
-async function runGeneration(projectId, userId2, runId) {
+async function runGeneration(projectId, userId2, runId, sessionId) {
   const state = await loadQuickVideoState(projectId);
   const snapshot = state?.generation?.snapshot;
   if (!snapshot) {
@@ -226386,12 +226867,12 @@ async function runGeneration(projectId, userId2, runId) {
   }
   let models;
   try {
-    models = await resolveGenerationModels(projectId);
+    models = await resolveGenerationModels(projectId, sessionId);
   } catch (err) {
     await markShotsFailed(projectId, snapshot.shots.map((s) => s.id), utils_default2.error(err).message);
     return;
   }
-  const ctx = { projectId, userId: userId2, runId, snapshot, ...models };
+  const ctx = { projectId, userId: userId2, runId, snapshot, sessionId, ...models };
   await ensureMaterialImages(ctx);
   const shotIds = snapshot.shots.map((s) => s.id);
   for (let i = 0; i < shotIds.length; i += GENERATION_CONCURRENCY) {
@@ -226457,7 +226938,7 @@ async function ensureMaterialImages(ctx) {
     }
   }
 }
-async function runShotPipeline(projectId, userId2, shotId, presetCtx) {
+async function runShotPipeline(projectId, userId2, shotId, presetCtx, sessionId) {
   const state = await loadQuickVideoState(projectId);
   const snapshot = state?.generation?.snapshot;
   const liveShot = state?.storyboard?.shots.find((s) => s.id === shotId);
@@ -226465,8 +226946,8 @@ async function runShotPipeline(projectId, userId2, shotId, presetCtx) {
   const shotContent = snapshot.shots.find((s) => s.id === shotId);
   if (!shotContent) return;
   const ctx = presetCtx ?? await (async () => {
-    const models = await resolveGenerationModels(projectId);
-    return { projectId, userId: userId2, runId: `retry-${utils_default2.uuid().slice(0, 8)}`, snapshot, ...models };
+    const models = await resolveGenerationModels(projectId, sessionId);
+    return { projectId, userId: userId2, runId: `retry-${utils_default2.uuid().slice(0, 8)}`, snapshot, sessionId, ...models };
   })();
   let imageRef = liveShot.imageRef;
   if (liveShot.imageState !== "done" || !imageRef) {
@@ -226508,7 +226989,9 @@ async function runShotPipeline(projectId, userId2, shotId, presetCtx) {
   if (liveAfterImage?.videoState === "done" && liveAfterImage.videoRef) return;
   await updateShotState(projectId, shotId, { videoState: "generating", errorReason: null });
   try {
-    const imageBase64 = await utils_default2.oss.getImageBase64(imageRef);
+    const baseImagePath = shotContent.firstFrame?.filePath ?? imageRef;
+    await assertVideoSupportsSingleImage(ctx.videoModel, !!shotContent.firstFrame);
+    const imageBase64 = await utils_default2.oss.getImageBase64(baseImagePath);
     const videoAi = utils_default2.Ai.Video(ctx.videoModel, ctx.userId);
     await withTimeout(
       videoAi.run(
@@ -226540,6 +227023,20 @@ async function runShotPipeline(projectId, userId2, shotId, presetCtx) {
     await updateShotState(projectId, shotId, { videoState: "failed", errorReason: reason });
     recordEvent("generationShotFailed");
     qvLog("shot_failed", { projectId, shotId, stage: "video", reason });
+  }
+}
+async function assertVideoSupportsSingleImage(videoModelKey, hasBoundFirstFrame) {
+  const sep2 = videoModelKey.indexOf(":");
+  if (sep2 <= 0) return;
+  const vendorId = videoModelKey.slice(0, sep2);
+  const modelName = videoModelKey.slice(sep2 + 1);
+  const catalog = await getVendorModelCatalog(vendorId);
+  if (!catalog) return;
+  const hit = catalog.models.find((m) => m?.modelName === modelName && m?.type === "video");
+  const modes = Array.isArray(hit?.mode) ? hit.mode : null;
+  if (modes && !modes.includes("singleImage")) {
+    const hint = hasBoundFirstFrame ? "\u8BF7\u66F4\u6362\u89C6\u9891\u6A21\u578B\u6216\u89E3\u9664\u8BE5\u955C\u5934\u9996\u5E27\u540E\u91CD\u8BD5" : "\u8BF7\u66F4\u6362\u89C6\u9891\u6A21\u578B\u540E\u91CD\u8BD5";
+    throw new Error(`\u6240\u9009\u89C6\u9891\u6A21\u578B\u300C${modelName}\u300D\u4E0D\u652F\u6301\u5355\u56FE/\u9996\u5E27\u8F93\u5165\uFF0C${hint}`);
   }
 }
 async function maybeFinishGeneration(projectId) {
@@ -226638,6 +227135,7 @@ var init_generate = __esm({
     init_contract();
     init_state();
     init_metrics();
+    init_media();
     runningGenerations = /* @__PURE__ */ new Map();
     runningShots = /* @__PURE__ */ new Map();
   }
@@ -226747,7 +227245,9 @@ var init_clearMemory = __esm({
 
 // src/routes/agents/getMemory.ts
 function normalizeRole(role) {
-  return role?.startsWith("assistant") ? "assistant" : "user";
+  if (role === "user") return "user";
+  if (role?.startsWith("assistant")) return "assistant";
+  return null;
 }
 var import_express2, router2, getMemory_default;
 var init_getMemory = __esm({
@@ -226758,27 +227258,83 @@ var init_getMemory = __esm({
     init_zod();
     init_responseFormat();
     init_middleware();
+    init_session();
+    init_contract();
+    init_state();
+    init_media();
     router2 = import_express2.default.Router();
     getMemory_default = router2.post(
       "/",
       validateFields({
         projectId: external_exports.number(),
-        agentType: external_exports.enum(["scriptAgent", "productionAgent"]),
-        episodesId: external_exports.number().optional()
+        agentType: external_exports.enum(["scriptAgent", "productionAgent", "quickVideoAgent"]),
+        episodesId: external_exports.number().optional(),
+        sessionId: external_exports.number().optional(),
+        limit: external_exports.number().int().min(1).max(100).optional()
       }),
       async (req, res) => {
-        const { projectId, agentType, episodesId } = req.body;
-        const isolationKey = `${projectId}:${agentType}${episodesId ? `:${episodesId}` : ""}`;
-        const rows = await utils_default2.db("memories").where({ isolationKey, type: "message" }).orderBy("createTime", "asc").select("id", "role", "name", "content", "createTime");
-        const history = rows.map((row) => ({
-          id: row.id,
-          role: normalizeRole(row.role),
-          name: row.name ?? void 0,
-          status: "complete",
-          datetime: new Date(row.createTime).toISOString(),
-          content: [{ type: "markdown", status: "complete", data: row.content }],
-          createTime: row.createTime
-        }));
+        const { projectId, agentType, episodesId, sessionId, limit } = req.body;
+        let isolationKey;
+        if (agentType === "quickVideoAgent") {
+          if (!sessionId) return res.status(200).send(error50("\u7F3A\u5C11 sessionId"));
+          try {
+            await getOwnedSession(projectId, sessionId);
+          } catch (err) {
+            if (err instanceof QuickVideoError) return res.status(200).send(error50(err.message));
+            throw err;
+          }
+          isolationKey = buildSessionIsolationKey(projectId, sessionId);
+        } else {
+          isolationKey = `${projectId}:${agentType}${episodesId ? `:${episodesId}` : ""}`;
+        }
+        const query = utils_default2.db("memories").where({ isolationKey, type: "message" }).where((builder) => builder.where("role", "user").orWhere("role", "like", "assistant%")).whereNotNull("content").whereNot("content", "").orderBy("createTime", "desc");
+        if (limit) query.limit(limit);
+        const rows = await query.select("id", "role", "name", "content", "createTime");
+        const history = rows.reverse().map((row) => {
+          const role = normalizeRole(row.role);
+          if (!role || !row.content?.trim()) return null;
+          return {
+            id: row.id,
+            role,
+            name: row.name ?? (agentType === "quickVideoAgent" && role === "assistant" ? "\u5FEB\u521B\u52A9\u624B" : void 0),
+            status: "complete",
+            datetime: new Date(row.createTime).toISOString(),
+            content: [{ type: "markdown", status: "complete", data: row.content }],
+            createTime: row.createTime
+          };
+        }).filter((message) => message !== null);
+        if (agentType === "quickVideoAgent") {
+          const board = await getAssetBoard(projectId, { sessionId, pageSize: 60 });
+          const mediaMessages = board.items.filter((ref) => ref.source === "chat").map((ref) => ({
+            id: `media-${ref.mediaId}`,
+            role: "assistant",
+            name: "\u5FEB\u521B\u52A9\u624B",
+            status: ref.state === "failed" ? "error" : "complete",
+            datetime: new Date(ref.createTime).toISOString(),
+            content: [
+              {
+                type: ref.kind,
+                status: ref.state === "failed" ? "error" : "complete",
+                data: { name: ref.promptSummary ?? void 0, url: ref.url ?? void 0 },
+                ext: {
+                  mediaId: ref.mediaId,
+                  assetId: ref.assetId,
+                  imageId: ref.imageId,
+                  videoId: ref.videoId,
+                  kind: ref.kind,
+                  model: ref.model,
+                  promptSummary: ref.promptSummary,
+                  state: ref.state,
+                  source: ref.source,
+                  errorReason: ref.errorReason
+                }
+              }
+            ],
+            createTime: ref.createTime
+          }));
+          const merged = [...history, ...mediaMessages].sort((a, b) => a.createTime - b.createTime);
+          return res.status(200).send(success3(merged));
+        }
         res.status(200).send(success3(history));
       }
     );
@@ -227356,18 +227912,163 @@ var init_getMaterialData = __esm({
   }
 });
 
+// src/routes/assets/importFromLibrary.ts
+var import_express16, router16, compatible, importFromLibrary_default;
+var init_importFromLibrary = __esm({
+  "src/routes/assets/importFromLibrary.ts"() {
+    "use strict";
+    import_express16 = __toESM(require_express2());
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    init_zod();
+    init_dist_node();
+    router16 = import_express16.default.Router();
+    compatible = { role: ["role", "image"], tool: ["tool", "image"], scene: ["scene", "image"], audio: ["audio"], video: ["video", "clip"], clip: ["video", "clip"] };
+    importFromLibrary_default = router16.post(
+      "/",
+      validateFields({ projectId: external_exports.number().int().positive(), libraryAssetIds: external_exports.array(external_exports.number().int().positive()).min(1).max(100), type: external_exports.string() }),
+      async (req, res) => {
+        const { projectId, libraryAssetIds, type } = req.body;
+        const ownerId = Number(req.user?.id ?? 1);
+        if (!compatible[type]?.length) return res.status(400).send({ message: "\u4E0D\u652F\u6301\u7684\u8D44\u4EA7\u7C7B\u578B" });
+        const project = await utils_default2.db("o_project").where({ id: projectId, userId: ownerId }).first();
+        if (!project) return res.status(404).send({ message: "\u9879\u76EE\u4E0D\u5B58\u5728\u6216\u65E0\u6743\u8BBF\u95EE" });
+        const sources = await utils_default2.db("o_library_asset").whereIn("id", libraryAssetIds).where({ createdBy: ownerId }).whereNull("deletedAt");
+        const byId = new Map(sources.map((source) => [source.id, source]));
+        const results = [];
+        for (const sourceId of libraryAssetIds) {
+          const source = byId.get(sourceId);
+          if (!source) {
+            results.push({ libraryAssetId: sourceId, success: false, message: "\u6E90\u8D44\u4EA7\u4E0D\u5B58\u5728" });
+            continue;
+          }
+          if (!compatible[type].includes(source.type)) {
+            results.push({ libraryAssetId: sourceId, success: false, message: "\u8D44\u4EA7\u7C7B\u578B\u4E0D\u5339\u914D" });
+            continue;
+          }
+          let filePath = `/${projectId}/assets/${v4_default()}${source.filePath.slice(source.filePath.lastIndexOf("."))}`;
+          try {
+            const data = await utils_default2.oss.getFile(source.filePath);
+            await utils_default2.oss.writeFile(filePath, data);
+            const [assetId] = await utils_default2.db("o_assets").insert({ name: source.name, type, projectId, startTime: Date.now(), sourceType: "library", sourceAssetId: source.id });
+            const [imageId] = await utils_default2.db("o_image").insert({ filePath, type, assetsId: assetId, state: "\u5DF2\u5B8C\u6210" });
+            await utils_default2.db("o_assets").where("id", assetId).update({ imageId });
+            results.push({ libraryAssetId: source.id, assetId, success: true });
+          } catch (error70) {
+            try {
+              await utils_default2.oss.deleteFile(filePath);
+            } catch {
+            }
+            results.push({ libraryAssetId: source.id, success: false, message: error70.message });
+          }
+        }
+        res.status(200).send(success3({ results }));
+      }
+    );
+  }
+});
+
+// src/routes/assets/importFromProject.ts
+var import_express17, router17, importFromProject_default;
+var init_importFromProject = __esm({
+  "src/routes/assets/importFromProject.ts"() {
+    "use strict";
+    import_express17 = __toESM(require_express2());
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    init_zod();
+    init_dist_node();
+    router17 = import_express17.default.Router();
+    importFromProject_default = router17.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number().int().positive(),
+        sourceProjectId: external_exports.number().int().positive(),
+        assetIds: external_exports.array(external_exports.number().int().positive()).min(1).max(100)
+      }),
+      async (req, res) => {
+        const { projectId, sourceProjectId, assetIds } = req.body;
+        const ownerId = Number(req.user?.id ?? 1);
+        if (projectId === sourceProjectId) return res.status(400).send({ message: "\u76EE\u6807\u9879\u76EE\u4E0E\u6E90\u9879\u76EE\u76F8\u540C" });
+        const target = await utils_default2.db("o_project").where({ id: projectId, userId: ownerId }).first();
+        if (!target) return res.status(404).send({ message: "\u9879\u76EE\u4E0D\u5B58\u5728\u6216\u65E0\u6743\u8BBF\u95EE" });
+        const source = await utils_default2.db("o_project").where({ id: sourceProjectId, userId: ownerId }).first();
+        if (!source) return res.status(404).send({ message: "\u6E90\u9879\u76EE\u4E0D\u5B58\u5728\u6216\u65E0\u6743\u8BBF\u95EE" });
+        const sources = await utils_default2.db("o_assets").whereIn("id", assetIds).andWhere("projectId", sourceProjectId);
+        const byId = new Map(sources.map((item) => [item.id, item]));
+        const results = [];
+        const copyAsset = async (sourceAsset, targetParentId) => {
+          const image = await utils_default2.db("o_image").where({ assetsId: sourceAsset.id }).orderBy("id", "asc");
+          const picked = image.find((item) => item.id === sourceAsset.imageId) ?? image[0];
+          const srcPath = picked?.filePath;
+          if (!srcPath) throw new Error("\u6E90\u8D44\u4EA7\u6CA1\u6709\u6587\u4EF6");
+          const ext = srcPath.slice(srcPath.lastIndexOf("."));
+          const filePath = `/${projectId}/assets/${v4_default()}${ext}`;
+          const data = await utils_default2.oss.getFile(srcPath);
+          await utils_default2.oss.writeFile(filePath, data);
+          try {
+            const [newId] = await utils_default2.db("o_assets").insert({
+              name: sourceAsset.name,
+              type: sourceAsset.type,
+              describe: sourceAsset.describe,
+              prompt: sourceAsset.prompt,
+              projectId,
+              assetsId: targetParentId,
+              startTime: Date.now(),
+              sourceType: "project",
+              sourceAssetId: sourceAsset.id
+            });
+            const [imageId] = await utils_default2.db("o_image").insert({ filePath, type: sourceAsset.type, assetsId: newId, state: "\u5DF2\u5B8C\u6210" });
+            await utils_default2.db("o_assets").where("id", newId).update({ imageId });
+            return { id: newId, filePath };
+          } catch (error70) {
+            try {
+              await utils_default2.oss.deleteFile(filePath);
+            } catch {
+            }
+            throw error70;
+          }
+        };
+        for (const assetId of assetIds) {
+          const sourceAsset = byId.get(assetId);
+          if (!sourceAsset) {
+            results.push({ assetId, success: false, message: "\u6E90\u8D44\u4EA7\u4E0D\u5B58\u5728" });
+            continue;
+          }
+          try {
+            const copied = await copyAsset(sourceAsset, null);
+            const children2 = await utils_default2.db("o_assets").where({ assetsId: sourceAsset.id, projectId: sourceProjectId });
+            for (const child of children2) {
+              try {
+                await copyAsset(child, copied.id);
+              } catch {
+              }
+            }
+            results.push({ assetId, newAssetId: copied.id, success: true });
+          } catch (error70) {
+            results.push({ assetId, success: false, message: error70.message });
+          }
+        }
+        res.status(200).send(success3({ results }));
+      }
+    );
+  }
+});
+
 // src/routes/assets/pollingImageAssets.ts
-var import_express16, router16, pollingImageAssets_default;
+var import_express18, router18, pollingImageAssets_default;
 var init_pollingImageAssets = __esm({
   "src/routes/assets/pollingImageAssets.ts"() {
     "use strict";
-    import_express16 = __toESM(require_express2());
+    import_express18 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router16 = import_express16.default.Router();
-    pollingImageAssets_default = router16.post(
+    router18 = import_express18.default.Router();
+    pollingImageAssets_default = router18.post(
       "/",
       validateFields({
         ids: external_exports.array(external_exports.number())
@@ -227388,17 +228089,17 @@ var init_pollingImageAssets = __esm({
 });
 
 // src/routes/assets/pollingPromptAssets.ts
-var import_express17, router17, pollingPromptAssets_default;
+var import_express19, router19, pollingPromptAssets_default;
 var init_pollingPromptAssets = __esm({
   "src/routes/assets/pollingPromptAssets.ts"() {
     "use strict";
-    import_express17 = __toESM(require_express2());
+    import_express19 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router17 = import_express17.default.Router();
-    pollingPromptAssets_default = router17.post(
+    router19 = import_express19.default.Router();
+    pollingPromptAssets_default = router19.post(
       "/",
       validateFields({
         ids: external_exports.array(external_exports.number())
@@ -227413,19 +228114,19 @@ var init_pollingPromptAssets = __esm({
 });
 
 // src/routes/assets/saveAssets.ts
-var import_express18, router18, saveAssets_default;
+var import_express20, router20, saveAssets_default;
 var init_saveAssets = __esm({
   "src/routes/assets/saveAssets.ts"() {
     "use strict";
-    import_express18 = __toESM(require_express2());
+    import_express20 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_dist_node();
     init_responseFormat();
     init_middleware();
     init_binary();
-    router18 = import_express18.default.Router();
-    saveAssets_default = router18.post(
+    router20 = import_express20.default.Router();
+    saveAssets_default = router20.post(
       "/",
       validateFields({
         id: external_exports.number(),
@@ -227464,17 +228165,17 @@ var init_saveAssets = __esm({
 });
 
 // src/routes/assets/updateAssets.ts
-var import_express19, router19, updateAssets_default;
+var import_express21, router21, updateAssets_default;
 var init_updateAssets = __esm({
   "src/routes/assets/updateAssets.ts"() {
     "use strict";
-    import_express19 = __toESM(require_express2());
+    import_express21 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router19 = import_express19.default.Router();
-    updateAssets_default = router19.post(
+    router21 = import_express21.default.Router();
+    updateAssets_default = router21.post(
       "/",
       validateFields({
         id: external_exports.number(),
@@ -227498,18 +228199,18 @@ var init_updateAssets = __esm({
 });
 
 // src/routes/assets/updateAudioAssets.ts
-var import_express20, router20, updateAudioAssets_default;
+var import_express22, router22, updateAudioAssets_default;
 var init_updateAudioAssets = __esm({
   "src/routes/assets/updateAudioAssets.ts"() {
     "use strict";
-    import_express20 = __toESM(require_express2());
+    import_express22 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
     init_binary();
-    router20 = import_express20.default.Router();
-    updateAudioAssets_default = router20.post(
+    router22 = import_express22.default.Router();
+    updateAudioAssets_default = router22.post(
       "/",
       validateFields({
         id: external_exports.number(),
@@ -227599,19 +228300,19 @@ var init_updateAudioAssets = __esm({
 });
 
 // src/routes/assets/uploadClip.ts
-var import_express21, router21, uploadClip_default;
+var import_express23, router23, uploadClip_default;
 var init_uploadClip = __esm({
   "src/routes/assets/uploadClip.ts"() {
     "use strict";
-    import_express21 = __toESM(require_express2());
+    import_express23 = __toESM(require_express2());
     init_utils3();
     init_responseFormat();
     init_middleware();
     init_zod();
     init_dist_node();
     init_binary();
-    router21 = import_express21.default.Router();
-    uploadClip_default = router21.post(
+    router23 = import_express23.default.Router();
+    uploadClip_default = router23.post(
       "/",
       validateFields({
         projectId: external_exports.number(),
@@ -227641,356 +228342,6 @@ var init_uploadClip = __esm({
           imageId
         });
         res.status(200).send(success3("\u4E0A\u4F20\u6210\u529F"));
-      }
-    );
-  }
-});
-
-// src/routes/assets/importFromLibrary.ts
-var import_express22, router22, compatible, importFromLibrary_default;
-var init_importFromLibrary = __esm({
-  "src/routes/assets/importFromLibrary.ts"() {
-    "use strict";
-    import_express22 = __toESM(require_express2());
-    init_utils3();
-    init_responseFormat();
-    init_middleware();
-    init_zod();
-    init_dist_node();
-    router22 = import_express22.default.Router();
-    compatible = { role: ["role", "image"], tool: ["tool", "image"], scene: ["scene", "image"], audio: ["audio"], video: ["video", "clip"], clip: ["video", "clip"] };
-    importFromLibrary_default = router22.post(
-      "/",
-      validateFields({ projectId: external_exports.number().int().positive(), libraryAssetIds: external_exports.array(external_exports.number().int().positive()).min(1).max(100), type: external_exports.string() }),
-      async (req, res) => {
-        const { projectId, libraryAssetIds, type } = req.body;
-        const ownerId = Number(req.user?.id ?? 1);
-        if (!compatible[type]?.length) return res.status(400).send({ message: "\u4E0D\u652F\u6301\u7684\u8D44\u4EA7\u7C7B\u578B" });
-        const project = await utils_default2.db("o_project").where({ id: projectId, userId: ownerId }).first();
-        if (!project) return res.status(404).send({ message: "\u9879\u76EE\u4E0D\u5B58\u5728\u6216\u65E0\u6743\u8BBF\u95EE" });
-        const sources = await utils_default2.db("o_library_asset").whereIn("id", libraryAssetIds).where({ createdBy: ownerId }).whereNull("deletedAt");
-        const byId = new Map(sources.map((source) => [source.id, source]));
-        const results = [];
-        for (const sourceId of libraryAssetIds) {
-          const source = byId.get(sourceId);
-          if (!source) {
-            results.push({ libraryAssetId: sourceId, success: false, message: "\u6E90\u8D44\u4EA7\u4E0D\u5B58\u5728" });
-            continue;
-          }
-          if (!compatible[type].includes(source.type)) {
-            results.push({ libraryAssetId: sourceId, success: false, message: "\u8D44\u4EA7\u7C7B\u578B\u4E0D\u5339\u914D" });
-            continue;
-          }
-          let filePath = `/${projectId}/assets/${v4_default()}${source.filePath.slice(source.filePath.lastIndexOf("."))}`;
-          try {
-            const data = await utils_default2.oss.getFile(source.filePath);
-            await utils_default2.oss.writeFile(filePath, data);
-            const [assetId] = await utils_default2.db("o_assets").insert({ name: source.name, type, projectId, startTime: Date.now(), sourceType: "library", sourceAssetId: source.id });
-            const [imageId] = await utils_default2.db("o_image").insert({ filePath, type, assetsId: assetId, state: "\u5DF2\u5B8C\u6210" });
-            await utils_default2.db("o_assets").where("id", assetId).update({ imageId });
-            results.push({ libraryAssetId: source.id, assetId, success: true });
-          } catch (error69) {
-            try {
-              await utils_default2.oss.deleteFile(filePath);
-            } catch {
-            }
-            results.push({ libraryAssetId: source.id, success: false, message: error69.message });
-          }
-        }
-        res.status(200).send(success3({ results }));
-      }
-    );
-  }
-});
-
-// src/routes/library/folders/index.ts
-var import_express23, router23, table, folders_default;
-var init_folders = __esm({
-  "src/routes/library/folders/index.ts"() {
-    "use strict";
-    import_express23 = __toESM(require_express2());
-    init_utils3();
-    init_responseFormat();
-    init_middleware();
-    init_zod();
-    router23 = import_express23.default.Router();
-    table = () => utils_default2.db("o_asset_folder");
-    folders_default = router23.get("/", async (req, res) => {
-      const userId2 = Number(req.user?.id ?? 1);
-      const folders3 = await table().where({ createdBy: userId2 }).whereNull("deletedAt").orderBy("sortOrder").orderBy("name");
-      res.status(200).send(success3({ data: folders3 }));
-    }).post(
-      "/",
-      validateFields({ name: external_exports.string().trim().min(1).max(128), parentId: external_exports.number().int().positive().nullable().optional() }),
-      async (req, res) => {
-        const userId2 = Number(req.user?.id ?? 1);
-        const parentId = req.body.parentId ?? null;
-        if (parentId != null && !await table().where({ id: parentId, createdBy: userId2 }).whereNull("deletedAt").first()) {
-          return res.status(404).send({ message: "\u7236\u76EE\u5F55\u4E0D\u5B58\u5728" });
-        }
-        const duplicate = await table().where({ name: req.body.name, parentId, createdBy: userId2 }).whereNull("deletedAt").first();
-        if (duplicate) return res.status(409).send({ message: "\u540C\u7EA7\u76EE\u5F55\u540D\u79F0\u5DF2\u5B58\u5728" });
-        const [id] = await table().insert({ name: req.body.name, parentId, sortOrder: 0, createdBy: userId2, createdAt: Date.now() });
-        res.status(200).send(success3({ id }));
-      }
-    );
-  }
-});
-
-// src/routes/library/folders/[id].ts
-var import_express24, router24, table2, assets, id_default3;
-var init_id2 = __esm({
-  "src/routes/library/folders/[id].ts"() {
-    "use strict";
-    import_express24 = __toESM(require_express2());
-    init_utils3();
-    init_middleware();
-    init_zod();
-    router24 = import_express24.default.Router({ mergeParams: true });
-    table2 = () => utils_default2.db("o_asset_folder");
-    assets = () => utils_default2.db("o_library_asset");
-    id_default3 = router24.patch(
-      "/",
-      validateFields({ name: external_exports.string().trim().min(1).max(128).optional(), parentId: external_exports.number().int().positive().nullable().optional(), sortOrder: external_exports.number().int().optional() }),
-      async (req, res) => {
-        const userId2 = Number(req.user?.id ?? 1);
-        const id = Number(req.params.id);
-        const folder = await table2().where({ id, createdBy: userId2 }).whereNull("deletedAt").first();
-        if (!folder) return res.status(404).send({ message: "\u76EE\u5F55\u4E0D\u5B58\u5728" });
-        const patch = {};
-        if (req.body.name !== void 0) patch.name = req.body.name;
-        if (req.body.sortOrder !== void 0) patch.sortOrder = req.body.sortOrder;
-        if (req.body.parentId !== void 0) {
-          const parentId = req.body.parentId;
-          if (parentId === id) return res.status(400).send({ message: "\u76EE\u5F55\u4E0D\u80FD\u79FB\u52A8\u5230\u81EA\u8EAB" });
-          if (parentId != null && !await table2().where({ id: parentId, createdBy: userId2 }).whereNull("deletedAt").first()) return res.status(404).send({ message: "\u7236\u76EE\u5F55\u4E0D\u5B58\u5728" });
-          let current = parentId;
-          while (current != null) {
-            if (current === id) return res.status(400).send({ message: "\u76EE\u5F55\u4E0D\u80FD\u79FB\u52A8\u5230\u5176\u5B50\u76EE\u5F55" });
-            current = (await table2().where({ id: current, createdBy: userId2 }).whereNull("deletedAt").first())?.parentId ?? null;
-          }
-          patch.parentId = parentId;
-        }
-        if (patch.name !== void 0 || patch.parentId !== void 0) {
-          const duplicate = await table2().where({ createdBy: userId2, name: patch.name ?? folder.name, parentId: patch.parentId ?? folder.parentId }).whereNull("deletedAt").whereNot("id", id).first();
-          if (duplicate) return res.status(409).send({ message: "\u540C\u7EA7\u76EE\u5F55\u540D\u79F0\u5DF2\u5B58\u5728" });
-        }
-        await table2().where({ id }).update(patch);
-        res.status(200).send({ message: "\u76EE\u5F55\u66F4\u65B0\u6210\u529F" });
-      }
-    ).delete("/", async (req, res) => {
-      const userId2 = Number(req.user?.id ?? 1);
-      const id = Number(req.params.id);
-      const folder = await table2().where({ id, createdBy: userId2 }).whereNull("deletedAt").first();
-      if (!folder) return res.status(404).send({ message: "\u76EE\u5F55\u4E0D\u5B58\u5728" });
-      const child = await table2().where({ parentId: id, createdBy: userId2 }).whereNull("deletedAt").first();
-      const asset = await assets().where({ folderId: id, createdBy: userId2 }).whereNull("deletedAt").first();
-      if (child || asset) return res.status(409).send({ message: "\u76EE\u5F55\u4E0D\u4E3A\u7A7A\uFF0C\u8BF7\u5148\u79FB\u9664\u5176\u4E2D\u5185\u5BB9" });
-      await table2().where({ id }).update({ deletedAt: Date.now() });
-      res.status(200).send({ message: "\u76EE\u5F55\u5DF2\u5220\u9664" });
-    });
-  }
-});
-
-// src/routes/library/libraryAssets/index.ts
-function userId(req) {
-  return Number(req.user?.id ?? 1);
-}
-function parseData(data) {
-  const match = /^data:([^;]+);base64,([A-Za-z0-9+/=\s]+)$/.exec(data);
-  if (!match) throw new Error("\u6587\u4EF6\u683C\u5F0F\u4E0D\u6B63\u786E");
-  const ext = MIME_EXT[match[1].toLowerCase()];
-  if (!ext) throw new Error("\u4E0D\u652F\u6301\u7684\u6587\u4EF6\u7C7B\u578B");
-  const buffer = Buffer.from(match[2].replace(/\s/g, ""), "base64");
-  if (!buffer.length || buffer.length > MAX_FILE_SIZE) throw new Error("\u6587\u4EF6\u5927\u5C0F\u8D85\u8FC7 50MB \u9650\u5236");
-  return { buffer, mimeType: match[1].toLowerCase(), ext };
-}
-var import_express25, router25, table3, folders, MAX_FILE_SIZE, MIME_EXT, allowedTypes, libraryAssets_default;
-var init_libraryAssets = __esm({
-  "src/routes/library/libraryAssets/index.ts"() {
-    "use strict";
-    import_express25 = __toESM(require_express2());
-    init_utils3();
-    init_responseFormat();
-    init_middleware();
-    init_zod();
-    init_dist_node();
-    router25 = import_express25.default.Router();
-    table3 = () => utils_default2.db("o_library_asset");
-    folders = () => utils_default2.db("o_asset_folder");
-    MAX_FILE_SIZE = 50 * 1024 * 1024;
-    MIME_EXT = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "audio/mpeg": "mp3", "audio/wav": "wav", "audio/ogg": "ogg", "video/mp4": "mp4", "video/webm": "webm" };
-    allowedTypes = ["role", "tool", "scene", "image", "audio", "video", "clip"];
-    libraryAssets_default = router25.get("/", async (req, res) => {
-      const owner = userId(req);
-      const page = Math.max(Number(req.query.page ?? 1), 1);
-      const limit = Math.min(Math.max(Number(req.query.limit ?? 20), 1), 100);
-      let query = table3().where({ createdBy: owner }).whereNull("deletedAt");
-      if (req.query.folderId) query = query.andWhere("folderId", Number(req.query.folderId));
-      if (req.query.type) {
-        const typeList = String(req.query.type).split(",").map((item) => item.trim()).filter((item) => allowedTypes.includes(item));
-        if (typeList.length === 1) query = query.andWhere("type", typeList[0]);
-        else if (typeList.length > 1) query = query.andWhere("type", "in", typeList);
-      }
-      if (req.query.keyword) query = query.andWhere("name", "like", `%${String(req.query.keyword)}%`);
-      const [{ total }] = await query.clone().count({ total: "id" });
-      const data = await query.orderBy("createdAt", "desc").offset((page - 1) * limit).limit(limit);
-      const result = await Promise.all(data.map(async (asset) => ({ ...asset, url: await utils_default2.oss.getFileUrl(asset.filePath) })));
-      res.status(200).send(success3({ data: result, total: Number(total), page, limit }));
-    }).post(
-      "/upload",
-      validateFields({ name: external_exports.string().trim().min(1).max(255), type: external_exports.enum(["role", "tool", "scene", "image", "audio", "video", "clip"]), base64Data: external_exports.string(), folderId: external_exports.number().int().positive().nullable().optional() }),
-      async (req, res) => {
-        const owner = userId(req);
-        let parsed;
-        try {
-          parsed = parseData(req.body.base64Data);
-        } catch (error69) {
-          return res.status(400).send({ message: error69.message });
-        }
-        const folderId = req.body.folderId ?? null;
-        if (folderId != null && !await folders().where({ id: folderId, createdBy: owner }).whereNull("deletedAt").first()) return res.status(404).send({ message: "\u76EE\u5F55\u4E0D\u5B58\u5728" });
-        const [id] = await table3().insert({ name: req.body.name, type: req.body.type, folderId, filePath: `library/${owner}/${v4_default()}.${parsed.ext}`, mimeType: parsed.mimeType, size: parsed.buffer.length, metadata: JSON.stringify({ originalName: req.body.name }), createdBy: owner, createdAt: Date.now() });
-        const asset = await table3().where({ id }).first();
-        try {
-          await utils_default2.oss.writeFile(asset.filePath, parsed.buffer);
-        } catch (error69) {
-          await table3().where({ id }).delete();
-          throw error69;
-        }
-        res.status(200).send(success3({ ...asset, url: await utils_default2.oss.getFileUrl(asset.filePath) }));
-      }
-    );
-  }
-});
-
-// src/routes/library/libraryAssets/[id].ts
-var import_express26, router26, assets2, folders2, id_default4;
-var init_id3 = __esm({
-  "src/routes/library/libraryAssets/[id].ts"() {
-    "use strict";
-    import_express26 = __toESM(require_express2());
-    init_utils3();
-    init_middleware();
-    init_zod();
-    router26 = import_express26.default.Router({ mergeParams: true });
-    assets2 = () => utils_default2.db("o_library_asset");
-    folders2 = () => utils_default2.db("o_asset_folder");
-    id_default4 = router26.patch(
-      "/",
-      validateFields({ name: external_exports.string().trim().min(1).max(255).optional(), folderId: external_exports.number().int().positive().nullable().optional(), metadata: external_exports.record(external_exports.string(), external_exports.any()).optional() }),
-      async (req, res) => {
-        const owner = Number(req.user?.id ?? 1);
-        const id = Number(req.params.id);
-        const asset = await assets2().where({ id, createdBy: owner }).whereNull("deletedAt").first();
-        if (!asset) return res.status(404).send({ message: "\u8D44\u4EA7\u4E0D\u5B58\u5728" });
-        if (req.body.folderId != null && !await folders2().where({ id: req.body.folderId, createdBy: owner }).whereNull("deletedAt").first()) return res.status(404).send({ message: "\u76EE\u5F55\u4E0D\u5B58\u5728" });
-        const patch = {};
-        if (req.body.name !== void 0) patch.name = req.body.name;
-        if (req.body.folderId !== void 0) patch.folderId = req.body.folderId;
-        if (req.body.metadata !== void 0) patch.metadata = JSON.stringify(req.body.metadata);
-        await assets2().where({ id }).update(patch);
-        res.status(200).send({ message: "\u8D44\u4EA7\u66F4\u65B0\u6210\u529F" });
-      }
-    ).delete("/", async (req, res) => {
-      const owner = Number(req.user?.id ?? 1);
-      const id = Number(req.params.id);
-      const asset = await assets2().where({ id, createdBy: owner }).whereNull("deletedAt").first();
-      if (!asset) return res.status(404).send({ message: "\u8D44\u4EA7\u4E0D\u5B58\u5728" });
-      await assets2().where({ id }).update({ deletedAt: Date.now() });
-      try {
-        await utils_default2.oss.deleteFile(asset.filePath);
-      } catch (error69) {
-        return res.status(202).send({ message: "\u7D22\u5F15\u5DF2\u5220\u9664\uFF0C\u5BF9\u8C61\u5220\u9664\u5931\u8D25\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5", retryable: true });
-      }
-      res.status(200).send({ message: "\u8D44\u4EA7\u5DF2\u5220\u9664" });
-    });
-  }
-});
-
-// src/routes/assets/importFromProject.ts
-var import_express27, router27, importFromProject_default;
-var init_importFromProject = __esm({
-  "src/routes/assets/importFromProject.ts"() {
-    "use strict";
-    import_express27 = __toESM(require_express2());
-    init_utils3();
-    init_responseFormat();
-    init_middleware();
-    init_zod();
-    init_dist_node();
-    router27 = import_express27.default.Router();
-    importFromProject_default = router27.post(
-      "/",
-      validateFields({
-        projectId: external_exports.number().int().positive(),
-        sourceProjectId: external_exports.number().int().positive(),
-        assetIds: external_exports.array(external_exports.number().int().positive()).min(1).max(100)
-      }),
-      async (req, res) => {
-        const { projectId, sourceProjectId, assetIds } = req.body;
-        const ownerId = Number(req.user?.id ?? 1);
-        if (projectId === sourceProjectId) return res.status(400).send({ message: "\u76EE\u6807\u9879\u76EE\u4E0E\u6E90\u9879\u76EE\u76F8\u540C" });
-        const target = await utils_default2.db("o_project").where({ id: projectId, userId: ownerId }).first();
-        if (!target) return res.status(404).send({ message: "\u9879\u76EE\u4E0D\u5B58\u5728\u6216\u65E0\u6743\u8BBF\u95EE" });
-        const source = await utils_default2.db("o_project").where({ id: sourceProjectId, userId: ownerId }).first();
-        if (!source) return res.status(404).send({ message: "\u6E90\u9879\u76EE\u4E0D\u5B58\u5728\u6216\u65E0\u6743\u8BBF\u95EE" });
-        const sources = await utils_default2.db("o_assets").whereIn("id", assetIds).andWhere("projectId", sourceProjectId);
-        const byId = new Map(sources.map((item) => [item.id, item]));
-        const results = [];
-        const copyAsset = async (sourceAsset, targetParentId) => {
-          const image = await utils_default2.db("o_image").where({ assetsId: sourceAsset.id }).orderBy("id", "asc");
-          const picked = image.find((item) => item.id === sourceAsset.imageId) ?? image[0];
-          const srcPath = picked?.filePath;
-          if (!srcPath) throw new Error("\u6E90\u8D44\u4EA7\u6CA1\u6709\u6587\u4EF6");
-          const ext = srcPath.slice(srcPath.lastIndexOf("."));
-          const filePath = `/${projectId}/assets/${v4_default()}${ext}`;
-          const data = await utils_default2.oss.getFile(srcPath);
-          await utils_default2.oss.writeFile(filePath, data);
-          try {
-            const [newId] = await utils_default2.db("o_assets").insert({
-              name: sourceAsset.name,
-              type: sourceAsset.type,
-              describe: sourceAsset.describe,
-              prompt: sourceAsset.prompt,
-              projectId,
-              assetsId: targetParentId,
-              startTime: Date.now(),
-              sourceType: "project",
-              sourceAssetId: sourceAsset.id
-            });
-            const [imageId] = await utils_default2.db("o_image").insert({ filePath, type: sourceAsset.type, assetsId: newId, state: "\u5DF2\u5B8C\u6210" });
-            await utils_default2.db("o_assets").where("id", newId).update({ imageId });
-            return { id: newId, filePath };
-          } catch (error69) {
-            try {
-              await utils_default2.oss.deleteFile(filePath);
-            } catch {
-            }
-            throw error69;
-          }
-        };
-        for (const assetId of assetIds) {
-          const sourceAsset = byId.get(assetId);
-          if (!sourceAsset) {
-            results.push({ assetId, success: false, message: "\u6E90\u8D44\u4EA7\u4E0D\u5B58\u5728" });
-            continue;
-          }
-          try {
-            const copied = await copyAsset(sourceAsset, null);
-            const children2 = await utils_default2.db("o_assets").where({ assetsId: sourceAsset.id, projectId: sourceProjectId });
-            for (const child of children2) {
-              try {
-                await copyAsset(child, copied.id);
-              } catch {
-              }
-            }
-            results.push({ assetId, newAssetId: copied.id, success: true });
-          } catch (error69) {
-            results.push({ assetId, success: false, message: error69.message });
-          }
-        }
-        res.status(200).send(success3({ results }));
       }
     );
   }
@@ -228179,18 +228530,18 @@ function buildPrompt(cfg, artStyle, name28, prompt) {
     \u8BF7\u4E25\u683C\u6309\u7167\u7CFB\u7EDF\u89C4\u8303\u751F\u6210${cfg.promptEnd}\u3002
   `;
 }
-var import_express28, router28, assetTypeConfig, requestSchema, batchGenerateImageAssets_default;
+var import_express24, router24, assetTypeConfig, requestSchema, batchGenerateImageAssets_default;
 var init_batchGenerateImageAssets = __esm({
   "src/routes/assetsGenerate/batchGenerateImageAssets.ts"() {
     "use strict";
-    import_express28 = __toESM(require_express2());
+    import_express24 = __toESM(require_express2());
     init_p_limit();
     init_utils3();
     init_zod();
     init_dist_node();
     init_responseFormat();
     init_middleware();
-    router28 = import_express28.default.Router();
+    router24 = import_express24.default.Router();
     assetTypeConfig = {
       role: {
         label: "\u89D2\u8272",
@@ -228230,7 +228581,7 @@ var init_batchGenerateImageAssets = __esm({
         })
       )
     };
-    batchGenerateImageAssets_default = router28.post("/", validateFields(requestSchema), async (req, res) => {
+    batchGenerateImageAssets_default = router24.post("/", validateFields(requestSchema), async (req, res) => {
       const { projectId, model, resolution, aspectRatio, concurrentCount, items } = req.body;
       const project = await utils_default2.db("o_project").where("id", projectId).select("artStyle", "type", "intro").first();
       if (!project) return res.status(500).send(error50("\u9879\u76EE\u4E3A\u7A7A"));
@@ -228301,19 +228652,19 @@ var init_batchGenerateImageAssets = __esm({
 });
 
 // src/routes/assetsGenerate/batchPolishAssetsPrompt.ts
-var import_express29, router29, batchPolishAssetsPrompt_default;
+var import_express25, router25, batchPolishAssetsPrompt_default;
 var init_batchPolishAssetsPrompt = __esm({
   "src/routes/assetsGenerate/batchPolishAssetsPrompt.ts"() {
     "use strict";
-    import_express29 = __toESM(require_express2());
+    import_express25 = __toESM(require_express2());
     init_utils3();
     init_p_limit();
     init_zod();
     init_responseFormat();
     init_middleware();
     init_projectModel();
-    router29 = import_express29.default.Router();
-    batchPolishAssetsPrompt_default = router29.post(
+    router25 = import_express25.default.Router();
+    batchPolishAssetsPrompt_default = router25.post(
       "/",
       validateFields({
         items: array(
@@ -228410,17 +228761,17 @@ var init_batchPolishAssetsPrompt = __esm({
 });
 
 // src/routes/assetsGenerate/cancelGenerate.ts
-var import_express30, router30, cancelGenerate_default;
+var import_express26, router26, cancelGenerate_default;
 var init_cancelGenerate = __esm({
   "src/routes/assetsGenerate/cancelGenerate.ts"() {
     "use strict";
-    import_express30 = __toESM(require_express2());
+    import_express26 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router30 = import_express30.default.Router();
-    cancelGenerate_default = router30.post(
+    router26 = import_express26.default.Router();
+    cancelGenerate_default = router26.post(
       "/",
       validateFields({
         id: external_exports.number()
@@ -228451,17 +228802,17 @@ function buildPrompt2(cfg, artStyle, name28, prompt) {
     \u8BF7\u4E25\u683C\u6309\u7167\u7CFB\u7EDF\u89C4\u8303\u751F\u6210${cfg.promptEnd}\u3002
   `;
 }
-var import_express31, router31, assetTypeConfig2, requestSchema2, generateAssets_default;
+var import_express27, router27, assetTypeConfig2, requestSchema2, generateAssets_default;
 var init_generateAssets = __esm({
   "src/routes/assetsGenerate/generateAssets.ts"() {
     "use strict";
-    import_express31 = __toESM(require_express2());
+    import_express27 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_dist_node();
     init_responseFormat();
     init_middleware();
-    router31 = import_express31.default.Router();
+    router27 = import_express27.default.Router();
     assetTypeConfig2 = {
       role: {
         label: "\u89D2\u8272",
@@ -228498,7 +228849,7 @@ var init_generateAssets = __esm({
       base64List: external_exports.array(external_exports.string()).optional().nullable(),
       aspectRatio: external_exports.string().optional()
     };
-    generateAssets_default = router31.post("/", validateFields(requestSchema2), async (req, res) => {
+    generateAssets_default = router27.post("/", validateFields(requestSchema2), async (req, res) => {
       const { projectId, model, resolution, id, type, name: name28, prompt, base64: base644, base64List, aspectRatio } = req.body;
       const project = await utils_default2.db("o_project").where("id", projectId).select("artStyle", "type", "intro").first();
       if (!project) return res.status(500).send(success3({ message: "\u9879\u76EE\u4E3A\u7A7A" }));
@@ -228558,18 +228909,18 @@ var init_generateAssets = __esm({
 });
 
 // src/routes/assetsGenerate/polishAssetsPrompt.ts
-var import_express32, router32, polishAssetsPrompt_default;
+var import_express28, router28, polishAssetsPrompt_default;
 var init_polishAssetsPrompt = __esm({
   "src/routes/assetsGenerate/polishAssetsPrompt.ts"() {
     "use strict";
-    import_express32 = __toESM(require_express2());
+    import_express28 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
     init_projectModel();
-    router32 = import_express32.default.Router();
-    polishAssetsPrompt_default = router32.post(
+    router28 = import_express28.default.Router();
+    polishAssetsPrompt_default = router28.post(
       "/",
       validateFields({
         assetsId: number2(),
@@ -228642,17 +228993,17 @@ var init_polishAssetsPrompt = __esm({
 });
 
 // src/routes/common/getBigImage.ts
-var import_express33, router33, getBigImage_default;
+var import_express29, router29, getBigImage_default;
 var init_getBigImage = __esm({
   "src/routes/common/getBigImage.ts"() {
     "use strict";
-    import_express33 = __toESM(require_express2());
+    import_express29 = __toESM(require_express2());
     init_utils3();
     init_responseFormat();
     init_zod();
     init_middleware();
-    router33 = import_express33.default.Router();
-    getBigImage_default = router33.post(
+    router29 = import_express29.default.Router();
+    getBigImage_default = router29.post(
       "/",
       validateFields({
         url: external_exports.string()
@@ -228670,19 +229021,19 @@ var init_getBigImage = __esm({
 });
 
 // src/routes/cornerScape/batchBindAudio.ts
-var import_express34, router34, batchBindAudio_default;
+var import_express30, router30, batchBindAudio_default;
 var init_batchBindAudio = __esm({
   "src/routes/cornerScape/batchBindAudio.ts"() {
     "use strict";
-    import_express34 = __toESM(require_express2());
+    import_express30 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
     init_dist21();
     init_projectModel();
-    router34 = import_express34.default.Router();
-    batchBindAudio_default = router34.post(
+    router30 = import_express30.default.Router();
+    batchBindAudio_default = router30.post(
       "/",
       validateFields({
         projectId: external_exports.number(),
@@ -228765,17 +229116,17 @@ var init_batchBindAudio = __esm({
 });
 
 // src/routes/cornerScape/getAllAssets.ts
-var import_express35, router35, getAllAssets_default;
+var import_express31, router31, getAllAssets_default;
 var init_getAllAssets = __esm({
   "src/routes/cornerScape/getAllAssets.ts"() {
     "use strict";
-    import_express35 = __toESM(require_express2());
+    import_express31 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router35 = import_express35.default.Router();
-    getAllAssets_default = router35.post(
+    router31 = import_express31.default.Router();
+    getAllAssets_default = router31.post(
       "/",
       validateFields({
         projectId: external_exports.number(),
@@ -228827,17 +229178,17 @@ var init_getAllAssets = __esm({
 });
 
 // src/routes/cornerScape/pollingAudio.ts
-var import_express36, router36, pollingAudio_default;
+var import_express32, router32, pollingAudio_default;
 var init_pollingAudio = __esm({
   "src/routes/cornerScape/pollingAudio.ts"() {
     "use strict";
-    import_express36 = __toESM(require_express2());
+    import_express32 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router36 = import_express36.default.Router();
-    pollingAudio_default = router36.post(
+    router32 = import_express32.default.Router();
+    pollingAudio_default = router32.post(
       "/",
       validateFields({
         ids: external_exports.array(external_exports.number())
@@ -228852,17 +229203,17 @@ var init_pollingAudio = __esm({
 });
 
 // src/routes/cornerScape/updateAssetsAudio.ts
-var import_express37, router37, updateAssetsAudio_default;
+var import_express33, router33, updateAssetsAudio_default;
 var init_updateAssetsAudio = __esm({
   "src/routes/cornerScape/updateAssetsAudio.ts"() {
     "use strict";
-    import_express37 = __toESM(require_express2());
+    import_express33 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router37 = import_express37.default.Router();
-    updateAssetsAudio_default = router37.post(
+    router33 = import_express33.default.Router();
+    updateAssetsAudio_default = router33.post(
       "/",
       validateFields({
         assetsId: external_exports.number(),
@@ -228882,17 +229233,17 @@ var init_updateAssetsAudio = __esm({
 });
 
 // src/routes/general/generalStatistics.ts
-var import_express38, router38, generalStatistics_default;
+var import_express34, router34, generalStatistics_default;
 var init_generalStatistics = __esm({
   "src/routes/general/generalStatistics.ts"() {
     "use strict";
-    import_express38 = __toESM(require_express2());
+    import_express34 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router38 = import_express38.default.Router();
-    generalStatistics_default = router38.post(
+    router34 = import_express34.default.Router();
+    generalStatistics_default = router34.post(
       "/",
       validateFields({
         projectId: external_exports.number()
@@ -228918,17 +229269,17 @@ var init_generalStatistics = __esm({
 });
 
 // src/routes/general/getSingleProject.ts
-var import_express39, router39, getSingleProject_default;
+var import_express35, router35, getSingleProject_default;
 var init_getSingleProject = __esm({
   "src/routes/general/getSingleProject.ts"() {
     "use strict";
-    import_express39 = __toESM(require_express2());
+    import_express35 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router39 = import_express39.default.Router();
-    getSingleProject_default = router39.post(
+    router35 = import_express35.default.Router();
+    getSingleProject_default = router35.post(
       "/",
       validateFields({
         id: external_exports.number()
@@ -228943,17 +229294,17 @@ var init_getSingleProject = __esm({
 });
 
 // src/routes/general/updateProject.ts
-var import_express40, router40, updateProject_default;
+var import_express36, router36, updateProject_default;
 var init_updateProject = __esm({
   "src/routes/general/updateProject.ts"() {
     "use strict";
-    import_express40 = __toESM(require_express2());
+    import_express36 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router40 = import_express40.default.Router();
-    updateProject_default = router40.post(
+    router36 = import_express36.default.Router();
+    updateProject_default = router36.post(
       "/",
       validateFields({
         id: external_exports.number(),
@@ -228975,6 +229326,211 @@ var init_updateProject = __esm({
           textModel
         });
         res.status(200).send(success3({ message: "\u4FEE\u6539\u6210\u529F" }));
+      }
+    );
+  }
+});
+
+// src/routes/library-assets/[id].ts
+var import_express37, router37, assets, folders, id_default3;
+var init_id2 = __esm({
+  "src/routes/library-assets/[id].ts"() {
+    "use strict";
+    import_express37 = __toESM(require_express2());
+    init_utils3();
+    init_middleware();
+    init_zod();
+    router37 = import_express37.default.Router({ mergeParams: true });
+    assets = () => utils_default2.db("o_library_asset");
+    folders = () => utils_default2.db("o_asset_folder");
+    id_default3 = router37.patch(
+      "/",
+      validateFields({ name: external_exports.string().trim().min(1).max(255).optional(), folderId: external_exports.number().int().positive().nullable().optional(), metadata: external_exports.record(external_exports.string(), external_exports.any()).optional() }),
+      async (req, res) => {
+        const owner = Number(req.user?.id ?? 1);
+        const id = Number(req.params.id);
+        const asset = await assets().where({ id, createdBy: owner }).whereNull("deletedAt").first();
+        if (!asset) return res.status(404).send({ message: "\u8D44\u4EA7\u4E0D\u5B58\u5728" });
+        if (req.body.folderId != null && !await folders().where({ id: req.body.folderId, createdBy: owner }).whereNull("deletedAt").first()) return res.status(404).send({ message: "\u76EE\u5F55\u4E0D\u5B58\u5728" });
+        const patch = {};
+        if (req.body.name !== void 0) patch.name = req.body.name;
+        if (req.body.folderId !== void 0) patch.folderId = req.body.folderId;
+        if (req.body.metadata !== void 0) patch.metadata = JSON.stringify(req.body.metadata);
+        await assets().where({ id }).update(patch);
+        res.status(200).send({ message: "\u8D44\u4EA7\u66F4\u65B0\u6210\u529F" });
+      }
+    ).delete("/", async (req, res) => {
+      const owner = Number(req.user?.id ?? 1);
+      const id = Number(req.params.id);
+      const asset = await assets().where({ id, createdBy: owner }).whereNull("deletedAt").first();
+      if (!asset) return res.status(404).send({ message: "\u8D44\u4EA7\u4E0D\u5B58\u5728" });
+      await assets().where({ id }).update({ deletedAt: Date.now() });
+      try {
+        await utils_default2.oss.deleteFile(asset.filePath);
+      } catch (error70) {
+        return res.status(202).send({ message: "\u7D22\u5F15\u5DF2\u5220\u9664\uFF0C\u5BF9\u8C61\u5220\u9664\u5931\u8D25\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5", retryable: true });
+      }
+      res.status(200).send({ message: "\u8D44\u4EA7\u5DF2\u5220\u9664" });
+    });
+  }
+});
+
+// src/routes/library-assets/index.ts
+function userId(req) {
+  return Number(req.user?.id ?? 1);
+}
+function parseData(data) {
+  const match = /^data:([^;]+);base64,([A-Za-z0-9+/=\s]+)$/.exec(data);
+  if (!match) throw new Error("\u6587\u4EF6\u683C\u5F0F\u4E0D\u6B63\u786E");
+  const ext = MIME_EXT[match[1].toLowerCase()];
+  if (!ext) throw new Error("\u4E0D\u652F\u6301\u7684\u6587\u4EF6\u7C7B\u578B");
+  const buffer = Buffer.from(match[2].replace(/\s/g, ""), "base64");
+  if (!buffer.length || buffer.length > MAX_FILE_SIZE) throw new Error("\u6587\u4EF6\u5927\u5C0F\u8D85\u8FC7 50MB \u9650\u5236");
+  return { buffer, mimeType: match[1].toLowerCase(), ext };
+}
+var import_express38, router38, table, folders2, MAX_FILE_SIZE, MIME_EXT, allowedTypes, library_assets_default;
+var init_library_assets = __esm({
+  "src/routes/library-assets/index.ts"() {
+    "use strict";
+    import_express38 = __toESM(require_express2());
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    init_zod();
+    init_dist_node();
+    router38 = import_express38.default.Router();
+    table = () => utils_default2.db("o_library_asset");
+    folders2 = () => utils_default2.db("o_asset_folder");
+    MAX_FILE_SIZE = 50 * 1024 * 1024;
+    MIME_EXT = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "audio/mpeg": "mp3", "audio/wav": "wav", "audio/ogg": "ogg", "video/mp4": "mp4", "video/webm": "webm" };
+    allowedTypes = ["role", "tool", "scene", "image", "audio", "video", "clip"];
+    library_assets_default = router38.get("/", async (req, res) => {
+      const owner = userId(req);
+      const page = Math.max(Number(req.query.page ?? 1), 1);
+      const limit = Math.min(Math.max(Number(req.query.limit ?? 20), 1), 100);
+      let query = table().where({ createdBy: owner }).whereNull("deletedAt");
+      if (req.query.folderId) query = query.andWhere("folderId", Number(req.query.folderId));
+      if (req.query.type) {
+        const typeList = String(req.query.type).split(",").map((item) => item.trim()).filter((item) => allowedTypes.includes(item));
+        if (typeList.length === 1) query = query.andWhere("type", typeList[0]);
+        else if (typeList.length > 1) query = query.andWhere("type", "in", typeList);
+      }
+      if (req.query.keyword) query = query.andWhere("name", "like", `%${String(req.query.keyword)}%`);
+      const [{ total }] = await query.clone().count({ total: "id" });
+      const data = await query.orderBy("createdAt", "desc").offset((page - 1) * limit).limit(limit);
+      const result = await Promise.all(data.map(async (asset) => ({ ...asset, url: await utils_default2.oss.getFileUrl(asset.filePath) })));
+      res.status(200).send(success3({ data: result, total: Number(total), page, limit }));
+    }).post(
+      "/upload",
+      validateFields({ name: external_exports.string().trim().min(1).max(255), type: external_exports.enum(["role", "tool", "scene", "image", "audio", "video", "clip"]), base64Data: external_exports.string(), folderId: external_exports.number().int().positive().nullable().optional() }),
+      async (req, res) => {
+        const owner = userId(req);
+        let parsed;
+        try {
+          parsed = parseData(req.body.base64Data);
+        } catch (error70) {
+          return res.status(400).send({ message: error70.message });
+        }
+        const folderId = req.body.folderId ?? null;
+        if (folderId != null && !await folders2().where({ id: folderId, createdBy: owner }).whereNull("deletedAt").first()) return res.status(404).send({ message: "\u76EE\u5F55\u4E0D\u5B58\u5728" });
+        const [id] = await table().insert({ name: req.body.name, type: req.body.type, folderId, filePath: `library/${owner}/${v4_default()}.${parsed.ext}`, mimeType: parsed.mimeType, size: parsed.buffer.length, metadata: JSON.stringify({ originalName: req.body.name }), createdBy: owner, createdAt: Date.now() });
+        const asset = await table().where({ id }).first();
+        try {
+          await utils_default2.oss.writeFile(asset.filePath, parsed.buffer);
+        } catch (error70) {
+          await table().where({ id }).delete();
+          throw error70;
+        }
+        res.status(200).send(success3({ ...asset, url: await utils_default2.oss.getFileUrl(asset.filePath) }));
+      }
+    );
+  }
+});
+
+// src/routes/library/folders/[id].ts
+var import_express39, router39, table2, assets2, id_default4;
+var init_id3 = __esm({
+  "src/routes/library/folders/[id].ts"() {
+    "use strict";
+    import_express39 = __toESM(require_express2());
+    init_utils3();
+    init_middleware();
+    init_zod();
+    router39 = import_express39.default.Router({ mergeParams: true });
+    table2 = () => utils_default2.db("o_asset_folder");
+    assets2 = () => utils_default2.db("o_library_asset");
+    id_default4 = router39.patch(
+      "/",
+      validateFields({ name: external_exports.string().trim().min(1).max(128).optional(), parentId: external_exports.number().int().positive().nullable().optional(), sortOrder: external_exports.number().int().optional() }),
+      async (req, res) => {
+        const userId2 = Number(req.user?.id ?? 1);
+        const id = Number(req.params.id);
+        const folder = await table2().where({ id, createdBy: userId2 }).whereNull("deletedAt").first();
+        if (!folder) return res.status(404).send({ message: "\u76EE\u5F55\u4E0D\u5B58\u5728" });
+        const patch = {};
+        if (req.body.name !== void 0) patch.name = req.body.name;
+        if (req.body.sortOrder !== void 0) patch.sortOrder = req.body.sortOrder;
+        if (req.body.parentId !== void 0) {
+          const parentId = req.body.parentId;
+          if (parentId === id) return res.status(400).send({ message: "\u76EE\u5F55\u4E0D\u80FD\u79FB\u52A8\u5230\u81EA\u8EAB" });
+          if (parentId != null && !await table2().where({ id: parentId, createdBy: userId2 }).whereNull("deletedAt").first()) return res.status(404).send({ message: "\u7236\u76EE\u5F55\u4E0D\u5B58\u5728" });
+          let current = parentId;
+          while (current != null) {
+            if (current === id) return res.status(400).send({ message: "\u76EE\u5F55\u4E0D\u80FD\u79FB\u52A8\u5230\u5176\u5B50\u76EE\u5F55" });
+            current = (await table2().where({ id: current, createdBy: userId2 }).whereNull("deletedAt").first())?.parentId ?? null;
+          }
+          patch.parentId = parentId;
+        }
+        if (patch.name !== void 0 || patch.parentId !== void 0) {
+          const duplicate = await table2().where({ createdBy: userId2, name: patch.name ?? folder.name, parentId: patch.parentId ?? folder.parentId }).whereNull("deletedAt").whereNot("id", id).first();
+          if (duplicate) return res.status(409).send({ message: "\u540C\u7EA7\u76EE\u5F55\u540D\u79F0\u5DF2\u5B58\u5728" });
+        }
+        await table2().where({ id }).update(patch);
+        res.status(200).send({ message: "\u76EE\u5F55\u66F4\u65B0\u6210\u529F" });
+      }
+    ).delete("/", async (req, res) => {
+      const userId2 = Number(req.user?.id ?? 1);
+      const id = Number(req.params.id);
+      const folder = await table2().where({ id, createdBy: userId2 }).whereNull("deletedAt").first();
+      if (!folder) return res.status(404).send({ message: "\u76EE\u5F55\u4E0D\u5B58\u5728" });
+      const child = await table2().where({ parentId: id, createdBy: userId2 }).whereNull("deletedAt").first();
+      const asset = await assets2().where({ folderId: id, createdBy: userId2 }).whereNull("deletedAt").first();
+      if (child || asset) return res.status(409).send({ message: "\u76EE\u5F55\u4E0D\u4E3A\u7A7A\uFF0C\u8BF7\u5148\u79FB\u9664\u5176\u4E2D\u5185\u5BB9" });
+      await table2().where({ id }).update({ deletedAt: Date.now() });
+      res.status(200).send({ message: "\u76EE\u5F55\u5DF2\u5220\u9664" });
+    });
+  }
+});
+
+// src/routes/library/folders/index.ts
+var import_express40, router40, table3, folders_default;
+var init_folders = __esm({
+  "src/routes/library/folders/index.ts"() {
+    "use strict";
+    import_express40 = __toESM(require_express2());
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    init_zod();
+    router40 = import_express40.default.Router();
+    table3 = () => utils_default2.db("o_asset_folder");
+    folders_default = router40.get("/", async (req, res) => {
+      const userId2 = Number(req.user?.id ?? 1);
+      const folders3 = await table3().where({ createdBy: userId2 }).whereNull("deletedAt").orderBy("sortOrder").orderBy("name");
+      res.status(200).send(success3({ data: folders3 }));
+    }).post(
+      "/",
+      validateFields({ name: external_exports.string().trim().min(1).max(128), parentId: external_exports.number().int().positive().nullable().optional() }),
+      async (req, res) => {
+        const userId2 = Number(req.user?.id ?? 1);
+        const parentId = req.body.parentId ?? null;
+        if (parentId != null && !await table3().where({ id: parentId, createdBy: userId2 }).whereNull("deletedAt").first()) {
+          return res.status(404).send({ message: "\u7236\u76EE\u5F55\u4E0D\u5B58\u5728" });
+        }
+        const duplicate = await table3().where({ name: req.body.name, parentId, createdBy: userId2 }).whereNull("deletedAt").first();
+        if (duplicate) return res.status(409).send({ message: "\u540C\u7EA7\u76EE\u5F55\u540D\u79F0\u5DF2\u5B58\u5728" });
+        const [id] = await table3().insert({ name: req.body.name, parentId, sortOrder: 0, createdBy: userId2, createdAt: Date.now() });
+        res.status(200).send(success3({ id }));
       }
     );
   }
@@ -230354,8 +230910,8 @@ var init_saveFlowData = __esm({
                   });
                 })
               );
-            } catch (error69) {
-              console.error("\u66F4\u65B0\u5206\u955C\u6392\u5E8F\u5931\u8D25", error69);
+            } catch (error70) {
+              console.error("\u66F4\u65B0\u5206\u955C\u6392\u5E8F\u5931\u8D25", error70);
             }
           }
         }
@@ -230757,61 +231313,18 @@ var init_batchGenerateImage = __esm({
   }
 });
 
-// src/routes/production/storyboard/generationTasks.ts
-var import_express77, router77, generationTasks_default;
-var init_generationTasks = __esm({
-  "src/routes/production/storyboard/generationTasks.ts"() {
-    "use strict";
-    import_express77 = __toESM(require_express2());
-    init_utils3();
-    init_responseFormat();
-    init_middleware();
-    init_zod();
-    router77 = import_express77.default.Router();
-    generationTasks_default = router77.post(
-      "/",
-      validateFields({ taskIds: external_exports.array(external_exports.string()).min(1) }),
-      async (req, res) => {
-        const { taskIds } = req.body;
-        const tasks = await utils_default2.db("o_generation_tasks").whereIn("taskId", taskIds).select(
-          "taskId",
-          "storyboardId",
-          "projectId",
-          "scriptId",
-          "provider",
-          "model",
-          "providerTaskId",
-          "status",
-          "providerStatus",
-          "reason",
-          "resultPath",
-          "createdAt",
-          "updatedAt",
-          "lastPolledAt",
-          "retryCount"
-        );
-        const result = await Promise.all(tasks.map(async (task) => ({
-          ...task,
-          src: task.resultPath ? await utils_default2.oss.getSmallImageUrl(task.resultPath) : null
-        })));
-        res.status(200).send(success3(result));
-      }
-    );
-  }
-});
-
 // src/routes/production/storyboard/downPreviewImage.ts
-var import_express78, import_sharp3, router78, downPreviewImage_default;
+var import_express77, import_sharp3, router77, downPreviewImage_default;
 var init_downPreviewImage = __esm({
   "src/routes/production/storyboard/downPreviewImage.ts"() {
     "use strict";
-    import_express78 = __toESM(require_express2());
+    import_express77 = __toESM(require_express2());
     init_utils3();
     init_zod();
     import_sharp3 = __toESM(require("sharp"));
     init_middleware();
-    router78 = import_express78.default.Router();
-    downPreviewImage_default = router78.post(
+    router77 = import_express77.default.Router();
+    downPreviewImage_default = router77.post(
       "/",
       validateFields({
         storyboardIds: external_exports.array(external_exports.number())
@@ -230897,17 +231410,17 @@ var init_downPreviewImage = __esm({
 });
 
 // src/routes/production/storyboard/editStoryboardInfo.ts
-var import_express79, router79, editStoryboardInfo_default;
+var import_express78, router78, editStoryboardInfo_default;
 var init_editStoryboardInfo = __esm({
   "src/routes/production/storyboard/editStoryboardInfo.ts"() {
     "use strict";
-    import_express79 = __toESM(require_express2());
+    import_express78 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router79 = import_express79.default.Router();
-    editStoryboardInfo_default = router79.post(
+    router78 = import_express78.default.Router();
+    editStoryboardInfo_default = router78.post(
       "/",
       validateFields({
         id: external_exports.number(),
@@ -230921,6 +231434,49 @@ var init_editStoryboardInfo = __esm({
           videoDesc
         });
         res.status(200).send(success3({ message: "\u66F4\u65B0\u63D0\u793A\u8BCD\u6210\u529F" }));
+      }
+    );
+  }
+});
+
+// src/routes/production/storyboard/generationTasks.ts
+var import_express79, router79, generationTasks_default;
+var init_generationTasks = __esm({
+  "src/routes/production/storyboard/generationTasks.ts"() {
+    "use strict";
+    import_express79 = __toESM(require_express2());
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    init_zod();
+    router79 = import_express79.default.Router();
+    generationTasks_default = router79.post(
+      "/",
+      validateFields({ taskIds: external_exports.array(external_exports.string()).min(1) }),
+      async (req, res) => {
+        const { taskIds } = req.body;
+        const tasks = await utils_default2.db("o_generation_tasks").whereIn("taskId", taskIds).select(
+          "taskId",
+          "storyboardId",
+          "projectId",
+          "scriptId",
+          "provider",
+          "model",
+          "providerTaskId",
+          "status",
+          "providerStatus",
+          "reason",
+          "resultPath",
+          "createdAt",
+          "updatedAt",
+          "lastPolledAt",
+          "retryCount"
+        );
+        const result = await Promise.all(tasks.map(async (task) => ({
+          ...task,
+          src: task.resultPath ? await utils_default2.oss.getSmallImageUrl(task.resultPath) : null
+        })));
+        res.status(200).send(success3(result));
       }
     );
   }
@@ -231508,10 +232064,10 @@ var init_batchGenerateVideo = __esm({
               describe: "\u6839\u636E\u63D0\u793A\u8BCD\u751F\u6210\u89C6\u9891",
               relatedObjects: JSON.stringify(relatedObjects)
             }
-          ).then(async () => await aiVideo.save(videoPath)).then(async () => await utils_default2.db("o_video").where("id", videoId).update({ state: "\u751F\u6210\u6210\u529F" })).catch(async (error69) => {
+          ).then(async () => await aiVideo.save(videoPath)).then(async () => await utils_default2.db("o_video").where("id", videoId).update({ state: "\u751F\u6210\u6210\u529F" })).catch(async (error70) => {
             await utils_default2.db("o_video").where("id", videoId).update({
               state: "\u751F\u6210\u5931\u8D25",
-              errorReason: utils_default2.error(error69).message
+              errorReason: utils_default2.error(error70).message
             });
           });
         }
@@ -231740,10 +232296,10 @@ var init_generateVideo = __esm({
             describe: "\u6839\u636E\u63D0\u793A\u8BCD\u751F\u6210\u89C6\u9891",
             relatedObjects: JSON.stringify(relatedObjects)
           }
-        ).then(async () => await aiVideo.save(videoPath)).then(async () => await utils_default2.db("o_video").where("id", videoId).update({ state: "\u751F\u6210\u6210\u529F" })).catch(async (error69) => {
+        ).then(async () => await aiVideo.save(videoPath)).then(async () => await utils_default2.db("o_video").where("id", videoId).update({ state: "\u751F\u6210\u6210\u529F" })).catch(async (error70) => {
           await utils_default2.db("o_video").where("id", videoId).update({
             state: "\u751F\u6210\u5931\u8D25",
-            errorReason: utils_default2.error(error69).message
+            errorReason: utils_default2.error(error70).message
           });
         });
       }
@@ -232604,7 +233160,7 @@ var init_delProject = __esm({
         try {
           await utils_default2.oss.deleteDirectory(`${id}/`);
           console.log(`\u9879\u76EE ${id} \u7684OSS\u6587\u4EF6\u5939\u5220\u9664\u6210\u529F`);
-        } catch (error69) {
+        } catch (error70) {
           console.log(`\u9879\u76EE ${id} \u6CA1\u6709\u5BF9\u5E94\u7684OSS\u6587\u4EF6\u5939\uFF0C\u8DF3\u8FC7\u5220\u9664`);
         }
         res.status(200).send(success3({ message: "\u5220\u9664\u9879\u76EE\u6210\u529F" }));
@@ -232950,20 +233506,1136 @@ var init_visualManual = __esm({
   }
 });
 
+// src/routes/quickVideo/addShot.ts
+var import_express115, router115, addShot_default;
+var init_addShot = __esm({
+  "src/routes/quickVideo/addShot.ts"() {
+    "use strict";
+    import_express115 = __toESM(require_express2());
+    init_zod();
+    init_responseFormat();
+    init_middleware();
+    init_contract();
+    init_state();
+    init_shots();
+    router115 = import_express115.default.Router();
+    addShot_default = router115.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        expectedVersion: external_exports.number().int().min(1),
+        idempotencyKey: external_exports.string().min(8).max(64),
+        shot: external_exports.object({
+          duration: external_exports.number().int().min(5).max(15),
+          description: external_exports.string().min(1).max(2e3),
+          dialogue: external_exports.string().max(500).optional().default(""),
+          camera: external_exports.string().max(200).optional().default(""),
+          assetRefs: external_exports.array(shotAssetRefSchema).max(10).optional().default([])
+        })
+      }),
+      async (req, res) => {
+        const { projectId, expectedVersion, idempotencyKey, shot } = req.body;
+        try {
+          const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, (state) => {
+            ensureStoryboardEditable(state);
+            if ((state.storyboard?.shots.length ?? 0) >= SHOT_COUNT_MAX) {
+              throw new QuickVideoError("SHOT_COUNT_EXCEEDED", `\u955C\u5934\u6570\u91CF\u5DF2\u8FBE\u4E0A\u9650 ${SHOT_COUNT_MAX}`, state.version);
+            }
+            state.storyboard.shots.push({
+              id: nextShotId(state),
+              index: (state.storyboard?.shots.length ?? 0) + 1,
+              duration: shot.duration,
+              description: shot.description,
+              dialogue: shot.dialogue ?? "",
+              camera: shot.camera ?? "",
+              assetRefs: shot.assetRefs ?? [],
+              imageState: "pending",
+              videoState: "pending",
+              imageRef: null,
+              videoRef: null,
+              errorReason: null,
+              firstFrame: null
+            });
+            reindexShots(state);
+          });
+          res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/bindShotFirstFrame.ts
+var import_express116, router116, bindShotFirstFrame_default;
+var init_bindShotFirstFrame = __esm({
+  "src/routes/quickVideo/bindShotFirstFrame.ts"() {
+    "use strict";
+    import_express116 = __toESM(require_express2());
+    init_zod();
+    init_responseFormat();
+    init_middleware();
+    init_state();
+    init_shots();
+    init_media();
+    router116 = import_express116.default.Router();
+    bindShotFirstFrame_default = router116.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        expectedVersion: external_exports.number().int().min(1),
+        idempotencyKey: external_exports.string().min(8).max(64),
+        shotId: external_exports.string().min(1).max(40),
+        mediaId: external_exports.number().int().positive().nullable()
+      }),
+      async (req, res) => {
+        const { projectId, expectedVersion, idempotencyKey, shotId, mediaId } = req.body;
+        try {
+          const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, async (state) => {
+            ensureStoryboardEditable(state);
+            const shot = findShot(state, shotId);
+            if (mediaId == null) {
+              shot.firstFrame = null;
+            } else {
+              const { assetId, imageId } = await resolveMediaForFirstFrame(projectId, mediaId);
+              shot.firstFrame = { mediaId, assetId, imageId, boundAt: Date.now() };
+            }
+            state.generation.snapshot = null;
+            state.generation.materialsConfirmed = false;
+            state.generation.materialsConfirmedAt = null;
+          });
+          res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/confirmStage.ts
+var import_express117, router117, confirmStage_default;
+var init_confirmStage = __esm({
+  "src/routes/quickVideo/confirmStage.ts"() {
+    "use strict";
+    import_express117 = __toESM(require_express2());
+    init_zod();
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    init_state();
+    init_contract();
+    init_generate();
+    init_metrics();
+    init_session();
+    router117 = import_express117.default.Router();
+    confirmStage_default = router117.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        sessionId: external_exports.number(),
+        expectedVersion: external_exports.number().int().min(1),
+        idempotencyKey: external_exports.string().min(8).max(64),
+        gate: external_exports.enum(["brief", "storyboard", "materials", "export"]),
+        action: external_exports.enum(["confirm", "reject"]),
+        /** gate=export 时可选回写的导出结果（浏览器端 WebAV 编码成功后携带） */
+        exportInfo: external_exports.object({
+          fileName: external_exports.string().min(1).max(200),
+          sizeBytes: external_exports.number().int().min(0),
+          durationSeconds: external_exports.number().min(0)
+        }).optional()
+      }),
+      async (req, res) => {
+        const { projectId, sessionId, expectedVersion, idempotencyKey, gate, action, exportInfo } = req.body;
+        try {
+          await getOwnedSession(projectId, sessionId);
+        } catch (err) {
+          if (err instanceof QuickVideoError) return res.status(200).send(error50(err.message));
+          throw err;
+        }
+        let shouldStartGeneration = false;
+        try {
+          const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey, sessionId }, async (state) => {
+            if (gate === "brief") {
+              if (!state.brief) throw new QuickVideoError("NO_BRIEF", "\u6682\u65E0\u7B80\u62A5\uFF0C\u65E0\u6CD5\u64CD\u4F5C", state.version);
+              if (action === "confirm") {
+                if (!["collect_brief", "storyboard_draft", "brief_confirmed"].includes(state.stage)) {
+                  throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u786E\u8BA4\u7B80\u62A5`, state.version);
+                }
+                state.stage = "brief_confirmed";
+                state.brief.confirmed = true;
+                state.brief.confirmedAt = Date.now();
+              } else {
+                if (state.stage !== "brief_confirmed" && state.stage !== "collect_brief") {
+                  throw new QuickVideoError("STAGE_MISMATCH", "\u7B80\u62A5\u5DF2\u8FDB\u5165\u540E\u7EED\u6D41\u7A0B\uFF0C\u8BF7\u6539\u4E3A\u76F4\u63A5\u7F16\u8F91\u7B80\u62A5", state.version);
+                }
+                state.stage = "collect_brief";
+                state.brief.confirmed = false;
+                state.brief.confirmedAt = null;
+              }
+              return;
+            }
+            if (gate === "storyboard") {
+              if (!state.storyboard) throw new QuickVideoError("NO_STORYBOARD", "\u6682\u65E0\u5206\u955C\uFF0C\u65E0\u6CD5\u64CD\u4F5C", state.version);
+              if (action === "confirm") {
+                if (state.stage !== "storyboard_draft") {
+                  throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u786E\u8BA4\u5206\u955C`, state.version);
+                }
+                const errors = validateStoryboard(state.targetDuration, state.storyboard.shots);
+                if (errors.length) throw new QuickVideoError("STORYBOARD_INVALID", errors.join("\uFF1B"), state.version);
+                state.stage = "storyboard_confirmed";
+                state.storyboard.status = "confirmed";
+                state.storyboard.confirmedAt = Date.now();
+              } else {
+                if (state.stage !== "storyboard_confirmed") {
+                  throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u9700\u8981\u64A4\u9500\u5206\u955C\u786E\u8BA4`, state.version);
+                }
+                state.stage = "storyboard_draft";
+                state.storyboard.status = "draft";
+                state.storyboard.confirmedAt = null;
+              }
+              return;
+            }
+            if (gate === "materials") {
+              if (!state.storyboard || state.storyboard.status !== "confirmed") {
+                throw new QuickVideoError("NO_STORYBOARD", "\u5206\u955C\u5C1A\u672A\u786E\u8BA4\uFF0C\u8BF7\u5148\u901A\u8FC7\u5206\u955C\u786E\u8BA4\u95E8", state.version);
+              }
+              if (action === "confirm") {
+                if (state.stage !== "storyboard_confirmed") {
+                  throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u7D20\u6750\u786E\u8BA4`, state.version);
+                }
+                const needResolve = !state.generation?.snapshot || state.generation.snapshot.storyboardVersion !== state.storyboard.version;
+                if (needResolve) {
+                  const { materials, estimate, snapshotShots } = await buildSnapshot(projectId, state);
+                  applySnapshotToState(state, state.storyboard.version, snapshotShots, materials, estimate);
+                }
+                if (!state.generation.snapshot) {
+                  throw new QuickVideoError("MATERIALS_RESOLVE_FAILED", "\u7D20\u6750\u89E3\u6790\u5931\u8D25\uFF0C\u65E0\u6CD5\u786E\u8BA4", state.version);
+                }
+                state.generation.materialsConfirmed = true;
+                state.generation.materialsConfirmedAt = Date.now();
+                state.generation.startedAt = Date.now();
+                state.generation.finishedAt = null;
+                state.stage = "generating";
+                shouldStartGeneration = true;
+              } else {
+                if (state.stage !== "storyboard_confirmed") {
+                  throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u64A4\u9500\u7D20\u6750\u786E\u8BA4`, state.version);
+                }
+                state.generation.materialsConfirmed = false;
+                state.generation.materialsConfirmedAt = null;
+              }
+              return;
+            }
+            if (action !== "confirm") {
+              throw new QuickVideoError("FORBIDDEN", "\u5BFC\u51FA\u65E0\u9700\u64A4\u9500\uFF0C\u672A\u5BFC\u51FA\u5373\u53EF\u7EE7\u7EED\u7F16\u8F91", state.version);
+            }
+            if (state.stage !== "ready_to_assemble" && state.stage !== "completed") {
+              throw new QuickVideoError("STAGE_MISMATCH", "\u5C1A\u672A\u5B8C\u6210\u5168\u90E8\u955C\u5934\u751F\u6210\uFF0C\u65E0\u6CD5\u5BFC\u51FA", state.version);
+            }
+            state.stage = "completed";
+            if (exportInfo) {
+              state.generation.exportInfo = { exportedAt: Date.now(), ...exportInfo };
+            }
+          });
+          if (gate === "export" && action === "confirm" && !result.idempotentHit) {
+            recordEvent("exportConfirmed");
+            qvLog("export_confirmed", { projectId, sizeBytes: exportInfo?.sizeBytes ?? null, durationSeconds: exportInfo?.durationSeconds ?? null });
+          }
+          res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
+          if (shouldStartGeneration && !result.idempotentHit) {
+            try {
+              const start = await startQuickVideoGeneration(projectId, req.user?.id ?? 1, sessionId);
+              if (start.started) console.log(`[quickVideo] \u9879\u76EE ${projectId} \u751F\u6210\u5DF2\u542F\u52A8\uFF08${start.runId}\uFF09`);
+            } catch (err) {
+              console.error(`[quickVideo] \u9879\u76EE ${projectId} \u786E\u8BA4\u540E\u542F\u52A8\u751F\u6210\u5931\u8D25:`, utils_default2.error(err).message);
+            }
+          }
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/createProject.ts
+var import_express118, router118, createProject_default;
+var init_createProject = __esm({
+  "src/routes/quickVideo/createProject.ts"() {
+    "use strict";
+    import_express118 = __toESM(require_express2());
+    init_zod();
+    init_utils3();
+    init_db();
+    init_responseFormat();
+    init_middleware();
+    init_contract();
+    init_state();
+    init_session();
+    router118 = import_express118.default.Router();
+    createProject_default = router118.post(
+      "/",
+      validateFields({
+        name: external_exports.string().min(1).max(100),
+        artStyle: external_exports.string().max(500).default(""),
+        videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS),
+        targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]),
+        draftScript: external_exports.string().max(2e4).optional().default(""),
+        intro: external_exports.string().max(2e3).optional().default(""),
+        idempotencyKey: external_exports.string().min(8).max(64)
+      }),
+      async (req, res) => {
+        const { name: name28, artStyle, videoRatio, targetDuration, draftScript, intro, idempotencyKey } = req.body;
+        const existingProjectId = await findProjectByCreateIdempotencyKey(idempotencyKey);
+        if (existingProjectId != null) {
+          const project2 = await utils_default2.db("o_project").where("id", existingProjectId).first();
+          return res.status(200).send(success3({ projectId: existingProjectId, existed: true, project: project2 }));
+        }
+        const { projectId, session } = await db.transaction(async (trx) => {
+          const maxRow = await trx("o_project").max("id as maxId").first();
+          const id = Number(maxRow?.maxId ?? 0) + 1;
+          await trx("o_project").insert({
+            id,
+            projectType: QUICK_VIDEO_PROJECT_TYPE,
+            name: name28,
+            intro,
+            type: "quick_video",
+            artStyle,
+            videoRatio,
+            directorManual: "",
+            userId: 1,
+            imageModel: "",
+            videoModel: "",
+            imageQuality: "",
+            mode: "",
+            createTime: Date.now()
+          });
+          if (draftScript && draftScript.trim()) {
+            const scriptMaxRow = await trx("o_script").max("id as maxId").first();
+            const scriptId = Number(scriptMaxRow?.maxId ?? 0) + 1;
+            await trx("o_script").insert({
+              id: scriptId,
+              projectId: id,
+              name: `${name28}-\u8349\u7A3F`,
+              content: draftScript,
+              createTime: Date.now()
+            });
+          }
+          await initQuickVideoStateRow(trx, { projectId: id, idempotencyKey, targetDuration, videoRatio, artStyle });
+          const createdSession = await createQuickVideoSession(id, { trx });
+          await trx("o_agentWorkData").where({ projectId: id, key: "quickVideoAgent" }).update({ sessionId: createdSession.id });
+          return { projectId: id, session: createdSession };
+        });
+        const project = await utils_default2.db("o_project").where("id", projectId).first();
+        const state = await (async () => {
+          const row = await utils_default2.db("o_agentWorkData").where({ projectId, key: "quickVideoAgent" }).first();
+          return row && row.data ? JSON.parse(row.data) : null;
+        })();
+        res.status(200).send(success3({ projectId, existed: false, project, state, session }));
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/createSession.ts
+var import_express119, router119, createSession_default;
+var init_createSession = __esm({
+  "src/routes/quickVideo/createSession.ts"() {
+    "use strict";
+    import_express119 = __toESM(require_express2());
+    init_zod();
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    init_session();
+    router119 = import_express119.default.Router();
+    createSession_default = router119.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        title: external_exports.string().max(200).optional()
+      }),
+      async (req, res) => {
+        const { projectId, title } = req.body;
+        const project = await utils_default2.db("o_project").where("id", projectId).select("id", "projectType").first();
+        if (!project) return res.status(200).send(error50("\u9879\u76EE\u4E0D\u5B58\u5728"));
+        if (project.projectType !== "quick_video") return res.status(200).send(error50("\u975E\u5355\u89C6\u9891\u5FEB\u521B\u9879\u76EE"));
+        const session = await createQuickVideoSession(projectId, { title });
+        res.status(200).send(success3({ session }));
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/getAssetBoard.ts
+var import_express120, router120, getAssetBoard_default;
+var init_getAssetBoard = __esm({
+  "src/routes/quickVideo/getAssetBoard.ts"() {
+    "use strict";
+    import_express120 = __toESM(require_express2());
+    init_zod();
+    init_responseFormat();
+    init_middleware();
+    init_media();
+    router120 = import_express120.default.Router();
+    getAssetBoard_default = router120.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        sessionId: external_exports.number().optional(),
+        kind: external_exports.enum(["all", "image", "video"]).optional(),
+        state: external_exports.enum(["all", "generating", "done", "failed"]).optional(),
+        page: external_exports.number().int().min(1).optional(),
+        pageSize: external_exports.number().int().min(1).max(60).optional()
+      }),
+      async (req, res) => {
+        const { projectId, sessionId, kind, state, page, pageSize } = req.body;
+        const result = await getAssetBoard(projectId, { sessionId, kind, state, page, pageSize });
+        res.status(200).send(success3(result));
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/getMediaUrls.ts
+async function resolveFirstFrameUrl(imageId) {
+  try {
+    const filePath = await getImageFilePath(imageId);
+    return filePath ? await utils_default2.oss.getSmallImageUrl(filePath) : null;
+  } catch {
+    return null;
+  }
+}
+var import_express121, router121, getMediaUrls_default;
+var init_getMediaUrls = __esm({
+  "src/routes/quickVideo/getMediaUrls.ts"() {
+    "use strict";
+    import_express121 = __toESM(require_express2());
+    init_zod();
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    init_state();
+    init_media();
+    router121 = import_express121.default.Router();
+    getMediaUrls_default = router121.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number()
+      }),
+      async (req, res) => {
+        const { projectId } = req.body;
+        const state = await loadQuickVideoState(projectId);
+        const shots = state?.storyboard?.shots ?? [];
+        const media = {};
+        await Promise.all(
+          shots.filter((s) => s.imageRef || s.videoRef || s.firstFrame).map(async (s) => {
+            const [imageUrl, videoUrl, firstFrameUrl] = await Promise.all([
+              s.imageRef ? utils_default2.oss.getSmallImageUrl(s.imageRef).catch(() => null) : Promise.resolve(null),
+              s.videoRef ? utils_default2.oss.getFileUrl(s.videoRef).catch(() => null) : Promise.resolve(null),
+              s.firstFrame ? resolveFirstFrameUrl(s.firstFrame.imageId) : Promise.resolve(null)
+            ]);
+            media[s.id] = { imageUrl, videoUrl, firstFrameUrl };
+          })
+        );
+        res.status(200).send(success3({ media }));
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/getMetrics.ts
+var import_express122, router122, getMetrics_default;
+var init_getMetrics = __esm({
+  "src/routes/quickVideo/getMetrics.ts"() {
+    "use strict";
+    import_express122 = __toESM(require_express2());
+    init_zod();
+    init_responseFormat();
+    init_middleware();
+    init_metrics();
+    router122 = import_express122.default.Router();
+    getMetrics_default = router122.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number().optional()
+      }),
+      async (_req, res) => {
+        res.status(200).send(success3(snapshotMetrics()));
+      }
+    );
+  }
+});
+
+// src/lib/quickVideo/timeline.ts
+function buildTimelinePlan({ shots, targetDuration, videoRatio, ctaText = "" }) {
+  const ordered = [...shots].sort((a, b) => a.index - b.index).slice(0, SHOT_COUNT_MAX);
+  if (!ordered.length) throw new Error("TIMELINE_NO_SHOTS");
+  const n = ordered.length;
+  const transition = n >= 2 ? TIMELINE_TRANSITION_DURATION_S : 0;
+  const sourceTotal = ordered.reduce((sum, s) => sum + s.duration, 0);
+  const mediaNeeded = targetDuration + (n - 1) * transition;
+  let playbackRate;
+  let trimFraction = 1;
+  let tailPadSeconds = 0;
+  const rateRaw = sourceTotal / mediaNeeded;
+  if (rateRaw > TIMELINE_MAX_SPEED) {
+    playbackRate = TIMELINE_MAX_SPEED;
+    trimFraction = mediaNeeded * TIMELINE_MAX_SPEED / sourceTotal;
+  } else if (rateRaw < TIMELINE_MIN_SPEED) {
+    playbackRate = TIMELINE_MIN_SPEED;
+    tailPadSeconds = round3(mediaNeeded - sourceTotal / TIMELINE_MIN_SPEED);
+  } else {
+    playbackRate = round6(rateRaw);
+  }
+  const clips = [];
+  let cursor = 0;
+  ordered.forEach((shot, i) => {
+    const windowSeconds = round6(shot.duration * trimFraction);
+    const timelineDuration = round6(windowSeconds / playbackRate);
+    const start = round6(cursor);
+    const end = round6(start + timelineDuration);
+    clips.push({
+      shotId: shot.id,
+      index: shot.index,
+      sourceDuration: shot.duration,
+      trimStart: 0,
+      trimEnd: round6(windowSeconds),
+      playbackRate,
+      start,
+      end,
+      subtitleText: (shot.dialogue ?? "").trim()
+    });
+    cursor = end - (i < n - 1 ? transition : 0);
+  });
+  const transitions = clips.slice(0, -1).map((clip) => ({
+    afterShotId: clip.shotId,
+    type: "crossfade",
+    duration: transition
+  }));
+  const lastEnd = clips[clips.length - 1].end;
+  const tailPad = tailPadSeconds > 0.05 ? { type: "endcard", duration: round6(lastEnd + tailPadSeconds) - round6(lastEnd), text: ctaText.trim() } : null;
+  const totalDuration = round6(lastEnd + (tailPad?.duration ?? 0));
+  const { width, height } = QUICK_VIDEO_DIMENSIONS[videoRatio];
+  return {
+    targetDuration,
+    videoRatio,
+    width,
+    height,
+    totalDuration,
+    clips,
+    transitions,
+    tailPad
+  };
+}
+function buildSubtitleCues(plan) {
+  const cues = [];
+  plan.clips.forEach((clip, i) => {
+    const text2 = clip.subtitleText.trim();
+    if (!text2) return;
+    const start = clip.start + (i > 0 ? plan.transitions[i - 1]?.duration ?? 0 : 0);
+    const end = clip.end - (i < plan.clips.length - 1 ? plan.transitions[i]?.duration ?? 0 : 0);
+    if (end - start > 0.3) cues.push({ start: round3(start), end: round3(end), text: text2 });
+  });
+  return cues;
+}
+function round6(v) {
+  return Math.round(v * 1e6) / 1e6;
+}
+function round3(v) {
+  return Math.round(v * 1e3) / 1e3;
+}
+var init_timeline = __esm({
+  "src/lib/quickVideo/timeline.ts"() {
+    "use strict";
+    init_contract();
+  }
+});
+
+// src/routes/quickVideo/getTimeline.ts
+var import_express123, router123, getTimeline_default;
+var init_getTimeline = __esm({
+  "src/routes/quickVideo/getTimeline.ts"() {
+    "use strict";
+    import_express123 = __toESM(require_express2());
+    init_zod();
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    init_state();
+    init_timeline();
+    init_metrics();
+    router123 = import_express123.default.Router();
+    getTimeline_default = router123.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number()
+      }),
+      async (req, res) => {
+        const { projectId } = req.body;
+        const startedAt = Date.now();
+        try {
+          const project = await utils_default2.db("o_project").where("id", projectId).first();
+          if (!project) return res.status(200).send(success3(null, "\u9879\u76EE\u4E0D\u5B58\u5728"));
+          if (project.projectType !== "quick_video") {
+            return res.status(200).send(success3(null, "\u975E\u5355\u89C6\u9891\u5FEB\u521B\u9879\u76EE\uFF0C\u8BF7\u4F7F\u7528\u4E13\u4E1A\u6A21\u5F0F\u5165\u53E3"));
+          }
+          const state = await loadQuickVideoState(projectId);
+          if (!state) return res.status(200).send(success3(null, "\u672A\u627E\u5230 quickVideoAgent \u72B6\u6001"));
+          if (state.stage !== "ready_to_assemble" && state.stage !== "completed") {
+            throw new QuickVideoError("SHOTS_NOT_READY", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u5C1A\u672A\u5B8C\u6210\u5168\u90E8\u955C\u5934\u751F\u6210\uFF0C\u65E0\u6CD5\u88C5\u914D\u65F6\u95F4\u7EBF`, state.version);
+          }
+          const shots = state.storyboard?.shots ?? [];
+          const notDone = shots.filter((s) => s.videoState !== "done" || !s.videoRef);
+          if (!shots.length || notDone.length) {
+            throw new QuickVideoError(
+              "SHOTS_NOT_READY",
+              notDone.length ? `\u955C\u5934 ${notDone.map((s) => s.id).join("\u3001")} \u5C1A\u672A\u751F\u6210\u5B8C\u6210` : "\u6682\u65E0\u955C\u5934\uFF0C\u65E0\u6CD5\u88C5\u914D\u65F6\u95F4\u7EBF",
+              state.version
+            );
+          }
+          const timeline = buildTimelinePlan({
+            shots: shots.map((s) => ({ id: s.id, index: s.index, duration: s.duration, dialogue: s.dialogue })),
+            targetDuration: state.targetDuration,
+            videoRatio: state.videoRatio,
+            ctaText: state.brief?.cta ?? ""
+          });
+          const subtitles = buildSubtitleCues(timeline);
+          const storyboardVersion = state.storyboard.version;
+          const script = await utils_default2.db("o_script").where("projectId", projectId).select("id").first();
+          let persisted = false;
+          if (state.generation?.timeline?.storyboardVersion !== storyboardVersion) {
+            await mutateQuickVideoState(projectId, {}, async (s, trx) => {
+              if (s.generation.timeline?.storyboardVersion === storyboardVersion) return;
+              if (s.stage !== "ready_to_assemble" && s.stage !== "completed") return;
+              const trackIds = [];
+              for (const shot of [...s.storyboard.shots].sort((a, b) => a.index - b.index)) {
+                const maxRow = await trx("o_videoTrack").max("id as maxId").first();
+                const trackId = Number(maxRow?.maxId ?? 0) + 1;
+                await trx("o_videoTrack").insert({
+                  id: trackId,
+                  videoId: 0,
+                  projectId,
+                  scriptId: script?.id ?? 0,
+                  state: "\u5DF2\u5B8C\u6210",
+                  reason: "quickVideo \u65F6\u95F4\u7EBF\u88C5\u914D",
+                  prompt: shot.description,
+                  selectVideoId: 0,
+                  duration: shot.duration
+                });
+                trackIds.push(trackId);
+              }
+              s.generation.timeline = {
+                storyboardVersion,
+                assembledAt: Date.now(),
+                clipCount: s.storyboard.shots.length,
+                totalDuration: timeline.totalDuration,
+                trackIds
+              };
+              persisted = true;
+            });
+          }
+          const media = {};
+          await Promise.all(
+            shots.map(async (s) => {
+              const [videoUrl, imageUrl] = await Promise.all([
+                s.videoRef ? utils_default2.oss.getFileUrl(s.videoRef).catch(() => null) : Promise.resolve(null),
+                s.imageRef ? utils_default2.oss.getSmallImageUrl(s.imageRef).catch(() => null) : Promise.resolve(null)
+              ]);
+              media[s.id] = { videoUrl, imageUrl };
+            })
+          );
+          recordEvent("timelineAssembled");
+          recordDuration("timelineAssembleMs", Date.now() - startedAt);
+          qvLog("timeline_assembled", { projectId, storyboardVersion, clipCount: timeline.clips.length, totalDuration: timeline.totalDuration, persisted });
+          res.status(200).send(success3({ timeline, subtitles, media, ctaText: state.brief?.cta ?? "", exportInfo: state.generation?.exportInfo ?? null }));
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/getWorkbench.ts
+var import_express124, router124, getWorkbench_default;
+var init_getWorkbench = __esm({
+  "src/routes/quickVideo/getWorkbench.ts"() {
+    "use strict";
+    import_express124 = __toESM(require_express2());
+    init_zod();
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    init_contract();
+    init_state();
+    init_generate();
+    router124 = import_express124.default.Router();
+    getWorkbench_default = router124.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number()
+      }),
+      async (req, res) => {
+        const { projectId } = req.body;
+        const project = await utils_default2.db("o_project").where("id", projectId).first();
+        if (!project) return res.status(200).send(success3(null, "\u9879\u76EE\u4E0D\u5B58\u5728"));
+        if (project.projectType !== "quick_video") {
+          return res.status(200).send(success3(null, "\u975E\u5355\u89C6\u9891\u5FEB\u521B\u9879\u76EE\uFF0C\u8BF7\u4F7F\u7528\u4E13\u4E1A\u6A21\u5F0F\u5165\u53E3"));
+        }
+        await ensureGenerationRecovery(projectId);
+        const state = await loadQuickVideoState(projectId);
+        const script = await utils_default2.db("o_script").where("projectId", projectId).select("id", "name", "content").first();
+        res.status(200).send(
+          success3({
+            project,
+            script: script ?? null,
+            state,
+            // 分镜数量约束，供前端展示与预校验
+            shotBounds: state ? shotCountBounds(state.targetDuration) : null
+          })
+        );
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/listSessions.ts
+var import_express125, router125, listSessions_default;
+var init_listSessions = __esm({
+  "src/routes/quickVideo/listSessions.ts"() {
+    "use strict";
+    import_express125 = __toESM(require_express2());
+    init_zod();
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    init_session();
+    router125 = import_express125.default.Router();
+    listSessions_default = router125.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number()
+      }),
+      async (req, res) => {
+        const { projectId } = req.body;
+        const project = await utils_default2.db("o_project").where("id", projectId).select("id", "projectType").first();
+        if (!project) return res.status(200).send(error50("\u9879\u76EE\u4E0D\u5B58\u5728"));
+        if (project.projectType !== "quick_video") return res.status(200).send(error50("\u975E\u5355\u89C6\u9891\u5FEB\u521B\u9879\u76EE"));
+        const sessions = await listQuickVideoSessions(projectId);
+        res.status(200).send(success3({ sessions }));
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/removeShot.ts
+var import_express126, router126, removeShot_default;
+var init_removeShot = __esm({
+  "src/routes/quickVideo/removeShot.ts"() {
+    "use strict";
+    import_express126 = __toESM(require_express2());
+    init_zod();
+    init_responseFormat();
+    init_middleware();
+    init_state();
+    init_shots();
+    router126 = import_express126.default.Router();
+    removeShot_default = router126.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        expectedVersion: external_exports.number().int().min(1),
+        idempotencyKey: external_exports.string().min(8).max(64),
+        shotId: external_exports.string().min(1).max(40)
+      }),
+      async (req, res) => {
+        const { projectId, expectedVersion, idempotencyKey, shotId } = req.body;
+        try {
+          const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, (state) => {
+            ensureStoryboardEditable(state);
+            findShot(state, shotId);
+            state.storyboard.shots = state.storyboard.shots.filter((s) => s.id !== shotId);
+            if (!state.storyboard.shots.length) {
+              throw new QuickVideoError("SHOT_LAST_ONE", "\u81F3\u5C11\u4FDD\u7559\u4E00\u4E2A\u955C\u5934", state.version);
+            }
+            reindexShots(state);
+          });
+          res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/resolveAssets.ts
+var import_express127, router127, resolveAssets_default;
+var init_resolveAssets = __esm({
+  "src/routes/quickVideo/resolveAssets.ts"() {
+    "use strict";
+    import_express127 = __toESM(require_express2());
+    init_zod();
+    init_responseFormat();
+    init_middleware();
+    init_generate();
+    init_state();
+    router127 = import_express127.default.Router();
+    resolveAssets_default = router127.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        expectedVersion: external_exports.number().int().min(1),
+        idempotencyKey: external_exports.string().min(8).max(64)
+      }),
+      async (req, res) => {
+        const { projectId, expectedVersion, idempotencyKey } = req.body;
+        try {
+          const result = await resolveMaterialsSnapshot(projectId, { expectedVersion, idempotencyKey });
+          res.status(200).send(
+            success3({
+              state: result.state,
+              materials: result.materials,
+              estimate: result.estimate,
+              idempotentHit: result.idempotentHit
+            })
+          );
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/retryShot.ts
+var import_express128, router128, retryShot_default;
+var init_retryShot = __esm({
+  "src/routes/quickVideo/retryShot.ts"() {
+    "use strict";
+    import_express128 = __toESM(require_express2());
+    init_zod();
+    init_responseFormat();
+    init_middleware();
+    init_generate();
+    init_state();
+    init_metrics();
+    init_session();
+    router128 = import_express128.default.Router();
+    retryShot_default = router128.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        sessionId: external_exports.number(),
+        shotIds: external_exports.array(external_exports.string().min(1).max(40)).min(1).max(12)
+      }),
+      async (req, res) => {
+        const { projectId, sessionId, shotIds } = req.body;
+        try {
+          await getOwnedSession(projectId, sessionId);
+          const result = await retryQuickVideoShots(projectId, req.user?.id ?? 1, shotIds, sessionId);
+          recordEvent("shotRetry");
+          qvLog("shots_retry", { projectId, shotIds: result.retried });
+          res.status(200).send(success3({ state: result.state, retried: result.retried }));
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/updateBrief.ts
+var import_express129, router129, updateBrief_default;
+var init_updateBrief = __esm({
+  "src/routes/quickVideo/updateBrief.ts"() {
+    "use strict";
+    import_express129 = __toESM(require_express2());
+    init_zod();
+    init_responseFormat();
+    init_middleware();
+    init_state();
+    init_contract();
+    router129 = import_express129.default.Router();
+    updateBrief_default = router129.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        expectedVersion: external_exports.number().int().min(1),
+        idempotencyKey: external_exports.string().min(8).max(64),
+        brief: quickVideoBriefSchema
+      }),
+      async (req, res) => {
+        const { projectId, expectedVersion, idempotencyKey, brief } = req.body;
+        try {
+          const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, (state) => {
+            if (!["collect_brief", "brief_confirmed", "storyboard_draft"].includes(state.stage)) {
+              throw new QuickVideoError("STAGE_FORBIDDEN", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u7F16\u8F91\u7B80\u62A5`, state.version);
+            }
+            state.brief = {
+              theme: brief.theme,
+              hook: brief.hook ?? "",
+              narrative: brief.narrative,
+              cta: brief.cta ?? "",
+              keywords: brief.keywords ?? [],
+              confirmed: false,
+              confirmedAt: null
+            };
+          });
+          res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/updateConfig.ts
+var import_express130, router130, updateConfig_default;
+var init_updateConfig = __esm({
+  "src/routes/quickVideo/updateConfig.ts"() {
+    "use strict";
+    import_express130 = __toESM(require_express2());
+    init_zod();
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    init_contract();
+    init_state();
+    router130 = import_express130.default.Router();
+    updateConfig_default = router130.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        expectedVersion: external_exports.number().int().min(1),
+        idempotencyKey: external_exports.string().min(8).max(64),
+        patch: external_exports.object({
+          name: external_exports.string().min(1).max(100).optional(),
+          artStyle: external_exports.string().max(500).optional(),
+          videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS).optional(),
+          targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]).optional(),
+          intro: external_exports.string().max(2e3).optional()
+        })
+      }),
+      async (req, res) => {
+        const { projectId, expectedVersion, idempotencyKey, patch } = req.body;
+        try {
+          const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, async (state, trx) => {
+            const targetDurationChanged = patch.targetDuration != null && patch.targetDuration !== state.targetDuration;
+            const visualConfigChanged = patch.artStyle != null && patch.artStyle !== state.artStyle || patch.videoRatio != null && patch.videoRatio !== state.videoRatio;
+            const generationConfigChanged = targetDurationChanged || visualConfigChanged;
+            if (targetDurationChanged && state.storyboard?.status === "confirmed") {
+              throw new QuickVideoError("FORBIDDEN", "\u5206\u955C\u5DF2\u786E\u8BA4\uFF0C\u4E0D\u5141\u8BB8\u4FEE\u6539\u76EE\u6807\u65F6\u957F\uFF1B\u8BF7\u5148\u64A4\u9500\u5206\u955C\u786E\u8BA4");
+            }
+            if (generationConfigChanged && ["generating", "ready_to_assemble", "completed"].includes(state.stage)) {
+              throw new QuickVideoError("FORBIDDEN", "\u751F\u6210\u5DF2\u5F00\u59CB\uFF0C\u4E0D\u80FD\u518D\u4FEE\u6539\u76EE\u6807\u65F6\u957F\u3001\u753B\u98CE\u6216\u6BD4\u4F8B\uFF1B\u5982\u9700\u8C03\u6574\u8BF7\u65B0\u5EFA\u9879\u76EE");
+            }
+            if (patch.targetDuration != null) state.targetDuration = patch.targetDuration;
+            if (patch.videoRatio != null) state.videoRatio = patch.videoRatio;
+            if (patch.artStyle != null) state.artStyle = patch.artStyle;
+            if (generationConfigChanged) {
+              state.generation.snapshot = null;
+              state.generation.materialsConfirmed = false;
+              state.generation.materialsConfirmedAt = null;
+              state.generation.materialImages = {};
+              state.generation.timeline = null;
+              state.generation.exportInfo = null;
+            }
+            const projectPatch = {};
+            if (patch.name != null) projectPatch.name = patch.name;
+            if (patch.artStyle != null) projectPatch.artStyle = patch.artStyle;
+            if (patch.videoRatio != null) projectPatch.videoRatio = patch.videoRatio;
+            if (patch.intro != null) projectPatch.intro = patch.intro;
+            if (Object.keys(projectPatch).length) {
+              await trx("o_project").where("id", projectId).update(projectPatch);
+            }
+          });
+          const project = await utils_default2.db("o_project").where("id", projectId).first();
+          res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit, project }));
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/updateModels.ts
+var import_express131, router131, updateModels_default;
+var init_updateModels = __esm({
+  "src/routes/quickVideo/updateModels.ts"() {
+    "use strict";
+    import_express131 = __toESM(require_express2());
+    init_zod();
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    init_session();
+    init_state();
+    router131 = import_express131.default.Router();
+    updateModels_default = router131.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        sessionId: external_exports.number(),
+        textModel: external_exports.string().max(500),
+        imageModel: external_exports.string().max(500),
+        videoModel: external_exports.string().max(500)
+      }),
+      async (req, res) => {
+        const { projectId, sessionId, textModel, imageModel, videoModel } = req.body;
+        const project = await utils_default2.db("o_project").where("id", projectId).select("id", "projectType").first();
+        if (!project) return res.status(200).send(error50("\u9879\u76EE\u4E0D\u5B58\u5728"));
+        if (project.projectType !== "quick_video") return res.status(200).send(error50("\u975E\u5355\u89C6\u9891\u5FEB\u521B\u9879\u76EE"));
+        try {
+          await getOwnedSession(projectId, sessionId);
+        } catch (err) {
+          if (err instanceof QuickVideoError) return res.status(200).send(error50(err.message));
+          throw err;
+        }
+        const session = await saveSessionModels(projectId, sessionId, { textModel, imageModel, videoModel });
+        await utils_default2.db("o_project").where("id", projectId).update({ textModel, imageModel, videoModel });
+        res.status(200).send(success3({ session }));
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/updateSession.ts
+var import_express132, router132, updateSession_default;
+var init_updateSession = __esm({
+  "src/routes/quickVideo/updateSession.ts"() {
+    "use strict";
+    import_express132 = __toESM(require_express2());
+    init_zod();
+    init_utils3();
+    init_responseFormat();
+    init_middleware();
+    init_session();
+    init_state();
+    router132 = import_express132.default.Router();
+    updateSession_default = router132.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        sessionId: external_exports.number(),
+        title: external_exports.string().max(200).optional(),
+        status: external_exports.enum(["active", "archived"]).optional()
+      }),
+      async (req, res) => {
+        const { projectId, sessionId, title, status } = req.body;
+        const project = await utils_default2.db("o_project").where("id", projectId).select("id", "projectType").first();
+        if (!project) return res.status(200).send(error50("\u9879\u76EE\u4E0D\u5B58\u5728"));
+        if (project.projectType !== "quick_video") return res.status(200).send(error50("\u975E\u5355\u89C6\u9891\u5FEB\u521B\u9879\u76EE"));
+        try {
+          const session = await touchQuickVideoSession(projectId, sessionId, { title, status });
+          res.status(200).send(success3({ session }));
+        } catch (err) {
+          if (err instanceof QuickVideoError) return res.status(200).send(error50(err.message));
+          throw err;
+        }
+      }
+    );
+  }
+});
+
+// src/routes/quickVideo/updateShot.ts
+var import_express133, router133, updateShot_default;
+var init_updateShot = __esm({
+  "src/routes/quickVideo/updateShot.ts"() {
+    "use strict";
+    import_express133 = __toESM(require_express2());
+    init_zod();
+    init_responseFormat();
+    init_middleware();
+    init_contract();
+    init_state();
+    init_shots();
+    router133 = import_express133.default.Router();
+    updateShot_default = router133.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        expectedVersion: external_exports.number().int().min(1),
+        idempotencyKey: external_exports.string().min(8).max(64),
+        shotId: external_exports.string().min(1).max(40),
+        patch: external_exports.object({
+          description: external_exports.string().min(1).max(2e3).optional(),
+          dialogue: external_exports.string().max(500).optional(),
+          camera: external_exports.string().max(200).optional(),
+          duration: external_exports.number().int().min(5).max(15).optional(),
+          assetRefs: external_exports.array(shotAssetRefSchema).max(10).optional()
+        })
+      }),
+      async (req, res) => {
+        const { projectId, expectedVersion, idempotencyKey, shotId, patch } = req.body;
+        try {
+          const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, (state) => {
+            ensureStoryboardEditable(state);
+            const shot = findShot(state, shotId);
+            if (patch.description != null) shot.description = patch.description;
+            if (patch.dialogue != null) shot.dialogue = patch.dialogue;
+            if (patch.camera != null) shot.camera = patch.camera;
+            if (patch.duration != null) shot.duration = normalizeShotDuration(patch.duration);
+            if (patch.assetRefs != null) shot.assetRefs = patch.assetRefs;
+          });
+          res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
 // src/routes/register/register.ts
-var import_express115, router115, PHONE_REGEX, EMAIL_REGEX, register_default;
+var import_express134, router134, PHONE_REGEX, EMAIL_REGEX, register_default;
 var init_register = __esm({
   "src/routes/register/register.ts"() {
     "use strict";
-    import_express115 = __toESM(require_express2());
+    import_express134 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router115 = import_express115.default.Router();
+    router134 = import_express134.default.Router();
     PHONE_REGEX = /^1[3-9]\d{9}$/;
     EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    register_default = router115.post(
+    register_default = router134.post(
       "/",
       validateFields({
         account: external_exports.string().refine((v) => PHONE_REGEX.test(v) || EMAIL_REGEX.test(v), {
@@ -232991,17 +234663,17 @@ var init_register = __esm({
 });
 
 // src/routes/script/addScript.ts
-var import_express116, router116, addScript_default;
+var import_express135, router135, addScript_default;
 var init_addScript = __esm({
   "src/routes/script/addScript.ts"() {
     "use strict";
-    import_express116 = __toESM(require_express2());
+    import_express135 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router116 = import_express116.default.Router();
-    addScript_default = router116.post(
+    router135 = import_express135.default.Router();
+    addScript_default = router135.post(
       "/",
       validateFields({
         name: external_exports.string(),
@@ -233040,17 +234712,17 @@ var init_addScript = __esm({
 });
 
 // src/routes/script/batchAddScript.ts
-var import_express117, router117, batchAddScript_default;
+var import_express136, router136, batchAddScript_default;
 var init_batchAddScript = __esm({
   "src/routes/script/batchAddScript.ts"() {
     "use strict";
-    import_express117 = __toESM(require_express2());
+    import_express136 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router117 = import_express117.default.Router();
-    batchAddScript_default = router117.post(
+    router136 = import_express136.default.Router();
+    batchAddScript_default = router136.post(
       "/",
       validateFields({
         data: external_exports.array(
@@ -233080,17 +234752,17 @@ var init_batchAddScript = __esm({
 });
 
 // src/routes/script/delScript.ts
-var import_express118, router118, delScript_default;
+var import_express137, router137, delScript_default;
 var init_delScript = __esm({
   "src/routes/script/delScript.ts"() {
     "use strict";
-    import_express118 = __toESM(require_express2());
+    import_express137 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router118 = import_express118.default.Router();
-    delScript_default = router118.post(
+    router137 = import_express137.default.Router();
+    delScript_default = router137.post(
       "/",
       validateFields({
         ids: external_exports.array(external_exports.number())
@@ -233197,14 +234869,14 @@ var require_utils8 = __commonJS({
         opts = opts || {};
         opts.source = source;
         if (!source) {
-          const error69 = new Error("Type is not supported, must be a file path, file buffer, or a readable stream");
-          error69.name = "IlligalSourceError";
-          throw error69;
+          const error70 = new Error("Type is not supported, must be a file path, file buffer, or a readable stream");
+          error70.name = "IlligalSourceError";
+          throw error70;
         }
         if (destType(destDir) !== "path") {
-          const error69 = new Error("uncompress destination must be a directory");
-          error69.name = "IlligalDestError";
-          throw error69;
+          const error70 = new Error("uncompress destination must be a directory");
+          error70.name = "IlligalDestError";
+          throw error70;
         }
         const strip = opts.strip ? Number(opts.strip) : 0;
         delete opts.strip;
@@ -239709,9 +241381,9 @@ var require_base_stream = __commonJS({
       }
       emit(event, data) {
         if (event === "error") {
-          const error69 = data;
-          if (error69.name === "Error") {
-            error69.name = this.constructor.name + "Error";
+          const error70 = data;
+          if (error70.name === "Error") {
+            error70.name = this.constructor.name + "Error";
           }
         }
         super.emit(event, data);
@@ -240847,8 +242519,8 @@ var require_yauzl = __commonJS({
         cb();
       };
       writeStream.on("finish", callback);
-      readStream2.on("error", function(error69) {
-        callback(error69);
+      readStream2.on("error", function(error70) {
+        callback(error70);
       });
       readStream2.pipe(writeStream);
     };
@@ -240912,9 +242584,9 @@ var require_base_write_stream = __commonJS({
     var UncompressBaseStream = class extends stream8.Writable {
       emit(event, data) {
         if (event === "error") {
-          const error69 = data;
-          if (error69.name === "Error") {
-            error69.name = this.constructor.name + "Error";
+          const error70 = data;
+          if (error70.name === "Error") {
+            error70.name = this.constructor.name + "Error";
           }
         }
         super.emit.apply(this, arguments);
@@ -245041,17 +246713,17 @@ var require_compressing = __commonJS({
 });
 
 // src/routes/script/exportScript.ts
-var import_express119, import_compressing, router119, exportScript_default;
+var import_express138, import_compressing, router138, exportScript_default;
 var init_exportScript = __esm({
   "src/routes/script/exportScript.ts"() {
     "use strict";
-    import_express119 = __toESM(require_express2());
+    import_express138 = __toESM(require_express2());
     init_utils3();
     init_zod();
     import_compressing = __toESM(require_compressing());
     init_middleware();
-    router119 = import_express119.default.Router();
-    exportScript_default = router119.post(
+    router138 = import_express138.default.Router();
+    exportScript_default = router138.post(
       "/",
       validateFields({
         id: external_exports.array(external_exports.number())
@@ -245084,18 +246756,18 @@ function chunkArray(arr, groupSize) {
   }
   return groupChunks;
 }
-var import_express120, router120, NewAssetSchema, ExistingAssetRefSchema, AssetSchema, extractAssets_default;
+var import_express139, router139, NewAssetSchema, ExistingAssetRefSchema, AssetSchema, extractAssets_default;
 var init_extractAssets = __esm({
   "src/routes/script/extractAssets.ts"() {
     "use strict";
-    import_express120 = __toESM(require_express2());
+    import_express139 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
     init_dist21();
     init_projectModel();
-    router120 = import_express120.default.Router();
+    router139 = import_express139.default.Router();
     NewAssetSchema = external_exports.object({
       name: external_exports.string().describe("\u8D44\u4EA7\u540D\u79F0,\u4EC5\u4E3A\u540D\u79F0\u4E0D\u505A\u5176\u4ED6\u4EFB\u4F55\u8868\u8FF0"),
       desc: external_exports.string().describe("\u8D44\u4EA7\u63CF\u8FF0"),
@@ -245111,7 +246783,7 @@ var init_extractAssets = __esm({
       desc: external_exports.string().describe("\u8D44\u4EA7\u63CF\u8FF0"),
       type: external_exports.enum(["role", "tool", "scene"]).describe("\u8D44\u4EA7\u7C7B\u578B")
     });
-    extractAssets_default = router120.post(
+    extractAssets_default = router139.post(
       "/",
       validateFields({
         scriptIds: external_exports.array(external_exports.number()),
@@ -245280,18 +246952,18 @@ ${scriptsContent}`
 });
 
 // src/routes/script/getAiRegex.ts
-var import_express121, router121, getAiRegex_default;
+var import_express140, router140, getAiRegex_default;
 var init_getAiRegex = __esm({
   "src/routes/script/getAiRegex.ts"() {
     "use strict";
-    import_express121 = __toESM(require_express2());
+    import_express140 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
     init_projectModel();
-    router121 = import_express121.default.Router();
-    getAiRegex_default = router121.post(
+    router140 = import_express140.default.Router();
+    getAiRegex_default = router140.post(
       "/",
       validateFields({
         content: external_exports.string(),
@@ -245326,17 +246998,17 @@ var init_getAiRegex = __esm({
 });
 
 // src/routes/script/getScrptApi.ts
-var import_express122, router122, getScrptApi_default;
+var import_express141, router141, getScrptApi_default;
 var init_getScrptApi = __esm({
   "src/routes/script/getScrptApi.ts"() {
     "use strict";
-    import_express122 = __toESM(require_express2());
+    import_express141 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router122 = import_express122.default.Router();
-    getScrptApi_default = router122.post(
+    router141 = import_express141.default.Router();
+    getScrptApi_default = router141.post(
       "/",
       validateFields({
         projectId: external_exports.number(),
@@ -245377,17 +247049,17 @@ var init_getScrptApi = __esm({
 });
 
 // src/routes/script/pollScriptAssets.ts
-var import_express123, router123, pollScriptAssets_default;
+var import_express142, router142, pollScriptAssets_default;
 var init_pollScriptAssets = __esm({
   "src/routes/script/pollScriptAssets.ts"() {
     "use strict";
-    import_express123 = __toESM(require_express2());
+    import_express142 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router123 = import_express123.default.Router();
-    pollScriptAssets_default = router123.post(
+    router142 = import_express142.default.Router();
+    pollScriptAssets_default = router142.post(
       "/",
       validateFields({
         ids: external_exports.array(external_exports.number())
@@ -245402,17 +247074,17 @@ var init_pollScriptAssets = __esm({
 });
 
 // src/routes/script/updateScript.ts
-var import_express124, router124, updateScript_default;
+var import_express143, router143, updateScript_default;
 var init_updateScript = __esm({
   "src/routes/script/updateScript.ts"() {
     "use strict";
-    import_express124 = __toESM(require_express2());
+    import_express143 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router124 = import_express124.default.Router();
-    updateScript_default = router124.post(
+    router143 = import_express143.default.Router();
+    updateScript_default = router143.post(
       "/",
       validateFields({
         id: external_exports.number(),
@@ -245446,17 +247118,17 @@ var init_updateScript = __esm({
 });
 
 // src/routes/scriptAgent/getPlanData.ts
-var import_express125, router125, getPlanData_default;
+var import_express144, router144, getPlanData_default;
 var init_getPlanData = __esm({
   "src/routes/scriptAgent/getPlanData.ts"() {
     "use strict";
-    import_express125 = __toESM(require_express2());
+    import_express144 = __toESM(require_express2());
     init_responseFormat();
     init_utils3();
     init_zod();
     init_middleware();
-    router125 = import_express125.default.Router();
-    getPlanData_default = router125.post(
+    router144 = import_express144.default.Router();
+    getPlanData_default = router144.post(
       "/",
       validateFields({
         projectId: external_exports.number(),
@@ -245496,17 +247168,17 @@ var init_getPlanData = __esm({
 });
 
 // src/routes/scriptAgent/setPlanData.ts
-var import_express126, router126, setPlanData_default;
+var import_express145, router145, setPlanData_default;
 var init_setPlanData = __esm({
   "src/routes/scriptAgent/setPlanData.ts"() {
     "use strict";
-    import_express126 = __toESM(require_express2());
+    import_express145 = __toESM(require_express2());
     init_responseFormat();
     init_utils3();
     init_zod();
     init_middleware();
-    router126 = import_express126.default.Router();
-    setPlanData_default = router126.post(
+    router145 = import_express145.default.Router();
+    setPlanData_default = router145.post(
       "/",
       validateFields({
         projectId: external_exports.number(),
@@ -245546,17 +247218,17 @@ var init_setPlanData = __esm({
 });
 
 // src/routes/scriptAgent/updateData.ts
-var import_express127, router127, updateData_default;
+var import_express146, router146, updateData_default;
 var init_updateData = __esm({
   "src/routes/scriptAgent/updateData.ts"() {
     "use strict";
-    import_express127 = __toESM(require_express2());
+    import_express146 = __toESM(require_express2());
     init_responseFormat();
     init_utils3();
     init_zod();
     init_middleware();
-    router127 = import_express127.default.Router();
-    updateData_default = router127.post(
+    router146 = import_express146.default.Router();
+    updateData_default = router146.post(
       "/",
       validateFields({
         id: external_exports.number(),
@@ -245583,17 +247255,17 @@ var init_updateData = __esm({
 });
 
 // src/routes/setting/about/checkUpdate.ts
-var import_express128, import_fs3, import_path12, router128, APP_VERSION2, checkUpdate_default;
+var import_express147, import_fs3, import_path12, router147, APP_VERSION2, checkUpdate_default;
 var init_checkUpdate = __esm({
   "src/routes/setting/about/checkUpdate.ts"() {
     "use strict";
-    import_express128 = __toESM(require_express2());
+    import_express147 = __toESM(require_express2());
     init_responseFormat();
     init_middleware();
     init_zod();
     import_fs3 = __toESM(require("fs"));
     import_path12 = __toESM(require("path"));
-    router128 = import_express128.default.Router();
+    router147 = import_express147.default.Router();
     APP_VERSION2 = (() => {
       if (true) {
         return "1.1.8";
@@ -245602,7 +247274,7 @@ var init_checkUpdate = __esm({
       const pkg = JSON.parse(import_fs3.default.readFileSync(pkgPath, "utf8"));
       return pkg.version;
     })();
-    checkUpdate_default = router128.post(
+    checkUpdate_default = router147.post(
       "/",
       validateFields({
         source: external_exports.enum(["toonflow", "github", "gitee", "atomgit"]),
@@ -245644,11 +247316,11 @@ var init_checkUpdate = __esm({
 });
 
 // src/routes/setting/about/downloadApp.ts
-var import_express129, import_fs4, import_path13, import_compressing2, router129, downloadApp_default;
+var import_express148, import_fs4, import_path13, import_compressing2, router148, downloadApp_default;
 var init_downloadApp = __esm({
   "src/routes/setting/about/downloadApp.ts"() {
     "use strict";
-    import_express129 = __toESM(require_express2());
+    import_express148 = __toESM(require_express2());
     init_zod();
     init_middleware();
     init_utils3();
@@ -245657,8 +247329,8 @@ var init_downloadApp = __esm({
     init_axios2();
     import_compressing2 = __toESM(require_compressing());
     init_responseFormat();
-    router129 = import_express129.default.Router();
-    downloadApp_default = router129.post(
+    router148 = import_express148.default.Router();
+    downloadApp_default = router148.post(
       "/",
       validateFields({
         url: zod_default.url(),
@@ -245689,17 +247361,17 @@ var init_downloadApp = __esm({
 });
 
 // src/routes/setting/agentDeploy/agentSetKey.ts
-var import_express130, router130, agentSetKey_default;
+var import_express149, router149, agentSetKey_default;
 var init_agentSetKey = __esm({
   "src/routes/setting/agentDeploy/agentSetKey.ts"() {
     "use strict";
-    import_express130 = __toESM(require_express2());
+    import_express149 = __toESM(require_express2());
     init_responseFormat();
     init_utils3();
     init_zod();
     init_middleware();
-    router130 = import_express130.default.Router();
-    agentSetKey_default = router130.post(
+    router149 = import_express149.default.Router();
+    agentSetKey_default = router149.post(
       "/",
       requireRole("admin", "\u53EA\u6709\u7BA1\u7406\u5458\u624D\u80FD\u914D\u7F6E\u5185\u7F6E Agent \u7684 Key"),
       validateFields({
@@ -245755,17 +247427,17 @@ var init_agentSetKey = __esm({
 });
 
 // src/routes/setting/agentDeploy/deployAgentModel.ts
-var import_express131, router131, deployAgentModel_default;
+var import_express150, router150, deployAgentModel_default;
 var init_deployAgentModel = __esm({
   "src/routes/setting/agentDeploy/deployAgentModel.ts"() {
     "use strict";
-    import_express131 = __toESM(require_express2());
+    import_express150 = __toESM(require_express2());
     init_responseFormat();
     init_utils3();
     init_zod();
     init_middleware();
-    router131 = import_express131.default.Router();
-    deployAgentModel_default = router131.post(
+    router150 = import_express150.default.Router();
+    deployAgentModel_default = router150.post(
       "/",
       validateFields({
         items: external_exports.array(
@@ -245794,15 +247466,15 @@ var init_deployAgentModel = __esm({
 });
 
 // src/routes/setting/agentDeploy/getAgentDeploy.ts
-var import_express132, router132, getAgentDeploy_default;
+var import_express151, router151, getAgentDeploy_default;
 var init_getAgentDeploy = __esm({
   "src/routes/setting/agentDeploy/getAgentDeploy.ts"() {
     "use strict";
-    import_express132 = __toESM(require_express2());
+    import_express151 = __toESM(require_express2());
     init_responseFormat();
     init_utils3();
-    router132 = import_express132.default.Router();
-    getAgentDeploy_default = router132.post("/", async (req, res) => {
+    router151 = import_express151.default.Router();
+    getAgentDeploy_default = router151.post("/", async (req, res) => {
       const allData = await utils_default2.db("o_agentDeploy").leftJoin("o_vendorConfig", "o_vendorConfig.id", "o_agentDeploy.vendorId").select("o_agentDeploy.*");
       const qrdinaryData = allData.filter((item) => !item.key?.includes(":"));
       const advancedData = allData.filter((item) => item.key?.includes(":") || item.key == "universalAi");
@@ -245812,15 +247484,15 @@ var init_getAgentDeploy = __esm({
 });
 
 // src/routes/setting/agentDeploy/getAgentUseMode.ts
-var import_express133, router133, getAgentUseMode_default;
+var import_express152, router152, getAgentUseMode_default;
 var init_getAgentUseMode = __esm({
   "src/routes/setting/agentDeploy/getAgentUseMode.ts"() {
     "use strict";
-    import_express133 = __toESM(require_express2());
+    import_express152 = __toESM(require_express2());
     init_responseFormat();
     init_utils3();
-    router133 = import_express133.default.Router();
-    getAgentUseMode_default = router133.get("/", async (req, res) => {
+    router152 = import_express152.default.Router();
+    getAgentUseMode_default = router152.get("/", async (req, res) => {
       const useMode = await utils_default2.db("o_setting").where("key", "agentUseMode").first();
       console.log("%c Line:9 \u{1F353} useMode", "background:#33a5ff", useMode);
       res.status(200).send(success3(useMode?.value || "0"));
@@ -245829,17 +247501,17 @@ var init_getAgentUseMode = __esm({
 });
 
 // src/routes/setting/agentDeploy/updateAgentModel.ts
-var import_express134, router134, updateAgentModel_default;
+var import_express153, router153, updateAgentModel_default;
 var init_updateAgentModel = __esm({
   "src/routes/setting/agentDeploy/updateAgentModel.ts"() {
     "use strict";
-    import_express134 = __toESM(require_express2());
+    import_express153 = __toESM(require_express2());
     init_responseFormat();
     init_utils3();
     init_zod();
     init_middleware();
-    router134 = import_express134.default.Router();
-    updateAgentModel_default = router134.post(
+    router153 = import_express153.default.Router();
+    updateAgentModel_default = router153.post(
       "/",
       validateFields({
         id: external_exports.number(),
@@ -245861,17 +247533,17 @@ var init_updateAgentModel = __esm({
 });
 
 // src/routes/setting/agentDeploy/updateUseMode.ts
-var import_express135, router135, updateUseMode_default;
+var import_express154, router154, updateUseMode_default;
 var init_updateUseMode = __esm({
   "src/routes/setting/agentDeploy/updateUseMode.ts"() {
     "use strict";
-    import_express135 = __toESM(require_express2());
+    import_express154 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router135 = import_express135.default.Router();
-    updateUseMode_default = router135.post(
+    router154 = import_express154.default.Router();
+    updateUseMode_default = router154.post(
       "/",
       validateFields({
         agentUseMode: external_exports.string()
@@ -245887,14 +247559,14 @@ var init_updateUseMode = __esm({
   }
 });
 
-// src/routes/setting/dbConfig/tableNames.ts
+// src/utils/tableNames.ts
 async function getTableNames() {
   const rows = await db("information_schema.tables").select({ name: "TABLE_NAME" }).where("TABLE_SCHEMA", databaseName).where("TABLE_TYPE", "BASE TABLE").whereRaw("TABLE_NAME NOT LIKE ?", ["knex_%"]).orderBy("TABLE_NAME");
   return rows.map((row) => row.name);
 }
 var databaseName;
 var init_tableNames = __esm({
-  "src/routes/setting/dbConfig/tableNames.ts"() {
+  "src/utils/tableNames.ts"() {
     "use strict";
     init_db();
     databaseName = process.env.DB_NAME || "toonflow_db";
@@ -245902,17 +247574,17 @@ var init_tableNames = __esm({
 });
 
 // src/routes/setting/dbConfig/clearData.ts
-var import_express136, router136, clearData_default;
+var import_express155, router155, clearData_default;
 var init_clearData = __esm({
   "src/routes/setting/dbConfig/clearData.ts"() {
     "use strict";
-    import_express136 = __toESM(require_express2());
+    import_express155 = __toESM(require_express2());
     init_responseFormat();
     init_db();
     init_initDB();
     init_tableNames();
-    router136 = import_express136.default.Router();
-    clearData_default = router136.get("/", async (req, res) => {
+    router155 = import_express155.default.Router();
+    clearData_default = router155.get("/", async (req, res) => {
       try {
         const tables = await getTableNames();
         await db.raw("SET FOREIGN_KEY_CHECKS = 0");
@@ -245933,16 +247605,16 @@ var init_clearData = __esm({
 });
 
 // src/routes/setting/dbConfig/clearTable.ts
-var import_express137, router137, clearTable_default;
+var import_express156, router156, clearTable_default;
 var init_clearTable = __esm({
   "src/routes/setting/dbConfig/clearTable.ts"() {
     "use strict";
-    import_express137 = __toESM(require_express2());
+    import_express156 = __toESM(require_express2());
     init_responseFormat();
     init_db();
     init_tableNames();
-    router137 = import_express137.default.Router();
-    clearTable_default = router137.post("/", async (req, res) => {
+    router156 = import_express156.default.Router();
+    clearTable_default = router156.post("/", async (req, res) => {
       try {
         const { tableName } = req.body;
         if (!tableName || typeof tableName !== "string") {
@@ -245962,16 +247634,16 @@ var init_clearTable = __esm({
 });
 
 // src/routes/setting/dbConfig/dbInfo.ts
-var import_express138, router138, dbInfo_default;
+var import_express157, router157, dbInfo_default;
 var init_dbInfo = __esm({
   "src/routes/setting/dbConfig/dbInfo.ts"() {
     "use strict";
-    import_express138 = __toESM(require_express2());
+    import_express157 = __toESM(require_express2());
     init_responseFormat();
     init_db();
     init_tableNames();
-    router138 = import_express138.default.Router();
-    dbInfo_default = router138.get("/", async (req, res) => {
+    router157 = import_express157.default.Router();
+    dbInfo_default = router157.get("/", async (req, res) => {
       try {
         const tables = await getTableNames();
         const tableInfo = [];
@@ -245991,16 +247663,16 @@ var init_dbInfo = __esm({
 });
 
 // src/routes/setting/dbConfig/exportData.ts
-var import_express139, router139, exportData_default;
+var import_express158, router158, exportData_default;
 var init_exportData = __esm({
   "src/routes/setting/dbConfig/exportData.ts"() {
     "use strict";
-    import_express139 = __toESM(require_express2());
+    import_express158 = __toESM(require_express2());
     init_responseFormat();
     init_db();
     init_tableNames();
-    router139 = import_express139.default.Router();
-    exportData_default = router139.get("/", async (req, res) => {
+    router158 = import_express158.default.Router();
+    exportData_default = router158.get("/", async (req, res) => {
       try {
         const tables = await getTableNames();
         const data = {};
@@ -246022,17 +247694,17 @@ var init_exportData = __esm({
 });
 
 // src/routes/setting/dbConfig/importData.ts
-var import_express140, router140, importData_default;
+var import_express159, router159, importData_default;
 var init_importData = __esm({
   "src/routes/setting/dbConfig/importData.ts"() {
     "use strict";
-    import_express140 = __toESM(require_express2());
+    import_express159 = __toESM(require_express2());
     init_responseFormat();
     init_db();
     init_initDB();
     init_tableNames();
-    router140 = import_express140.default.Router();
-    importData_default = router140.post("/", async (req, res) => {
+    router159 = import_express159.default.Router();
+    importData_default = router159.post("/", async (req, res) => {
       try {
         const { tables: importTables } = req.body;
         if (!importTables || typeof importTables !== "object") {
@@ -246071,15 +247743,15 @@ var init_importData = __esm({
 });
 
 // src/routes/setting/dev/getSwitchAiDevTool.ts
-var import_express141, router141, getSwitchAiDevTool_default;
+var import_express160, router160, getSwitchAiDevTool_default;
 var init_getSwitchAiDevTool = __esm({
   "src/routes/setting/dev/getSwitchAiDevTool.ts"() {
     "use strict";
-    import_express141 = __toESM(require_express2());
+    import_express160 = __toESM(require_express2());
     init_responseFormat();
     init_utils3();
-    router141 = import_express141.default.Router();
-    getSwitchAiDevTool_default = router141.get("/", async (req, res) => {
+    router160 = import_express160.default.Router();
+    getSwitchAiDevTool_default = router160.get("/", async (req, res) => {
       const switchAiDevTool = await utils_default2.db("o_setting").where("key", "switchAiDevTool").first();
       res.status(200).send(success3(switchAiDevTool?.value || "0"));
     });
@@ -246087,17 +247759,17 @@ var init_getSwitchAiDevTool = __esm({
 });
 
 // src/routes/setting/dev/updateSwitchAiDevTool.ts
-var import_express142, router142, updateSwitchAiDevTool_default;
+var import_express161, router161, updateSwitchAiDevTool_default;
 var init_updateSwitchAiDevTool = __esm({
   "src/routes/setting/dev/updateSwitchAiDevTool.ts"() {
     "use strict";
-    import_express142 = __toESM(require_express2());
+    import_express161 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router142 = import_express142.default.Router();
-    updateSwitchAiDevTool_default = router142.post(
+    router161 = import_express161.default.Router();
+    updateSwitchAiDevTool_default = router161.post(
       "/",
       validateFields({
         switchAiDevTool: external_exports.string()
@@ -246114,19 +247786,19 @@ var init_updateSwitchAiDevTool = __esm({
 });
 
 // src/routes/setting/fileManagement/openFolder.ts
-var import_express143, import_child_process, router143, openFolder_default;
+var import_express162, import_child_process, router162, openFolder_default;
 var init_openFolder = __esm({
   "src/routes/setting/fileManagement/openFolder.ts"() {
     "use strict";
-    import_express143 = __toESM(require_express2());
+    import_express162 = __toESM(require_express2());
     init_zod();
     import_child_process = require("child_process");
     init_responseFormat();
     init_middleware();
     init_getPath();
     init_utils3();
-    router143 = import_express143.default.Router();
-    openFolder_default = router143.post(
+    router162 = import_express162.default.Router();
+    openFolder_default = router162.post(
       "/",
       validateFields({
         path: external_exports.string()
@@ -246151,14 +247823,14 @@ var init_openFolder = __esm({
 });
 
 // src/routes/setting/getTextModel.ts
-var import_express144, router144, getTextModel_default;
+var import_express163, router163, getTextModel_default;
 var init_getTextModel = __esm({
   "src/routes/setting/getTextModel.ts"() {
     "use strict";
-    import_express144 = __toESM(require_express2());
+    import_express163 = __toESM(require_express2());
     init_responseFormat();
-    router144 = import_express144.default.Router();
-    getTextModel_default = router144.post(
+    router163 = import_express163.default.Router();
+    getTextModel_default = router163.post(
       "/",
       async (req, res) => {
         res.status(200).send(success3("123"));
@@ -246168,15 +247840,15 @@ var init_getTextModel = __esm({
 });
 
 // src/routes/setting/loginConfig/getUser.ts
-var import_express145, router145, getUser_default;
+var import_express164, router164, getUser_default;
 var init_getUser = __esm({
   "src/routes/setting/loginConfig/getUser.ts"() {
     "use strict";
-    import_express145 = __toESM(require_express2());
+    import_express164 = __toESM(require_express2());
     init_utils3();
     init_responseFormat();
-    router145 = import_express145.default.Router();
-    getUser_default = router145.get("/", async (req, res) => {
+    router164 = import_express164.default.Router();
+    getUser_default = router164.get("/", async (req, res) => {
       const data = await utils_default2.db("o_user").select("*").first();
       res.status(200).send(success3(data));
     });
@@ -246184,17 +247856,17 @@ var init_getUser = __esm({
 });
 
 // src/routes/setting/loginConfig/updateUserPwd.ts
-var import_express146, router146, updateUserPwd_default;
+var import_express165, router165, updateUserPwd_default;
 var init_updateUserPwd = __esm({
   "src/routes/setting/loginConfig/updateUserPwd.ts"() {
     "use strict";
-    import_express146 = __toESM(require_express2());
+    import_express165 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router146 = import_express146.default.Router();
-    updateUserPwd_default = router146.post(
+    router165 = import_express165.default.Router();
+    updateUserPwd_default = router165.post(
       "/",
       validateFields({
         name: external_exports.string(),
@@ -246214,15 +247886,15 @@ var init_updateUserPwd = __esm({
 });
 
 // src/routes/setting/memoryConfig/delAllMemory.ts
-var import_express147, router147, delAllMemory_default;
+var import_express166, router166, delAllMemory_default;
 var init_delAllMemory = __esm({
   "src/routes/setting/memoryConfig/delAllMemory.ts"() {
     "use strict";
-    import_express147 = __toESM(require_express2());
+    import_express166 = __toESM(require_express2());
     init_responseFormat();
     init_utils3();
-    router147 = import_express147.default.Router();
-    delAllMemory_default = router147.post("/", async (req, res) => {
+    router166 = import_express166.default.Router();
+    delAllMemory_default = router166.post("/", async (req, res) => {
       await utils_default2.db("memories").del();
       res.status(200).send(success3(true));
     });
@@ -246230,15 +247902,15 @@ var init_delAllMemory = __esm({
 });
 
 // src/routes/setting/memoryConfig/getMemory.ts
-var import_express148, router148, getMemory_default2;
+var import_express167, router167, getMemory_default2;
 var init_getMemory2 = __esm({
   "src/routes/setting/memoryConfig/getMemory.ts"() {
     "use strict";
-    import_express148 = __toESM(require_express2());
+    import_express167 = __toESM(require_express2());
     init_responseFormat();
     init_utils3();
-    router148 = import_express148.default.Router();
-    getMemory_default2 = router148.get("/", async (req, res) => {
+    router167 = import_express167.default.Router();
+    getMemory_default2 = router167.get("/", async (req, res) => {
       const settingData = await utils_default2.db("o_setting").whereIn("key", [
         "messagesPerSummary",
         "shortTermLimit",
@@ -246268,17 +247940,17 @@ var init_getMemory2 = __esm({
 });
 
 // src/routes/setting/memoryConfig/sureMemory.ts
-var import_express149, router149, sureMemory_default;
+var import_express168, router168, sureMemory_default;
 var init_sureMemory = __esm({
   "src/routes/setting/memoryConfig/sureMemory.ts"() {
     "use strict";
-    import_express149 = __toESM(require_express2());
+    import_express168 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router149 = import_express149.default.Router();
-    sureMemory_default = router149.post(
+    router168 = import_express168.default.Router();
+    sureMemory_default = router168.post(
       "/",
       validateFields({
         messagesPerSummary: external_exports.number(),
@@ -246315,17 +247987,17 @@ var init_sureMemory = __esm({
 });
 
 // src/routes/setting/modelMap/bindingPrompt.ts
-var import_express150, router150, bindingPrompt_default;
+var import_express169, router169, bindingPrompt_default;
 var init_bindingPrompt = __esm({
   "src/routes/setting/modelMap/bindingPrompt.ts"() {
     "use strict";
-    import_express150 = __toESM(require_express2());
+    import_express169 = __toESM(require_express2());
     init_responseFormat();
     init_utils3();
     init_zod();
     init_middleware();
-    router150 = import_express150.default.Router();
-    bindingPrompt_default = router150.post(
+    router169 = import_express169.default.Router();
+    bindingPrompt_default = router169.post(
       "/",
       validateFields({
         vendorId: external_exports.string(),
@@ -246351,19 +248023,19 @@ var init_bindingPrompt = __esm({
 });
 
 // src/routes/setting/modelMap/deletePrompt.ts
-var import_express151, import_promises4, import_path14, router151, deletePrompt_default;
+var import_express170, import_promises4, import_path14, router170, deletePrompt_default;
 var init_deletePrompt = __esm({
   "src/routes/setting/modelMap/deletePrompt.ts"() {
     "use strict";
-    import_express151 = __toESM(require_express2());
+    import_express170 = __toESM(require_express2());
     init_responseFormat();
     init_utils3();
     init_zod();
     init_middleware();
     import_promises4 = __toESM(require("fs/promises"));
     import_path14 = __toESM(require("path"));
-    router151 = import_express151.default.Router();
-    deletePrompt_default = router151.post(
+    router170 = import_express170.default.Router();
+    deletePrompt_default = router170.post(
       "/",
       validateFields({
         path: external_exports.string()
@@ -246389,15 +248061,15 @@ var init_deletePrompt = __esm({
 });
 
 // src/routes/setting/modelMap/getImageAndVideoModel.ts
-var import_express152, router152, getImageAndVideoModel_default;
+var import_express171, router171, getImageAndVideoModel_default;
 var init_getImageAndVideoModel = __esm({
   "src/routes/setting/modelMap/getImageAndVideoModel.ts"() {
     "use strict";
-    import_express152 = __toESM(require_express2());
+    import_express171 = __toESM(require_express2());
     init_utils3();
     init_responseFormat();
-    router152 = import_express152.default.Router();
-    getImageAndVideoModel_default = router152.post("/", async (req, res) => {
+    router171 = import_express171.default.Router();
+    getImageAndVideoModel_default = router171.post("/", async (req, res) => {
       const dataList = await utils_default2.db("o_vendorConfig").select("id").where("enable", 1);
       if (!dataList || dataList.length === 0) {
         return res.status(404).send({ error: "\u6A21\u578B\u672A\u627E\u5230" });
@@ -246427,18 +248099,18 @@ var init_getImageAndVideoModel = __esm({
 });
 
 // src/routes/setting/modelMap/getPromptList.ts
-var import_express153, import_fast_glob3, import_promises5, import_path15, router153, getPromptList_default;
+var import_express172, import_fast_glob3, import_promises5, import_path15, router172, getPromptList_default;
 var init_getPromptList = __esm({
   "src/routes/setting/modelMap/getPromptList.ts"() {
     "use strict";
-    import_express153 = __toESM(require_express2());
+    import_express172 = __toESM(require_express2());
     init_responseFormat();
     init_utils3();
     import_fast_glob3 = __toESM(require_out4());
     import_promises5 = __toESM(require("fs/promises"));
     import_path15 = __toESM(require("path"));
-    router153 = import_express153.default.Router();
-    getPromptList_default = router153.get("/", async (req, res) => {
+    router172 = import_express172.default.Router();
+    getPromptList_default = router172.get("/", async (req, res) => {
       const modelPromptRoot = utils_default2.getPath(["modelPrompt"]);
       const entries = await (0, import_fast_glob3.default)("**/*.md", {
         cwd: modelPromptRoot.replace(/\\/g, "/"),
@@ -246459,19 +248131,19 @@ var init_getPromptList = __esm({
 });
 
 // src/routes/setting/modelMap/savePrompt.ts
-var import_express154, import_promises6, import_path16, router154, savePrompt_default;
+var import_express173, import_promises6, import_path16, router173, savePrompt_default;
 var init_savePrompt = __esm({
   "src/routes/setting/modelMap/savePrompt.ts"() {
     "use strict";
-    import_express154 = __toESM(require_express2());
+    import_express173 = __toESM(require_express2());
     init_responseFormat();
     init_utils3();
     init_zod();
     init_middleware();
     import_promises6 = __toESM(require("fs/promises"));
     import_path16 = __toESM(require("path"));
-    router154 = import_express154.default.Router();
-    savePrompt_default = router154.post(
+    router173 = import_express173.default.Router();
+    savePrompt_default = router173.post(
       "/",
       validateFields({
         name: external_exports.string().min(1),
@@ -246492,19 +248164,19 @@ var init_savePrompt = __esm({
 });
 
 // src/routes/setting/modelMap/updatePrompt.ts
-var import_express155, import_promises7, import_path17, router155, updatePrompt_default;
+var import_express174, import_promises7, import_path17, router174, updatePrompt_default;
 var init_updatePrompt = __esm({
   "src/routes/setting/modelMap/updatePrompt.ts"() {
     "use strict";
-    import_express155 = __toESM(require_express2());
+    import_express174 = __toESM(require_express2());
     init_responseFormat();
     init_utils3();
     init_zod();
     init_middleware();
     import_promises7 = __toESM(require("fs/promises"));
     import_path17 = __toESM(require("path"));
-    router155 = import_express155.default.Router();
-    updatePrompt_default = router155.post(
+    router174 = import_express174.default.Router();
+    updatePrompt_default = router174.post(
       "/",
       validateFields({
         name: external_exports.string().min(1),
@@ -246533,15 +248205,15 @@ var init_updatePrompt = __esm({
 });
 
 // src/routes/setting/promptManage/getPrompt.ts
-var import_express156, router156, getPrompt_default;
+var import_express175, router175, getPrompt_default;
 var init_getPrompt = __esm({
   "src/routes/setting/promptManage/getPrompt.ts"() {
     "use strict";
-    import_express156 = __toESM(require_express2());
+    import_express175 = __toESM(require_express2());
     init_utils3();
     init_responseFormat();
-    router156 = import_express156.default.Router();
-    getPrompt_default = router156.post("/", async (req, res) => {
+    router175 = import_express175.default.Router();
+    getPrompt_default = router175.post("/", async (req, res) => {
       const list2 = await utils_default2.db("o_prompt").select("*");
       const data = await Promise.all(
         list2.map(async (item) => {
@@ -246557,17 +248229,17 @@ var init_getPrompt = __esm({
 });
 
 // src/routes/setting/promptManage/updatePrompt.ts
-var import_express157, router157, updatePrompt_default2;
+var import_express176, router176, updatePrompt_default2;
 var init_updatePrompt2 = __esm({
   "src/routes/setting/promptManage/updatePrompt.ts"() {
     "use strict";
-    import_express157 = __toESM(require_express2());
+    import_express176 = __toESM(require_express2());
     init_utils3();
     init_zod();
     init_responseFormat();
     init_middleware();
-    router157 = import_express157.default.Router();
-    updatePrompt_default2 = router157.post(
+    router176 = import_express176.default.Router();
+    updatePrompt_default2 = router176.post(
       "/",
       validateFields({
         id: external_exports.number()
@@ -246584,11 +248256,11 @@ var init_updatePrompt2 = __esm({
 });
 
 // src/routes/setting/skillManagement/getSkillContent.ts
-var import_express158, import_path18, fs18, router158, getSkillContent_default;
+var import_express177, import_path18, fs18, router177, getSkillContent_default;
 var init_getSkillContent = __esm({
   "src/routes/setting/skillManagement/getSkillContent.ts"() {
     "use strict";
-    import_express158 = __toESM(require_express2());
+    import_express177 = __toESM(require_express2());
     init_responseFormat();
     init_middleware();
     init_zod();
@@ -246597,8 +248269,8 @@ var init_getSkillContent = __esm({
     import_path18 = __toESM(require("path"));
     fs18 = __toESM(require("fs"));
     init_skillManual();
-    router158 = import_express158.default.Router();
-    getSkillContent_default = router158.post(
+    router177 = import_express177.default.Router();
+    getSkillContent_default = router177.post(
       "/",
       validateFields({
         path: external_exports.string()
@@ -246624,18 +248296,18 @@ var init_getSkillContent = __esm({
 });
 
 // src/routes/setting/skillManagement/getSkillList.ts
-var import_express159, import_fast_glob4, router159, getSkillList_default;
+var import_express178, import_fast_glob4, router178, getSkillList_default;
 var init_getSkillList = __esm({
   "src/routes/setting/skillManagement/getSkillList.ts"() {
     "use strict";
-    import_express159 = __toESM(require_express2());
+    import_express178 = __toESM(require_express2());
     init_responseFormat();
     import_fast_glob4 = __toESM(require_out4());
     init_utils3();
     init_db();
     init_skillManual();
-    router159 = import_express159.default.Router();
-    getSkillList_default = router159.post("/", async (req, res) => {
+    router178 = import_express178.default.Router();
+    getSkillList_default = router178.post("/", async (req, res) => {
       const skillsRoot = utils_default2.getPath(["skills"]);
       const localEntries = await (0, import_fast_glob4.default)("**/*.md", {
         cwd: skillsRoot.replace(/\\/g, "/"),
@@ -246650,11 +248322,11 @@ var init_getSkillList = __esm({
 });
 
 // src/routes/setting/skillManagement/saveSkillContent.ts
-var import_express160, import_path19, fs19, router160, saveSkillContent_default;
+var import_express179, import_path19, fs19, router179, saveSkillContent_default;
 var init_saveSkillContent = __esm({
   "src/routes/setting/skillManagement/saveSkillContent.ts"() {
     "use strict";
-    import_express160 = __toESM(require_express2());
+    import_express179 = __toESM(require_express2());
     init_responseFormat();
     init_middleware();
     init_zod();
@@ -246663,8 +248335,8 @@ var init_saveSkillContent = __esm({
     import_path19 = __toESM(require("path"));
     fs19 = __toESM(require("fs"));
     init_skillManual();
-    router160 = import_express160.default.Router();
-    saveSkillContent_default = router160.post(
+    router179 = import_express179.default.Router();
+    saveSkillContent_default = router179.post(
       "/",
       validateFields({
         path: external_exports.string(),
@@ -246697,14 +248369,14 @@ var init_saveSkillContent = __esm({
 });
 
 // src/routes/setting/vendorConfig/addVendor.ts
-var import_express161, router161, addVendor_default;
+var import_express180, router180, addVendor_default;
 var init_addVendor = __esm({
   "src/routes/setting/vendorConfig/addVendor.ts"() {
     "use strict";
-    import_express161 = __toESM(require_express2());
+    import_express180 = __toESM(require_express2());
     init_responseFormat();
-    router161 = import_express161.default.Router();
-    addVendor_default = router161.post("/", async (req, res) => {
+    router180 = import_express180.default.Router();
+    addVendor_default = router180.post("/", async (req, res) => {
       res.status(403).send(error50("\u7CFB\u7EDF\u5DF2\u5347\u7EA7\u4E3A\u9759\u6001\u4EE3\u7801\u67B6\u6784\uFF0C\u7981\u6B62\u52A8\u6001\u6DFB\u52A0\u4F9B\u5E94\u5546\u3002\u8BF7\u901A\u8FC7\u63D0\u4EA4\u4EE3\u7801\u7684\u65B9\u5F0F\u65B0\u589E\u4F9B\u5E94\u5546\u3002"));
     });
   }
@@ -246770,18 +248442,18 @@ var init_vendorModelSchema = __esm({
 });
 
 // src/routes/setting/vendorConfig/addVendorModel.ts
-var import_express162, router162, addVendorModel_default;
+var import_express181, router181, addVendorModel_default;
 var init_addVendorModel = __esm({
   "src/routes/setting/vendorConfig/addVendorModel.ts"() {
     "use strict";
-    import_express162 = __toESM(require_express2());
+    import_express181 = __toESM(require_express2());
     init_responseFormat();
     init_middleware();
     init_vendorModelSchema();
     init_utils3();
     init_zod();
-    router162 = import_express162.default.Router();
-    addVendorModel_default = router162.post(
+    router181 = import_express181.default.Router();
+    addVendorModel_default = router181.post(
       "/",
       requireRole("admin", "\u53EA\u6709\u7BA1\u7406\u5458\u624D\u80FD\u542F\u7528\u6A21\u578B"),
       validateFields({
@@ -246808,18 +248480,18 @@ var init_addVendorModel = __esm({
 });
 
 // src/routes/setting/vendorConfig/addVendorModelSpec.ts
-var import_express163, router163, addVendorModelSpec_default;
+var import_express182, router182, addVendorModelSpec_default;
 var init_addVendorModelSpec = __esm({
   "src/routes/setting/vendorConfig/addVendorModelSpec.ts"() {
     "use strict";
-    import_express163 = __toESM(require_express2());
+    import_express182 = __toESM(require_express2());
     init_responseFormat();
     init_middleware();
     init_vendorModelSchema();
     init_utils3();
     init_zod();
-    router163 = import_express163.default.Router();
-    addVendorModelSpec_default = router163.post(
+    router182 = import_express182.default.Router();
+    addVendorModelSpec_default = router182.post(
       "/",
       requireRole("admin", "\u53EA\u6709\u7BA1\u7406\u5458\u624D\u80FD\u7EF4\u62A4\u6E20\u9053\u534F\u8BAE\u76EE\u5F55"),
       validateFields({
@@ -246843,19 +248515,19 @@ var init_addVendorModelSpec = __esm({
 });
 
 // src/routes/setting/vendorConfig/deleteVendor.ts
-var import_express164, import_path20, import_fs5, router164, deleteVendor_default;
+var import_express183, import_path20, import_fs5, router183, deleteVendor_default;
 var init_deleteVendor = __esm({
   "src/routes/setting/vendorConfig/deleteVendor.ts"() {
     "use strict";
-    import_express164 = __toESM(require_express2());
+    import_express183 = __toESM(require_express2());
     init_responseFormat();
     init_middleware();
     import_path20 = __toESM(require("path"));
     import_fs5 = __toESM(require("fs"));
     init_utils3();
     init_zod();
-    router164 = import_express164.default.Router();
-    deleteVendor_default = router164.post(
+    router183 = import_express183.default.Router();
+    deleteVendor_default = router183.post(
       "/",
       validateFields({
         id: external_exports.string()
@@ -246875,17 +248547,17 @@ var init_deleteVendor = __esm({
 });
 
 // src/routes/setting/vendorConfig/deleteVendorModelSpec.ts
-var import_express165, router165, deleteVendorModelSpec_default;
+var import_express184, router184, deleteVendorModelSpec_default;
 var init_deleteVendorModelSpec = __esm({
   "src/routes/setting/vendorConfig/deleteVendorModelSpec.ts"() {
     "use strict";
-    import_express165 = __toESM(require_express2());
+    import_express184 = __toESM(require_express2());
     init_responseFormat();
     init_middleware();
     init_utils3();
     init_zod();
-    router165 = import_express165.default.Router();
-    deleteVendorModelSpec_default = router165.post(
+    router184 = import_express184.default.Router();
+    deleteVendorModelSpec_default = router184.post(
       "/",
       requireRole("admin", "\u53EA\u6709\u7BA1\u7406\u5458\u624D\u80FD\u7EF4\u62A4\u6E20\u9053\u534F\u8BAE\u76EE\u5F55"),
       validateFields({
@@ -246914,17 +248586,17 @@ var init_deleteVendorModelSpec = __esm({
 });
 
 // src/routes/setting/vendorConfig/delVendorModel.ts
-var import_express166, router166, delVendorModel_default;
+var import_express185, router185, delVendorModel_default;
 var init_delVendorModel = __esm({
   "src/routes/setting/vendorConfig/delVendorModel.ts"() {
     "use strict";
-    import_express166 = __toESM(require_express2());
+    import_express185 = __toESM(require_express2());
     init_responseFormat();
     init_middleware();
     init_utils3();
     init_zod();
-    router166 = import_express166.default.Router();
-    delVendorModel_default = router166.post(
+    router185 = import_express185.default.Router();
+    delVendorModel_default = router185.post(
       "/",
       requireRole("admin", "\u53EA\u6709\u7BA1\u7406\u5458\u624D\u80FD\u505C\u7528\u6A21\u578B"),
       validateFields({
@@ -246943,17 +248615,17 @@ var init_delVendorModel = __esm({
 });
 
 // src/routes/setting/vendorConfig/enableVendor.ts
-var import_express167, router167, enableVendor_default;
+var import_express186, router186, enableVendor_default;
 var init_enableVendor = __esm({
   "src/routes/setting/vendorConfig/enableVendor.ts"() {
     "use strict";
-    import_express167 = __toESM(require_express2());
+    import_express186 = __toESM(require_express2());
     init_responseFormat();
     init_middleware();
     init_utils3();
     init_zod();
-    router167 = import_express167.default.Router();
-    enableVendor_default = router167.post(
+    router186 = import_express186.default.Router();
+    enableVendor_default = router186.post(
       "/",
       requireRole("admin", "\u53EA\u6709\u7BA1\u7406\u5458\u624D\u80FD\u542F\u7528/\u505C\u7528\u6E20\u9053"),
       validateFields({
@@ -246970,16 +248642,16 @@ var init_enableVendor = __esm({
 });
 
 // src/routes/setting/vendorConfig/getCodeByLink.ts
-var import_express168, router168, getCodeByLink_default;
+var import_express187, router187, getCodeByLink_default;
 var init_getCodeByLink = __esm({
   "src/routes/setting/vendorConfig/getCodeByLink.ts"() {
     "use strict";
-    import_express168 = __toESM(require_express2());
+    import_express187 = __toESM(require_express2());
     init_responseFormat();
     init_middleware();
     init_zod();
-    router168 = import_express168.default.Router();
-    getCodeByLink_default = router168.post(
+    router187 = import_express187.default.Router();
+    getCodeByLink_default = router187.post(
       "/",
       validateFields({
         link: external_exports.string()
@@ -246994,15 +248666,15 @@ var init_getCodeByLink = __esm({
 });
 
 // src/routes/setting/vendorConfig/getVendorList.ts
-var import_express169, router169, getVendorList_default;
+var import_express188, router188, getVendorList_default;
 var init_getVendorList = __esm({
   "src/routes/setting/vendorConfig/getVendorList.ts"() {
     "use strict";
-    import_express169 = __toESM(require_express2());
+    import_express188 = __toESM(require_express2());
     init_responseFormat();
     init_utils3();
-    router169 = import_express169.default.Router();
-    getVendorList_default = router169.post("/", async (req, res) => {
+    router188 = import_express188.default.Router();
+    getVendorList_default = router188.post("/", async (req, res) => {
       const data = await utils_default2.db("o_vendorConfig").select("*");
       const list2 = (await Promise.all(
         data.map(async (item) => {
@@ -247046,18 +248718,18 @@ var init_getVendorList = __esm({
 });
 
 // src/routes/setting/vendorConfig/modelTest.ts
-var import_express170, router170, modelTest_default;
+var import_express189, router189, modelTest_default;
 var init_modelTest = __esm({
   "src/routes/setting/vendorConfig/modelTest.ts"() {
     "use strict";
-    import_express170 = __toESM(require_express2());
+    import_express189 = __toESM(require_express2());
     init_responseFormat();
     init_middleware();
     init_utils3();
     init_zod();
     init_dist21();
-    router170 = import_express170.default.Router();
-    modelTest_default = router170.post(
+    router189 = import_express189.default.Router();
+    modelTest_default = router189.post(
       "/",
       validateFields({
         modelName: external_exports.string(),
@@ -247150,17 +248822,17 @@ var init_modelTest = __esm({
 });
 
 // src/routes/setting/vendorConfig/modelTest/imageTest.ts
-var import_express171, router171, imageTest_default;
+var import_express190, router190, imageTest_default;
 var init_imageTest = __esm({
   "src/routes/setting/vendorConfig/modelTest/imageTest.ts"() {
     "use strict";
-    import_express171 = __toESM(require_express2());
+    import_express190 = __toESM(require_express2());
     init_responseFormat();
     init_middleware();
     init_utils3();
     init_zod();
-    router171 = import_express171.default.Router();
-    imageTest_default = router171.post(
+    router190 = import_express190.default.Router();
+    imageTest_default = router190.post(
       "/",
       validateFields({
         modelName: external_exports.string(),
@@ -247202,18 +248874,18 @@ var init_imageTest = __esm({
 });
 
 // src/routes/setting/vendorConfig/modelTest/textTest.ts
-var import_express172, router172, textTest_default;
+var import_express191, router191, textTest_default;
 var init_textTest = __esm({
   "src/routes/setting/vendorConfig/modelTest/textTest.ts"() {
     "use strict";
-    import_express172 = __toESM(require_express2());
+    import_express191 = __toESM(require_express2());
     init_responseFormat();
     init_middleware();
     init_utils3();
     init_zod();
     init_dist21();
-    router172 = import_express172.default.Router();
-    textTest_default = router172.post(
+    router191 = import_express191.default.Router();
+    textTest_default = router191.post(
       "/",
       validateFields({
         modelName: external_exports.string(),
@@ -247265,17 +248937,17 @@ var init_textTest = __esm({
 });
 
 // src/routes/setting/vendorConfig/modelTest/videoTest.ts
-var import_express173, router173, videoTest_default;
+var import_express192, router192, videoTest_default;
 var init_videoTest = __esm({
   "src/routes/setting/vendorConfig/modelTest/videoTest.ts"() {
     "use strict";
-    import_express173 = __toESM(require_express2());
+    import_express192 = __toESM(require_express2());
     init_responseFormat();
     init_middleware();
     init_utils3();
     init_zod();
-    router173 = import_express173.default.Router();
-    videoTest_default = router173.post(
+    router192 = import_express192.default.Router();
+    videoTest_default = router192.post(
       "/",
       validateFields({
         modelName: external_exports.string(),
@@ -247341,31 +249013,31 @@ var init_videoTest = __esm({
 });
 
 // src/routes/setting/vendorConfig/updateCode.ts
-var import_express174, router174, updateCode_default;
+var import_express193, router193, updateCode_default;
 var init_updateCode = __esm({
   "src/routes/setting/vendorConfig/updateCode.ts"() {
     "use strict";
-    import_express174 = __toESM(require_express2());
+    import_express193 = __toESM(require_express2());
     init_responseFormat();
-    router174 = import_express174.default.Router();
-    updateCode_default = router174.post("/", async (req, res) => {
+    router193 = import_express193.default.Router();
+    updateCode_default = router193.post("/", async (req, res) => {
       res.status(403).send(error50("\u7CFB\u7EDF\u5DF2\u5347\u7EA7\u4E3A\u9759\u6001\u4EE3\u7801\u67B6\u6784\uFF0C\u7981\u6B62\u52A8\u6001\u4FEE\u6539\u4F9B\u5E94\u5546\u4EE3\u7801\u3002\u8BF7\u901A\u8FC7\u63D0\u4EA4\u4EE3\u7801\u7684\u65B9\u5F0F\u4FEE\u6539\u3002"));
     });
   }
 });
 
 // src/routes/setting/vendorConfig/updateVendorInputs.ts
-var import_express175, router175, updateVendorInputs_default;
+var import_express194, router194, updateVendorInputs_default;
 var init_updateVendorInputs = __esm({
   "src/routes/setting/vendorConfig/updateVendorInputs.ts"() {
     "use strict";
-    import_express175 = __toESM(require_express2());
+    import_express194 = __toESM(require_express2());
     init_responseFormat();
     init_middleware();
     init_utils3();
     init_zod();
-    router175 = import_express175.default.Router();
-    updateVendorInputs_default = router175.post(
+    router194 = import_express194.default.Router();
+    updateVendorInputs_default = router194.post(
       "/",
       requireRole("admin", "\u53EA\u6709\u7BA1\u7406\u5458\u624D\u80FD\u4FEE\u6539\u6E20\u9053 Key"),
       validateFields({
@@ -247390,18 +249062,18 @@ var init_updateVendorInputs = __esm({
 });
 
 // src/routes/setting/vendorConfig/updateVendorModelSpec.ts
-var import_express176, router176, updateVendorModelSpec_default;
+var import_express195, router195, updateVendorModelSpec_default;
 var init_updateVendorModelSpec = __esm({
   "src/routes/setting/vendorConfig/updateVendorModelSpec.ts"() {
     "use strict";
-    import_express176 = __toESM(require_express2());
+    import_express195 = __toESM(require_express2());
     init_responseFormat();
     init_middleware();
     init_vendorModelSchema();
     init_utils3();
     init_zod();
-    router176 = import_express176.default.Router();
-    updateVendorModelSpec_default = router176.post(
+    router195 = import_express195.default.Router();
+    updateVendorModelSpec_default = router195.post(
       "/",
       requireRole("admin", "\u53EA\u6709\u7BA1\u7406\u5458\u624D\u80FD\u7EF4\u62A4\u6E20\u9053\u534F\u8BAE\u76EE\u5F55"),
       validateFields({
@@ -247428,18 +249100,18 @@ var init_updateVendorModelSpec = __esm({
 });
 
 // src/routes/setting/vendorConfig/upVendorModel.ts
-var import_express177, router177, upVendorModel_default;
+var import_express196, router196, upVendorModel_default;
 var init_upVendorModel = __esm({
   "src/routes/setting/vendorConfig/upVendorModel.ts"() {
     "use strict";
-    import_express177 = __toESM(require_express2());
+    import_express196 = __toESM(require_express2());
     init_responseFormat();
     init_middleware();
     init_vendorModelSchema();
     init_utils3();
     init_zod();
-    router177 = import_express177.default.Router();
-    upVendorModel_default = router177.post(
+    router196 = import_express196.default.Router();
+    upVendorModel_default = router196.post(
       "/",
       requireRole("admin", "\u53EA\u6709\u7BA1\u7406\u5458\u624D\u80FD\u4FEE\u6539\u6A21\u578B\u542F\u7528\u72B6\u6001"),
       validateFields({
@@ -247468,15 +249140,15 @@ var init_upVendorModel = __esm({
 });
 
 // src/routes/task/getProject.ts
-var import_express178, router178, getProject_default2;
+var import_express197, router197, getProject_default2;
 var init_getProject2 = __esm({
   "src/routes/task/getProject.ts"() {
     "use strict";
-    import_express178 = __toESM(require_express2());
+    import_express197 = __toESM(require_express2());
     init_utils3();
     init_responseFormat();
-    router178 = import_express178.default.Router();
-    getProject_default2 = router178.post("/", async (req, res) => {
+    router197 = import_express197.default.Router();
+    getProject_default2 = router197.post("/", async (req, res) => {
       const list2 = await utils_default2.db("o_project").select("id", "name").groupBy("id", "name");
       const data = list2.filter((item) => item.name);
       res.status(200).send(success3(data));
@@ -247485,17 +249157,17 @@ var init_getProject2 = __esm({
 });
 
 // src/routes/task/getTaskApi.ts
-var import_express179, router179, getTaskApi_default;
+var import_express198, router198, getTaskApi_default;
 var init_getTaskApi = __esm({
   "src/routes/task/getTaskApi.ts"() {
     "use strict";
-    import_express179 = __toESM(require_express2());
+    import_express198 = __toESM(require_express2());
     init_utils3();
     init_responseFormat();
     init_middleware();
     init_zod();
-    router179 = import_express179.default.Router();
-    getTaskApi_default = router179.post(
+    router198 = import_express198.default.Router();
+    getTaskApi_default = router198.post(
       "/",
       validateFields({
         state: external_exports.string().optional().nullable(),
@@ -247536,15 +249208,15 @@ var init_getTaskApi = __esm({
 });
 
 // src/routes/task/getTaskCategories.ts
-var import_express180, router180, getTaskCategories_default;
+var import_express199, router199, getTaskCategories_default;
 var init_getTaskCategories = __esm({
   "src/routes/task/getTaskCategories.ts"() {
     "use strict";
-    import_express180 = __toESM(require_express2());
+    import_express199 = __toESM(require_express2());
     init_utils3();
     init_responseFormat();
-    router180 = import_express180.default.Router();
-    getTaskCategories_default = router180.post("/", async (req, res) => {
+    router199 = import_express199.default.Router();
+    getTaskCategories_default = router199.post("/", async (req, res) => {
       const list2 = await utils_default2.db("o_tasks").select("taskClass").groupBy("taskClass");
       const data = list2.filter((item) => item.taskClass);
       res.status(200).send(success3(data));
@@ -247553,17 +249225,17 @@ var init_getTaskCategories = __esm({
 });
 
 // src/routes/task/taskDetails.ts
-var import_express181, router181, taskDetails_default;
+var import_express200, router200, taskDetails_default;
 var init_taskDetails = __esm({
   "src/routes/task/taskDetails.ts"() {
     "use strict";
-    import_express181 = __toESM(require_express2());
+    import_express200 = __toESM(require_express2());
     init_utils3();
     init_responseFormat();
     init_middleware();
     init_zod();
-    router181 = import_express181.default.Router();
-    taskDetails_default = router181.post(
+    router200 = import_express200.default.Router();
+    taskDetails_default = router200.post(
       "/",
       validateFields({
         taskId: external_exports.number()
@@ -247578,906 +249250,15 @@ var init_taskDetails = __esm({
 });
 
 // src/routes/test/test.ts
-var import_express182, router182, test_default;
+var import_express201, router201, test_default;
 var init_test = __esm({
   "src/routes/test/test.ts"() {
     "use strict";
-    import_express182 = __toESM(require_express2());
-    router182 = import_express182.default.Router();
-    test_default = router182.get("/", async (req, res) => {
+    import_express201 = __toESM(require_express2());
+    router201 = import_express201.default.Router();
+    test_default = router201.get("/", async (req, res) => {
       return res.send("ok");
     });
-  }
-});
-
-// src/routes/quickVideo/addShot.ts
-var import_express183, router183, addShot_default;
-var init_addShot = __esm({
-  "src/routes/quickVideo/addShot.ts"() {
-    "use strict";
-    import_express183 = __toESM(require_express2());
-    init_zod();
-    init_responseFormat();
-    init_middleware();
-    init_contract();
-    init_state();
-    init_shots();
-    router183 = import_express183.default.Router();
-    addShot_default = router183.post(
-      "/",
-      validateFields({
-        projectId: external_exports.number(),
-        expectedVersion: external_exports.number().int().min(1),
-        idempotencyKey: external_exports.string().min(8).max(64),
-        shot: external_exports.object({
-          duration: external_exports.number().int().min(5).max(15),
-          description: external_exports.string().min(1).max(2e3),
-          dialogue: external_exports.string().max(500).optional().default(""),
-          camera: external_exports.string().max(200).optional().default(""),
-          assetRefs: external_exports.array(shotAssetRefSchema).max(10).optional().default([])
-        })
-      }),
-      async (req, res) => {
-        const { projectId, expectedVersion, idempotencyKey, shot } = req.body;
-        try {
-          const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, (state) => {
-            ensureStoryboardEditable(state);
-            if ((state.storyboard?.shots.length ?? 0) >= SHOT_COUNT_MAX) {
-              throw new QuickVideoError("SHOT_COUNT_EXCEEDED", `\u955C\u5934\u6570\u91CF\u5DF2\u8FBE\u4E0A\u9650 ${SHOT_COUNT_MAX}`, state.version);
-            }
-            state.storyboard.shots.push({
-              id: nextShotId(state),
-              index: (state.storyboard?.shots.length ?? 0) + 1,
-              duration: shot.duration,
-              description: shot.description,
-              dialogue: shot.dialogue ?? "",
-              camera: shot.camera ?? "",
-              assetRefs: shot.assetRefs ?? [],
-              imageState: "pending",
-              videoState: "pending",
-              imageRef: null,
-              videoRef: null,
-              errorReason: null
-            });
-            reindexShots(state);
-          });
-          res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
-        } catch (err) {
-          if (err instanceof QuickVideoError) {
-            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
-          }
-          throw err;
-        }
-      }
-    );
-  }
-});
-
-// src/routes/quickVideo/confirmStage.ts
-var import_express184, router184, confirmStage_default;
-var init_confirmStage = __esm({
-  "src/routes/quickVideo/confirmStage.ts"() {
-    "use strict";
-    import_express184 = __toESM(require_express2());
-    init_zod();
-    init_utils3();
-    init_responseFormat();
-    init_middleware();
-    init_state();
-    init_contract();
-    init_generate();
-    init_metrics();
-    router184 = import_express184.default.Router();
-    confirmStage_default = router184.post(
-      "/",
-      validateFields({
-        projectId: external_exports.number(),
-        expectedVersion: external_exports.number().int().min(1),
-        idempotencyKey: external_exports.string().min(8).max(64),
-        gate: external_exports.enum(["brief", "storyboard", "materials", "export"]),
-        action: external_exports.enum(["confirm", "reject"]),
-        /** gate=export 时可选回写的导出结果（浏览器端 WebAV 编码成功后携带） */
-        exportInfo: external_exports.object({
-          fileName: external_exports.string().min(1).max(200),
-          sizeBytes: external_exports.number().int().min(0),
-          durationSeconds: external_exports.number().min(0)
-        }).optional()
-      }),
-      async (req, res) => {
-        const { projectId, expectedVersion, idempotencyKey, gate, action, exportInfo } = req.body;
-        let shouldStartGeneration = false;
-        try {
-          const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, async (state) => {
-            if (gate === "brief") {
-              if (!state.brief) throw new QuickVideoError("NO_BRIEF", "\u6682\u65E0\u7B80\u62A5\uFF0C\u65E0\u6CD5\u64CD\u4F5C", state.version);
-              if (action === "confirm") {
-                if (!["collect_brief", "storyboard_draft", "brief_confirmed"].includes(state.stage)) {
-                  throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u786E\u8BA4\u7B80\u62A5`, state.version);
-                }
-                state.stage = "brief_confirmed";
-                state.brief.confirmed = true;
-                state.brief.confirmedAt = Date.now();
-              } else {
-                if (state.stage !== "brief_confirmed" && state.stage !== "collect_brief") {
-                  throw new QuickVideoError("STAGE_MISMATCH", "\u7B80\u62A5\u5DF2\u8FDB\u5165\u540E\u7EED\u6D41\u7A0B\uFF0C\u8BF7\u6539\u4E3A\u76F4\u63A5\u7F16\u8F91\u7B80\u62A5", state.version);
-                }
-                state.stage = "collect_brief";
-                state.brief.confirmed = false;
-                state.brief.confirmedAt = null;
-              }
-              return;
-            }
-            if (gate === "storyboard") {
-              if (!state.storyboard) throw new QuickVideoError("NO_STORYBOARD", "\u6682\u65E0\u5206\u955C\uFF0C\u65E0\u6CD5\u64CD\u4F5C", state.version);
-              if (action === "confirm") {
-                if (state.stage !== "storyboard_draft") {
-                  throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u786E\u8BA4\u5206\u955C`, state.version);
-                }
-                const errors = validateStoryboard(state.targetDuration, state.storyboard.shots);
-                if (errors.length) throw new QuickVideoError("STORYBOARD_INVALID", errors.join("\uFF1B"), state.version);
-                state.stage = "storyboard_confirmed";
-                state.storyboard.status = "confirmed";
-                state.storyboard.confirmedAt = Date.now();
-              } else {
-                if (state.stage !== "storyboard_confirmed") {
-                  throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u9700\u8981\u64A4\u9500\u5206\u955C\u786E\u8BA4`, state.version);
-                }
-                state.stage = "storyboard_draft";
-                state.storyboard.status = "draft";
-                state.storyboard.confirmedAt = null;
-              }
-              return;
-            }
-            if (gate === "materials") {
-              if (!state.storyboard || state.storyboard.status !== "confirmed") {
-                throw new QuickVideoError("NO_STORYBOARD", "\u5206\u955C\u5C1A\u672A\u786E\u8BA4\uFF0C\u8BF7\u5148\u901A\u8FC7\u5206\u955C\u786E\u8BA4\u95E8", state.version);
-              }
-              if (action === "confirm") {
-                if (state.stage !== "storyboard_confirmed") {
-                  throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u7D20\u6750\u786E\u8BA4`, state.version);
-                }
-                const needResolve = !state.generation?.snapshot || state.generation.snapshot.storyboardVersion !== state.storyboard.version;
-                if (needResolve) {
-                  const { materials, estimate, snapshotShots } = await buildSnapshot(projectId, state);
-                  applySnapshotToState(state, state.storyboard.version, snapshotShots, materials, estimate);
-                }
-                if (!state.generation.snapshot) {
-                  throw new QuickVideoError("MATERIALS_RESOLVE_FAILED", "\u7D20\u6750\u89E3\u6790\u5931\u8D25\uFF0C\u65E0\u6CD5\u786E\u8BA4", state.version);
-                }
-                state.generation.materialsConfirmed = true;
-                state.generation.materialsConfirmedAt = Date.now();
-                state.generation.startedAt = Date.now();
-                state.generation.finishedAt = null;
-                state.stage = "generating";
-                shouldStartGeneration = true;
-              } else {
-                if (state.stage !== "storyboard_confirmed") {
-                  throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u64A4\u9500\u7D20\u6750\u786E\u8BA4`, state.version);
-                }
-                state.generation.materialsConfirmed = false;
-                state.generation.materialsConfirmedAt = null;
-              }
-              return;
-            }
-            if (action !== "confirm") {
-              throw new QuickVideoError("FORBIDDEN", "\u5BFC\u51FA\u65E0\u9700\u64A4\u9500\uFF0C\u672A\u5BFC\u51FA\u5373\u53EF\u7EE7\u7EED\u7F16\u8F91", state.version);
-            }
-            if (state.stage !== "ready_to_assemble" && state.stage !== "completed") {
-              throw new QuickVideoError("STAGE_MISMATCH", "\u5C1A\u672A\u5B8C\u6210\u5168\u90E8\u955C\u5934\u751F\u6210\uFF0C\u65E0\u6CD5\u5BFC\u51FA", state.version);
-            }
-            state.stage = "completed";
-            if (exportInfo) {
-              state.generation.exportInfo = { exportedAt: Date.now(), ...exportInfo };
-            }
-          });
-          if (gate === "export" && action === "confirm" && !result.idempotentHit) {
-            recordEvent("exportConfirmed");
-            qvLog("export_confirmed", { projectId, sizeBytes: exportInfo?.sizeBytes ?? null, durationSeconds: exportInfo?.durationSeconds ?? null });
-          }
-          res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
-          if (shouldStartGeneration && !result.idempotentHit) {
-            try {
-              const start = await startQuickVideoGeneration(projectId, req.user?.id ?? 1);
-              if (start.started) console.log(`[quickVideo] \u9879\u76EE ${projectId} \u751F\u6210\u5DF2\u542F\u52A8\uFF08${start.runId}\uFF09`);
-            } catch (err) {
-              console.error(`[quickVideo] \u9879\u76EE ${projectId} \u786E\u8BA4\u540E\u542F\u52A8\u751F\u6210\u5931\u8D25:`, utils_default2.error(err).message);
-            }
-          }
-        } catch (err) {
-          if (err instanceof QuickVideoError) {
-            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
-          }
-          throw err;
-        }
-      }
-    );
-  }
-});
-
-// src/routes/quickVideo/createProject.ts
-var import_express185, router185, createProject_default;
-var init_createProject = __esm({
-  "src/routes/quickVideo/createProject.ts"() {
-    "use strict";
-    import_express185 = __toESM(require_express2());
-    init_zod();
-    init_utils3();
-    init_db();
-    init_responseFormat();
-    init_middleware();
-    init_contract();
-    init_state();
-    router185 = import_express185.default.Router();
-    createProject_default = router185.post(
-      "/",
-      validateFields({
-        name: external_exports.string().min(1).max(100),
-        artStyle: external_exports.string().max(500).default(""),
-        videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS),
-        targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]),
-        draftScript: external_exports.string().max(2e4).optional().default(""),
-        intro: external_exports.string().max(2e3).optional().default(""),
-        idempotencyKey: external_exports.string().min(8).max(64)
-      }),
-      async (req, res) => {
-        const { name: name28, artStyle, videoRatio, targetDuration, draftScript, intro, idempotencyKey } = req.body;
-        const existingProjectId = await findProjectByCreateIdempotencyKey(idempotencyKey);
-        if (existingProjectId != null) {
-          const project2 = await utils_default2.db("o_project").where("id", existingProjectId).first();
-          return res.status(200).send(success3({ projectId: existingProjectId, existed: true, project: project2 }));
-        }
-        const projectId = await db.transaction(async (trx) => {
-          const maxRow = await trx("o_project").max("id as maxId").first();
-          const id = Number(maxRow?.maxId ?? 0) + 1;
-          await trx("o_project").insert({
-            id,
-            projectType: QUICK_VIDEO_PROJECT_TYPE,
-            name: name28,
-            intro,
-            type: "quick_video",
-            artStyle,
-            videoRatio,
-            directorManual: "",
-            userId: 1,
-            imageModel: "",
-            videoModel: "",
-            imageQuality: "",
-            mode: "",
-            createTime: Date.now()
-          });
-          if (draftScript && draftScript.trim()) {
-            const scriptMaxRow = await trx("o_script").max("id as maxId").first();
-            const scriptId = Number(scriptMaxRow?.maxId ?? 0) + 1;
-            await trx("o_script").insert({
-              id: scriptId,
-              projectId: id,
-              name: `${name28}-\u8349\u7A3F`,
-              content: draftScript,
-              createTime: Date.now()
-            });
-          }
-          await initQuickVideoStateRow(trx, { projectId: id, idempotencyKey, targetDuration, videoRatio, artStyle });
-          return id;
-        });
-        const project = await utils_default2.db("o_project").where("id", projectId).first();
-        const state = await (async () => {
-          const row = await utils_default2.db("o_agentWorkData").where({ projectId, key: "quickVideoAgent" }).first();
-          return row && row.data ? JSON.parse(row.data) : null;
-        })();
-        res.status(200).send(success3({ projectId, existed: false, project, state }));
-      }
-    );
-  }
-});
-
-// src/routes/quickVideo/getMediaUrls.ts
-var import_express186, router186, getMediaUrls_default;
-var init_getMediaUrls = __esm({
-  "src/routes/quickVideo/getMediaUrls.ts"() {
-    "use strict";
-    import_express186 = __toESM(require_express2());
-    init_zod();
-    init_utils3();
-    init_responseFormat();
-    init_middleware();
-    init_state();
-    router186 = import_express186.default.Router();
-    getMediaUrls_default = router186.post(
-      "/",
-      validateFields({
-        projectId: external_exports.number()
-      }),
-      async (req, res) => {
-        const { projectId } = req.body;
-        const state = await loadQuickVideoState(projectId);
-        const shots = state?.storyboard?.shots ?? [];
-        const media = {};
-        await Promise.all(
-          shots.filter((s) => s.imageRef || s.videoRef).map(async (s) => {
-            const [imageUrl, videoUrl] = await Promise.all([
-              s.imageRef ? utils_default2.oss.getSmallImageUrl(s.imageRef).catch(() => null) : Promise.resolve(null),
-              s.videoRef ? utils_default2.oss.getFileUrl(s.videoRef).catch(() => null) : Promise.resolve(null)
-            ]);
-            media[s.id] = { imageUrl, videoUrl };
-          })
-        );
-        res.status(200).send(success3({ media }));
-      }
-    );
-  }
-});
-
-// src/routes/quickVideo/getMetrics.ts
-var import_express187, router187, getMetrics_default;
-var init_getMetrics = __esm({
-  "src/routes/quickVideo/getMetrics.ts"() {
-    "use strict";
-    import_express187 = __toESM(require_express2());
-    init_zod();
-    init_responseFormat();
-    init_middleware();
-    init_metrics();
-    router187 = import_express187.default.Router();
-    getMetrics_default = router187.post(
-      "/",
-      validateFields({
-        projectId: external_exports.number().optional()
-      }),
-      async (_req, res) => {
-        res.status(200).send(success3(snapshotMetrics()));
-      }
-    );
-  }
-});
-
-// src/lib/quickVideo/timeline.ts
-function buildTimelinePlan({ shots, targetDuration, videoRatio, ctaText = "" }) {
-  const ordered = [...shots].sort((a, b) => a.index - b.index).slice(0, SHOT_COUNT_MAX);
-  if (!ordered.length) throw new Error("TIMELINE_NO_SHOTS");
-  const n = ordered.length;
-  const transition = n >= 2 ? TIMELINE_TRANSITION_DURATION_S : 0;
-  const sourceTotal = ordered.reduce((sum, s) => sum + s.duration, 0);
-  const mediaNeeded = targetDuration + (n - 1) * transition;
-  let playbackRate;
-  let trimFraction = 1;
-  let tailPadSeconds = 0;
-  const rateRaw = sourceTotal / mediaNeeded;
-  if (rateRaw > TIMELINE_MAX_SPEED) {
-    playbackRate = TIMELINE_MAX_SPEED;
-    trimFraction = mediaNeeded * TIMELINE_MAX_SPEED / sourceTotal;
-  } else if (rateRaw < TIMELINE_MIN_SPEED) {
-    playbackRate = TIMELINE_MIN_SPEED;
-    tailPadSeconds = round3(mediaNeeded - sourceTotal / TIMELINE_MIN_SPEED);
-  } else {
-    playbackRate = round6(rateRaw);
-  }
-  const clips = [];
-  let cursor = 0;
-  ordered.forEach((shot, i) => {
-    const windowSeconds = round6(shot.duration * trimFraction);
-    const timelineDuration = round6(windowSeconds / playbackRate);
-    const start = round6(cursor);
-    const end = round6(start + timelineDuration);
-    clips.push({
-      shotId: shot.id,
-      index: shot.index,
-      sourceDuration: shot.duration,
-      trimStart: 0,
-      trimEnd: round6(windowSeconds),
-      playbackRate,
-      start,
-      end,
-      subtitleText: (shot.dialogue ?? "").trim()
-    });
-    cursor = end - (i < n - 1 ? transition : 0);
-  });
-  const transitions = clips.slice(0, -1).map((clip) => ({
-    afterShotId: clip.shotId,
-    type: "crossfade",
-    duration: transition
-  }));
-  const lastEnd = clips[clips.length - 1].end;
-  const tailPad = tailPadSeconds > 0.05 ? { type: "endcard", duration: round6(lastEnd + tailPadSeconds) - round6(lastEnd), text: ctaText.trim() } : null;
-  const totalDuration = round6(lastEnd + (tailPad?.duration ?? 0));
-  const { width, height } = QUICK_VIDEO_DIMENSIONS[videoRatio];
-  return {
-    targetDuration,
-    videoRatio,
-    width,
-    height,
-    totalDuration,
-    clips,
-    transitions,
-    tailPad
-  };
-}
-function buildSubtitleCues(plan) {
-  const cues = [];
-  plan.clips.forEach((clip, i) => {
-    const text2 = clip.subtitleText.trim();
-    if (!text2) return;
-    const start = clip.start + (i > 0 ? plan.transitions[i - 1]?.duration ?? 0 : 0);
-    const end = clip.end - (i < plan.clips.length - 1 ? plan.transitions[i]?.duration ?? 0 : 0);
-    if (end - start > 0.3) cues.push({ start: round3(start), end: round3(end), text: text2 });
-  });
-  return cues;
-}
-function round6(v) {
-  return Math.round(v * 1e6) / 1e6;
-}
-function round3(v) {
-  return Math.round(v * 1e3) / 1e3;
-}
-var init_timeline = __esm({
-  "src/lib/quickVideo/timeline.ts"() {
-    "use strict";
-    init_contract();
-  }
-});
-
-// src/routes/quickVideo/getTimeline.ts
-var import_express188, router188, getTimeline_default;
-var init_getTimeline = __esm({
-  "src/routes/quickVideo/getTimeline.ts"() {
-    "use strict";
-    import_express188 = __toESM(require_express2());
-    init_zod();
-    init_utils3();
-    init_responseFormat();
-    init_middleware();
-    init_state();
-    init_timeline();
-    init_metrics();
-    router188 = import_express188.default.Router();
-    getTimeline_default = router188.post(
-      "/",
-      validateFields({
-        projectId: external_exports.number()
-      }),
-      async (req, res) => {
-        const { projectId } = req.body;
-        const startedAt = Date.now();
-        try {
-          const project = await utils_default2.db("o_project").where("id", projectId).first();
-          if (!project) return res.status(200).send(success3(null, "\u9879\u76EE\u4E0D\u5B58\u5728"));
-          if (project.projectType !== "quick_video") {
-            return res.status(200).send(success3(null, "\u975E\u5355\u89C6\u9891\u5FEB\u521B\u9879\u76EE\uFF0C\u8BF7\u4F7F\u7528\u4E13\u4E1A\u6A21\u5F0F\u5165\u53E3"));
-          }
-          const state = await loadQuickVideoState(projectId);
-          if (!state) return res.status(200).send(success3(null, "\u672A\u627E\u5230 quickVideoAgent \u72B6\u6001"));
-          if (state.stage !== "ready_to_assemble" && state.stage !== "completed") {
-            throw new QuickVideoError("SHOTS_NOT_READY", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u5C1A\u672A\u5B8C\u6210\u5168\u90E8\u955C\u5934\u751F\u6210\uFF0C\u65E0\u6CD5\u88C5\u914D\u65F6\u95F4\u7EBF`, state.version);
-          }
-          const shots = state.storyboard?.shots ?? [];
-          const notDone = shots.filter((s) => s.videoState !== "done" || !s.videoRef);
-          if (!shots.length || notDone.length) {
-            throw new QuickVideoError(
-              "SHOTS_NOT_READY",
-              notDone.length ? `\u955C\u5934 ${notDone.map((s) => s.id).join("\u3001")} \u5C1A\u672A\u751F\u6210\u5B8C\u6210` : "\u6682\u65E0\u955C\u5934\uFF0C\u65E0\u6CD5\u88C5\u914D\u65F6\u95F4\u7EBF",
-              state.version
-            );
-          }
-          const timeline = buildTimelinePlan({
-            shots: shots.map((s) => ({ id: s.id, index: s.index, duration: s.duration, dialogue: s.dialogue })),
-            targetDuration: state.targetDuration,
-            videoRatio: state.videoRatio,
-            ctaText: state.brief?.cta ?? ""
-          });
-          const subtitles = buildSubtitleCues(timeline);
-          const storyboardVersion = state.storyboard.version;
-          const script = await utils_default2.db("o_script").where("projectId", projectId).select("id").first();
-          let persisted = false;
-          if (state.generation?.timeline?.storyboardVersion !== storyboardVersion) {
-            await mutateQuickVideoState(projectId, {}, async (s, trx) => {
-              if (s.generation.timeline?.storyboardVersion === storyboardVersion) return;
-              if (s.stage !== "ready_to_assemble" && s.stage !== "completed") return;
-              const trackIds = [];
-              for (const shot of [...s.storyboard.shots].sort((a, b) => a.index - b.index)) {
-                const maxRow = await trx("o_videoTrack").max("id as maxId").first();
-                const trackId = Number(maxRow?.maxId ?? 0) + 1;
-                await trx("o_videoTrack").insert({
-                  id: trackId,
-                  videoId: 0,
-                  projectId,
-                  scriptId: script?.id ?? 0,
-                  state: "\u5DF2\u5B8C\u6210",
-                  reason: "quickVideo \u65F6\u95F4\u7EBF\u88C5\u914D",
-                  prompt: shot.description,
-                  selectVideoId: 0,
-                  duration: shot.duration
-                });
-                trackIds.push(trackId);
-              }
-              s.generation.timeline = {
-                storyboardVersion,
-                assembledAt: Date.now(),
-                clipCount: s.storyboard.shots.length,
-                totalDuration: timeline.totalDuration,
-                trackIds
-              };
-              persisted = true;
-            });
-          }
-          const media = {};
-          await Promise.all(
-            shots.map(async (s) => {
-              const [videoUrl, imageUrl] = await Promise.all([
-                s.videoRef ? utils_default2.oss.getFileUrl(s.videoRef).catch(() => null) : Promise.resolve(null),
-                s.imageRef ? utils_default2.oss.getSmallImageUrl(s.imageRef).catch(() => null) : Promise.resolve(null)
-              ]);
-              media[s.id] = { videoUrl, imageUrl };
-            })
-          );
-          recordEvent("timelineAssembled");
-          recordDuration("timelineAssembleMs", Date.now() - startedAt);
-          qvLog("timeline_assembled", { projectId, storyboardVersion, clipCount: timeline.clips.length, totalDuration: timeline.totalDuration, persisted });
-          res.status(200).send(success3({ timeline, subtitles, media, ctaText: state.brief?.cta ?? "", exportInfo: state.generation?.exportInfo ?? null }));
-        } catch (err) {
-          if (err instanceof QuickVideoError) {
-            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
-          }
-          throw err;
-        }
-      }
-    );
-  }
-});
-
-// src/routes/quickVideo/getWorkbench.ts
-var import_express189, router189, getWorkbench_default;
-var init_getWorkbench = __esm({
-  "src/routes/quickVideo/getWorkbench.ts"() {
-    "use strict";
-    import_express189 = __toESM(require_express2());
-    init_zod();
-    init_utils3();
-    init_responseFormat();
-    init_middleware();
-    init_contract();
-    init_state();
-    init_generate();
-    router189 = import_express189.default.Router();
-    getWorkbench_default = router189.post(
-      "/",
-      validateFields({
-        projectId: external_exports.number()
-      }),
-      async (req, res) => {
-        const { projectId } = req.body;
-        const project = await utils_default2.db("o_project").where("id", projectId).first();
-        if (!project) return res.status(200).send(success3(null, "\u9879\u76EE\u4E0D\u5B58\u5728"));
-        if (project.projectType !== "quick_video") {
-          return res.status(200).send(success3(null, "\u975E\u5355\u89C6\u9891\u5FEB\u521B\u9879\u76EE\uFF0C\u8BF7\u4F7F\u7528\u4E13\u4E1A\u6A21\u5F0F\u5165\u53E3"));
-        }
-        await ensureGenerationRecovery(projectId);
-        const state = await loadQuickVideoState(projectId);
-        const script = await utils_default2.db("o_script").where("projectId", projectId).select("id", "name", "content").first();
-        res.status(200).send(
-          success3({
-            project,
-            script: script ?? null,
-            state,
-            // 分镜数量约束，供前端展示与预校验
-            shotBounds: state ? shotCountBounds(state.targetDuration) : null
-          })
-        );
-      }
-    );
-  }
-});
-
-// src/routes/quickVideo/removeShot.ts
-var import_express190, router190, removeShot_default;
-var init_removeShot = __esm({
-  "src/routes/quickVideo/removeShot.ts"() {
-    "use strict";
-    import_express190 = __toESM(require_express2());
-    init_zod();
-    init_responseFormat();
-    init_middleware();
-    init_state();
-    init_shots();
-    router190 = import_express190.default.Router();
-    removeShot_default = router190.post(
-      "/",
-      validateFields({
-        projectId: external_exports.number(),
-        expectedVersion: external_exports.number().int().min(1),
-        idempotencyKey: external_exports.string().min(8).max(64),
-        shotId: external_exports.string().min(1).max(40)
-      }),
-      async (req, res) => {
-        const { projectId, expectedVersion, idempotencyKey, shotId } = req.body;
-        try {
-          const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, (state) => {
-            ensureStoryboardEditable(state);
-            findShot(state, shotId);
-            state.storyboard.shots = state.storyboard.shots.filter((s) => s.id !== shotId);
-            if (!state.storyboard.shots.length) {
-              throw new QuickVideoError("SHOT_LAST_ONE", "\u81F3\u5C11\u4FDD\u7559\u4E00\u4E2A\u955C\u5934", state.version);
-            }
-            reindexShots(state);
-          });
-          res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
-        } catch (err) {
-          if (err instanceof QuickVideoError) {
-            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
-          }
-          throw err;
-        }
-      }
-    );
-  }
-});
-
-// src/routes/quickVideo/resolveAssets.ts
-var import_express191, router191, resolveAssets_default;
-var init_resolveAssets = __esm({
-  "src/routes/quickVideo/resolveAssets.ts"() {
-    "use strict";
-    import_express191 = __toESM(require_express2());
-    init_zod();
-    init_responseFormat();
-    init_middleware();
-    init_generate();
-    init_state();
-    router191 = import_express191.default.Router();
-    resolveAssets_default = router191.post(
-      "/",
-      validateFields({
-        projectId: external_exports.number(),
-        expectedVersion: external_exports.number().int().min(1),
-        idempotencyKey: external_exports.string().min(8).max(64)
-      }),
-      async (req, res) => {
-        const { projectId, expectedVersion, idempotencyKey } = req.body;
-        try {
-          const result = await resolveMaterialsSnapshot(projectId, { expectedVersion, idempotencyKey });
-          res.status(200).send(
-            success3({
-              state: result.state,
-              materials: result.materials,
-              estimate: result.estimate,
-              idempotentHit: result.idempotentHit
-            })
-          );
-        } catch (err) {
-          if (err instanceof QuickVideoError) {
-            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
-          }
-          throw err;
-        }
-      }
-    );
-  }
-});
-
-// src/routes/quickVideo/retryShot.ts
-var import_express192, router192, retryShot_default;
-var init_retryShot = __esm({
-  "src/routes/quickVideo/retryShot.ts"() {
-    "use strict";
-    import_express192 = __toESM(require_express2());
-    init_zod();
-    init_responseFormat();
-    init_middleware();
-    init_generate();
-    init_state();
-    init_metrics();
-    router192 = import_express192.default.Router();
-    retryShot_default = router192.post(
-      "/",
-      validateFields({
-        projectId: external_exports.number(),
-        shotIds: external_exports.array(external_exports.string().min(1).max(40)).min(1).max(12)
-      }),
-      async (req, res) => {
-        const { projectId, shotIds } = req.body;
-        try {
-          const result = await retryQuickVideoShots(projectId, req.user?.id ?? 1, shotIds);
-          recordEvent("shotRetry");
-          qvLog("shots_retry", { projectId, shotIds: result.retried });
-          res.status(200).send(success3({ state: result.state, retried: result.retried }));
-        } catch (err) {
-          if (err instanceof QuickVideoError) {
-            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
-          }
-          throw err;
-        }
-      }
-    );
-  }
-});
-
-// src/routes/quickVideo/updateBrief.ts
-var import_express193, router193, updateBrief_default;
-var init_updateBrief = __esm({
-  "src/routes/quickVideo/updateBrief.ts"() {
-    "use strict";
-    import_express193 = __toESM(require_express2());
-    init_zod();
-    init_responseFormat();
-    init_middleware();
-    init_state();
-    init_contract();
-    router193 = import_express193.default.Router();
-    updateBrief_default = router193.post(
-      "/",
-      validateFields({
-        projectId: external_exports.number(),
-        expectedVersion: external_exports.number().int().min(1),
-        idempotencyKey: external_exports.string().min(8).max(64),
-        brief: quickVideoBriefSchema
-      }),
-      async (req, res) => {
-        const { projectId, expectedVersion, idempotencyKey, brief } = req.body;
-        try {
-          const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, (state) => {
-            if (!["collect_brief", "brief_confirmed", "storyboard_draft"].includes(state.stage)) {
-              throw new QuickVideoError("STAGE_FORBIDDEN", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u7F16\u8F91\u7B80\u62A5`, state.version);
-            }
-            state.brief = {
-              theme: brief.theme,
-              hook: brief.hook ?? "",
-              narrative: brief.narrative,
-              cta: brief.cta ?? "",
-              keywords: brief.keywords ?? [],
-              confirmed: false,
-              confirmedAt: null
-            };
-          });
-          res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
-        } catch (err) {
-          if (err instanceof QuickVideoError) {
-            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
-          }
-          throw err;
-        }
-      }
-    );
-  }
-});
-
-// src/routes/quickVideo/updateConfig.ts
-var import_express194, router194, updateConfig_default;
-var init_updateConfig = __esm({
-  "src/routes/quickVideo/updateConfig.ts"() {
-    "use strict";
-    import_express194 = __toESM(require_express2());
-    init_zod();
-    init_utils3();
-    init_responseFormat();
-    init_middleware();
-    init_contract();
-    init_state();
-    router194 = import_express194.default.Router();
-    updateConfig_default = router194.post(
-      "/",
-      validateFields({
-        projectId: external_exports.number(),
-        expectedVersion: external_exports.number().int().min(1),
-        idempotencyKey: external_exports.string().min(8).max(64),
-        patch: external_exports.object({
-          name: external_exports.string().min(1).max(100).optional(),
-          artStyle: external_exports.string().max(500).optional(),
-          videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS).optional(),
-          targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]).optional(),
-          intro: external_exports.string().max(2e3).optional()
-        })
-      }),
-      async (req, res) => {
-        const { projectId, expectedVersion, idempotencyKey, patch } = req.body;
-        try {
-          const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, async (state, trx) => {
-            if (patch.targetDuration != null && patch.targetDuration !== state.targetDuration && state.storyboard?.status === "confirmed") {
-              throw new QuickVideoError("FORBIDDEN", "\u5206\u955C\u5DF2\u786E\u8BA4\uFF0C\u4E0D\u5141\u8BB8\u4FEE\u6539\u76EE\u6807\u65F6\u957F\uFF1B\u8BF7\u5148\u64A4\u9500\u5206\u955C\u786E\u8BA4");
-            }
-            if (patch.targetDuration != null) state.targetDuration = patch.targetDuration;
-            if (patch.videoRatio != null) state.videoRatio = patch.videoRatio;
-            if (patch.artStyle != null) state.artStyle = patch.artStyle;
-            const projectPatch = {};
-            if (patch.name != null) projectPatch.name = patch.name;
-            if (patch.artStyle != null) projectPatch.artStyle = patch.artStyle;
-            if (patch.videoRatio != null) projectPatch.videoRatio = patch.videoRatio;
-            if (patch.intro != null) projectPatch.intro = patch.intro;
-            if (Object.keys(projectPatch).length) {
-              await trx("o_project").where("id", projectId).update(projectPatch);
-            }
-          });
-          const project = await utils_default2.db("o_project").where("id", projectId).first();
-          res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit, project }));
-        } catch (err) {
-          if (err instanceof QuickVideoError) {
-            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
-          }
-          throw err;
-        }
-      }
-    );
-  }
-});
-
-// src/routes/quickVideo/updateShot.ts
-var import_express195, router195, updateShot_default;
-var init_updateShot = __esm({
-  "src/routes/quickVideo/updateShot.ts"() {
-    "use strict";
-    import_express195 = __toESM(require_express2());
-    init_zod();
-    init_responseFormat();
-    init_middleware();
-    init_contract();
-    init_state();
-    init_shots();
-    router195 = import_express195.default.Router();
-    updateShot_default = router195.post(
-      "/",
-      validateFields({
-        projectId: external_exports.number(),
-        expectedVersion: external_exports.number().int().min(1),
-        idempotencyKey: external_exports.string().min(8).max(64),
-        shotId: external_exports.string().min(1).max(40),
-        patch: external_exports.object({
-          description: external_exports.string().min(1).max(2e3).optional(),
-          dialogue: external_exports.string().max(500).optional(),
-          camera: external_exports.string().max(200).optional(),
-          duration: external_exports.number().int().min(5).max(15).optional(),
-          assetRefs: external_exports.array(shotAssetRefSchema).max(10).optional()
-        })
-      }),
-      async (req, res) => {
-        const { projectId, expectedVersion, idempotencyKey, shotId, patch } = req.body;
-        try {
-          const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, (state) => {
-            ensureStoryboardEditable(state);
-            const shot = findShot(state, shotId);
-            if (patch.description != null) shot.description = patch.description;
-            if (patch.dialogue != null) shot.dialogue = patch.dialogue;
-            if (patch.camera != null) shot.camera = patch.camera;
-            if (patch.duration != null) shot.duration = normalizeShotDuration(patch.duration);
-            if (patch.assetRefs != null) shot.assetRefs = patch.assetRefs;
-          });
-          res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
-        } catch (err) {
-          if (err instanceof QuickVideoError) {
-            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
-          }
-          throw err;
-        }
-      }
-    );
-  }
-});
-
-// src/routes/quickVideo/updateModels.ts
-var import_express196, router196, updateModels_default;
-var init_updateModels = __esm({
-  "src/routes/quickVideo/updateModels.ts"() {
-    "use strict";
-    import_express196 = __toESM(require_express2());
-    init_zod();
-    init_utils3();
-    init_responseFormat();
-    init_middleware();
-    router196 = import_express196.default.Router();
-    updateModels_default = router196.post(
-      "/",
-      validateFields({
-        projectId: external_exports.number(),
-        textModel: external_exports.string().max(500),
-        imageModel: external_exports.string().max(500),
-        videoModel: external_exports.string().max(500)
-      }),
-      async (req, res) => {
-        const { projectId, textModel, imageModel, videoModel } = req.body;
-        const project = await utils_default2.db("o_project").where("id", projectId).select("id", "projectType").first();
-        if (!project) return res.status(200).send(error50("\u9879\u76EE\u4E0D\u5B58\u5728"));
-        if (project.projectType !== "quick_video") return res.status(200).send(error50("\u975E\u5355\u89C6\u9891\u5FEB\u521B\u9879\u76EE"));
-        await utils_default2.db("o_project").where("id", projectId).update({ textModel, imageModel, videoModel });
-        const updatedProject = await utils_default2.db("o_project").where("id", projectId).first();
-        res.status(200).send(success3({ project: updatedProject }));
-      }
-    );
   }
 });
 
@@ -248505,18 +249286,14 @@ var init_router = __esm({
     init_getAssetsApi();
     init_getImage();
     init_getMaterialData();
+    init_importFromLibrary();
+    init_importFromProject();
     init_pollingImageAssets();
     init_pollingPromptAssets();
     init_saveAssets();
     init_updateAssets();
     init_updateAudioAssets();
     init_uploadClip();
-    init_importFromLibrary();
-    init_folders();
-    init_id2();
-    init_libraryAssets();
-    init_id3();
-    init_importFromProject();
     init_batchGenerateImageAssets();
     init_batchPolishAssetsPrompt();
     init_cancelGenerate();
@@ -248530,6 +249307,10 @@ var init_router = __esm({
     init_generalStatistics();
     init_getSingleProject();
     init_updateProject();
+    init_id2();
+    init_library_assets();
+    init_id3();
+    init_folders();
     init_login();
     init_getModelDetail();
     init_getModelList();
@@ -248566,9 +249347,9 @@ var init_router = __esm({
     init_batchAddStoryboardInfo();
     init_batchDelete2();
     init_batchGenerateImage();
-    init_generationTasks();
     init_downPreviewImage();
     init_editStoryboardInfo();
+    init_generationTasks();
     init_getStoryboardData2();
     init_pollingImage2();
     init_previewImage();
@@ -248604,6 +249385,25 @@ var init_router = __esm({
     init_getVisualManual();
     init_queryDirectorManual();
     init_visualManual();
+    init_addShot();
+    init_bindShotFirstFrame();
+    init_confirmStage();
+    init_createProject();
+    init_createSession();
+    init_getAssetBoard();
+    init_getMediaUrls();
+    init_getMetrics();
+    init_getTimeline();
+    init_getWorkbench();
+    init_listSessions();
+    init_removeShot();
+    init_resolveAssets();
+    init_retryShot();
+    init_updateBrief();
+    init_updateConfig();
+    init_updateModels();
+    init_updateSession();
+    init_updateShot();
     init_register();
     init_addScript();
     init_batchAddScript();
@@ -248672,20 +249472,6 @@ var init_router = __esm({
     init_getTaskCategories();
     init_taskDetails();
     init_test();
-    init_addShot();
-    init_confirmStage();
-    init_createProject();
-    init_getMediaUrls();
-    init_getMetrics();
-    init_getTimeline();
-    init_getWorkbench();
-    init_removeShot();
-    init_resolveAssets();
-    init_retryShot();
-    init_updateBrief();
-    init_updateConfig();
-    init_updateShot();
-    init_updateModels();
     router_default = async (app2) => {
       app2.use("/api/agents/clearMemory", clearMemory_default);
       app2.use("/api/agents/getMemory", getMemory_default);
@@ -248702,6 +249488,8 @@ var init_router = __esm({
       app2.use("/api/assets/getAssetsApi", getAssetsApi_default);
       app2.use("/api/assets/getImage", getImage_default);
       app2.use("/api/assets/getMaterialData", getMaterialData_default);
+      app2.use("/api/assets/importFromLibrary", importFromLibrary_default);
+      app2.use("/api/assets/importFromProject", importFromProject_default);
       app2.use("/api/assets/pollingImageAssets", pollingImageAssets_default);
       app2.use("/api/assets/pollingPromptAssets", pollingPromptAssets_default);
       app2.use("/api/assets/saveAssets", saveAssets_default);
@@ -248721,6 +249509,10 @@ var init_router = __esm({
       app2.use("/api/general/generalStatistics", generalStatistics_default);
       app2.use("/api/general/getSingleProject", getSingleProject_default);
       app2.use("/api/general/updateProject", updateProject_default);
+      app2.use("/api/library-assets/:id", id_default3);
+      app2.use("/api/library-assets", library_assets_default);
+      app2.use("/api/library/folders/:id", id_default4);
+      app2.use("/api/library/folders", folders_default);
       app2.use("/api/login/login", login_default);
       app2.use("/api/modelSelect/getModelDetail", getModelDetail_default);
       app2.use("/api/modelSelect/getModelList", getModelList_default);
@@ -248757,9 +249549,9 @@ var init_router = __esm({
       app2.use("/api/production/storyboard/batchAddStoryboardInfo", batchAddStoryboardInfo_default);
       app2.use("/api/production/storyboard/batchDelete", batchDelete_default2);
       app2.use("/api/production/storyboard/batchGenerateImage", batchGenerateImage_default);
-      app2.use("/api/production/storyboard/generationTasks", generationTasks_default);
       app2.use("/api/production/storyboard/downPreviewImage", downPreviewImage_default);
       app2.use("/api/production/storyboard/editStoryboardInfo", editStoryboardInfo_default);
+      app2.use("/api/production/storyboard/generationTasks", generationTasks_default);
       app2.use("/api/production/storyboard/getStoryboardData", getStoryboardData_default2);
       app2.use("/api/production/storyboard/pollingImage", pollingImage_default2);
       app2.use("/api/production/storyboard/previewImage", previewImage_default);
@@ -248795,6 +249587,25 @@ var init_router = __esm({
       app2.use("/api/project/getVisualManual", getVisualManual_default);
       app2.use("/api/project/queryDirectorManual", queryDirectorManual_default);
       app2.use("/api/project/visualManual", visualManual_default);
+      app2.use("/api/quickVideo/addShot", addShot_default);
+      app2.use("/api/quickVideo/bindShotFirstFrame", bindShotFirstFrame_default);
+      app2.use("/api/quickVideo/confirmStage", confirmStage_default);
+      app2.use("/api/quickVideo/createProject", createProject_default);
+      app2.use("/api/quickVideo/createSession", createSession_default);
+      app2.use("/api/quickVideo/getAssetBoard", getAssetBoard_default);
+      app2.use("/api/quickVideo/getMediaUrls", getMediaUrls_default);
+      app2.use("/api/quickVideo/getMetrics", getMetrics_default);
+      app2.use("/api/quickVideo/getTimeline", getTimeline_default);
+      app2.use("/api/quickVideo/getWorkbench", getWorkbench_default);
+      app2.use("/api/quickVideo/listSessions", listSessions_default);
+      app2.use("/api/quickVideo/removeShot", removeShot_default);
+      app2.use("/api/quickVideo/resolveAssets", resolveAssets_default);
+      app2.use("/api/quickVideo/retryShot", retryShot_default);
+      app2.use("/api/quickVideo/updateBrief", updateBrief_default);
+      app2.use("/api/quickVideo/updateConfig", updateConfig_default);
+      app2.use("/api/quickVideo/updateModels", updateModels_default);
+      app2.use("/api/quickVideo/updateSession", updateSession_default);
+      app2.use("/api/quickVideo/updateShot", updateShot_default);
       app2.use("/api/register/register", register_default);
       app2.use("/api/script/addScript", addScript_default);
       app2.use("/api/script/batchAddScript", batchAddScript_default);
@@ -248863,26 +249674,6 @@ var init_router = __esm({
       app2.use("/api/task/getTaskCategories", getTaskCategories_default);
       app2.use("/api/task/taskDetails", taskDetails_default);
       app2.use("/api/test/test", test_default);
-      app2.use("/api/assets/importFromLibrary", importFromLibrary_default);
-      app2.use("/api/assets/importFromProject", importFromProject_default);
-      app2.use("/api/library/folders", folders_default);
-      app2.use("/api/library/folders/:id", id_default3);
-      app2.use("/api/library-assets", libraryAssets_default);
-      app2.use("/api/library-assets/:id", id_default4);
-      app2.use("/api/quickVideo/addShot", addShot_default);
-      app2.use("/api/quickVideo/confirmStage", confirmStage_default);
-      app2.use("/api/quickVideo/createProject", createProject_default);
-      app2.use("/api/quickVideo/getMediaUrls", getMediaUrls_default);
-      app2.use("/api/quickVideo/getMetrics", getMetrics_default);
-      app2.use("/api/quickVideo/getTimeline", getTimeline_default);
-      app2.use("/api/quickVideo/getWorkbench", getWorkbench_default);
-      app2.use("/api/quickVideo/removeShot", removeShot_default);
-      app2.use("/api/quickVideo/resolveAssets", resolveAssets_default);
-      app2.use("/api/quickVideo/retryShot", retryShot_default);
-      app2.use("/api/quickVideo/updateBrief", updateBrief_default);
-      app2.use("/api/quickVideo/updateConfig", updateConfig_default);
-      app2.use("/api/quickVideo/updateShot", updateShot_default);
-      app2.use("/api/quickVideo/updateModels", updateModels_default);
     };
   }
 });
@@ -248915,12 +249706,12 @@ process.on("unhandledRejection", (reason, promise3) => {
   }
   console.error("Promise:", promise3);
 });
-process.on("uncaughtException", (error69) => {
+process.on("uncaughtException", (error70) => {
   console.error("[\u672A\u6355\u83B7\u7684\u5F02\u5E38]");
-  console.error("\u9519\u8BEF\u540D\u79F0:", error69.name);
-  console.error("\u9519\u8BEF\u6D88\u606F:", error69.message);
-  console.error("\u5806\u6808\u4FE1\u606F:", error69.stack);
-  console.error("\u5E8F\u5217\u5316\u8BE6\u60C5:", JSON.stringify(serializeError(error69), null, 2));
+  console.error("\u9519\u8BEF\u540D\u79F0:", error70.name);
+  console.error("\u9519\u8BEF\u6D88\u606F:", error70.message);
+  console.error("\u5806\u6808\u4FE1\u606F:", error70.stack);
+  console.error("\u5E8F\u5217\u5316\u8BE6\u60C5:", JSON.stringify(serializeError(error70), null, 2));
 });
 
 // src/env.ts
@@ -248938,7 +249729,7 @@ if (!env) {
 }
 
 // src/app.ts
-var import_express197 = __toESM(require_express2());
+var import_express202 = __toESM(require_express2());
 
 // node_modules/socket.io/wrapper.mjs
 var import_dist = __toESM(require_dist3(), 1);
@@ -249387,7 +250178,7 @@ function createSkillTools(skills, skillPaths, rootDir = getPath_default("skills"
         try {
           raw = matched.content ?? await fs6.promises.readFile(matched.path, "utf-8");
           console.log(`\u26A1[\u4E3B\u6280\u80FD] \u2713 \u5DF2\u8BFB\u53D6\u4E3B\u6280\u80FD\u6587\u4EF6\uFF1A ${matched.path}\uFF08${raw.length} \u5B57\u7B26\uFF09`);
-        } catch (error69) {
+        } catch (error70) {
           console.log(`\u26A1[\u4E3B\u6280\u80FD] \u2717 \u8BFB\u53D6\u5931\u8D25\uFF1A\u672A\u627E\u5230\u6587\u4EF6 "${matched.path}"`);
         }
         activated.add(name28);
@@ -250126,11 +250917,11 @@ var ResTool = class {
     return new MessageBuilder(this.socket, messageId, role, name28, datetime4);
   }
   // 发送错误消息
-  sendError(messageId, error69) {
+  sendError(messageId, error70) {
     this.socket.emit("message:update", {
       id: messageId,
       status: "error",
-      ext: { error: error69 }
+      ext: { error: error70 }
     });
   }
   // 发送完成状态
@@ -250238,14 +251029,32 @@ var MessageBuilder = class {
     });
     return new SearchStream(this.socket, this.messageId, contentId);
   }
-  // 添加图片内容
-  image(data) {
+  // 添加图片内容；ext 用于携带 mediaId/assetId/imageId 等稳定引用和可执行操作所需信息，
+  // 不得把私有 OSS key 之类的内部路径放进去（SIY-132：聊天生图落库为项目资产）
+  image(data, ext) {
     const contentId = utils_default2.uuid();
     const content = {
       type: "image",
       id: contentId,
       data,
-      status: "complete"
+      status: "complete",
+      ...ext ? { ext } : {}
+    };
+    this.socket.emit("content:add", {
+      messageId: this.messageId,
+      content
+    });
+    return this;
+  }
+  // 添加视频内容；ext 语义与 image() 一致（携带 mediaId/assetId/videoId 等稳定引用），SIY-134
+  video(data, ext) {
+    const contentId = utils_default2.uuid();
+    const content = {
+      type: "video",
+      id: contentId,
+      data,
+      status: "complete",
+      ...ext ? { ext } : {}
     };
     this.socket.emit("content:add", {
       messageId: this.messageId,
@@ -251214,6 +252023,7 @@ init_state();
 init_contract();
 init_shots();
 init_generate();
+init_media();
 function describeError(err) {
   if (err instanceof QuickVideoError) return `[${err.code}] ${err.message}`;
   return utils_default2.error(err).message;
@@ -251233,7 +252043,7 @@ async function withThinking(msg, title, fn) {
   }
 }
 var tools_default3 = (toolConfig) => {
-  const { msg } = toolConfig;
+  const { msg, sessionId } = toolConfig;
   const projectId = Number(toolConfig.resTool.data.projectId);
   const userId2 = Number(toolConfig.resTool.data.userId ?? 0) || 1;
   const tools = {
@@ -251259,6 +252069,61 @@ var tools_default3 = (toolConfig) => {
         );
       }
     }),
+    update_config: tool({
+      description: "\u4FEE\u6539\u5355\u89C6\u9891\u9879\u76EE\u57FA\u7840\u914D\u7F6E\uFF08\u6807\u9898\u3001\u753B\u98CE\u3001\u753B\u9762\u6BD4\u4F8B\u3001\u76EE\u6807\u65F6\u957F\u3001\u7B80\u4ECB\uFF09\u3002\u5199\u5165\u524D\u5FC5\u987B\u8C03\u7528 get_state\uFF1B\u76EE\u6807\u65F6\u957F\u5728\u5206\u955C\u5DF2\u786E\u8BA4\u540E\u4E0D\u53EF\u4FEE\u6539\uFF0C\u9700\u5148\u63D0\u9192\u7528\u6237\u64A4\u9500\u5206\u955C\u786E\u8BA4\u3002\u4FEE\u6539\u753B\u98CE\u6216\u6BD4\u4F8B\u540E\u5E94\u91CD\u65B0\u89E3\u6790\u7D20\u6750/\u6210\u672C\u5FEB\u7167\uFF1B\u4FEE\u6539\u76EE\u6807\u65F6\u957F\u540E\u5E94\u6309\u65B0\u7684\u955C\u5934\u6570\u91CF\u533A\u95F4\u548C\u603B\u65F6\u957F\u7EA6\u675F\u91CD\u65B0\u6253\u78E8\u5206\u955C\u3002",
+      inputSchema: jsonSchema(
+        external_exports.object({
+          name: external_exports.string().min(1).max(100).optional().describe("\u9879\u76EE\u6807\u9898"),
+          artStyle: external_exports.string().max(500).optional().describe("\u753B\u98CE"),
+          videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS).optional().describe("\u753B\u9762\u6BD4\u4F8B"),
+          targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]).optional().describe("\u76EE\u6807\u65F6\u957F\uFF08\u79D2\uFF09"),
+          intro: external_exports.string().max(2e3).optional().describe("\u9879\u76EE\u7B80\u4ECB")
+        }).toJSONSchema()
+      ),
+      execute: async (input, options) => {
+        const { toolCallId } = options;
+        return withThinking(msg, "\u6B63\u5728\u66F4\u65B0\u9879\u76EE\u914D\u7F6E...", async () => {
+          if (!Object.keys(input).length) throw new QuickVideoError("INVALID_CONFIG", "\u81F3\u5C11\u63D0\u4F9B\u4E00\u9879\u9700\u8981\u4FEE\u6539\u7684\u914D\u7F6E");
+          const { state, idempotentHit } = await mutateQuickVideoState(
+            projectId,
+            { idempotencyKey: `tool:update_config:${toolCallId}` },
+            async (s, trx) => {
+              const targetDurationChanged = input.targetDuration != null && input.targetDuration !== s.targetDuration;
+              const visualConfigChanged = input.artStyle != null && input.artStyle !== s.artStyle || input.videoRatio != null && input.videoRatio !== s.videoRatio;
+              const generationConfigChanged = targetDurationChanged || visualConfigChanged;
+              if (targetDurationChanged && s.storyboard?.status === "confirmed") {
+                throw new QuickVideoError("FORBIDDEN", "\u5206\u955C\u5DF2\u786E\u8BA4\uFF0C\u4E0D\u5141\u8BB8\u4FEE\u6539\u76EE\u6807\u65F6\u957F\uFF1B\u8BF7\u5148\u8BA9\u7528\u6237\u64A4\u9500\u5206\u955C\u786E\u8BA4", s.version);
+              }
+              if (generationConfigChanged && ["generating", "ready_to_assemble", "completed"].includes(s.stage)) {
+                throw new QuickVideoError("FORBIDDEN", "\u751F\u6210\u5DF2\u5F00\u59CB\uFF0C\u4E0D\u80FD\u518D\u4FEE\u6539\u76EE\u6807\u65F6\u957F\u3001\u753B\u98CE\u6216\u6BD4\u4F8B\uFF1B\u5982\u9700\u8C03\u6574\u8BF7\u65B0\u5EFA\u9879\u76EE", s.version);
+              }
+              if (input.targetDuration != null) s.targetDuration = input.targetDuration;
+              if (input.videoRatio != null) s.videoRatio = input.videoRatio;
+              if (input.artStyle != null) s.artStyle = input.artStyle;
+              if (generationConfigChanged) {
+                s.generation.snapshot = null;
+                s.generation.materialsConfirmed = false;
+                s.generation.materialsConfirmedAt = null;
+                s.generation.materialImages = {};
+                s.generation.timeline = null;
+                s.generation.exportInfo = null;
+              }
+              const projectPatch = {};
+              if (input.name != null) projectPatch.name = input.name;
+              if (input.artStyle != null) projectPatch.artStyle = input.artStyle;
+              if (input.videoRatio != null) projectPatch.videoRatio = input.videoRatio;
+              if (input.intro != null) projectPatch.intro = input.intro;
+              if (Object.keys(projectPatch).length) await trx("o_project").where("id", projectId).update(projectPatch);
+            }
+          );
+          if (idempotentHit) return "\u8BE5\u6B21\u9879\u76EE\u914D\u7F6E\u66F4\u65B0\u5DF2\u5E94\u7528\u8FC7\uFF08\u5E42\u7B49\u547D\u4E2D\uFF09\uFF0C\u672A\u91CD\u590D\u5199\u5165\u3002";
+          const durationHint = input.targetDuration != null ? `\u76EE\u6807\u65F6\u957F\u5DF2\u66F4\u65B0\u4E3A ${state.targetDuration} \u79D2` : "\u9879\u76EE\u914D\u7F6E\u5DF2\u66F4\u65B0";
+          const storyboardHint = input.targetDuration != null && state.storyboard ? "\u8BF7\u6839\u636E\u65B0\u76EE\u6807\u65F6\u957F\u91CD\u65B0\u6253\u78E8\u5F53\u524D\u5206\u955C\u3002" : "";
+          const visualHint = input.artStyle != null || input.videoRatio != null ? "\u8BF7\u5728\u7D20\u6750/\u6210\u672C\u786E\u8BA4\u524D\u91CD\u65B0\u89E3\u6790\u7D20\u6750\u5FEB\u7167\u3002" : "";
+          return `${durationHint}\uFF08\u72B6\u6001\u7248\u672C ${state.version}\uFF09\u3002${storyboardHint}${visualHint}`;
+        }).catch((err) => `\u66F4\u65B0\u9879\u76EE\u914D\u7F6E\u5931\u8D25\uFF1A${describeError(err)}`);
+      }
+    }),
     save_brief: tool({
       description: "\u4FDD\u5B58/\u66F4\u65B0\u7ED3\u6784\u5316\u7B80\u62A5\uFF08\u4E3B\u9898\u3001\u5F00\u573A\u94A9\u5B50\u3001\u53D9\u4E8B\u5927\u7EB2\u3001\u7ED3\u5C3ECTA\u3001\u5173\u952E\u8BCD\uFF09\u3002\u4EC5\u5728 collect_brief / brief_confirmed / storyboard_draft \u9636\u6BB5\u53EF\u7528\uFF1B\u4FDD\u5B58\u540E\u7B80\u62A5\u56DE\u5230\u672A\u786E\u8BA4\u72B6\u6001\uFF0C\u9700\u7528\u6237\u91CD\u65B0\u786E\u8BA4\u3002",
       inputSchema: jsonSchema(
@@ -251275,7 +252140,7 @@ var tools_default3 = (toolConfig) => {
         return withThinking(msg, "\u6B63\u5728\u4FDD\u5B58\u7B80\u62A5...", async () => {
           const { state, idempotentHit } = await mutateQuickVideoState(
             projectId,
-            { idempotencyKey: `tool:save_brief:${toolCallId}` },
+            { idempotencyKey: `tool:save_brief:${toolCallId}`, sessionId },
             (s) => {
               if (!["collect_brief", "brief_confirmed", "storyboard_draft"].includes(s.stage)) {
                 throw new QuickVideoError("STAGE_FORBIDDEN", `\u5F53\u524D\u9636\u6BB5 ${s.stage} \u4E0D\u5141\u8BB8\u4FEE\u6539\u7B80\u62A5`, s.version);
@@ -251325,7 +252190,7 @@ var tools_default3 = (toolConfig) => {
           }
           const { state, idempotentHit } = await mutateQuickVideoState(
             projectId,
-            { idempotencyKey: `tool:propose_storyboard:${toolCallId}` },
+            { idempotencyKey: `tool:propose_storyboard:${toolCallId}`, sessionId },
             (s) => {
               if (!s.brief) throw new QuickVideoError("NO_BRIEF", "\u8BF7\u5148\u7528 save_brief \u4FDD\u5B58\u7B80\u62A5", s.version);
               if (!["brief_confirmed", "storyboard_draft"].includes(s.stage)) {
@@ -251349,7 +252214,8 @@ var tools_default3 = (toolConfig) => {
                 videoState: "pending",
                 imageRef: null,
                 videoRef: null,
-                errorReason: null
+                errorReason: null,
+                firstFrame: null
               }));
               const errors = validateStoryboard(s.targetDuration, shots);
               if (errors.length) throw new QuickVideoError("STORYBOARD_INVALID", errors.join("\uFF1B"), s.version);
@@ -251385,7 +252251,7 @@ var tools_default3 = (toolConfig) => {
         return withThinking(msg, `\u6B63\u5728\u4FEE\u6539\u955C\u5934 ${input.shotId}...`, async () => {
           const { state, idempotentHit } = await mutateQuickVideoState(
             projectId,
-            { idempotencyKey: `tool:update_shot:${toolCallId}` },
+            { idempotencyKey: `tool:update_shot:${toolCallId}`, sessionId },
             (s) => {
               if (!s.storyboard || s.storyboard.status !== "draft") {
                 throw new QuickVideoError("STORYBOARD_LOCKED", "\u5206\u955C\u4E0D\u5B58\u5728\u6216\u5DF2\u786E\u8BA4\u9501\u5B9A\uFF0C\u4E0D\u5141\u8BB8\u4FEE\u6539\u955C\u5934", s.version);
@@ -251419,7 +252285,7 @@ var tools_default3 = (toolConfig) => {
         return withThinking(msg, "\u6B63\u5728\u8FFD\u52A0\u955C\u5934...", async () => {
           const { state, idempotentHit } = await mutateQuickVideoState(
             projectId,
-            { idempotencyKey: `tool:add_shot:${toolCallId}` },
+            { idempotencyKey: `tool:add_shot:${toolCallId}`, sessionId },
             (s) => {
               if (!s.storyboard || s.storyboard.status !== "draft") {
                 throw new QuickVideoError("STORYBOARD_LOCKED", "\u5206\u955C\u4E0D\u5B58\u5728\u6216\u5DF2\u786E\u8BA4\u9501\u5B9A\uFF0C\u4E0D\u5141\u8BB8\u8FFD\u52A0\u955C\u5934", s.version);
@@ -251442,7 +252308,8 @@ var tools_default3 = (toolConfig) => {
                 videoState: "pending",
                 imageRef: null,
                 videoRef: null,
-                errorReason: null
+                errorReason: null,
+                firstFrame: null
               });
               reindexShots(s);
             }
@@ -251461,7 +252328,7 @@ var tools_default3 = (toolConfig) => {
         return withThinking(msg, `\u6B63\u5728\u5220\u9664\u955C\u5934 ${input.shotId}...`, async () => {
           const { state, idempotentHit } = await mutateQuickVideoState(
             projectId,
-            { idempotencyKey: `tool:remove_shot:${toolCallId}` },
+            { idempotencyKey: `tool:remove_shot:${toolCallId}`, sessionId },
             (s) => {
               if (!s.storyboard || s.storyboard.status !== "draft") {
                 throw new QuickVideoError("STORYBOARD_LOCKED", "\u5206\u955C\u4E0D\u5B58\u5728\u6216\u5DF2\u786E\u8BA4\u9501\u5B9A\uFF0C\u4E0D\u5141\u8BB8\u5220\u9664\u955C\u5934", s.version);
@@ -251494,7 +252361,7 @@ var tools_default3 = (toolConfig) => {
         return withThinking(msg, `\u6B63\u5728\u4E3A\u955C\u5934 ${input.shotId} \u7ED1\u5B9A\u8D44\u4EA7...`, async () => {
           const { state, idempotentHit } = await mutateQuickVideoState(
             projectId,
-            { idempotencyKey: `tool:bind_asset:${toolCallId}` },
+            { idempotencyKey: `tool:bind_asset:${toolCallId}`, sessionId },
             (s) => {
               if (!s.storyboard || s.storyboard.status !== "draft") {
                 throw new QuickVideoError("STORYBOARD_LOCKED", "\u5206\u955C\u4E0D\u5B58\u5728\u6216\u5DF2\u786E\u8BA4\u9501\u5B9A\uFF0C\u4E0D\u5141\u8BB8\u7ED1\u5B9A\u8D44\u4EA7", s.version);
@@ -251544,7 +252411,7 @@ var tools_default3 = (toolConfig) => {
             if (!state.generation?.materialsConfirmed) {
               return "\u5904\u4E8E\u751F\u6210\u9636\u6BB5\u4F46\u7D20\u6750/\u6210\u672C\u786E\u8BA4\u72B6\u6001\u5F02\u5E38\uFF0C\u8BF7\u8BA9\u7528\u6237\u5728\u53F3\u4FA7\u9762\u677F\u91CD\u65B0\u64CD\u4F5C\u786E\u8BA4\u95E8\u3002";
             }
-            const { started, alreadyRunning, runId } = await startQuickVideoGeneration(projectId, userId2);
+            const { started, alreadyRunning, runId } = await startQuickVideoGeneration(projectId, userId2, sessionId);
             if (started) {
               return `\u751F\u6210\u5DF2\u91CD\u65B0\u542F\u52A8\uFF08\u8FD0\u884C ${runId}\uFF09\u3002\u8BF7\u63D0\u9192\u7528\u6237\u53F3\u4FA7\u9762\u677F\u4F1A\u5B9E\u65F6\u5C55\u793A\u5404\u955C\u5934\u8FDB\u5EA6\uFF1B\u5931\u8D25\u955C\u5934\u53EF\u5355\u72EC\u91CD\u8BD5\u3002`;
             }
@@ -251556,7 +252423,7 @@ var tools_default3 = (toolConfig) => {
             if (!state.generation?.materialsConfirmed) {
               return "\u5206\u955C\u5DF2\u786E\u8BA4\uFF0C\u4F46\u7D20\u6750/\u6210\u672C\u786E\u8BA4\u95E8\u5C1A\u672A\u901A\u8FC7\u3002\u8BF7\u63D0\u9192\u7528\u6237\u5728\u53F3\u4FA7\u300C\u7D20\u6750\u4E0E\u6210\u672C\u300D\u9762\u677F\u67E5\u770B\u89E3\u6790\u7ED3\u679C\u4E0E\u9884\u4F30\u8D39\u7528\uFF0C\u786E\u8BA4\u540E\u7CFB\u7EDF\u4F1A\u81EA\u52A8\u5F00\u59CB\u9010\u955C\u5934\u751F\u6210\u3002";
             }
-            const { started, alreadyRunning, runId } = await startQuickVideoGeneration(projectId, userId2);
+            const { started, alreadyRunning, runId } = await startQuickVideoGeneration(projectId, userId2, sessionId);
             if (started) return `\u751F\u6210\u5DF2\u542F\u52A8\uFF08\u8FD0\u884C ${runId}\uFF09\uFF0C\u7CFB\u7EDF\u5C06\u9010\u955C\u5934\u751F\u6210\u5206\u955C\u56FE\u548C\u89C6\u9891\u7247\u6BB5\u3002`;
             if (alreadyRunning) return `\u751F\u6210\u5DF2\u5728\u8FDB\u884C\u4E2D\uFF08\u8FD0\u884C ${runId}\uFF09\u3002`;
           }
@@ -251568,6 +252435,158 @@ var tools_default3 = (toolConfig) => {
       }
     })
   };
+  if (toolConfig.imageModel) {
+    const imageModel = toolConfig.imageModel;
+    tools.generate_image = tool({
+      description: "\u5728\u5F53\u524D\u804A\u5929\u4F1A\u8BDD\u4E2D\u751F\u6210\u4E00\u5F20\u56FE\u7247\uFF08\u6587\u751F\u56FE\uFF0C\u53EF\u9009\u5F15\u7528\u56FE\u4F5C\u4E3A\u56FE\u751F\u56FE\u53C2\u8003\uFF09\u3002\u751F\u6210\u6210\u529F\u4F1A\u81EA\u52A8\u51FA\u73B0\u5728\u804A\u5929\u8BB0\u5F55\u548C\u8D44\u4EA7\u767D\u677F\u4E2D\uFF0C\u4F46\u4E0D\u4F1A\u7ED1\u5B9A\u5230\u4EFB\u4F55\u955C\u5934\u3001\u4E0D\u4F1A\u4FEE\u6539\u5206\u955C\u3001\u4E0D\u4F1A\u4EE3\u66FF\u7528\u6237\u786E\u8BA4\u4EFB\u4F55\u786E\u8BA4\u95E8\u2014\u2014\u7ED1\u5B9A\u955C\u5934\u9996\u5E27\u662F\u7528\u6237\u5728\u53F3\u4FA7\u5206\u955C\u8868\u7684\u4E13\u5C5E\u64CD\u4F5C\u3002",
+      inputSchema: jsonSchema(
+        external_exports.object({
+          prompt: external_exports.string().min(1).max(2e3).describe("\u56FE\u7247\u751F\u6210\u63D0\u793A\u8BCD\uFF08\u753B\u9762\u63CF\u8FF0\uFF0C\u5C3D\u91CF\u5177\u4F53\uFF1A\u4E3B\u4F53\u3001\u6784\u56FE\u3001\u98CE\u683C\u3001\u5149\u5F71\uFF09"),
+          referenceMediaIds: external_exports.array(external_exports.number().int().positive()).max(4).optional().describe("\u5F15\u7528\u5A92\u4F53\u7684 mediaId \u5217\u8868\uFF08\u56FE\u751F\u56FE\u53C2\u8003\uFF09\uFF0C\u53EA\u80FD\u662F\u7528\u6237\u5728\u672C\u8F6E\u804A\u5929\u4E2D\u660E\u786E\u9009\u4E2D\u7684\u5F15\u7528\uFF0C\u4E0D\u8981\u51ED\u7A7A\u7F16\u9020 id")
+        }).toJSONSchema()
+      ),
+      execute: async (input, options) => {
+        const { toolCallId } = options;
+        return withThinking(msg, "\u6B63\u5728\u751F\u6210\u56FE\u7247...", async () => {
+          const project = await utils_default2.db("o_project").where("id", projectId).select("videoRatio").first();
+          const aspectRatio = project?.videoRatio || "16:9";
+          const { media, idempotentHit } = await createChatMedia({
+            projectId,
+            sessionId,
+            messageId: msg.id,
+            kind: "image",
+            model: imageModel,
+            prompt: input.prompt,
+            source: "chat",
+            idempotencyKey: `tool:generate_image:${toolCallId}`
+          });
+          if (idempotentHit) {
+            if (media.state === "done") return "\u8BE5\u6B21\u56FE\u7247\u751F\u6210\u8BF7\u6C42\u5DF2\u5904\u7406\u8FC7\uFF08\u5E42\u7B49\u547D\u4E2D\uFF09\uFF0C\u56FE\u7247\u5DF2\u5728\u804A\u5929\u8BB0\u5F55\u548C\u8D44\u4EA7\u767D\u677F\u4E2D\u3002";
+            if (media.state === "failed") return `\u8BE5\u6B21\u56FE\u7247\u751F\u6210\u8BF7\u6C42\u5DF2\u5904\u7406\u8FC7\uFF08\u5E42\u7B49\u547D\u4E2D\uFF09\uFF0C\u751F\u6210\u5931\u8D25\uFF1A${media.errorReason ?? "\u672A\u77E5\u539F\u56E0"}`;
+            return "\u8BE5\u6B21\u56FE\u7247\u751F\u6210\u8BF7\u6C42\u6B63\u5728\u5904\u7406\u4E2D\uFF08\u5E42\u7B49\u547D\u4E2D\uFF09\uFF0C\u8BF7\u7A0D\u5019\u67E5\u770B\u804A\u5929\u8BB0\u5F55\u6216\u8D44\u4EA7\u767D\u677F\u3002";
+          }
+          const referenceIds = (input.referenceMediaIds ?? toolConfig.references ?? []).slice(0, 4);
+          const referenceList = [];
+          for (const refId of referenceIds) {
+            try {
+              referenceList.push({ type: "image", base64: await resolveMediaImageBase64(projectId, refId) });
+            } catch {
+            }
+          }
+          try {
+            const imageCls = utils_default2.Ai.Image(imageModel, userId2);
+            await imageCls.run(
+              { prompt: input.prompt, referenceList, size: "1K", aspectRatio },
+              {
+                taskClass: "\u5FEB\u521B\u804A\u5929\u751F\u56FE",
+                describe: `\u804A\u5929\u751F\u56FE\uFF1A${input.prompt.slice(0, 100)}`,
+                relatedObjects: JSON.stringify({ projectId, sessionId, mediaId: media.id }),
+                projectId
+              }
+            );
+            const savePath = `/${projectId}/quickVideo/chat-${utils_default2.uuid().slice(0, 8)}.jpg`;
+            await imageCls.save(savePath);
+            await markChatMediaDone(media.id, savePath);
+            const url4 = await utils_default2.oss.getFileUrl(savePath);
+            msg.image(
+              { name: input.prompt.slice(0, 60), url: url4 },
+              { mediaId: media.id, assetId: media.assetId, imageId: media.imageId, kind: "image", model: imageModel, promptSummary: input.prompt.slice(0, 200), state: "done", source: "chat" }
+            );
+            return `\u56FE\u7247\u5DF2\u751F\u6210\u5E76\u52A0\u5165\u804A\u5929\u8BB0\u5F55\u4E0E\u8D44\u4EA7\u767D\u677F\uFF08mediaId ${media.id}\uFF09\u3002\u63D0\u9192\u7528\u6237\uFF1A\u5982\u9700\u7528\u4F5C\u67D0\u4E2A\u955C\u5934\u7684\u9996\u5E27\uFF0C\u8BF7\u5728\u53F3\u4FA7\u5206\u955C\u8868\u5BF9\u5E94\u955C\u5934\u70B9\u51FB"\u8BBE\u4E3A\u9996\u5E27"\u624B\u52A8\u7ED1\u5B9A\uFF0C\u6211\u4E0D\u4F1A\u81EA\u52A8\u7ED1\u5B9A\u3002`;
+          } catch (err) {
+            const reason = describeError(err);
+            await markChatMediaFailed(media.id, reason);
+            return `\u56FE\u7247\u751F\u6210\u5931\u8D25\uFF1A${reason}\u3002\u53EF\u4EE5\u8BF7\u7528\u6237\u6362\u4E00\u4E2A\u63CF\u8FF0\u6216\u6362\u4E00\u4E2A\u56FE\u7247\u6A21\u578B\u540E\u91CD\u65B0\u53D1\u9001\u3002`;
+          }
+        }).catch((err) => `\u56FE\u7247\u751F\u6210\u5931\u8D25\uFF1A${describeError(err)}`);
+      }
+    });
+  }
+  if (toolConfig.videoModel) {
+    const videoModel = toolConfig.videoModel;
+    tools.generate_video = tool({
+      description: "\u5728\u5F53\u524D\u804A\u5929\u4F1A\u8BDD\u4E2D\u751F\u6210\u4E00\u6BB5\u56FE\u751F\u89C6\u9891\uFF08\u5FC5\u987B\u63D0\u4F9B\u4E00\u5F20\u53C2\u8003\u56FE\u4F5C\u4E3A\u9996\u5E27\u8F93\u5165\uFF0C\u4E0D\u652F\u6301\u7EAF\u6587\u5B57\u751F\u89C6\u9891\uFF09\u3002\u751F\u6210\u6210\u529F\u4F1A\u81EA\u52A8\u51FA\u73B0\u5728\u804A\u5929\u8BB0\u5F55\u548C\u8D44\u4EA7\u767D\u677F\u4E2D\uFF0C\u4F46\u4E0D\u4F1A\u7ED1\u5B9A\u5230\u4EFB\u4F55\u955C\u5934\u3001\u4E0D\u4F1A\u4FEE\u6539\u5206\u955C\u3001\u4E0D\u4F1A\u4EE3\u66FF\u7528\u6237\u786E\u8BA4\u4EFB\u4F55\u786E\u8BA4\u95E8\u2014\u2014\u7ED1\u5B9A\u955C\u5934\u9996\u5E27\u662F\u7528\u6237\u5728\u53F3\u4FA7\u5206\u955C\u8868\u7684\u4E13\u5C5E\u64CD\u4F5C\u3002",
+      inputSchema: jsonSchema(
+        external_exports.object({
+          prompt: external_exports.string().min(1).max(2e3).describe("\u89C6\u9891\u751F\u6210\u63D0\u793A\u8BCD\uFF08\u753B\u9762\u5185\u5BB9\u3001\u52A8\u4F5C\u3001\u8FD0\u955C\u3001\u6C1B\u56F4\uFF0C\u5C3D\u91CF\u5177\u4F53\uFF09"),
+          referenceMediaId: external_exports.number().int().positive().optional().describe("\u4F5C\u4E3A\u9996\u5E27\u7684\u53C2\u8003\u56FE mediaId\uFF0C\u53EA\u80FD\u662F\u7528\u6237\u5728\u672C\u8F6E\u804A\u5929\u4E2D\u660E\u786E\u9009\u4E2D/\u590D\u5236\u7684\u56FE\u7247\uFF0C\u4E0D\u8981\u51ED\u7A7A\u7F16\u9020 id\uFF1B\u672A\u63D0\u4F9B\u65F6\u4F7F\u7528\u7528\u6237\u5F53\u524D\u9009\u4E2D\u7684\u5F15\u7528"),
+          duration: external_exports.number().int().min(SHOT_DURATION_MIN).max(SHOT_DURATION_MAX).optional().describe(`\u89C6\u9891\u65F6\u957F\uFF08\u79D2\uFF09\uFF0C${SHOT_DURATION_MIN}-${SHOT_DURATION_MAX}\uFF0C\u672A\u63D0\u4F9B\u65F6\u9ED8\u8BA4 ${SHOT_DURATION_MIN} \u79D2`)
+        }).toJSONSchema()
+      ),
+      execute: async (input, options) => {
+        const { toolCallId } = options;
+        return withThinking(msg, "\u6B63\u5728\u751F\u6210\u89C6\u9891...", async () => {
+          const referenceId = input.referenceMediaId ?? toolConfig.references?.[0];
+          if (!referenceId) {
+            return "\u751F\u89C6\u9891\u9700\u8981\u5148\u63D0\u4F9B\u4E00\u5F20\u53C2\u8003\u56FE\u4F5C\u4E3A\u9996\u5E27\uFF1A\u8BF7\u63D0\u9192\u7528\u6237\u5728\u804A\u5929\u8BB0\u5F55\u6216\u8D44\u4EA7\u767D\u677F\u4E2D\u590D\u5236\u4E00\u5F20\u56FE\u7247\u4F5C\u4E3A\u5F15\u7528\u540E\u518D\u53D1\u9001\u751F\u89C6\u9891\u8BF7\u6C42\uFF0C\u6211\u4E0D\u4F1A\u51ED\u7A7A\u751F\u6210\u89C6\u9891\u3002";
+          }
+          try {
+            await assertVideoSupportsSingleImage(videoModel, false);
+          } catch (err) {
+            return `\u89C6\u9891\u751F\u6210\u5931\u8D25\uFF1A${describeError(err)}`;
+          }
+          const project = await utils_default2.db("o_project").where("id", projectId).select("videoRatio").first();
+          const aspectRatio = castAspectRatio(project?.videoRatio || "16:9");
+          const duration4 = input.duration ?? SHOT_DURATION_MIN;
+          const { media, idempotentHit } = await createChatMedia({
+            projectId,
+            sessionId,
+            messageId: msg.id,
+            kind: "video",
+            model: videoModel,
+            prompt: input.prompt,
+            source: "chat",
+            idempotencyKey: `tool:generate_video:${toolCallId}`
+          });
+          if (idempotentHit) {
+            if (media.state === "done") return "\u8BE5\u6B21\u89C6\u9891\u751F\u6210\u8BF7\u6C42\u5DF2\u5904\u7406\u8FC7\uFF08\u5E42\u7B49\u547D\u4E2D\uFF09\uFF0C\u89C6\u9891\u5DF2\u5728\u804A\u5929\u8BB0\u5F55\u548C\u8D44\u4EA7\u767D\u677F\u4E2D\u3002";
+            if (media.state === "failed") return `\u8BE5\u6B21\u89C6\u9891\u751F\u6210\u8BF7\u6C42\u5DF2\u5904\u7406\u8FC7\uFF08\u5E42\u7B49\u547D\u4E2D\uFF09\uFF0C\u751F\u6210\u5931\u8D25\uFF1A${media.errorReason ?? "\u672A\u77E5\u539F\u56E0"}`;
+            return "\u8BE5\u6B21\u89C6\u9891\u751F\u6210\u8BF7\u6C42\u6B63\u5728\u5904\u7406\u4E2D\uFF08\u5E42\u7B49\u547D\u4E2D\uFF09\uFF0C\u8BF7\u7A0D\u5019\u67E5\u770B\u804A\u5929\u8BB0\u5F55\u6216\u8D44\u4EA7\u767D\u677F\u3002";
+          }
+          let imageBase64;
+          try {
+            imageBase64 = await resolveMediaImageBase64(projectId, referenceId);
+          } catch (err) {
+            const reason = describeError(err);
+            await markChatMediaFailed(media.id, reason);
+            return `\u89C6\u9891\u751F\u6210\u5931\u8D25\uFF1A\u53C2\u8003\u56FE\u65E0\u6548\uFF08${reason}\uFF09\u3002\u8BF7\u63D0\u9192\u7528\u6237\u91CD\u65B0\u9009\u62E9\u4E00\u5F20\u5DF2\u751F\u6210\u5B8C\u6210\u7684\u56FE\u7247\u4F5C\u4E3A\u53C2\u8003\u540E\u518D\u8BD5\uFF0C\u4E0D\u8981\u51ED\u7A7A\u91CD\u8BD5\u3002`;
+          }
+          try {
+            const videoAi = utils_default2.Ai.Video(videoModel, userId2);
+            await videoAi.run(
+              {
+                prompt: input.prompt,
+                referenceList: [{ type: "image", base64: imageBase64 }],
+                mode: ["singleImage"],
+                duration: duration4,
+                aspectRatio,
+                resolution: "720p"
+              },
+              {
+                taskClass: "\u5FEB\u521B\u804A\u5929\u751F\u89C6\u9891",
+                describe: `\u804A\u5929\u751F\u89C6\u9891\uFF1A${input.prompt.slice(0, 100)}`,
+                relatedObjects: JSON.stringify({ projectId, sessionId, mediaId: media.id }),
+                projectId
+              }
+            );
+            const savePath = `/${projectId}/quickVideo/chat-${utils_default2.uuid().slice(0, 8)}.mp4`;
+            await videoAi.save(savePath);
+            await markChatMediaDone(media.id, savePath);
+            const url4 = await utils_default2.oss.getFileUrl(savePath);
+            msg.video(
+              { name: input.prompt.slice(0, 60), url: url4 },
+              { mediaId: media.id, assetId: media.assetId, videoId: media.videoId, kind: "video", model: videoModel, promptSummary: input.prompt.slice(0, 200), state: "done", source: "chat" }
+            );
+            return `\u89C6\u9891\u5DF2\u751F\u6210\u5E76\u52A0\u5165\u804A\u5929\u8BB0\u5F55\u4E0E\u8D44\u4EA7\u767D\u677F\uFF08mediaId ${media.id}\uFF09\u3002\u63D0\u9192\u7528\u6237\uFF1A\u5982\u9700\u7528\u4F5C\u67D0\u4E2A\u955C\u5934\u7684\u9996\u5E27\uFF0C\u8BF7\u5728\u53F3\u4FA7\u5206\u955C\u8868\u5BF9\u5E94\u955C\u5934\u70B9\u51FB"\u8BBE\u4E3A\u9996\u5E27"\u624B\u52A8\u7ED1\u5B9A\uFF08\u4EC5\u56FE\u7247\u53EF\u4F5C\u9996\u5E27\uFF09\uFF0C\u6211\u4E0D\u4F1A\u81EA\u52A8\u7ED1\u5B9A\u3002`;
+          } catch (err) {
+            const reason = describeError(err);
+            await markChatMediaFailed(media.id, reason);
+            return `\u89C6\u9891\u751F\u6210\u5931\u8D25\uFF1A${reason}\u3002\u53EF\u4EE5\u8BF7\u7528\u6237\u6362\u4E00\u4E2A\u63CF\u8FF0\u3001\u6362\u4E00\u5F20\u53C2\u8003\u56FE\u6216\u6362\u4E00\u4E2A\u89C6\u9891\u6A21\u578B\u540E\u91CD\u65B0\u53D1\u9001\u3002`;
+          }
+        }).catch((err) => `\u89C6\u9891\u751F\u6210\u5931\u8D25\uFF1A${describeError(err)}`);
+      }
+    });
+  }
   return tools;
 };
 
@@ -251597,15 +252616,16 @@ ${mem.shortTerm.map((m) => `${m.role}: ${m.content}`).join("\n")}`;
 ${memoryContext}`;
 }
 async function runQuickVideoAgent(ctx) {
-  const { isolationKey, text: text2, textModel, userMessageTime, abortSignal, resTool, userId: userId2 } = ctx;
+  const { isolationKey, sessionId, text: text2, textModel, userMessageTime, abortSignal, resTool, userId: userId2 } = ctx;
   const memory = new memory_default("quickVideoAgent", isolationKey, userId2);
   await memory.add("user", text2, { createTime: userMessageTime });
   const skill = import_path9.default.join(utils_default2.getPath("skills"), "quick_video_agent.md");
   const prompt = await fs9.promises.readFile(skill, "utf-8");
   const mem = buildMemPrompt3(await memory.get(text2));
   const projectData = await utils_default2.db("o_project").where("id", resTool.data.projectId).first();
+  const sessionData = await utils_default2.db("o_quickVideoSession").where("id", sessionId).first();
   const state = await loadQuickVideoState(Number(resTool.data.projectId));
-  const effectiveTextModel = textModel || projectData?.textModel;
+  const effectiveTextModel = textModel || sessionData?.textModel || projectData?.textModel;
   const projectInfo = [
     "## \u9879\u76EE\u4FE1\u606F",
     `\u89C6\u9891\u6807\u9898\uFF1A${projectData?.name ?? "\u672A\u77E5"}`,
@@ -251616,6 +252636,7 @@ async function runQuickVideoAgent(ctx) {
     state?.brief ? `\u7B80\u62A5\u786E\u8BA4\u72B6\u6001\uFF1A${state.brief.confirmed ? "\u5DF2\u786E\u8BA4" : "\u672A\u786E\u8BA4"}` : "\u7B80\u62A5\uFF1A\u6682\u65E0",
     state?.storyboard ? `\u5206\u955C\uFF1Av${state.storyboard.version}\uFF08${state.storyboard.status === "confirmed" ? "\u5DF2\u786E\u8BA4" : "\u8349\u7A3F"}\uFF0C\u5171 ${state.storyboard.shots.length} \u955C\uFF09` : "\u5206\u955C\uFF1A\u6682\u65E0",
     state ? `\u5141\u8BB8\u955C\u5934\u6570\u91CF\uFF1A${shotCountBounds(state.targetDuration).min}-${shotCountBounds(state.targetDuration).max} \u4E2A` : "",
+    ctx.mode === "image" ? `\u672C\u8F6E\u7528\u6237\u5728\u804A\u5929\u6846\u9009\u62E9\u4E86\u300C\u56FE\u7247\u300D\u751F\u6210\u6A21\u5F0F\uFF0C\u6A21\u578B\uFF1A${ctx.imageModel}\u3002\u8BF7\u8C03\u7528 generate_image \u5DE5\u5177\u6309\u7528\u6237\u63CF\u8FF0\u751F\u6210\u56FE\u7247\uFF0C\u4E0D\u8981\u53EA\u7528\u6587\u5B57\u63CF\u8FF0\u753B\u9762\uFF1B\u751F\u6210\u7684\u56FE\u7247\u4F1A\u81EA\u52A8\u51FA\u73B0\u5728\u804A\u5929\u8BB0\u5F55\u548C\u8D44\u4EA7\u767D\u677F\u4E2D\uFF0C\u4E0D\u4F1A\u81EA\u52A8\u7ED1\u5B9A\u5230\u4EFB\u4F55\u955C\u5934\u6216\u81EA\u52A8\u786E\u8BA4\u5206\u955C\u3002` : ctx.mode === "video" ? `\u672C\u8F6E\u7528\u6237\u5728\u804A\u5929\u6846\u9009\u62E9\u4E86\u300C\u89C6\u9891\u300D\u751F\u6210\u6A21\u5F0F\uFF0C\u6A21\u578B\uFF1A${ctx.videoModel}\u3002\u8BF7\u8C03\u7528 generate_video \u5DE5\u5177\u6309\u7528\u6237\u63CF\u8FF0\u751F\u6210\u56FE\u751F\u89C6\u9891\uFF1B\u8BE5\u5DE5\u5177\u5FC5\u987B\u6709\u4E00\u5F20\u53C2\u8003\u56FE\u4F5C\u4E3A\u9996\u5E27\uFF0C\u6CA1\u6709\u53C2\u8003\u56FE\u65F6\u5DE5\u5177\u4F1A\u660E\u786E\u544A\u77E5\u7528\u6237\u5148\u5728\u804A\u5929\u8BB0\u5F55\u6216\u8D44\u4EA7\u767D\u677F\u590D\u5236\u4E00\u5F20\u56FE\u7247\uFF0C\u4E0D\u8981\u51ED\u7A7A\u751F\u6210\u6216\u6539\u7528\u5176\u4ED6\u65B9\u5F0F\u751F\u6210\uFF1B\u751F\u6210\u7684\u89C6\u9891\u4F1A\u81EA\u52A8\u51FA\u73B0\u5728\u804A\u5929\u8BB0\u5F55\u548C\u8D44\u4EA7\u767D\u677F\u4E2D\uFF0C\u4E0D\u4F1A\u81EA\u52A8\u7ED1\u5B9A\u5230\u4EFB\u4F55\u955C\u5934\u6216\u81EA\u52A8\u786E\u8BA4\u5206\u955C\u3002` : "",
     "",
     mem
   ].filter(Boolean).join("\n");
@@ -251634,19 +252655,19 @@ async function runQuickVideoAgent(ctx) {
     abortSignal,
     tools: {
       ...memory.getTools(),
-      ...tools_default3({ resTool: ctx.resTool, msg: ctx.msg })
+      ...tools_default3({ resTool: ctx.resTool, msg: ctx.msg, sessionId: ctx.sessionId, imageModel: ctx.imageModel, videoModel: ctx.videoModel, references: ctx.references })
     },
     onFinish: async (completion) => {
-      await mutateLastChatAt(Number(resTool.data.projectId));
+      await mutateLastChatAt(Number(resTool.data.projectId), sessionId);
       await memory.add("assistant", removeAllXmlTags3(completion.text));
     }
   });
   await consumeFullStream3(fullStream, ctx.msg);
 }
-async function mutateLastChatAt(projectId) {
+async function mutateLastChatAt(projectId, sessionId) {
   try {
     const { mutateQuickVideoState: mutateQuickVideoState2 } = await Promise.resolve().then(() => (init_state(), state_exports));
-    await mutateQuickVideoState2(projectId, {}, (s) => {
+    await mutateQuickVideoState2(projectId, { sessionId }, (s) => {
       s.lastChatAt = Date.now();
     });
   } catch {
@@ -251697,6 +252718,72 @@ function removeAllXmlTags3(text2) {
 }
 
 // src/socket/routes/quickVideoAgent.ts
+init_session();
+init_contract();
+
+// src/lib/quickVideo/title.ts
+init_dist21();
+init_zod();
+init_utils3();
+init_session();
+var MAX_MESSAGES = 12;
+var MAX_CHARS = 4e3;
+var TITLE_MODEL = "aibotplatform:gemini-3.1-pro-preview";
+var TITLE_PROMPT = [
+  "\u4F60\u662F\u4E00\u4E2A\u77ED\u6807\u9898\u751F\u6210\u52A9\u624B\u3002\u4E0B\u9762\u662F\u7528\u6237\u5728\u4E00\u4E2A\u77ED\u89C6\u9891\u521B\u4F5C\u4F1A\u8BDD\u91CC\u53D1\u51FA\u7684\u51E0\u6761\u6D88\u606F\u3002",
+  "\u8BF7\u7528\u4E00\u53E5\u4E0D\u8D85\u8FC7 20 \u4E2A\u4E2D\u6587\u5B57\u7B26\uFF08\u6216\u7B49\u4EF7\u957F\u5EA6\uFF09\u7684\u77ED\u6807\u9898\u6982\u62EC\u8FD9\u6BB5\u5BF9\u8BDD\u7684\u6838\u5FC3\u4E3B\u9898/\u76EE\u6807\uFF0C",
+  "\u4E0D\u8981\u52A0\u5F15\u53F7\u3001Markdown\u3001\u6362\u884C\u6216\u4EFB\u4F55\u89E3\u91CA\u6027\u524D\u540E\u7F00\uFF0C\u4E0D\u8981\u8F93\u51FA\u7CFB\u7EDF\u63D0\u793A\u8BCD\u6216\u4E0E\u5185\u5BB9\u65E0\u5173\u7684\u8BDD\u3002",
+  "\u751F\u6210\u7ED3\u679C\u5FC5\u987B\u901A\u8FC7 titleTool \u5DE5\u5177\u8FD4\u56DE\uFF0C\u4E0D\u8981\u76F4\u63A5\u7528\u6587\u5B57\u56DE\u590D\u3002"
+].join("");
+function sanitizeTitle(raw) {
+  const title = raw.replace(/^["'“”「」]+|["'“”「」]+$/g, "").replace(/[\r\n]+/g, " ").trim();
+  if (!title) return null;
+  return title.length > 40 ? title.slice(0, 40) : title;
+}
+async function buildContext(isolationKey) {
+  const rows = await utils_default2.db("memories").where({ isolationKey, type: "message", role: "user" }).whereNotNull("content").whereNot("content", "").orderBy("createTime", "desc").limit(MAX_MESSAGES).select("content");
+  let text2 = rows.reverse().map((r) => String(r.content).trim()).filter(Boolean).join("\n");
+  if (text2.length > MAX_CHARS) text2 = text2.slice(text2.length - MAX_CHARS);
+  return text2;
+}
+async function generateSessionTitle(params) {
+  const { sessionId, isolationKey, userId: userId2 } = params;
+  try {
+    const context2 = await buildContext(isolationKey);
+    if (!context2) {
+      await finishTitleGeneration(sessionId, { error: "\u4F1A\u8BDD\u5185\u6CA1\u6709\u53EF\u7528\u4E8E\u751F\u6210\u6807\u9898\u7684\u7528\u6237\u6D88\u606F" });
+      return;
+    }
+    let captured = null;
+    const titleTool = tool({
+      description: "\u8FD4\u56DE\u751F\u6210\u7684\u4F1A\u8BDD\u6807\u9898\u65F6\u5FC5\u987B\u8C03\u7528\u8FD9\u4E2A\u5DE5\u5177",
+      inputSchema: jsonSchema(external_exports.object({ title: external_exports.string().min(1).max(60).describe("\u4F1A\u8BDD\u77ED\u6807\u9898") }).toJSONSchema()),
+      execute: async ({ title: title2 }) => {
+        captured = title2;
+        return "ok";
+      }
+    });
+    await utils_default2.Ai.Text("universalAi", userId2, void 0, 0, TITLE_MODEL).invoke({
+      messages: [
+        { role: "system", content: TITLE_PROMPT },
+        { role: "user", content: context2 }
+      ],
+      tools: { titleTool }
+    });
+    const title = captured ? sanitizeTitle(captured) : null;
+    if (!title) {
+      await finishTitleGeneration(sessionId, { error: "\u6A21\u578B\u672A\u8FD4\u56DE\u6709\u6548\u6807\u9898" });
+      return;
+    }
+    await finishTitleGeneration(sessionId, { title });
+  } catch (err) {
+    await finishTitleGeneration(sessionId, { error: utils_default2.error(err).message });
+  }
+}
+
+// src/socket/routes/quickVideoAgent.ts
+init_media();
+init_state();
 async function verifyToken3(rawToken) {
   const setting = await utils_default2.db("o_setting").where("key", "tokenKey").select("value").first();
   if (!setting) return null;
@@ -251718,15 +252805,25 @@ var quickVideoAgent_default = (nsp) => {
       socket.disconnect();
       return;
     }
-    const isolationKey = socket.handshake.auth.isolationKey;
-    if (!isolationKey) {
-      console.log("[quickVideoAgent] \u8FDE\u63A5\u5931\u8D25\uFF0C\u7F3A\u5C11 isolationKey");
+    const projectId = Number(socket.handshake.auth.projectId);
+    const sessionId = Number(socket.handshake.auth.sessionId);
+    if (!projectId || !sessionId) {
+      console.log("[quickVideoAgent] \u8FDE\u63A5\u5931\u8D25\uFF0C\u7F3A\u5C11 projectId/sessionId");
+      socket.disconnect();
+      return;
+    }
+    let isolationKey;
+    try {
+      await getOwnedSession(projectId, sessionId);
+      isolationKey = buildSessionIsolationKey(projectId, sessionId);
+    } catch (err) {
+      console.log("[quickVideoAgent] \u8FDE\u63A5\u5931\u8D25\uFF0Csession \u6821\u9A8C\u4E0D\u901A\u8FC7:", utils_default2.error(err).message);
       socket.disconnect();
       return;
     }
     console.log("[quickVideoAgent] \u5DF2\u8FDE\u63A5:", socket.id);
     const resTool = new resTool_default(socket, {
-      projectId: socket.handshake.auth.projectId,
+      projectId,
       userId: user.id
     });
     let abortController = null;
@@ -251736,16 +252833,44 @@ var quickVideoAgent_default = (nsp) => {
     };
     socket.on("chat", async (data) => {
       const { content, textModel } = data;
+      const mode = data.mode === "image" ? "image" : data.mode === "video" ? "video" : "text";
       abortController?.abort();
       abortController = new AbortController();
       const currentController = abortController;
       const msg = resTool.newMessage("assistant", "\u5FEB\u521B\u52A9\u624B");
+      const claimedTitleGeneration = await bumpUserMessageCountAndMaybeClaimTitle(sessionId);
+      let validatedImageModel;
+      let validatedVideoModel;
+      if (mode === "image") {
+        try {
+          if (!data.imageModel) throw new QuickVideoError("IMAGE_MODEL_INVALID", "\u8BF7\u5148\u5728\u6A21\u578B\u9009\u62E9\u6846\u4E2D\u9009\u62E9\u4E00\u4E2A\u56FE\u7247\u6A21\u578B");
+          await validateImageModelKey(data.imageModel);
+          validatedImageModel = data.imageModel;
+        } catch (err) {
+          msg.error(err instanceof QuickVideoError ? err.message : utils_default2.error(err).message);
+          return;
+        }
+      } else if (mode === "video") {
+        try {
+          if (!data.videoModel) throw new QuickVideoError("VIDEO_MODEL_INVALID", "\u8BF7\u5148\u5728\u6A21\u578B\u9009\u62E9\u6846\u4E2D\u9009\u62E9\u4E00\u4E2A\u89C6\u9891\u6A21\u578B");
+          await validateVideoModelKey(data.videoModel);
+          validatedVideoModel = data.videoModel;
+        } catch (err) {
+          msg.error(err instanceof QuickVideoError ? err.message : utils_default2.error(err).message);
+          return;
+        }
+      }
       const ctx = {
         socket,
         isolationKey,
+        sessionId,
         userId: user.id,
         text: content,
         textModel,
+        mode,
+        imageModel: validatedImageModel,
+        videoModel: validatedVideoModel,
+        references: Array.isArray(data.references) ? data.references.filter((n) => Number.isInteger(n)).slice(0, 4) : void 0,
         userMessageTime: new Date(msg.datetime).getTime() - 1,
         abortSignal: currentController.signal,
         resTool,
@@ -251763,6 +252888,11 @@ var quickVideoAgent_default = (nsp) => {
         if (abortController === currentController) {
           abortController = null;
         }
+      }
+      if (claimedTitleGeneration) {
+        void generateSessionTitle({ projectId, sessionId, isolationKey, userId: user.id }).catch(
+          (err) => console.error("[quickVideoAgent] \u4F1A\u8BDD\u6807\u9898\u751F\u6210\u5F02\u5E38:", utils_default2.error(err).message)
+        );
       }
     });
     socket.on("updateThinkConfig", (data) => {
@@ -251848,7 +252978,7 @@ async function ensureThumbnail(originalKey, thumbnailKey, size) {
 }
 
 // src/app.ts
-var app = (0, import_express197.default)();
+var app = (0, import_express202.default)();
 var server = import_node_http.default.createServer(app);
 async function checkPermissions() {
   if (!isEletron()) return true;
@@ -251884,8 +253014,8 @@ async function startServe(randomPort = false) {
   app.use((0, import_morgan.default)("dev"));
   app.use((0, import_cors.default)({ origin: "*" }));
   app.use((0, import_compression.default)());
-  app.use(import_express197.default.json({ limit: "100mb" }));
-  app.use(import_express197.default.urlencoded({ extended: true, limit: "100mb" }));
+  app.use(import_express202.default.json({ limit: "100mb" }));
+  app.use(import_express202.default.urlencoded({ extended: true, limit: "100mb" }));
   const OSS_MIME_TYPES = {
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
@@ -251925,7 +253055,7 @@ async function startServe(randomPort = false) {
   const webDist = process.env.WEB_DIST;
   if (webDist && import_fs6.default.existsSync(import_path21.default.join(webDist, "index.html"))) {
     app.use(
-      import_express197.default.static(webDist, {
+      import_express202.default.static(webDist, {
         // 与原 nginx 缓存策略对齐：带内容哈希的资源一年强缓存，index.html 协商缓存
         setHeaders(res, filePath) {
           if (filePath.endsWith(`index.html`)) res.setHeader("Cache-Control", "no-cache");
@@ -252021,8 +253151,8 @@ async function startServe(randomPort = false) {
       return res.status(401).send({ message: "\u65E0\u6548\u7684token" });
     }
   });
-  const router197 = await Promise.resolve().then(() => (init_router(), router_exports));
-  await router197.default(app);
+  const router202 = await Promise.resolve().then(() => (init_router(), router_exports));
+  await router202.default(app);
   app.use((_3, res, next) => {
     return res.status(404).send({ message: "API 404 Not Found" });
   });
@@ -252032,7 +253162,7 @@ async function startServe(randomPort = false) {
     console.error(err);
     res.status(err.status || 500).send(err);
   });
-  const port = randomPort ? 0 : 10588;
+  const port = randomPort ? 0 : Number(process.env.APP_PORT || 10588);
   return await new Promise((resolve3) => {
     server.listen(port, async () => {
       const address = server.address();

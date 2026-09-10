@@ -15,10 +15,12 @@ export interface AgentContext {
   userId: number;
   text: string;
   textModel?: `${string}:${string}`;
-  /** 本轮聊天发送模式：text=普通对话，image=受限图片生成（SIY-132） */
+  /** 本轮聊天发送模式：text=普通对话，image=受限图片生成，video=受限图生视频（SIY-132/SIY-134） */
   mode?: QuickVideoChatMode;
   /** mode=image 时服务端已校验过的图片模型 key（vendorId:modelName），未校验通过则不会传入 */
   imageModel?: string;
+  /** mode=video 时服务端已校验过的视频模型 key（vendorId:modelName），未校验通过则不会传入（SIY-134） */
+  videoModel?: string;
   /** 用户在聊天/白板选中的引用媒体 mediaId 列表（图生图参考，可选） */
   references?: number[];
   userMessageTime?: number;
@@ -79,7 +81,9 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
     state ? `允许镜头数量：${shotCountBounds(state.targetDuration).min}-${shotCountBounds(state.targetDuration).max} 个` : "",
     ctx.mode === "image"
       ? `本轮用户在聊天框选择了「图片」生成模式，模型：${ctx.imageModel}。请调用 generate_image 工具按用户描述生成图片，不要只用文字描述画面；生成的图片会自动出现在聊天记录和资产白板中，不会自动绑定到任何镜头或自动确认分镜。`
-      : "",
+      : ctx.mode === "video"
+        ? `本轮用户在聊天框选择了「视频」生成模式，模型：${ctx.videoModel}。请调用 generate_video 工具按用户描述生成图生视频；该工具必须有一张参考图作为首帧，没有参考图时工具会明确告知用户先在聊天记录或资产白板复制一张图片，不要凭空生成或改用其他方式生成；生成的视频会自动出现在聊天记录和资产白板中，不会自动绑定到任何镜头或自动确认分镜。`
+        : "",
     "",
     mem,
   ]
@@ -101,7 +105,7 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
     abortSignal,
     tools: {
       ...memory.getTools(),
-      ...useTools({ resTool: ctx.resTool, msg: ctx.msg, sessionId: ctx.sessionId, imageModel: ctx.imageModel, references: ctx.references }),
+      ...useTools({ resTool: ctx.resTool, msg: ctx.msg, sessionId: ctx.sessionId, imageModel: ctx.imageModel, videoModel: ctx.videoModel, references: ctx.references }),
     },
     onFinish: async (completion) => {
       await mutateLastChatAt(Number(resTool.data.projectId), sessionId);
