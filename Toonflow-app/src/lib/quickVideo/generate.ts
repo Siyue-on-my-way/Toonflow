@@ -46,6 +46,12 @@ export function isGenerationActive(projectId: number): boolean {
   return false;
 }
 
+/** 某个镜头是否正被整项目生成或单镜头重试管线占用（聊天按镜头操作启动前的互斥检查用） */
+export function isShotPipelineActive(projectId: number, shotId: string): boolean {
+  if (runningGenerations.has(projectId)) return true;
+  return runningShots.has(`${projectId}:${shotId}`);
+}
+
 export function getActiveRunId(projectId: number): string | null {
   return runningGenerations.get(projectId)?.runId ?? null;
 }
@@ -163,8 +169,9 @@ async function buildMaterials(projectId: number, shots: QuickVideoShot[]): Promi
 
 /** 按 项目 + 名称 匹配资产库（优先同类型），返回带图片的命中项；无图资产不算命中。
  *  聊天/白板生成的媒体资产（CHAT_MEDIA_ASSET_TYPE）明确排除在外——它们没有 role/scene/tool
- *  语义，只是碰巧同名就被当成素材参考图会悄悄改变镜头生成输入（SIY-132 review 发现的缺口）。 */
-async function matchProjectAsset(
+ *  语义，只是碰巧同名就被当成素材参考图会悄悄改变镜头生成输入（SIY-132 review 发现的缺口）。
+ *  同时供聊天按镜头操作（shotOps.ts）解析镜头引用资产使用。 */
+export async function matchProjectAsset(
   projectId: number,
   ref: { type: string; name: string },
 ): Promise<{ assetId: number; imageId: number; filePath: string } | null> {
@@ -185,8 +192,8 @@ async function matchProjectAsset(
 // 模型解析
 // ---------------------------------------------------------------------------
 
-/** 项目未配置生成模型时，按「启用的供应商 → 该类型第一个模型」兜底选择 */
-async function findFirstAvailableModel(type: "image" | "video"): Promise<string> {
+/** 项目未配置生成模型时，按「启用的供应商 → 该类型第一个模型」兜底选择（导出供聊天按镜头操作复用） */
+export async function findFirstAvailableModel(type: "image" | "video"): Promise<string> {
   const vendorRows = await u.db("o_vendorConfig").select("id").where("enable", 1);
   for (const row of vendorRows) {
     try {

@@ -10,6 +10,10 @@ import type {
   QuickVideoSession,
   QuickVideoSessionStatus,
   MediaRef,
+  ChatShotOpAction,
+  ChatShotRef,
+  ShotOpStartResult,
+  ShotOpUpdateEvent,
 } from "@/types/quickVideo";
 
 /**
@@ -20,10 +24,12 @@ import type {
  * - 会话列表（sessions）、当前会话（currentSessionId）与三类模型偏好按会话隔离，
  *   互不覆盖；聊天记录/模型偏好属于会话，工作台产物属于项目
  * - Agent 每轮回复结束后刷新一次工作台状态（工具写库后同步右侧面板）
- * - generating 阶段自动轮询（4s）展示镜头级进度；轮询中断/页面刷新后恢复轮询即可续看
+ * - generating 阶段或存在进行中的按镜头操作时自动轮询（4s）展示镜头级进度
  */
 const POLL_INTERVAL_MS = 4000;
 const CHAT_HISTORY_LIMIT = 20;
+/** 按镜头操作兜底清理时间：视频任务超时 15 分钟 + 轮询余量，超过后不再为其轮询 */
+const SHOT_OP_STALE_MS = 20 * 60 * 1000;
 
 function makeQuickVideoStore(projectId: string) {
   return defineStore(`quickVideo-${projectId}`, () => {
@@ -36,6 +42,13 @@ function makeQuickVideoStore(projectId: string) {
     let titleRefreshTimer: ReturnType<typeof setTimeout> | null = null;
     let workbenchRequest: Promise<QuickVideoWorkbench> | null = null;
     let lifecycleActive = false;
+
+    // ===== 聊天按镜头操作状态（SIY-140）=====
+    // 声明在轮询 watch 之前：syncPolling 的 immediate 回调会读取活动操作数
+    /** 输入框「选择分镜」当前选中的镜头引用（与 ##编号# 文本语法共同构成 shotRefs） */
+    const selectedShotRefs = ref<ChatShotRef[]>([]);
+    /** 进行中的按镜头操作：opId -> { action, shotIds, startedAt }；驱动轮询与本地对账 */
+    const activeShotOps = ref<Record<string, { action: ChatShotOpAction; shotIds: string[]; startedAt: number }>>({});
 
     // ===== 会话（session，SIY-128） =====
     const sessions = ref<QuickVideoSession[]>([]);
@@ -83,7 +96,7 @@ function makeQuickVideoStore(projectId: string) {
       }
     });
 
-    // 生成阶段自动轮询；离开生成阶段停止
+    // 生成阶段或按镜头操作进行中时自动轮询；离开生成阶段且无活动操作时停止
     watch(
       () => state.value?.stage,
       (stage) => {
@@ -93,7 +106,7 @@ function makeQuickVideoStore(projectId: string) {
     );
 
     function syncPolling(stage: QuickVideoState["stage"] | undefined) {
-      if (!lifecycleActive || stage !== "generating") {
+      if (!lifecycleActive || (stage !== "generating" && !hasActiveShotOps())) {
         stopPolling();
         return;
       }
@@ -133,6 +146,7 @@ function makeQuickVideoStore(projectId: string) {
           if (payload && payload.code && payload.code !== 200) throw new Error(payload.message ?? "getWorkbench failed");
           workbench.value = payload ?? { project: null, script: null, state: null, shotBounds: null };
           syncPolling(workbench.value.state?.stage);
+          reconcileShotOps();
         } catch (error: any) {
           workbenchError.value = error?.message ?? "快创工作台状态加载失败";
           console.error("[quickVideo] 加载工作台状态失败", error);
@@ -411,6 +425,124 @@ function makeQuickVideoStore(projectId: string) {
       return { ok: true as const, state: workbench.value.state };
     }
 
+    // ===== 聊天按镜头操作（SIY-140）=====
+
+    function hasActiveShotOps(): boolean {
+      return Object.keys(activeShotOps.value).length > 0;
+    }
+
+    /** 登记一个新的进行中操作并按需启动轮询（启动/确认入口与 socket 广播共用） */
+    function trackShotOp(result: Pick<ShotOpStartResult, "opId" | "action" | "tasks">) {
+      activeShotOps.value = {
+        ...activeShotOps.value,
+        [result.opId]: {
+          action: result.action,
+          shotIds: result.tasks.map((t) => t.shotId).filter(Boolean),
+          startedAt: Date.now(),
+        },
+      };
+      syncPolling(state.value?.stage);
+    }
+
+    /**
+     * 把一次按镜头操作状态更新合并进聊天消息里的操作卡片（activity content），
+     * 并刷新工作台让分镜行同步。socket 广播与轮询对账共用本入口。
+     */
+    function applyShotOpUpdate(update: ShotOpUpdateEvent) {
+      for (const message of messages.value as any[]) {
+        const content = message?.content;
+        if (!Array.isArray(content)) continue;
+        for (const item of content) {
+          const payload = item?.data?.content;
+          if (item?.type === "activity" && item.data?.activityType === "shotOp" && payload?.opId === update.opId) {
+            payload.phase = update.state;
+            if (update.errorReason) payload.errorReason = update.errorReason;
+            payload.shots = (payload.shots ?? []).map((cardShot: any) => {
+              const next = update.shots.find((s) => s.shotId === cardShot.shotId);
+              return next ? { ...cardShot, ...next } : cardShot;
+            });
+          }
+        }
+      }
+      delete activeShotOps.value[update.opId];
+      void getWorkbench();
+    }
+
+    /**
+     * 轮询对账：socket 广播丢失时（断线/切会话），每次工作台刷新后按镜头终态
+     * 收敛活动操作；超过兜底时长的操作直接清理，避免轮询永不停止。
+     */
+    function reconcileShotOps() {
+      const entries = Object.entries(activeShotOps.value);
+      if (!entries.length) return;
+      const now = Date.now();
+      for (const [opId, op] of entries) {
+        if (now - op.startedAt > SHOT_OP_STALE_MS) {
+          delete activeShotOps.value[opId];
+          continue;
+        }
+        if (!op.shotIds.length) continue; // generate_asset 无镜头状态，依赖 socket 事件收敛
+        const shots: any[] = workbench.value.state?.storyboard?.shots ?? [];
+        const involved = op.shotIds.map((id) => shots.find((s) => s.id === id)).filter(Boolean);
+        if (involved.length < op.shotIds.length) continue; // 分镜变化等场景交由 socket 事件或过期清理兜底
+        const terminalOf = (shot: any) => (op.action === "generate_shot_image" ? shot.imageState : shot.videoState);
+        const allTerminal = involved.every((shot: any) => terminalOf(shot) === "done" || terminalOf(shot) === "failed");
+        if (!allTerminal) continue;
+        const failed = involved.filter((shot: any) => terminalOf(shot) === "failed");
+        applyShotOpUpdate({
+          opId,
+          projectId: Number(projectId),
+          action: op.action,
+          state: failed.length === involved.length ? "failed" : "done",
+          ...(failed.length ? { errorReason: failed.map((shot: any) => shot.errorReason).filter(Boolean).join("；") } : {}),
+          shots: involved.map((shot: any) => ({
+            shotId: shot.id,
+            displayNo: shot.index,
+            description: shot.description,
+            imageState: shot.imageState,
+            videoState: shot.videoState,
+            errorReason: shot.errorReason,
+          })),
+        });
+      }
+      syncPolling(state.value?.stage);
+    }
+
+    /** socket 广播订阅：连接建立/重建（切换会话）后重新挂接 */
+    watch(socket, (sock) => {
+      sock?.on("shotOp:update", (evt: ShotOpUpdateEvent) => {
+        applyShotOpUpdate(evt);
+      });
+    });
+
+    /** 直接启动一次按镜头生成（结果卡片「重试/重新生成」；首次视频触发走确认卡片） */
+    async function startShotOp(input: { action: Exclude<ChatShotOpAction, "generate_asset">; shotRefs: ChatShotRef[]; instruction?: string }): Promise<ShotOpStartResult> {
+      const response = await axios.post("/quickVideo/startShotOp", {
+        projectId: Number(projectId),
+        sessionId: currentSessionId.value,
+        ...input,
+      });
+      const payload = response?.data ?? response;
+      if (payload && payload.code && payload.code !== 200) throw new Error(payload.message ?? "启动按镜头生成失败");
+      const result: ShotOpStartResult = payload;
+      trackShotOp(result);
+      return result;
+    }
+
+    /** 确认聊天流中的镜头视频生成（轻量确认门），确认后才真正入队异步任务 */
+    async function confirmShotOp(confirmToken: string): Promise<ShotOpStartResult> {
+      const response = await axios.post("/quickVideo/confirmShotOp", {
+        projectId: Number(projectId),
+        sessionId: currentSessionId.value,
+        confirmToken,
+      });
+      const payload = response?.data ?? response;
+      if (payload && payload.code && payload.code !== 200) throw new Error(payload.message ?? "确认失败");
+      const result: ShotOpStartResult = payload;
+      trackShotOp(result);
+      return result;
+    }
+
     return {
       connected,
       messages,
@@ -444,6 +576,10 @@ function makeQuickVideoStore(projectId: string) {
       clipboardMediaRef,
       getAssetBoard,
       bindShotFirstFrame,
+      selectedShotRefs,
+      activeShotOps,
+      startShotOp,
+      confirmShotOp,
       resume,
       dispose,
     };

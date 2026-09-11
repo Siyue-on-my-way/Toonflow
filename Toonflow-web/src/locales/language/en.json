@@ -1746,7 +1746,41 @@
       "exportedSize": "File size",
       "cancel": "Cancel",
       "retry": "Retry",
-      "close": "Close"
+      "close": "Close",
+      "shotPickerHint": "Pick shots to reference in the input",
+      "shotRefBarHint": "Type ##n# to reference a shot",
+      "shotRefInvalid": "Invalid shot reference {nos}; check the number or refresh the storyboard",
+      "shotPicker": {
+        "title": "Select Shots",
+        "hint": "Selected shots become removable tags above the input and can be mixed with ##n# syntax",
+        "confirm": "Add References"
+      },
+      "shotOp": {
+        "confirmTag": "Awaiting confirm",
+        "runningTag": "Generating",
+        "doneTag": "Done",
+        "failedTag": "Failed",
+        "title": {
+          "confirmVideo": "Confirm shot video generation",
+          "runningVideo": "Generating shot video",
+          "runningImage": "Generating shot image",
+          "runningAsset": "Generating asset",
+          "doneVideo": "Shot video generated",
+          "doneImage": "Shot image generated",
+          "doneAsset": "Asset generated",
+          "failedVideo": "Shot video generation failed",
+          "failedImage": "Shot image generation failed",
+          "failedAsset": "Asset generation failed"
+        },
+        "instruction": "Extra request",
+        "locateShot": "View shot",
+        "retryShot": "Retry",
+        "regenerate": "Regenerate",
+        "confirmGenerate": "Confirm & Generate",
+        "confirmHint": "The generation task is only created and billed after you confirm",
+        "assetBoardHint": "Added to the asset board; copy it to set as a shot first frame",
+        "cancelledByUser": "Cancelled; no task was created"
+      }
     }
   },
   "login": {

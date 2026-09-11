@@ -16,6 +16,8 @@ import {
 import { findShot, nextShotId, normalizeShotDuration, reindexShots } from "@/lib/quickVideo/shots";
 import { startQuickVideoGeneration, assertVideoSupportsSingleImage, castAspectRatio } from "@/lib/quickVideo/generate";
 import { createChatMedia, markChatMediaDone, markChatMediaFailed, resolveMediaImageBase64 } from "@/lib/quickVideo/media";
+import { ChatShotRef, ShotOpCardPayload, parseAssetType } from "@/lib/quickVideo/shotRef";
+import { createShotVideoConfirmation, resolveOpModel, startChatAssetOp, startChatShotOp } from "@/lib/quickVideo/shotOps";
 
 /**
  * QuickVideoAgent 受限工具层。
@@ -33,12 +35,41 @@ interface ToolConfig {
   videoModel?: string;
   /** 用户选中的引用媒体 mediaId 列表（图生图/图生视频参考） */
   references?: number[];
+  /** 本轮聊天解析出的有效镜头引用（socket 层已完成归属校验，SIY-140） */
+  shotRefs?: ChatShotRef[];
+  /** 本轮被拒绝的镜头引用提示（编号不存在/已过期），Agent 需向用户转述 */
+  shotRefErrors?: string[];
+  /** 当前项目是否已有分镜（决定按镜头生成工具是否暴露） */
+  hasStoryboard?: boolean;
 }
 
 /** 工具内统一错误转文本，避免 Agent 因异常中断 */
 function describeError(err: unknown): string {
   if (err instanceof QuickVideoError) return `[${err.code}] ${err.message}`;
   return u.error(err as Error).message;
+}
+
+/** 构建按镜头操作卡片并经 activity 内容下发（前端渲染为聊天卡片，分镜表仍是唯一媒体主存储） */
+function buildShotOpCard(msg: ReturnType<ResTool["newMessage"]>, payload: Omit<ShotOpCardPayload, "cardId" | "createdAt">): void {
+  msg.activity("shotOp", {
+    ...payload,
+    cardId: `shotop-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    createdAt: Date.now(),
+  });
+}
+
+/** 解析镜头首帧/分镜图缩略图（确认卡片展示用；短期签名地址，不持久化） */
+async function resolveShotBaseImageUrl(projectId: number, shot: QuickVideoShot): Promise<string | null> {
+  try {
+    if (shot.firstFrame) {
+      const image = await u.db("o_image").where("id", shot.firstFrame.imageId).select("filePath").first();
+      if (image?.filePath) return await u.oss.getFileUrl(image.filePath);
+    }
+    if (shot.imageRef && shot.imageState === "done") return await u.oss.getFileUrl(shot.imageRef);
+  } catch {
+    // 缩略图签发失败不阻断确认卡片
+  }
+  return null;
 }
 
 /** 工具执行期间流式输出思考过程 */
@@ -522,6 +553,174 @@ export default (toolConfig: ToolConfig) => {
       },
     }),
   };
+
+  // ===== 聊天按镜头操作工具（SIY-140）=====
+  // 把用户对某个/某些镜头的生成意图从右侧分镜表按钮搬到聊天流：Agent 读取镜头结构化上下文
+  // 并叠加用户补充指令后触发，产物回写分镜表（唯一主存储），任务状态经 socket 广播联动卡片与分镜行。
+  // 可见性：项目已有分镜才暴露按镜头生成（collect_brief 阶段无镜头可引用）；素材生成任何阶段都可用。
+
+  /** 把工具入参的 shotIds 解析为带当前序号的 shotRefs（不存在的 shotId 直接给出可读错误） */
+  async function resolveToolShotRefs(shotIds: string[]): Promise<ChatShotRef[]> {
+    const state = await loadQuickVideoState(projectId);
+    if (!state?.storyboard?.shots?.length) throw new QuickVideoError("NO_STORYBOARD", "当前项目暂无分镜，无法按镜头生成");
+    const refs: ChatShotRef[] = [];
+    for (const shotId of shotIds) {
+      const shot = state.storyboard.shots.find((s) => s.id === shotId);
+      if (!shot) throw new QuickVideoError("SHOT_NOT_FOUND", `未找到镜头 ${shotId}（可用镜头：${state.storyboard.shots.map((s) => `#${s.index} ${s.id}`).join("、")}）`);
+      refs.push({ displayNo: shot.index, shotId: shot.id });
+    }
+    return refs;
+  }
+
+  if (toolConfig.hasStoryboard) {
+    // 按镜头生图：低成本直接入队（无确认门）；产物回写 shot.imageRef
+    tools.generate_shot_image = tool({
+      description:
+        "按镜头生成分镜图片：读取镜头的画面描述、运镜与已绑定资产/首帧，叠加用户补充指令生成图片并回写到该镜头（分镜表原文字段不会被修改）。" +
+        "用户通过 ##编号# 或分镜选择器引用镜头并要求生图/改图时调用本工具。shotIds 来自 get_state 或本轮引用上下文，不要凭空编造。",
+      inputSchema: jsonSchema<{ shotIds: string[]; instruction?: string }>(
+        z
+          .object({
+            shotIds: z.array(z.string().min(1).max(40)).min(1).max(12).describe("目标镜头 ID 列表（如 [\"shot-1\"]，支持多镜头）"),
+            instruction: z.string().max(1000).optional().describe("用户本次补充的渲染要求（构图/颜色/天气等微调），留空表示按分镜原文生成"),
+          })
+          .toJSONSchema(),
+      ),
+      execute: async (input, options) => {
+        return withThinking(msg, `正在按镜头生图（${input.shotIds.join("、")}）...`, async () => {
+          const shotRefs = await resolveToolShotRefs(input.shotIds);
+          const state = await loadQuickVideoState(projectId);
+          const shots = (state?.storyboard?.shots ?? []).filter((s) => shotRefs.some((r) => r.shotId === s.id));
+
+          const { opId, tasks } = await startChatShotOp({
+            projectId,
+            sessionId,
+            userId,
+            action: "generate_shot_image",
+            shotRefs,
+            instruction: input.instruction,
+            referenceMediaIds: toolConfig.references,
+            messageId: msg.id,
+          });
+
+          buildShotOpCard(msg, {
+            phase: "running",
+            action: "generate_shot_image",
+            opId,
+            instruction: input.instruction ?? "",
+            shots: shots.map((s) => ({
+              shotId: s.id,
+              displayNo: s.index,
+              description: s.description,
+              duration: s.duration,
+              imageState: "generating" as const,
+              mediaId: tasks.find((t) => t.shotId === s.id)?.mediaId ?? null,
+            })),
+          });
+
+          return (
+            `已提交镜头生图任务（opId ${opId}，${tasks.length} 个镜头）。任务完成后分镜表与聊天卡片会自动更新；` +
+            `提示用户可在右侧分镜表查看进度，失败镜头可在卡片或分镜表单独重试。`
+          );
+        }).catch((err) => `按镜头生图失败：${describeError(err)}`);
+      },
+    });
+
+    // 按镜头生视频：高成本，先出轻量确认卡片，用户确认后才真正创建任务
+    tools.generate_shot_video = tool({
+      description:
+        "按镜头生成 5-15 秒视频片段（图生视频，首帧取已绑定首帧或该镜头分镜图，都没有时先补生成分镜图）。" +
+        "本工具不会立即创建任务：它会先在聊天流回显一张轻量确认卡片（镜头号/分镜文本/首帧缩略图/补充要求），用户点击确认后才真正提交生成任务。" +
+        "用户通过 ##编号# 或分镜选择器引用镜头并要求生成视频时调用本工具；shotIds 来自 get_state 或本轮引用上下文，不要凭空编造。",
+      inputSchema: jsonSchema<{ shotIds: string[]; instruction?: string }>(
+        z
+          .object({
+            shotIds: z.array(z.string().min(1).max(40)).min(1).max(12).describe("目标镜头 ID 列表（如 [\"shot-1\"]，支持多镜头）"),
+            instruction: z.string().max(1000).optional().describe("用户本次补充的动作/运镜/氛围要求，留空表示按分镜原文生成"),
+          })
+          .toJSONSchema(),
+      ),
+      execute: async (input) => {
+        return withThinking(msg, `正在准备镜头视频确认（${input.shotIds.join("、")}）...`, async () => {
+          const shotRefs = await resolveToolShotRefs(input.shotIds);
+          const state = await loadQuickVideoState(projectId);
+          const shots = (state?.storyboard?.shots ?? []).filter((s) => shotRefs.some((r) => r.shotId === s.id));
+
+          // 预检视频模型可用性：卡片确认后才不会在提交时才发现模型缺失
+          const videoModel = await resolveOpModel(projectId, sessionId, "video");
+          await assertVideoSupportsSingleImage(videoModel, shots.some((s) => s.firstFrame));
+
+          const pending = await createShotVideoConfirmation({
+            projectId,
+            sessionId,
+            shotRefs,
+            instruction: input.instruction ?? "",
+            referenceMediaIds: toolConfig.references,
+          });
+
+          const cards = await Promise.all(
+            shots.map(async (s) => ({
+              shotId: s.id,
+              displayNo: s.index,
+              description: s.description,
+              duration: s.duration,
+              baseImageUrl: await resolveShotBaseImageUrl(projectId, s),
+              imageState: s.imageState,
+              videoState: s.videoState,
+            })),
+          );
+          buildShotOpCard(msg, {
+            phase: "confirm",
+            action: "generate_shot_video",
+            confirmToken: pending.token,
+            instruction: input.instruction ?? "",
+            shots: cards,
+          });
+
+          return (
+            `已生成视频生成确认卡片（${cards.length} 个镜头）。请用一句话向用户复述将要生成的内容并提醒：点击卡片上的「确认生成」后才会开始生成视频` +
+            `（消耗生成资源）；用户未确认前不要重复调用本工具。`
+          );
+        }).catch((err) => `准备镜头视频任务失败：${describeError(err)}`);
+      },
+    });
+  }
+
+  // 素材独立生成：无镜头引用时按文本描述生成角色/场景/道具资产，入 o_assets 可后续绑定镜头
+  tools.generate_asset = tool({
+    description:
+      "依据文本描述直接生成角色/场景/道具素材图并写入资产库（o_assets，类型为 role/scene/tool），后续可在分镜草稿中绑定到镜头或设为镜头首帧。" +
+      "用户没有引用镜头、只要求生成某个素材（如「生成一个女孩和旧街道素材」）时调用本工具；不要用它替代按镜头生图。",
+    inputSchema: jsonSchema<{ assetType: "role" | "scene" | "tool"; name: string; description: string }>(
+      z
+        .object({
+          assetType: z.enum(["role", "scene", "tool"]).describe("资产类型：role=角色 / scene=场景 / tool=道具"),
+          name: z.string().min(1).max(60).describe("资产名称（如 女孩、旧街道）"),
+          description: z.string().min(1).max(1000).describe("资产外观/视觉描述，尽量具体"),
+        })
+        .toJSONSchema(),
+    ),
+    execute: async (input) => {
+      return withThinking(msg, `正在生成素材「${input.name}」...`, async () => {
+        parseAssetType(input.assetType);
+        const { opId } = await startChatAssetOp({
+          projectId,
+          sessionId,
+          userId,
+          asset: { assetType: input.assetType, name: input.name, description: input.description },
+          messageId: msg.id,
+        });
+        buildShotOpCard(msg, {
+          phase: "running",
+          action: "generate_asset",
+          opId,
+          instruction: "",
+          shots: [{ shotId: "", displayNo: 0, description: `${input.name}（${input.description}）`, imageState: "generating" as const }],
+        });
+        return `已提交素材「${input.name}」生成任务（opId ${opId}）。完成后会出现在右侧资产白板；如需用作某镜头的首帧，请提醒用户在白板或聊天卡片复制后绑定。`;
+      }).catch((err) => `素材生成失败：${describeError(err)}`);
+    },
+  });
 
   // 仅当本轮 socket 已校验通过 imageModel 时才对 Agent 暴露该工具：mode=text 的普通
   // 对话轮次不应该、也不能触发图片生成（见 socket/routes/quickVideoAgent.ts 的服务端校验）。

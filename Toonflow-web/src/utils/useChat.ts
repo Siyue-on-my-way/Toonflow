@@ -58,7 +58,7 @@ export interface XmlTagOption {
 
 export interface ChatSocketEvents {
   // 发送事件
-  chat: { content: string; attachments?: any[]; textModel?: string; mode?: string; imageModel?: string; videoModel?: string; references?: number[] };
+  chat: { content: string; attachments?: any[]; textModel?: string; mode?: string; imageModel?: string; videoModel?: string; references?: number[]; shotRefs?: { displayNo: number; storyboardId?: string }[] };
   stop: { messageId: string };
   regenerate: { messageId: string };
 
@@ -68,6 +68,8 @@ export interface ChatSocketEvents {
   "content:add": ContentAddEvent;
   "content:update": ContentUpdateEvent;
   error: { code: string; message: string };
+  /** 聊天按镜头操作任务状态更新（SIY-140）：更新聊天卡片并联动右侧分镜表 */
+  "shotOp:update": import("@/types/quickVideo").ShotOpUpdateEvent;
 }
 
 export interface UseChatOptions {
@@ -685,7 +687,7 @@ export function useChat(options: UseChatOptions) {
     content: string,
     attachments?: any[],
     textModel?: string,
-    extra?: { mode?: string; imageModel?: string; videoModel?: string; references?: number[] },
+    extra?: { mode?: string; imageModel?: string; videoModel?: string; references?: number[]; shotRefs?: { displayNo: number; storyboardId?: string }[] },
   ) => {
     if (!content.trim() && !attachments?.length) return false;
 
@@ -715,6 +717,7 @@ export function useChat(options: UseChatOptions) {
       ...(extra?.imageModel ? { imageModel: extra.imageModel } : {}),
       ...(extra?.videoModel ? { videoModel: extra.videoModel } : {}),
       ...(extra?.references?.length ? { references: extra.references } : {}),
+      ...(extra?.shotRefs?.length ? { shotRefs: extra.shotRefs } : {}),
     });
   };
 

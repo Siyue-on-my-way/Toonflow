@@ -16,7 +16,15 @@ type QuickVideoCounter =
   | "shotRetry"
   | "generationShotImageDone"
   | "generationShotDone"
-  | "generationShotFailed";
+  | "generationShotFailed"
+  // 聊天按镜头操作（SIY-140）
+  | "shotOpVideo"
+  | "shotOpImage"
+  | "shotOpAsset"
+  | "shotOpVideoDone"
+  | "shotOpImageDone"
+  | "shotOpStart"
+  | "shotOpConfirm";
 
 type QuickVideoDurationMetric = "timelineAssembleMs" | "exportEncodeMs";
 

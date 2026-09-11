@@ -137,6 +137,10 @@ export interface CreateChatMediaInput {
   prompt: string;
   source: QuickVideoMediaSource;
   idempotencyKey: string;
+  /** o_assets.type；generate_asset 生成角色/场景/道具资产时传对应类型（默认 chat_media，不参与素材匹配） */
+  assetType?: string;
+  /** o_assets.name；generate_asset 用资产名命名（默认截取提示词前 60 字） */
+  assetName?: string;
 }
 
 /**
@@ -150,6 +154,7 @@ export async function createChatMedia(
   // idempotencyKey 落在 varchar(191) 唯一索引列上：截断必须在查找和写入两处保持一致，
   // 否则超长 key（如某些供应商的 toolCallId）在重试时会查不到已插入的行，绕开幂等直接报错。
   const idempotencyKey = input.idempotencyKey.slice(0, 191);
+  const assetType = input.assetType || CHAT_MEDIA_ASSET_TYPE;
   return knexDb.transaction(async (trx) => {
     const existing = await trx("o_quickVideoMedia")
       .where({ projectId: input.projectId, idempotencyKey })
@@ -161,7 +166,7 @@ export async function createChatMedia(
     let videoId: number | null = null;
 
     if (input.kind === "image") {
-      const [id] = await trx("o_image").insert({ state: LEGACY_STATE_GENERATING, model: input.model, type: CHAT_MEDIA_ASSET_TYPE });
+      const [id] = await trx("o_image").insert({ state: LEGACY_STATE_GENERATING, model: input.model, type: assetType });
       imageId = id;
     } else {
       const [id] = await trx("o_video").insert({ state: LEGACY_STATE_GENERATING, time: now, projectId: input.projectId });
@@ -169,9 +174,9 @@ export async function createChatMedia(
     }
 
     const [assetId] = await trx("o_assets").insert({
-      name: input.prompt.slice(0, 60) || "聊天生成媒体",
+      name: input.assetName?.slice(0, 60) || input.prompt.slice(0, 60) || "聊天生成媒体",
       prompt: input.prompt,
-      type: CHAT_MEDIA_ASSET_TYPE,
+      type: assetType,
       describe: input.prompt,
       projectId: input.projectId,
       imageId: imageId ?? undefined,

@@ -62,6 +62,91 @@
                   </div>
                 </div>
               </div>
+              <!-- 按镜头操作卡片（SIY-140）：确认门 / 进度 / 结果与重试，状态经 socket 广播实时更新 -->
+              <div v-for="card in shotOpCardsOf(message)" :key="card.key" class="shotOpCard" :class="[`phase-${card.payload.phase}`]">
+                <div class="shotOpCardHeader">
+                  <span class="shotOpCardTitle">{{ shotOpCardTitle(card.payload) }}</span>
+                  <t-tag v-if="card.payload.phase === 'confirm'" theme="warning" size="small" shape="round">{{ $t("workbench.quickVideo.shotOp.confirmTag") }}</t-tag>
+                  <t-tag v-else-if="card.payload.phase === 'running'" theme="warning" size="small" shape="round">{{ $t("workbench.quickVideo.shotOp.runningTag") }}</t-tag>
+                  <t-tag v-else-if="card.payload.phase === 'done'" theme="success" size="small" shape="round">{{ $t("workbench.quickVideo.shotOp.doneTag") }}</t-tag>
+                  <t-tag v-else theme="danger" size="small" shape="round">{{ $t("workbench.quickVideo.shotOp.failedTag") }}</t-tag>
+                </div>
+                <div class="shotOpCardInstruction" v-if="card.payload.instruction">
+                  {{ $t("workbench.quickVideo.shotOp.instruction") }}：{{ card.payload.instruction }}
+                </div>
+                <div class="shotOpCardShots">
+                  <div v-for="shot in card.payload.shots" :key="card.payload.cardId + shot.shotId + shot.displayNo" class="shotOpCardShot">
+                    <t-image
+                      v-if="shot.imageUrl || shot.baseImageUrl"
+                      :src="(shot.imageUrl || shot.baseImageUrl)!"
+                      fit="cover"
+                      shape="round"
+                      class="shotOpCardThumb"
+                      :style="{ cursor: shot.imageUrl ? 'pointer' : 'default' }"
+                      @click="shot.imageUrl && previewShotOpMedia(shot)" />
+                    <div v-else-if="card.payload.phase === 'running'" class="shotOpCardThumb shotOpCardThumbGenerating"><t-loading size="small" :loading="true" /></div>
+                    <div v-else class="shotOpCardThumb shotOpCardThumbEmpty"><i-image size="16" /></div>
+                    <div class="shotOpCardShotInfo">
+                      <div class="shotOpCardShotTitle" v-if="shot.shotId">
+                        <span class="shotOpCardShotNo">#{{ shot.displayNo }}</span>
+                        <span class="shotOpCardShotDesc" :title="shot.description">{{ shot.description }}</span>
+                        <span class="shotOpCardShotDuration" v-if="shot.duration">{{ shot.duration }}s</span>
+                      </div>
+                      <div class="shotOpCardShotTitle" v-else>
+                        <span class="shotOpCardShotDesc" :title="shot.description">{{ shot.description }}</span>
+                      </div>
+                      <div class="shotOpCardShotStates" v-if="shot.shotId && card.payload.action !== 'generate_asset'">
+                        <t-tag size="small" shape="round" :theme="genStateTheme(shot.imageState || 'pending')">{{ $t("workbench.quickVideo.image") }}·{{ genStateLabel(shot.imageState || "pending") }}</t-tag>
+                        <t-tag v-if="card.payload.action === 'generate_shot_video'" size="small" shape="round" :theme="genStateTheme(shot.videoState || 'pending')">
+                          {{ $t("workbench.quickVideo.video") }}·{{ genStateLabel(shot.videoState || "pending") }}
+                        </t-tag>
+                      </div>
+                      <div class="shotOpCardError" v-if="shot.errorReason">{{ shot.errorReason }}</div>
+                    </div>
+                    <div class="shotOpCardShotOps">
+                      <t-button
+                        v-if="shot.shotId && (card.payload.phase === 'done' || card.payload.phase === 'running')"
+                        size="small"
+                        variant="text"
+                        theme="primary"
+                        @click="locateShot(shot.shotId)">
+                        {{ $t("workbench.quickVideo.shotOp.locateShot") }}
+                      </t-button>
+                      <t-button
+                        v-if="shot.shotId && shotFailedIn(card.payload, shot) && card.payload.phase !== 'confirm'"
+                        size="small"
+                        variant="text"
+                        theme="warning"
+                        :loading="shotOpRetrying === card.payload.cardId"
+                        @click="retryShotOpCard(card.payload, shot)">
+                        {{ $t("workbench.quickVideo.shotOp.retryShot") }}
+                      </t-button>
+                    </div>
+                  </div>
+                </div>
+                <div class="shotOpCardError" v-if="card.payload.errorReason && !card.payload.shots.some((s) => s.errorReason)">{{ card.payload.errorReason }}</div>
+                <div class="shotOpCardFooter" v-if="card.payload.phase === 'confirm'">
+                  <span class="shotOpCardFooterHint">{{ $t("workbench.quickVideo.shotOp.confirmHint") }}</span>
+                  <t-button size="small" variant="outline" :disabled="shotOpConfirming === card.payload.cardId" @click="cancelShotOpCard(card.payload)">
+                    {{ $t("workbench.quickVideo.cancel") }}
+                  </t-button>
+                  <t-button size="small" theme="primary" :loading="shotOpConfirming === card.payload.cardId" @click="confirmShotOpCard(card.payload)">
+                    {{ $t("workbench.quickVideo.shotOp.confirmGenerate") }}
+                  </t-button>
+                </div>
+                <div class="shotOpCardFooter" v-else-if="card.payload.phase !== 'running' && card.payload.action !== 'generate_asset'">
+                  <t-button
+                    size="small"
+                    variant="outline"
+                    :loading="shotOpRetrying === card.payload.cardId"
+                    @click="retryShotOpCard(card.payload)">
+                    {{ $t("workbench.quickVideo.shotOp.regenerate") }}
+                  </t-button>
+                </div>
+                <div class="shotOpCardFooter" v-else-if="card.payload.phase !== 'running' && card.payload.action === 'generate_asset'">
+                  <span class="shotOpCardFooterHint">{{ $t("workbench.quickVideo.shotOp.assetBoardHint") }}</span>
+                </div>
+              </div>
             </template>
           </t-chat-list>
           <t-chat-sender
@@ -90,9 +175,35 @@
                   :type="activeModelType"
                   size="small"
                   :disabled="status === 'pending' || status === 'streaming'" />
+                <t-tooltip :content="$t('workbench.quickVideo.shotPickerHint')">
+                  <t-button
+                    class="shotPickerButton"
+                    size="small"
+                    variant="outline"
+                    shape="square"
+                    :disabled="status === 'pending' || status === 'streaming' || !state?.storyboard?.shots?.length"
+                    @click="openShotPicker">
+                    <template #icon><i-view-list size="14" /></template>
+                  </t-button>
+                </t-tooltip>
               </div>
             </template>
           </t-chat-sender>
+          <!-- 已引用镜头：分镜选择器标签 + 输入框 ##编号# 语法识别（双向同步） -->
+          <div class="shotRefBar" v-if="selectedShotRefs.length || parsedInputShotNos.length">
+            <template v-for="ref_ in mergedInputShotRefs" :key="ref_.displayNo">
+              <t-tag
+                size="small"
+                shape="round"
+                :theme="ref_.valid ? 'primary' : 'danger'"
+                :variant="ref_.fromPicker ? 'dark' : 'light-outline'"
+                closable
+                @close="removeShotRef(ref_)">
+                {{ ref_.valid ? `#${ref_.displayNo}` : `#${ref_.displayNo} ?` }}
+              </t-tag>
+            </template>
+            <span class="shotRefBarHint">{{ $t("workbench.quickVideo.shotRefBarHint") }}</span>
+          </div>
         </div>
       </aside>
       <nav class="quickNav" aria-label="Quick Video workspace navigation" data-testid="quick-video-workspace-nav">
@@ -242,7 +353,14 @@
                 </div>
               </div>
               <div class="cardBody" v-if="state?.storyboard">
-                <t-table row-key="id" :data="state.storyboard.shots" :columns="shotColumns" :max-height="420" size="small">
+                <t-table
+                  row-key="id"
+                  :data="state.storyboard.shots"
+                  :columns="shotColumns"
+                  :max-height="420"
+                  size="small"
+                  :row-attributes="(p: any) => ({ 'data-shot-id': p.row.id })"
+                  :row-class-name="(p: any) => (p.row.id === highlightShotId ? ['shotRowHighlight'] : [])">
                   <template #duration="{ row }">{{ row.duration }}s</template>
                   <template #assetRefs="{ row }">
                     <t-tag v-for="a in row.assetRefs" :key="a.type + a.name" size="small" shape="round" style="margin: 1px 2px">
@@ -688,6 +806,44 @@
         </div>
       </div>
     </t-dialog>
+
+    <!-- 选择分镜：聊天按镜头操作的镜头选择器（多选，SIY-140） -->
+    <t-dialog
+      v-model:visible="shotPickerVisible"
+      :header="$t('workbench.quickVideo.shotPicker.title')"
+      width="560px"
+      placement="center"
+      :confirm-btn="{ content: $t('workbench.quickVideo.shotPicker.confirm'), theme: 'primary', disabled: !shotPickerSelection.length }"
+      :cancel-btn="$t('workbench.quickVideo.cancel')"
+      @confirm="confirmShotPicker">
+      <div class="shotPickerBody">
+        <div class="shotPickerHint">{{ $t("workbench.quickVideo.shotPicker.hint") }}</div>
+        <t-empty v-if="!state?.storyboard?.shots?.length" :title="$t('workbench.quickVideo.noStoryboard')" />
+        <div v-else class="shotPickerList">
+          <label
+            v-for="shot in state.storyboard.shots"
+            :key="shot.id"
+            class="shotPickerItem"
+            :class="{ checked: shotPickerSelection.includes(shot.index) }">
+            <input
+              type="checkbox"
+              class="shotPickerCheckbox"
+              :checked="shotPickerSelection.includes(shot.index)"
+              @change="toggleShotPickerSelection(shot.index)" />
+            <t-image
+              v-if="mediaUrls[shot.id]?.firstFrameUrl || mediaUrls[shot.id]?.imageUrl"
+              :src="(mediaUrls[shot.id]?.firstFrameUrl || mediaUrls[shot.id]?.imageUrl)!"
+              fit="cover"
+              shape="round"
+              class="shotPickerThumb" />
+            <div v-else class="shotPickerThumb shotPickerThumbEmpty"><i-image size="16" /></div>
+            <span class="shotPickerNo">#{{ shot.index }}</span>
+            <span class="shotPickerDesc" :title="shot.description">{{ shot.description }}</span>
+            <span class="shotPickerDuration">{{ shot.duration }}s</span>
+          </label>
+        </div>
+      </div>
+    </t-dialog>
   </div>
 </template>
 
@@ -695,7 +851,7 @@
 import axios from "@/utils/axios";
 import projectStore from "@/stores/project";
 import quickVideoStore from "@/stores/quickVideo";
-import type { QuickVideoDuration, QuickVideoRatio, QuickVideoStage, QuickVideoShot, QuickVideoSession, MediaRef, ChatMediaExt } from "@/types/quickVideo";
+import type { QuickVideoDuration, QuickVideoRatio, QuickVideoStage, QuickVideoShot, QuickVideoSession, MediaRef, ChatMediaExt, ChatShotRef, ShotOpCardPayload, ShotOpCardShot } from "@/types/quickVideo";
 import modelSelect from "@/components/modelSelect.vue";
 import SessionList from "./components/SessionList.vue";
 import AssetBoard from "./components/AssetBoard.vue";
@@ -706,9 +862,9 @@ import { estimateExportBytes, formatBytes, formatTime } from "./timelineCore";
 
 const { project } = storeToRefs(projectStore());
 const quickVideoStoreRef = quickVideoStore();
-const { connected, messages, status, workbench, state, loadingWorkbench, workbenchError, sessions, loadingSessions, currentSessionId, modelPreferences, isGenerating, clipboardMediaRef } =
+const { connected, messages, status, workbench, state, loadingWorkbench, workbenchError, sessions, loadingSessions, currentSessionId, modelPreferences, isGenerating, clipboardMediaRef, selectedShotRefs } =
   storeToRefs(quickVideoStoreRef);
-const { stopGenerate, getWorkbench, updateConfig, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference, getAssetBoard, bindShotFirstFrame } =
+const { stopGenerate, getWorkbench, updateConfig, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference, getAssetBoard, bindShotFirstFrame, startShotOp, confirmShotOp } =
   quickVideoStoreRef;
 
 type QuickVideoPanel = "brief" | "storyboard" | "assets" | "preview";
@@ -800,6 +956,10 @@ function handleSend(text: string) {
     window.$message.warning($t("workbench.quickVideo.selectVideoModelFirst"));
     return;
   }
+  // 按镜头引用（SIY-140）：输入文本 ##编号# 与分镜选择器选中项合并；非法编号拦截发送
+  const shotRefs = collectShotRefs();
+  if (shotRefs === null) return;
+
   // 应用内部剪贴板选中的引用媒体一并带上，供图生图/图生视频使用（SIY-134）；
   // 切换文本模型不会新建或切换 session_id，socket 隔离键由服务端按当前会话固定。
   quickVideoStoreRef.chat(text, undefined, modelPreferences.value.text || undefined, {
@@ -807,11 +967,203 @@ function handleSend(text: string) {
     imageModel: mode === "image" ? modelPreferences.value.image : undefined,
     videoModel: mode === "video" ? modelPreferences.value.video : undefined,
     references: clipboardMediaRef.value ? [clipboardMediaRef.value.mediaId] : undefined,
+    shotRefs: shotRefs.length ? shotRefs : undefined,
   });
   inputValue.value = "";
+  selectedShotRefs.value = [];
 }
 function handleStop() {
   quickVideoStoreRef.stopGenerate();
+}
+
+// ===== 按镜头引用输入（SIY-140）：##编号# 识别 + 分镜选择器双向同步 =====
+
+/** 输入框文本中解析出的 ##编号#（去重，按出现顺序） */
+const parsedInputShotNos = computed(() => {
+  const nos: number[] = [];
+  const re = /##\s*(\d{1,3})\s*#/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(inputValue.value))) {
+    const n = Number(m[1]);
+    if (!nos.includes(n)) nos.push(n);
+  }
+  return nos;
+});
+
+/** 合并选择器选中项与文本解析结果：valid 表示编号在当前分镜中存在 */
+const mergedInputShotRefs = computed(() => {
+  const shots = state.value?.storyboard?.shots ?? [];
+  const items: { displayNo: number; valid: boolean; fromPicker: boolean; shotId: string | null }[] = [];
+  for (const ref_ of selectedShotRefs.value) {
+    const shot = shots.find((s) => s.index === ref_.displayNo);
+    items.push({ displayNo: ref_.displayNo, valid: !!shot && shot.id === ref_.storyboardId, fromPicker: true, shotId: shot?.id ?? null });
+  }
+  for (const no of parsedInputShotNos.value) {
+    if (items.some((i) => i.displayNo === no)) continue;
+    const shot = shots.find((s) => s.index === no);
+    items.push({ displayNo: no, valid: !!shot, fromPicker: false, shotId: shot?.id ?? null });
+  }
+  return items.sort((a, b) => a.displayNo - b.displayNo);
+});
+
+/** 发送前统一格式化为 shotRefs；存在非法编号时提示并拦截（返回 null） */
+function collectShotRefs(): ChatShotRef[] | null {
+  const invalid = mergedInputShotRefs.value.filter((i) => !i.valid);
+  if (invalid.length) {
+    window.$message.warning($t("workbench.quickVideo.shotRefInvalid", { nos: invalid.map((i) => `#${i.displayNo}`).join("、") }));
+    return null;
+  }
+  return mergedInputShotRefs.value
+    .filter((i): i is { displayNo: number; valid: true; fromPicker: boolean; shotId: string } => i.valid && !!i.shotId)
+    .map((i) => ({ displayNo: i.displayNo, storyboardId: i.shotId }));
+}
+
+/** 移除引用：选择器项直接移除；文本语法项从输入框删除对应标记 */
+function removeShotRef(ref_: { displayNo: number; fromPicker: boolean }) {
+  if (ref_.fromPicker) {
+    selectedShotRefs.value = selectedShotRefs.value.filter((r) => r.displayNo !== ref_.displayNo);
+    return;
+  }
+  inputValue.value = inputValue.value.replace(new RegExp(`##\\s*${ref_.displayNo}\\s*#`, "g"), "").replace(/[ \t]{2,}/g, " ").trim();
+}
+
+// ===== 分镜选择器（多选抽屉，SIY-140）=====
+
+const shotPickerVisible = ref(false);
+const shotPickerSelection = ref<number[]>([]);
+
+function openShotPicker() {
+  const shots = state.value?.storyboard?.shots ?? [];
+  // 双向同步：已在输入文本中引用的编号默认勾选
+  shotPickerSelection.value = shots.filter((s) => parsedInputShotNos.value.includes(s.index)).map((s) => s.index);
+  shotPickerVisible.value = true;
+}
+
+function toggleShotPickerSelection(displayNo: number) {
+  shotPickerSelection.value = shotPickerSelection.value.includes(displayNo)
+    ? shotPickerSelection.value.filter((n) => n !== displayNo)
+    : [...shotPickerSelection.value, displayNo];
+}
+
+function confirmShotPicker() {
+  const shots = state.value?.storyboard?.shots ?? [];
+  selectedShotRefs.value = shotPickerSelection.value
+    .sort((a, b) => a - b)
+    .map((no) => ({ displayNo: no, storyboardId: shots.find((s) => s.index === no)?.id ?? "" }))
+    .filter((r) => r.storyboardId);
+  shotPickerVisible.value = false;
+}
+
+// ===== 按镜头操作卡片（SIY-140）：解析 / 确认门 / 重试 / 查看镜头 =====
+
+interface ChatShotOpCard {
+  key: string;
+  payload: ShotOpCardPayload;
+}
+
+function shotOpCardsOf(message: any): ChatShotOpCard[] {
+  const content = message?.content;
+  if (!Array.isArray(content)) return [];
+  return content
+    .filter((c: any) => c.type === "activity" && c.data?.activityType === "shotOp" && c.data?.content?.cardId)
+    .map((c: any) => ({ key: `${message.id}-${c.id ?? c.data.content.cardId}`, payload: c.data.content as ShotOpCardPayload }));
+}
+
+function shotOpCardTitle(payload: ShotOpCardPayload): string {
+  if (payload.phase === "confirm") return $t("workbench.quickVideo.shotOp.title.confirmVideo");
+  const kind = payload.action === "generate_shot_video" ? "Video" : payload.action === "generate_shot_image" ? "Image" : "Asset";
+  const phase = payload.phase === "running" ? "running" : payload.phase === "done" ? "done" : "failed";
+  return $t(`workbench.quickVideo.shotOp.title.${phase}${kind}`);
+}
+
+function shotFailedIn(payload: ShotOpCardPayload, shot: ShotOpCardShot): boolean {
+  if (payload.action === "generate_asset") return payload.phase === "failed";
+  if (payload.action === "generate_shot_image") return shot.imageState === "failed";
+  return shot.videoState === "failed" || (shot.imageState === "failed" && !shot.imageUrl);
+}
+
+function previewShotOpMedia(shot: ShotOpCardShot) {
+  if (shot.videoUrl) openVideoPreview(shot.videoUrl);
+  else if (shot.imageUrl) openImagePreview(shot.imageUrl);
+}
+
+const shotOpConfirming = ref("");
+const shotOpRetrying = ref("");
+
+async function confirmShotOpCard(payload: ShotOpCardPayload) {
+  if (!payload.confirmToken) return;
+  shotOpConfirming.value = payload.cardId;
+  try {
+    const result = await confirmShotOp(payload.confirmToken);
+    // 卡片原位转为运行态：确认卡片 -> 进度卡片（socket 广播继续驱动后续更新）
+    payload.phase = "running";
+    payload.opId = result.opId;
+    payload.confirmToken = null;
+    payload.shots = payload.shots.map((s) => ({
+      ...s,
+      mediaId: result.tasks.find((t) => t.shotId === s.shotId)?.mediaId ?? s.mediaId,
+      videoState: s.videoState === "done" ? s.videoState : "generating",
+    }));
+  } catch (e: any) {
+    window.$message.warning(e?.message ?? $t("workbench.quickVideo.opFailed"));
+  } finally {
+    shotOpConfirming.value = "";
+  }
+}
+
+function cancelShotOpCard(payload: ShotOpCardPayload) {
+  // 取消即作废本地卡片（确认令牌由服务端 TTL 兜底过期），不影响分镜表
+  payload.phase = "failed";
+  payload.errorReason = $t("workbench.quickVideo.shotOp.cancelledByUser");
+}
+
+/** 单镜头重试 / 整卡重新生成：直接按原参数重新入队（视频首次确认门已在确认卡片完成） */
+async function retryShotOpCard(payload: ShotOpCardPayload, shot?: ShotOpCardShot) {
+  if (payload.action === "generate_asset") return;
+  const targets = shot ? [shot] : payload.shots;
+  const refs: ChatShotRef[] = targets
+    .filter((s) => s.shotId)
+    .map((s) => ({ displayNo: s.displayNo, storyboardId: s.shotId! }));
+  if (!refs.length) return;
+
+  shotOpRetrying.value = payload.cardId;
+  try {
+    const action = payload.action === "generate_shot_video" ? "generate_shot_video" : "generate_shot_image";
+    const result = await startShotOp({ action, shotRefs: refs, instruction: payload.instruction || undefined });
+    // 卡片原位复用：指向新操作并只保留本次重试的镜头
+    payload.phase = "running";
+    payload.opId = result.opId;
+    payload.errorReason = null;
+    payload.shots = payload.shots
+      .filter((s) => refs.some((r) => r.storyboardId === s.shotId))
+      .map((s) => {
+        const task = result.tasks.find((t) => t.shotId === s.shotId);
+        const next: ShotOpCardShot = { ...s, errorReason: null, imageUrl: null, videoUrl: null, mediaId: task?.mediaId ?? s.mediaId };
+        if (action === "generate_shot_image") next.imageState = "generating";
+        else next.videoState = "generating";
+        return next;
+      });
+  } catch (e: any) {
+    window.$message.warning(e?.message ?? $t("workbench.quickVideo.opFailed"));
+    void getWorkbench();
+  } finally {
+    shotOpRetrying.value = "";
+  }
+}
+
+// ===== 「查看镜头」联动（SIY-140）：切到分镜表并平滑滚动高亮 =====
+
+const highlightShotId = ref<string | null>(null);
+
+async function locateShot(shotId: string) {
+  activePanel.value = "storyboard";
+  highlightShotId.value = shotId;
+  await nextTick();
+  const el = document.querySelector(`[data-shot-id="${shotId}"]`);
+  el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  window.setTimeout(() => {
+    if (highlightShotId.value === shotId) highlightShotId.value = null;
+  }, 2600);
 }
 
 // ===== 资产白板（SIY-132） =====
@@ -2097,6 +2449,252 @@ function cancelExport() {
         }
       }
     }
+  }
+}
+
+// ===== 按镜头操作：引用标签、选择器与聊天卡片（SIY-140）=====
+.modelPicker {
+  .shotPickerButton {
+    margin-left: 6px;
+  }
+}
+
+.shotRefBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 10px 6px;
+
+  .shotRefBarHint {
+    font-size: 12px;
+    color: var(--td-text-color-placeholder);
+  }
+}
+
+.shotPickerBody {
+  .shotPickerHint {
+    font-size: 12px;
+    color: var(--td-text-color-secondary);
+    margin-bottom: 8px;
+  }
+
+  .shotPickerList {
+    max-height: 360px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .shotPickerItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border: 1px solid var(--td-component-border);
+    border-radius: 8px;
+    cursor: pointer;
+
+    &.checked {
+      border-color: var(--td-brand-color);
+      background: var(--td-brand-color-light);
+    }
+
+    .shotPickerCheckbox {
+      flex: none;
+      accent-color: var(--td-brand-color);
+    }
+
+    .shotPickerThumb {
+      flex: none;
+      width: 56px;
+      height: 36px;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .shotPickerThumbEmpty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--td-text-color-placeholder);
+      background: var(--td-bg-color-secondarycontainer);
+    }
+
+    .shotPickerNo {
+      flex: none;
+      font-weight: 600;
+      color: var(--td-brand-color);
+    }
+
+    .shotPickerDesc {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+
+    .shotPickerDuration {
+      flex: none;
+      font-size: 12px;
+      color: var(--td-text-color-secondary);
+    }
+  }
+}
+
+.shotOpCard {
+  margin: 6px 0 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--td-component-border);
+  border-radius: 10px;
+  background: var(--td-bg-color-container);
+  max-width: 92%;
+
+  &.phase-confirm {
+    border-color: var(--td-warning-color);
+  }
+
+  &.phase-failed {
+    border-color: var(--td-error-color);
+  }
+
+  .shotOpCardHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .shotOpCardTitle {
+      font-weight: 600;
+      font-size: 13px;
+    }
+  }
+
+  .shotOpCardInstruction {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--td-text-color-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .shotOpCardShots {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .shotOpCardShot {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+
+    .shotOpCardThumb {
+      flex: none;
+      width: 64px;
+      height: 40px;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .shotOpCardThumbGenerating,
+    .shotOpCardThumbEmpty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--td-text-color-placeholder);
+      background: var(--td-bg-color-secondarycontainer);
+    }
+
+    .shotOpCardShotInfo {
+      flex: 1;
+      min-width: 0;
+
+      .shotOpCardShotTitle {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        min-width: 0;
+
+        .shotOpCardShotNo {
+          flex: none;
+          font-weight: 600;
+          color: var(--td-brand-color);
+          font-size: 13px;
+        }
+
+        .shotOpCardShotDesc {
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-size: 13px;
+        }
+
+        .shotOpCardShotDuration {
+          flex: none;
+          font-size: 12px;
+          color: var(--td-text-color-secondary);
+        }
+      }
+
+      .shotOpCardShotStates {
+        display: flex;
+        gap: 4px;
+        margin-top: 3px;
+      }
+    }
+
+    .shotOpCardShotOps {
+      flex: none;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+  }
+
+  .shotOpCardError {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--td-error-color);
+    word-break: break-all;
+  }
+
+  .shotOpCardFooter {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+
+    .shotOpCardFooterHint {
+      flex: 1;
+      min-width: 0;
+      font-size: 12px;
+      color: var(--td-text-color-placeholder);
+      text-align: left;
+    }
+  }
+}
+
+// 「查看镜头」联动：分镜行高亮闪烁
+:deep(.shotRowHighlight > td) {
+  animation: qvShotRowFlash 1.1s ease-in-out 2;
+}
+
+@keyframes qvShotRowFlash {
+  0%,
+  100% {
+    background: transparent;
+  }
+  50% {
+    background: var(--td-brand-color-light);
   }
 }
 </style>

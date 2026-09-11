@@ -290,3 +290,61 @@ export interface QuickVideoSession {
   createTime: number;
   updateTime: number;
 }
+
+// ---------------------------------------------------------------------------
+// 聊天按镜头操作（与后端 src/lib/quickVideo/shotRef.ts + shotOps.ts 保持一致，SIY-140）
+// ---------------------------------------------------------------------------
+
+export type ChatShotOpAction = "generate_shot_video" | "generate_shot_image" | "generate_asset";
+
+/** 结构化镜头引用：displayNo 用于聊天显示，storyboardId（shot.id）用于执行与校验 */
+export interface ChatShotRef {
+  displayNo: number;
+  storyboardId: string;
+}
+
+export type ShotOpCardPhase = "confirm" | "running" | "done" | "failed";
+
+export interface ShotOpCardShot {
+  shotId: string;
+  displayNo: number;
+  description: string;
+  duration?: number | null;
+  baseImageUrl?: string | null;
+  imageState?: ShotGenState;
+  videoState?: ShotGenState;
+  errorReason?: string | null;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
+  assetId?: number | null;
+  mediaId?: number | null;
+}
+
+/** 聊天按镜头操作卡片（activity content.data.content）；分镜表仍是媒体结果唯一主存储 */
+export interface ShotOpCardPayload {
+  cardId: string;
+  phase: ShotOpCardPhase;
+  action: ChatShotOpAction;
+  opId?: string | null;
+  confirmToken?: string | null;
+  instruction: string;
+  errorReason?: string | null;
+  shots: ShotOpCardShot[];
+  createdAt: number;
+}
+
+/** Socket shotOp:update 事件载荷（后端 ShotOpUpdateEvent 的镜像） */
+export interface ShotOpUpdateEvent {
+  opId: string;
+  projectId: number;
+  action: ChatShotOpAction;
+  state: "running" | "done" | "failed";
+  errorReason?: string;
+  shots: ShotOpCardShot[];
+}
+
+export interface ShotOpStartResult {
+  opId: string;
+  action: ChatShotOpAction;
+  tasks: { shotId: string; displayNo: number; mediaId: number; assetId: number | null }[];
+}

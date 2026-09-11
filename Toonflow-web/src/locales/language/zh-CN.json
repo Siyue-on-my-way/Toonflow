@@ -1850,7 +1850,41 @@
       "exportedSize": "文件大小",
       "cancel": "取消",
       "retry": "重试",
-      "close": "关闭"
+      "close": "关闭",
+      "shotPickerHint": "选择分镜引用到输入框",
+      "shotRefBarHint": "输入 ##编号# 也可引用镜头",
+      "shotRefInvalid": "镜头引用 {nos} 无效，请检查编号或刷新分镜后重试",
+      "shotPicker": {
+        "title": "选择分镜",
+        "hint": "勾选镜头后会在输入框上方生成引用标签，可与 ##编号# 混用；确认后发送将按镜头触发生成",
+        "confirm": "添加引用"
+      },
+      "shotOp": {
+        "confirmTag": "待确认",
+        "runningTag": "生成中",
+        "doneTag": "已完成",
+        "failedTag": "失败",
+        "title": {
+          "confirmVideo": "确认生成镜头视频",
+          "runningVideo": "正在生成镜头视频",
+          "runningImage": "正在生成镜头图片",
+          "runningAsset": "正在生成素材",
+          "doneVideo": "镜头视频已生成",
+          "doneImage": "镜头图片已生成",
+          "doneAsset": "素材已生成",
+          "failedVideo": "镜头视频生成失败",
+          "failedImage": "镜头图片生成失败",
+          "failedAsset": "素材生成失败"
+        },
+        "instruction": "补充要求",
+        "locateShot": "查看镜头",
+        "retryShot": "重试",
+        "regenerate": "重新生成",
+        "confirmGenerate": "确认生成",
+        "confirmHint": "确认后才会创建生成任务并消耗生成资源",
+        "assetBoardHint": "结果已加入右侧资产白板，可复制后设为镜头首帧",
+        "cancelledByUser": "已取消，未创建生成任务"
+      }
     }
   },
   "login": {

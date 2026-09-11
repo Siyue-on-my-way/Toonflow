@@ -6,7 +6,8 @@ import ResTool from "@/socket/resTool";
 import * as fs from "fs";
 import path from "path";
 import { loadQuickVideoState } from "@/lib/quickVideo/state";
-import { shotCountBounds, QuickVideoChatMode } from "@/lib/quickVideo/contract";
+import { shotCountBounds, QuickVideoChatMode, QuickVideoState } from "@/lib/quickVideo/contract";
+import { ChatShotRef } from "@/lib/quickVideo/shotRef";
 
 export interface AgentContext {
   socket: Socket;
@@ -14,6 +15,8 @@ export interface AgentContext {
   sessionId: number;
   userId: number;
   text: string;
+  /** 剥离 ##编号# 引用标记后的用户指令（无引用时与 text 相同）；LLM 收到的是它，记忆里保留原文 */
+  cleanedText?: string;
   textModel?: `${string}:${string}`;
   /** 本轮聊天发送模式：text=普通对话，image=受限图片生成，video=受限图生视频（SIY-132/SIY-134） */
   mode?: QuickVideoChatMode;
@@ -23,6 +26,12 @@ export interface AgentContext {
   videoModel?: string;
   /** 用户在聊天/白板选中的引用媒体 mediaId 列表（图生图参考，可选） */
   references?: number[];
+  /** 本轮解析出的有效镜头引用（服务端已按当前分镜校验归属，SIY-140） */
+  shotRefs?: ChatShotRef[];
+  /** 本轮被拒绝的镜头引用提示（编号不存在/格式非法/已过期），需向用户转述 */
+  shotRefErrors?: string[];
+  /** socket 层已加载的工作台状态（避免本函数内重复读库；解析失败时为 null） */
+  workbenchState?: QuickVideoState | null;
   userMessageTime?: number;
   abortSignal?: AbortSignal;
   resTool: ResTool;
@@ -65,9 +74,13 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
 
   const projectData = await u.db("o_project").where("id", resTool.data.projectId).first();
   const sessionData = await u.db("o_quickVideoSession").where("id", sessionId).first();
-  const state = await loadQuickVideoState(Number(resTool.data.projectId));
+  const state = ctx.workbenchState !== undefined ? ctx.workbenchState : await loadQuickVideoState(Number(resTool.data.projectId));
   // 文本模型优先级：本轮显式传入 > 当前会话保存的偏好 > 项目历史默认值（兼容未迁移前的选择）
   const effectiveTextModel = textModel || (sessionData?.textModel as `${string}:${string}` | undefined) || (projectData?.textModel as `${string}:${string}` | undefined);
+
+  // 按镜头引用上下文（SIY-140）：把编号映射到 storyboardId 并附镜头结构化摘要，
+  // 让 Agent 无需再调 get_state 就能直接调用按镜头生成工具。
+  const shotRefContext = buildShotRefContext(state, ctx.shotRefs, ctx.shotRefErrors);
 
   const projectInfo = [
     "## 项目信息",
@@ -84,6 +97,7 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
       : ctx.mode === "video"
         ? `本轮用户在聊天框选择了「视频」生成模式，模型：${ctx.videoModel}。请调用 generate_video 工具按用户描述生成图生视频；该工具必须有一张参考图作为首帧，没有参考图时工具会明确告知用户先在聊天记录或资产白板复制一张图片，不要凭空生成或改用其他方式生成；生成的视频会自动出现在聊天记录和资产白板中，不会自动绑定到任何镜头或自动确认分镜。`
         : "",
+    shotRefContext,
     "",
     mem,
   ]
@@ -100,12 +114,22 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
     messages: [
       { role: "system", content: prompt },
       { role: "assistant", content: projectInfo },
-      { role: "user", content: text },
+      { role: "user", content: ctx.cleanedText || text },
     ],
     abortSignal,
     tools: {
       ...memory.getTools(),
-      ...useTools({ resTool: ctx.resTool, msg: ctx.msg, sessionId: ctx.sessionId, imageModel: ctx.imageModel, videoModel: ctx.videoModel, references: ctx.references }),
+      ...useTools({
+        resTool: ctx.resTool,
+        msg: ctx.msg,
+        sessionId: ctx.sessionId,
+        imageModel: ctx.imageModel,
+        videoModel: ctx.videoModel,
+        references: ctx.references,
+        shotRefs: ctx.shotRefs,
+        shotRefErrors: ctx.shotRefErrors,
+        hasStoryboard: !!state?.storyboard?.shots?.length,
+      }),
     },
     onFinish: async (completion) => {
       await mutateLastChatAt(Number(resTool.data.projectId), sessionId);
@@ -114,6 +138,31 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
   });
 
   await consumeFullStream(fullStream, ctx.msg);
+}
+
+/** 组装按镜头引用上下文：编号 -> storyboardId 映射 + 镜头摘要 + 无效引用告警 */
+function buildShotRefContext(state: QuickVideoState | null | undefined, shotRefs?: ChatShotRef[], shotRefErrors?: string[]): string {
+  const parts: string[] = [];
+  if (shotRefErrors?.length) {
+    parts.push(`【注意】以下镜头引用无效，请向用户说明原因，不要为其创建任何生成任务：\n- ${shotRefErrors.join("\n- ")}`);
+  }
+  if (shotRefs?.length) {
+    const lines = (state?.storyboard?.shots ?? [])
+      .filter((s) => shotRefs.some((r) => r.shotId === s.id))
+      .map((s) => {
+        const firstFrame = s.firstFrame ? "首帧已绑定" : "首帧未绑定";
+        return `- 镜头${s.index}（storyboardId: ${s.id}，${s.duration} 秒）：${s.description.slice(0, 120)}［分镜图: ${s.imageState}；视频: ${s.videoState}；${firstFrame}］`;
+      });
+    parts.push(
+      [
+        "## 本轮用户引用的镜头（通过 ##编号# 或分镜选择器指定）",
+        ...lines,
+        "用户想对这些镜头执行生成类操作时：生视频用 generate_shot_video（会先出确认卡片），生图用 generate_shot_image；" +
+          "用户的补充指令通过工具的 instruction 参数传入，不要直接改写分镜表文本（改分镜请用 update_shot 且需用户明确要求）。",
+      ].join("\n"),
+    );
+  }
+  return parts.join("\n\n");
 }
 
 /** 记录最近聊天时间与触发会话，供工作台展示/留痕（失败不影响主流程） */
