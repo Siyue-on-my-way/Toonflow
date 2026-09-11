@@ -24650,16 +24650,16 @@ var require_router = __commonJS({
         return new Router(options);
       }
       const opts = options || {};
-      function router202(req, res, next) {
-        router202.handle(req, res, next);
+      function router203(req, res, next) {
+        router203.handle(req, res, next);
       }
-      Object.setPrototypeOf(router202, this);
-      router202.caseSensitive = opts.caseSensitive;
-      router202.mergeParams = opts.mergeParams;
-      router202.params = {};
-      router202.strict = opts.strict;
-      router202.stack = [];
-      return router202;
+      Object.setPrototypeOf(router203, this);
+      router203.caseSensitive = opts.caseSensitive;
+      router203.mergeParams = opts.mergeParams;
+      router203.params = {};
+      router203.strict = opts.strict;
+      router203.stack = [];
+      return router203;
     }
     Router.prototype = function() {
     };
@@ -25047,7 +25047,7 @@ var require_application = __commonJS({
     var app2 = exports2 = module2.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router202 = null;
+      var router203 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -25056,13 +25056,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router202 === null) {
-            router202 = new Router({
+          if (router203 === null) {
+            router203 = new Router({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router202;
+          return router203;
         }
       });
     };
@@ -25133,15 +25133,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router202 = this.router;
+      var router203 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router202.use(path26, fn2);
+          return router203.use(path26, fn2);
         }
         debug(".use app under %s", path26);
         fn2.mountpath = path26;
         fn2.parent = this;
-        router202.use(path26, function mounted_app(req, res, next) {
+        router203.use(path26, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -52548,8 +52548,8 @@ var require_lib5 = __commonJS({
         getWss: function getWss() {
           return wsServer;
         },
-        applyTo: function applyTo(router202) {
-          (0, _addWsMethod2.default)(router202);
+        applyTo: function applyTo(router203) {
+          (0, _addWsMethod2.default)(router203);
         }
       };
     }
@@ -145559,13 +145559,13 @@ var require_dist7 = __commonJS({
       };
     }
     var import_provider_utils210 = require_dist6();
-    var import_zod185 = require_zod();
-    var qwenErrorDataSchema = import_zod185.z.object({
-      object: import_zod185.z.literal("error"),
-      message: import_zod185.z.string(),
-      type: import_zod185.z.string(),
-      param: import_zod185.z.string().nullable(),
-      code: import_zod185.z.string().nullable()
+    var import_zod186 = require_zod();
+    var qwenErrorDataSchema = import_zod186.z.object({
+      object: import_zod186.z.literal("error"),
+      message: import_zod186.z.string(),
+      type: import_zod186.z.string(),
+      param: import_zod186.z.string().nullable(),
+      code: import_zod186.z.string().nullable()
     });
     var qwenFailedResponseHandler = (0, import_provider_utils210.createJsonErrorResponseHandler)({
       errorSchema: qwenErrorDataSchema,
@@ -172426,8 +172426,41 @@ var init_zod = __esm({
 });
 
 // src/lib/quickVideo/contract.ts
+function buildPendingSnapshot(state, estimate = { estimatedImageCount: 0, estimatedVideoCount: 0, estimatedCostYuan: 0 }) {
+  if (!state.storyboard) throw new Error("NO_STORYBOARD");
+  if (state.targetDuration == null) throw new Error("DURATION_NOT_SET");
+  return {
+    configVersion: state.configVersion,
+    targetDuration: state.targetDuration,
+    artStyle: state.artStyle ?? "",
+    videoRatio: state.videoRatio,
+    storyboardVersion: state.storyboard.version,
+    shotCount: state.storyboard.shots.length,
+    totalDuration: state.storyboard.shots.reduce((sum, s) => sum + s.duration, 0),
+    shotSummaries: state.storyboard.shots.map((s) => ({
+      index: s.index,
+      duration: s.duration,
+      description: (s.description ?? "").slice(0, 120)
+    })),
+    estimatedImageCount: estimate.estimatedImageCount ?? 0,
+    estimatedVideoCount: estimate.estimatedVideoCount ?? 0,
+    estimatedCostYuan: estimate.estimatedCostYuan ?? 0,
+    requestedAt: Date.now()
+  };
+}
 function canTransitionStage(from, to) {
   return STAGE_TRANSITIONS[from]?.includes(to) ?? false;
+}
+function invalidatePendingConfirmation(state) {
+  if (!state.pendingSnapshot && state.confirmationStatus === "none") return false;
+  state.pendingSnapshot = null;
+  state.confirmationStatus = "none";
+  return true;
+}
+function bumpConfigVersion(state) {
+  state.configVersion = (state.configVersion ?? 0) + 1;
+  invalidatePendingConfirmation(state);
+  return state.configVersion;
 }
 function shotCountBounds(targetDuration) {
   const max = Math.max(1, Math.min(SHOT_COUNT_MAX, Math.floor(targetDuration / SHOT_DURATION_MIN)));
@@ -172483,7 +172516,7 @@ function buildDefaultSessionTitle(projectName, sequence) {
   const name28 = projectName?.trim();
   return name28 ? `${name28}-session${sequence}` : DEFAULT_SESSION_TITLE;
 }
-var QUICK_VIDEO_AGENT_KEY, QUICK_VIDEO_SCHEMA_VERSION, QUICK_VIDEO_PROJECT_TYPE, QUICK_VIDEO_RATIOS, SHOT_DURATION_MIN, SHOT_DURATION_MAX, SHOT_COUNT_MAX, QUICK_VIDEO_STAGES, STAGE_TRANSITIONS, SHOT_GEN_STATES, shotAssetRefSchema, QUICK_VIDEO_MEDIA_KINDS, QUICK_VIDEO_MEDIA_STATES, QUICK_VIDEO_MEDIA_SOURCES, mediaRefSchema, shotFirstFrameSchema, snapshotFirstFrameSchema, quickVideoShotSchema, quickVideoBriefSchema, quickVideoStoryboardSchema, materialItemSchema, snapshotShotSchema, generationSnapshotSchema, TIMELINE_TRANSITION_DURATION_S, TIMELINE_MAX_SPEED, TIMELINE_MIN_SPEED, QUICK_VIDEO_DIMENSIONS, timelineClipPlanSchema, timelineTransitionSchema, timelineTailPadSchema, timelinePlanSchema, timelineMetaSchema, quickVideoExportInfoSchema, quickVideoGenerationSchema, GENERATION_CONCURRENCY, GENERATION_IMAGE_TIMEOUT_MS, GENERATION_VIDEO_TIMEOUT_MS, ESTIMATE_IMAGE_COST_YUAN, ESTIMATE_VIDEO_COST_PER_SECOND_YUAN, ESTIMATE_IMAGE_SECONDS, ESTIMATE_VIDEO_SECONDS, quickVideoStateSchema, IDEMPOTENCY_MAX_KEYS, TITLE_GENERATION_TRIGGER_COUNT, DEFAULT_SESSION_TITLE;
+var QUICK_VIDEO_AGENT_KEY, QUICK_VIDEO_SCHEMA_VERSION, QUICK_VIDEO_PROJECT_TYPE, QUICK_VIDEO_DURATION_MIN, QUICK_VIDEO_DURATION_MAX, quickVideoDurationSchema, QUICK_VIDEO_RATIOS, SHOT_DURATION_MIN, SHOT_DURATION_MAX, SHOT_COUNT_MAX, QUICK_VIDEO_CONFIRMATION_STATUSES, pendingSnapshotSchema, QUICK_VIDEO_STAGES, STAGE_TRANSITIONS, SHOT_GEN_STATES, shotAssetRefSchema, QUICK_VIDEO_MEDIA_KINDS, QUICK_VIDEO_MEDIA_STATES, QUICK_VIDEO_MEDIA_SOURCES, mediaRefSchema, shotFirstFrameSchema, snapshotFirstFrameSchema, quickVideoShotSchema, quickVideoBriefSchema, quickVideoStoryboardSchema, materialItemSchema, snapshotShotSchema, generationSnapshotSchema, TIMELINE_TRANSITION_DURATION_S, TIMELINE_MAX_SPEED, TIMELINE_MIN_SPEED, QUICK_VIDEO_DIMENSIONS, timelineClipPlanSchema, timelineTransitionSchema, timelineTailPadSchema, timelinePlanSchema, timelineMetaSchema, quickVideoExportInfoSchema, quickVideoGenerationSchema, GENERATION_CONCURRENCY, GENERATION_IMAGE_TIMEOUT_MS, GENERATION_VIDEO_TIMEOUT_MS, ESTIMATE_IMAGE_COST_YUAN, ESTIMATE_VIDEO_COST_PER_SECOND_YUAN, ESTIMATE_IMAGE_SECONDS, ESTIMATE_VIDEO_SECONDS, quickVideoStateSchema, IDEMPOTENCY_MAX_KEYS, TITLE_GENERATION_TRIGGER_COUNT, DEFAULT_SESSION_TITLE;
 var init_contract = __esm({
   "src/lib/quickVideo/contract.ts"() {
     "use strict";
@@ -172491,10 +172524,28 @@ var init_contract = __esm({
     QUICK_VIDEO_AGENT_KEY = "quickVideoAgent";
     QUICK_VIDEO_SCHEMA_VERSION = 1;
     QUICK_VIDEO_PROJECT_TYPE = "quick_video";
+    QUICK_VIDEO_DURATION_MIN = 5;
+    QUICK_VIDEO_DURATION_MAX = 60;
+    quickVideoDurationSchema = external_exports.number().int().min(QUICK_VIDEO_DURATION_MIN).max(QUICK_VIDEO_DURATION_MAX);
     QUICK_VIDEO_RATIOS = ["16:9", "9:16", "1:1"];
     SHOT_DURATION_MIN = 5;
     SHOT_DURATION_MAX = 15;
     SHOT_COUNT_MAX = 12;
+    QUICK_VIDEO_CONFIRMATION_STATUSES = ["none", "pending", "confirmed"];
+    pendingSnapshotSchema = external_exports.object({
+      configVersion: external_exports.number().int().min(0).describe("\u51BB\u7ED3\u65F6\u7684 configVersion\uFF0Cconfirm \u65F6\u6821\u9A8C\u4E00\u81F4"),
+      targetDuration: quickVideoDurationSchema.describe("\u5F85\u786E\u8BA4\u7684\u76EE\u6807\u65F6\u957F\uFF08\u79D2\uFF09"),
+      artStyle: external_exports.string().max(500).default("").describe("\u5F85\u786E\u8BA4\u7684\u753B\u98CE\uFF08\u7A7A\u4E32=\u672A\u8BBE\u7F6E\uFF09"),
+      videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS),
+      storyboardVersion: external_exports.number().int().min(1).describe("\u5206\u955C\u7248\u672C\u53F7"),
+      shotCount: external_exports.number().int().min(1).max(SHOT_COUNT_MAX).describe("\u5206\u955C\u6570\u91CF"),
+      totalDuration: external_exports.number().int().min(1).describe("\u5206\u955C\u603B\u65F6\u957F\uFF08\u79D2\uFF09"),
+      shotSummaries: external_exports.array(external_exports.object({ index: external_exports.number().int().min(1), duration: external_exports.number().int().min(SHOT_DURATION_MIN).max(SHOT_DURATION_MAX), description: external_exports.string().max(120) })).max(SHOT_COUNT_MAX).default([]).describe("\u9010\u955C\u6458\u8981\uFF08\u622A\u65AD\uFF09\uFF0C\u4F9B\u786E\u8BA4\u5361\u7247\u5C55\u793A"),
+      estimatedImageCount: external_exports.number().int().min(0).default(0),
+      estimatedVideoCount: external_exports.number().int().min(0).default(0),
+      estimatedCostYuan: external_exports.number().min(0).default(0),
+      requestedAt: external_exports.number().int().min(1).describe("\u53D1\u8D77\u786E\u8BA4\u7684\u65F6\u95F4\u6233")
+    });
     QUICK_VIDEO_STAGES = [
       "collect_brief",
       "brief_confirmed",
@@ -172602,7 +172653,7 @@ var init_contract = __esm({
     });
     generationSnapshotSchema = external_exports.object({
       storyboardVersion: external_exports.number().int().min(1).describe("\u5FEB\u7167\u5BF9\u5E94\u7684\u5206\u955C\u7248\u672C"),
-      targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]),
+      targetDuration: quickVideoDurationSchema,
       videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS),
       artStyle: external_exports.string().max(500).default(""),
       shots: external_exports.array(snapshotShotSchema).min(1).max(SHOT_COUNT_MAX),
@@ -172647,7 +172698,7 @@ var init_contract = __esm({
       text: external_exports.string().max(500).default("")
     });
     timelinePlanSchema = external_exports.object({
-      targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]),
+      targetDuration: quickVideoDurationSchema,
       videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS),
       width: external_exports.number().int().min(1),
       height: external_exports.number().int().min(1),
@@ -172698,9 +172749,20 @@ var init_contract = __esm({
       /** 乐观锁版本号，每次成功写入自增 */
       version: external_exports.number().int().min(1),
       stage: external_exports.enum(QUICK_VIDEO_STAGES),
-      targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]),
+      /** 目标时长（秒）：对话式配置，允许未设置（null）；存量项目为 15/30/60 */
+      targetDuration: external_exports.preprocess((v) => v == null ? null : v, quickVideoDurationSchema.nullable()),
       videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS),
+      /** 画风：对话式配置，空串=未设置 */
       artStyle: external_exports.string().max(500).default(""),
+      /**
+       * 配置版本号（SIY-138）：画风/目标时长/比例或分镜内容每次变更严格 +1。
+       * 生成确认门用它校验「确认时看到的参数」与「触发生成时的参数」一致；存量状态缺省为 0。
+       */
+      configVersion: external_exports.number().int().min(0).default(0),
+      /** 待确认的生成快照（生成确认门写入；配置/分镜变更时清空） */
+      pendingSnapshot: pendingSnapshotSchema.nullable().default(null),
+      /** 生成确认状态：none / pending / confirmed */
+      confirmationStatus: external_exports.enum(QUICK_VIDEO_CONFIRMATION_STATUSES).default("none"),
       /** 创建幂等键（createProject 用，防重复建项目） */
       createIdempotencyKey: external_exports.string().min(8).max(64),
       brief: quickVideoBriefSchema.nullable().default(null),
@@ -172822,9 +172884,12 @@ async function initQuickVideoStateRow(trx, { projectId, idempotencyKey, targetDu
   const state = quickVideoStateSchema.parse({
     version: 1,
     stage: "collect_brief",
-    targetDuration,
+    targetDuration: targetDuration ?? null,
     videoRatio,
-    artStyle,
+    artStyle: artStyle ?? "",
+    configVersion: 0,
+    pendingSnapshot: null,
+    confirmationStatus: "none",
     createIdempotencyKey: idempotencyKey,
     brief: null,
     storyboard: null,
@@ -226677,11 +226742,14 @@ async function resolveSnapshotFirstFrame(shot) {
   return { ...shot.firstFrame, filePath: image.filePath };
 }
 function applySnapshotToState(s, storyboardVersion, snapshotShots, materials, estimate) {
+  if (s.targetDuration == null) {
+    throw new QuickVideoError("DURATION_NOT_SET", "\u76EE\u6807\u65F6\u957F\u5C1A\u672A\u786E\u5B9A\uFF0C\u65E0\u6CD5\u89E3\u6790\u7D20\u6750\u5FEB\u7167\uFF1B\u8BF7\u5148\u5728\u5BF9\u8BDD\u4E2D\u786E\u8BA4\u89C6\u9891\u65F6\u957F\uFF085-60 \u79D2\uFF09", s.version);
+  }
   s.generation.snapshot = {
     storyboardVersion,
     targetDuration: s.targetDuration,
     videoRatio: s.videoRatio,
-    artStyle: s.artStyle,
+    artStyle: s.artStyle ?? "",
     shots: snapshotShots,
     materials,
     ...estimate
@@ -226765,7 +226833,8 @@ async function startQuickVideoGeneration(projectId, userId2, sessionId) {
       s.generation.finishedAt = null;
     });
   } catch (err) {
-    console.error(`[quickVideo] \u5199\u5165\u8FD0\u884C ID \u5931\u8D25:`, utils_default2.error(err).message);
+    runningGenerations.delete(projectId);
+    throw err;
   }
   runGeneration(projectId, userId2, runId, sessionId).catch((err) => console.error(`[quickVideo] \u751F\u6210\u8FD0\u884C ${runId} \u5F02\u5E38\u7EC8\u6B62:`, utils_default2.error(err).message)).finally(() => {
     if (runningGenerations.get(projectId)?.runId === runId) runningGenerations.delete(projectId);
@@ -226840,15 +226909,17 @@ async function ensureGenerationRecovery(projectId) {
       );
       return;
     }
-    const stuck = shots.some((s) => s.imageState === "generating" || s.videoState === "generating");
-    if (!stuck) return;
+    const interrupted = shots.some(
+      (s) => s.imageState === "generating" || s.videoState === "generating" || s.imageState === "pending" || s.videoState === "pending"
+    );
+    if (!interrupted) return;
     await mutateQuickVideoState(projectId, {}, (s) => {
       for (const shot of s.storyboard?.shots ?? []) {
-        if (shot.imageState === "generating") {
+        if (shot.imageState === "generating" || shot.imageState === "pending") {
           shot.imageState = "failed";
           shot.errorReason = "\u751F\u6210\u4E2D\u65AD\uFF08\u670D\u52A1\u91CD\u542F\u6216\u8F6E\u8BE2\u4E2D\u65AD\uFF09\uFF0C\u8BF7\u91CD\u8BD5\u8BE5\u955C\u5934";
         }
-        if (shot.videoState === "generating") {
+        if (shot.videoState === "generating" || shot.videoState === "pending") {
           shot.videoState = "failed";
           shot.errorReason = "\u751F\u6210\u4E2D\u65AD\uFF08\u670D\u52A1\u91CD\u542F\u6216\u8F6E\u8BE2\u4E2D\u65AD\uFF09\uFF0C\u8BF7\u91CD\u8BD5\u8BE5\u955C\u5934";
         }
@@ -226863,6 +226934,7 @@ async function runGeneration(projectId, userId2, runId, sessionId) {
   const snapshot = state?.generation?.snapshot;
   if (!snapshot) {
     console.error(`[quickVideo] \u8FD0\u884C ${runId} \u7F3A\u5C11\u751F\u6210\u5FEB\u7167\uFF0C\u7EC8\u6B62`);
+    await markShotsFailed(projectId, state?.storyboard?.shots.map((shot) => shot.id) ?? [], "\u751F\u6210\u5FEB\u7167\u7F3A\u5931\uFF0C\u8BF7\u91CD\u65B0\u786E\u8BA4\u7D20\u6750\u5E76\u91CD\u8BD5");
     return;
   }
   let models;
@@ -227138,6 +227210,127 @@ var init_generate = __esm({
     init_media();
     runningGenerations = /* @__PURE__ */ new Map();
     runningShots = /* @__PURE__ */ new Map();
+  }
+});
+
+// src/lib/quickVideo/confirmGate.ts
+async function requestGenerationConfirm(projectId, opts = {}) {
+  const state = await loadQuickVideoState(projectId);
+  if (!state) throw new QuickVideoError("STATE_NOT_FOUND", "\u672A\u627E\u5230 quickVideoAgent \u72B6\u6001\uFF0C\u8BF7\u5148\u521B\u5EFA quick_video \u9879\u76EE");
+  if (!state.storyboard || state.storyboard.status !== "confirmed") {
+    throw new QuickVideoError("STORYBOARD_NOT_CONFIRMED", "\u5206\u955C\u5C1A\u672A\u786E\u8BA4\uFF0C\u8BF7\u5148\u5728\u53F3\u4FA7\u9762\u677F\u786E\u8BA4\u5206\u955C\u540E\u518D\u53D1\u8D77\u751F\u6210\u786E\u8BA4", state.version);
+  }
+  if (state.stage !== "storyboard_confirmed") {
+    throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u53D1\u8D77\u751F\u6210\u786E\u8BA4`, state.version);
+  }
+  if (state.targetDuration == null) {
+    throw new QuickVideoError("DURATION_NOT_SET", "\u76EE\u6807\u65F6\u957F\u5C1A\u672A\u786E\u5B9A\uFF0C\u8BF7\u5148\u5728\u5BF9\u8BDD\u4E2D\u786E\u8BA4\u89C6\u9891\u65F6\u957F\uFF085-60 \u79D2\u7684\u6574\u6570\uFF09\u540E\u518D\u53D1\u8D77\u751F\u6210", state.version);
+  }
+  const needResolve = !state.generation?.snapshot || state.generation.snapshot.storyboardVersion !== state.storyboard.version;
+  let estimate = { estimatedImageCount: 0, estimatedVideoCount: 0, estimatedCostYuan: 0 };
+  if (needResolve) {
+    const { materials, estimate: est, snapshotShots } = await buildSnapshot(projectId, state);
+    estimate = { estimatedImageCount: est.estimatedImageCount, estimatedVideoCount: est.estimatedVideoCount, estimatedCostYuan: est.estimatedCostYuan };
+    await mutateQuickVideoState(projectId, { sessionId: opts.sessionId ?? void 0 }, (s) => {
+      if (!s.storyboard) return;
+      applySnapshotToState(s, s.storyboard.version, snapshotShots, materials, est);
+    });
+  }
+  const { state: next, idempotentHit } = await mutateQuickVideoState(
+    projectId,
+    { idempotencyKey: opts.idempotencyKey, sessionId: opts.sessionId ?? void 0 },
+    (s) => {
+      if (!s.storyboard || s.storyboard.status !== "confirmed") {
+        throw new QuickVideoError("STORYBOARD_NOT_CONFIRMED", "\u5206\u955C\u5C1A\u672A\u786E\u8BA4\uFF0C\u65E0\u6CD5\u53D1\u8D77\u751F\u6210\u786E\u8BA4", s.version);
+      }
+      if (s.stage !== "storyboard_confirmed") {
+        throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${s.stage} \u4E0D\u5141\u8BB8\u53D1\u8D77\u751F\u6210\u786E\u8BA4`, s.version);
+      }
+      if (s.targetDuration == null) {
+        throw new QuickVideoError("DURATION_NOT_SET", "\u76EE\u6807\u65F6\u957F\u5C1A\u672A\u786E\u5B9A\uFF0C\u65E0\u6CD5\u53D1\u8D77\u751F\u6210\u786E\u8BA4", s.version);
+      }
+      const fresh = buildPendingSnapshot(s, estimate);
+      s.pendingSnapshot = fresh;
+      s.confirmationStatus = "pending";
+    }
+  );
+  return { state: next, pendingSnapshot: next.pendingSnapshot, idempotentHit };
+}
+async function confirmGeneration(projectId, opts) {
+  const state = await loadQuickVideoState(projectId);
+  if (!state) throw new QuickVideoError("STATE_NOT_FOUND", "\u672A\u627E\u5230 quickVideoAgent \u72B6\u6001");
+  if (!state.pendingSnapshot || state.confirmationStatus !== "pending") {
+    throw new QuickVideoError("CONFIRM_INVALID", "\u6CA1\u6709\u5F85\u786E\u8BA4\u7684\u751F\u6210\u6458\u8981\uFF08\u6216\u786E\u8BA4\u5DF2\u5931\u6548\uFF09\uFF0C\u8BF7\u5148\u91CD\u65B0\u53D1\u8D77\u751F\u6210\u786E\u8BA4", state.version);
+  }
+  const snapshotConfigVersion = state.pendingSnapshot.configVersion;
+  if (opts.configVersion != null && opts.configVersion !== state.configVersion) {
+    throw new QuickVideoError("CONFIG_VERSION_MISMATCH", "\u53C2\u6570\u5DF2\u53D8\u66F4\uFF0C\u672C\u6B21\u786E\u8BA4\u57FA\u4E8E\u7684\u7248\u672C\u5DF2\u8FC7\u671F\uFF1B\u8BF7\u67E5\u770B\u6700\u65B0\u914D\u7F6E\u540E\u91CD\u65B0\u786E\u8BA4\u751F\u6210", state.version);
+  }
+  if (snapshotConfigVersion !== state.configVersion) {
+    throw new QuickVideoError("CONFIG_VERSION_MISMATCH", "\u53C2\u6570\u5DF2\u53D8\u66F4\uFF0C\u5F85\u786E\u8BA4\u6458\u8981\u5DF2\u5931\u6548\uFF1B\u8BF7\u91CD\u65B0\u53D1\u8D77\u751F\u6210\u786E\u8BA4", state.version);
+  }
+  if (!state.storyboard || state.storyboard.status !== "confirmed") {
+    throw new QuickVideoError("STORYBOARD_NOT_CONFIRMED", "\u5206\u955C\u5C1A\u672A\u786E\u8BA4\uFF0C\u65E0\u6CD5\u5F00\u59CB\u751F\u6210", state.version);
+  }
+  if (state.stage !== "storyboard_confirmed") {
+    throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u786E\u8BA4\u751F\u6210`, state.version);
+  }
+  if (state.targetDuration == null) {
+    throw new QuickVideoError("DURATION_NOT_SET", "\u76EE\u6807\u65F6\u957F\u5C1A\u672A\u786E\u5B9A\uFF0C\u65E0\u6CD5\u5F00\u59CB\u751F\u6210", state.version);
+  }
+  const needResolve = !state.generation?.snapshot || state.generation.snapshot.storyboardVersion !== state.storyboard.version;
+  if (needResolve) {
+    const { materials, estimate, snapshotShots } = await buildSnapshot(projectId, state);
+    await mutateQuickVideoState(projectId, { sessionId: opts.sessionId ?? void 0 }, (s) => {
+      if (!s.storyboard) return;
+      applySnapshotToState(s, s.storyboard.version, snapshotShots, materials, estimate);
+    });
+  }
+  await mutateQuickVideoState(
+    projectId,
+    { idempotencyKey: opts.idempotencyKey, sessionId: opts.sessionId ?? void 0, stageTransition: { from: "storyboard_confirmed", to: "generating" } },
+    (s) => {
+      if (!s.pendingSnapshot || s.confirmationStatus !== "pending") {
+        throw new QuickVideoError("CONFIRM_INVALID", "\u786E\u8BA4\u72B6\u6001\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u53D1\u8D77\u751F\u6210\u786E\u8BA4", s.version);
+      }
+      if (s.pendingSnapshot.configVersion !== s.configVersion) {
+        throw new QuickVideoError("CONFIG_VERSION_MISMATCH", "\u53C2\u6570\u5DF2\u53D8\u66F4\uFF0C\u8BF7\u91CD\u65B0\u786E\u8BA4\u751F\u6210", s.version);
+      }
+      if (!s.generation?.snapshot) {
+        throw new QuickVideoError("MATERIALS_RESOLVE_FAILED", "\u7D20\u6750\u89E3\u6790\u5931\u8D25\uFF0C\u65E0\u6CD5\u786E\u8BA4", s.version);
+      }
+      s.confirmationStatus = "confirmed";
+      s.generation.materialsConfirmed = true;
+      s.generation.materialsConfirmedAt = Date.now();
+      s.generation.startedAt = Date.now();
+      s.generation.finishedAt = null;
+      s.stage = "generating";
+    }
+  );
+  try {
+    const start = await startQuickVideoGeneration(projectId, opts.userId, opts.sessionId ?? void 0);
+    return { started: start.started, alreadyRunning: start.alreadyRunning, runId: start.runId };
+  } catch (err) {
+    console.error(`[quickVideo] \u9879\u76EE ${projectId} \u786E\u8BA4\u540E\u542F\u52A8\u751F\u6210\u5931\u8D25:`, utils_default2.error(err).message);
+    return { started: false, alreadyRunning: false, runId: null };
+  }
+}
+async function cancelGenerationConfirm(projectId, opts = {}) {
+  return mutateQuickVideoState(
+    projectId,
+    { idempotencyKey: opts.idempotencyKey, sessionId: opts.sessionId ?? void 0, expectedVersion: opts.expectedVersion },
+    (s) => {
+      invalidatePendingConfirmation(s);
+    }
+  );
+}
+var init_confirmGate = __esm({
+  "src/lib/quickVideo/confirmGate.ts"() {
+    "use strict";
+    init_utils3();
+    init_contract();
+    init_state();
+    init_generate();
   }
 });
 
@@ -233557,6 +233750,7 @@ var init_addShot = __esm({
               firstFrame: null
             });
             reindexShots(state);
+            bumpConfigVersion(state);
           });
           res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
         } catch (err) {
@@ -233580,6 +233774,7 @@ var init_bindShotFirstFrame = __esm({
     init_responseFormat();
     init_middleware();
     init_state();
+    init_contract();
     init_shots();
     init_media();
     router116 = import_express116.default.Router();
@@ -233607,6 +233802,7 @@ var init_bindShotFirstFrame = __esm({
             state.generation.snapshot = null;
             state.generation.materialsConfirmed = false;
             state.generation.materialsConfirmedAt = null;
+            bumpConfigVersion(state);
           });
           res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
         } catch (err) {
@@ -233688,6 +233884,9 @@ var init_confirmStage = __esm({
                 if (state.stage !== "storyboard_draft") {
                   throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u786E\u8BA4\u5206\u955C`, state.version);
                 }
+                if (state.targetDuration == null) {
+                  throw new QuickVideoError("DURATION_NOT_SET", "\u76EE\u6807\u65F6\u957F\u5C1A\u672A\u786E\u5B9A\uFF0C\u8BF7\u5148\u5728\u5BF9\u8BDD\u4E2D\u786E\u8BA4\u89C6\u9891\u65F6\u957F\uFF085-60 \u79D2\u7684\u6574\u6570\uFF09", state.version);
+                }
                 const errors = validateStoryboard(state.targetDuration, state.storyboard.shots);
                 if (errors.length) throw new QuickVideoError("STORYBOARD_INVALID", errors.join("\uFF1B"), state.version);
                 state.stage = "storyboard_confirmed";
@@ -233711,6 +233910,12 @@ var init_confirmStage = __esm({
                 if (state.stage !== "storyboard_confirmed") {
                   throw new QuickVideoError("STAGE_MISMATCH", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u4E0D\u5141\u8BB8\u7D20\u6750\u786E\u8BA4`, state.version);
                 }
+                if (state.confirmationStatus === "pending" && state.pendingSnapshot && state.pendingSnapshot.configVersion !== state.configVersion) {
+                  throw new QuickVideoError("CONFIG_VERSION_MISMATCH", "\u53C2\u6570\u5DF2\u53D8\u66F4\uFF0C\u539F\u751F\u6210\u786E\u8BA4\u5DF2\u5931\u6548\uFF1B\u8BF7\u91CD\u65B0\u53D1\u8D77\u751F\u6210\u786E\u8BA4", state.version);
+                }
+                if (state.targetDuration == null) {
+                  throw new QuickVideoError("DURATION_NOT_SET", "\u76EE\u6807\u65F6\u957F\u5C1A\u672A\u786E\u5B9A\uFF0C\u8BF7\u5148\u5728\u5BF9\u8BDD\u4E2D\u786E\u8BA4\u89C6\u9891\u65F6\u957F\uFF085-60 \u79D2\uFF09", state.version);
+                }
                 const needResolve = !state.generation?.snapshot || state.generation.snapshot.storyboardVersion !== state.storyboard.version;
                 if (needResolve) {
                   const { materials, estimate, snapshotShots } = await buildSnapshot(projectId, state);
@@ -233723,6 +233928,13 @@ var init_confirmStage = __esm({
                 state.generation.materialsConfirmedAt = Date.now();
                 state.generation.startedAt = Date.now();
                 state.generation.finishedAt = null;
+                const fresh = buildPendingSnapshot(state, {
+                  estimatedImageCount: state.generation.snapshot.estimatedImageCount,
+                  estimatedVideoCount: state.generation.snapshot.estimatedVideoCount,
+                  estimatedCostYuan: state.generation.snapshot.estimatedCostYuan
+                });
+                state.pendingSnapshot = fresh;
+                state.confirmationStatus = "confirmed";
                 state.stage = "generating";
                 shouldStartGeneration = true;
               } else {
@@ -233731,6 +233943,8 @@ var init_confirmStage = __esm({
                 }
                 state.generation.materialsConfirmed = false;
                 state.generation.materialsConfirmedAt = null;
+                state.pendingSnapshot = null;
+                state.confirmationStatus = "none";
               }
               return;
             }
@@ -233788,9 +234002,9 @@ var init_createProject = __esm({
       "/",
       validateFields({
         name: external_exports.string().min(1).max(100),
-        artStyle: external_exports.string().max(500).default(""),
+        artStyle: external_exports.string().max(500).optional().default(""),
         videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS),
-        targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]),
+        targetDuration: quickVideoDurationSchema.optional(),
         draftScript: external_exports.string().max(2e4).optional().default(""),
         intro: external_exports.string().max(2e3).optional().default(""),
         idempotencyKey: external_exports.string().min(8).max(64)
@@ -234096,6 +234310,9 @@ var init_getTimeline = __esm({
           if (state.stage !== "ready_to_assemble" && state.stage !== "completed") {
             throw new QuickVideoError("SHOTS_NOT_READY", `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u5C1A\u672A\u5B8C\u6210\u5168\u90E8\u955C\u5934\u751F\u6210\uFF0C\u65E0\u6CD5\u88C5\u914D\u65F6\u95F4\u7EBF`, state.version);
           }
+          if (state.targetDuration == null) {
+            throw new QuickVideoError("DURATION_NOT_SET", "\u76EE\u6807\u65F6\u957F\u5C1A\u672A\u786E\u5B9A\uFF0C\u65E0\u6CD5\u88C5\u914D\u65F6\u95F4\u7EBF", state.version);
+          }
           const shots = state.storyboard?.shots ?? [];
           const notDone = shots.filter((s) => s.videoState !== "done" || !s.videoRef);
           if (!shots.length || notDone.length) {
@@ -234119,6 +234336,10 @@ var init_getTimeline = __esm({
             await mutateQuickVideoState(projectId, {}, async (s, trx) => {
               if (s.generation.timeline?.storyboardVersion === storyboardVersion) return;
               if (s.stage !== "ready_to_assemble" && s.stage !== "completed") return;
+              const previousTrackIds = s.generation.timeline?.trackIds ?? [];
+              if (previousTrackIds.length) {
+                await trx("o_videoTrack").where("projectId", projectId).whereIn("id", previousTrackIds).delete();
+              }
               const trackIds = [];
               for (const shot of [...s.storyboard.shots].sort((a, b) => a.index - b.index)) {
                 const maxRow = await trx("o_videoTrack").max("id as maxId").first();
@@ -234205,8 +234426,8 @@ var init_getWorkbench = __esm({
             project,
             script: script ?? null,
             state,
-            // 分镜数量约束，供前端展示与预校验
-            shotBounds: state ? shotCountBounds(state.targetDuration) : null
+            // 分镜数量约束，供前端展示与预校验；目标时长未设置（对话式配置中）时返回 null
+            shotBounds: state && state.targetDuration != null ? shotCountBounds(state.targetDuration) : null
           })
         );
       }
@@ -234252,6 +234473,7 @@ var init_removeShot = __esm({
     init_zod();
     init_responseFormat();
     init_middleware();
+    init_contract();
     init_state();
     init_shots();
     router126 = import_express126.default.Router();
@@ -234274,6 +234496,7 @@ var init_removeShot = __esm({
               throw new QuickVideoError("SHOT_LAST_ONE", "\u81F3\u5C11\u4FDD\u7559\u4E00\u4E2A\u955C\u5934", state.version);
             }
             reindexShots(state);
+            bumpConfigVersion(state);
           });
           res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
         } catch (err) {
@@ -234441,7 +234664,7 @@ var init_updateConfig = __esm({
           name: external_exports.string().min(1).max(100).optional(),
           artStyle: external_exports.string().max(500).optional(),
           videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS).optional(),
-          targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]).optional(),
+          targetDuration: quickVideoDurationSchema.optional(),
           intro: external_exports.string().max(2e3).optional()
         })
       }),
@@ -234450,18 +234673,19 @@ var init_updateConfig = __esm({
         try {
           const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, async (state, trx) => {
             const targetDurationChanged = patch.targetDuration != null && patch.targetDuration !== state.targetDuration;
-            const visualConfigChanged = patch.artStyle != null && patch.artStyle !== state.artStyle || patch.videoRatio != null && patch.videoRatio !== state.videoRatio;
+            const visualConfigChanged = patch.artStyle != null && patch.artStyle !== (state.artStyle ?? "") || patch.videoRatio != null && patch.videoRatio !== state.videoRatio;
             const generationConfigChanged = targetDurationChanged || visualConfigChanged;
             if (targetDurationChanged && state.storyboard?.status === "confirmed") {
               throw new QuickVideoError("FORBIDDEN", "\u5206\u955C\u5DF2\u786E\u8BA4\uFF0C\u4E0D\u5141\u8BB8\u4FEE\u6539\u76EE\u6807\u65F6\u957F\uFF1B\u8BF7\u5148\u64A4\u9500\u5206\u955C\u786E\u8BA4");
             }
             if (generationConfigChanged && ["generating", "ready_to_assemble", "completed"].includes(state.stage)) {
-              throw new QuickVideoError("FORBIDDEN", "\u751F\u6210\u5DF2\u5F00\u59CB\uFF0C\u4E0D\u80FD\u518D\u4FEE\u6539\u76EE\u6807\u65F6\u957F\u3001\u753B\u98CE\u6216\u6BD4\u4F8B\uFF1B\u5982\u9700\u8C03\u6574\u8BF7\u65B0\u5EFA\u9879\u76EE");
+              throw new QuickVideoError("FORBIDDEN", "\u751F\u6210\u5DF2\u5F00\u59CB\uFF0C\u751F\u6210\u53C2\u6570\u5DF2\u9501\u5B9A\uFF1B\u5F53\u524D\u751F\u6210\u5B8C\u6210\u6216\u65B0\u5EFA\u9879\u76EE\u540E\u624D\u80FD\u518D\u8C03\u6574\u76EE\u6807\u65F6\u957F\u3001\u753B\u98CE\u6216\u6BD4\u4F8B");
             }
             if (patch.targetDuration != null) state.targetDuration = patch.targetDuration;
             if (patch.videoRatio != null) state.videoRatio = patch.videoRatio;
             if (patch.artStyle != null) state.artStyle = patch.artStyle;
             if (generationConfigChanged) {
+              bumpConfigVersion(state);
               state.generation.snapshot = null;
               state.generation.materialsConfirmed = false;
               state.generation.materialsConfirmedAt = null;
@@ -234609,6 +234833,7 @@ var init_updateShot = __esm({
             if (patch.camera != null) shot.camera = patch.camera;
             if (patch.duration != null) shot.duration = normalizeShotDuration(patch.duration);
             if (patch.assetRefs != null) shot.assetRefs = patch.assetRefs;
+            bumpConfigVersion(state);
           });
           res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
         } catch (err) {
@@ -249262,6 +249487,66 @@ var init_test = __esm({
   }
 });
 
+// src/routes/quickVideo/generateConfirm.ts
+var import_express202, router202, generateConfirm_default;
+var init_generateConfirm = __esm({
+  "src/routes/quickVideo/generateConfirm.ts"() {
+    "use strict";
+    import_express202 = __toESM(require_express2());
+    init_zod();
+    init_responseFormat();
+    init_middleware();
+    init_state();
+    init_confirmGate();
+    init_session();
+    init_metrics();
+    router202 = import_express202.default.Router();
+    generateConfirm_default = router202.post(
+      "/",
+      validateFields({
+        projectId: external_exports.number(),
+        sessionId: external_exports.number(),
+        action: external_exports.enum(["request", "confirm", "cancel"]),
+        idempotencyKey: external_exports.string().min(8).max(64),
+        /** confirm 时携带用户确认所见的配置版本；与服务端最新 configVersion 不一致时阻断 */
+        configVersion: external_exports.number().int().min(0).optional()
+      }),
+      async (req, res) => {
+        const { projectId, sessionId, action, idempotencyKey, configVersion } = req.body;
+        try {
+          await getOwnedSession(projectId, sessionId);
+        } catch (err) {
+          if (err instanceof QuickVideoError) return res.status(200).send(error50(err.message));
+          throw err;
+        }
+        try {
+          if (action === "request") {
+            const result2 = await requestGenerationConfirm(projectId, { idempotencyKey, sessionId });
+            return res.status(200).send(success3({ state: result2.state, pendingSnapshot: result2.pendingSnapshot, idempotentHit: result2.idempotentHit }));
+          }
+          if (action === "confirm") {
+            const result2 = await confirmGeneration(projectId, { idempotencyKey, sessionId, configVersion, userId: req.user?.id ?? 1 });
+            if (result2.started) {
+              recordEvent("generationConfirmed");
+              qvLog("generation_confirmed", { projectId, configVersion: configVersion ?? null, runId: result2.runId });
+            }
+            const { loadQuickVideoState: loadQuickVideoState3 } = await Promise.resolve().then(() => (init_state(), state_exports));
+            const state = await loadQuickVideoState3(projectId);
+            return res.status(200).send(success3({ state, ...result2 }));
+          }
+          const result = await cancelGenerationConfirm(projectId, { idempotencyKey, sessionId });
+          return res.status(200).send(success3({ state: result.state, idempotentHit: result.idempotentHit }));
+        } catch (err) {
+          if (err instanceof QuickVideoError) {
+            return res.status(200).send({ code: err.code, message: err.message, currentVersion: err.currentVersion ?? null });
+          }
+          throw err;
+        }
+      }
+    );
+  }
+});
+
 // src/router.ts
 var router_exports = {};
 __export(router_exports, {
@@ -249472,6 +249757,7 @@ var init_router = __esm({
     init_getTaskCategories();
     init_taskDetails();
     init_test();
+    init_generateConfirm();
     router_default = async (app2) => {
       app2.use("/api/agents/clearMemory", clearMemory_default);
       app2.use("/api/agents/getMemory", getMemory_default);
@@ -249674,6 +249960,7 @@ var init_router = __esm({
       app2.use("/api/task/getTaskCategories", getTaskCategories_default);
       app2.use("/api/task/taskDetails", taskDetails_default);
       app2.use("/api/test/test", test_default);
+      app2.use("/api/quickVideo/generateConfirm", generateConfirm_default);
     };
   }
 });
@@ -249729,7 +250016,7 @@ if (!env) {
 }
 
 // src/app.ts
-var import_express202 = __toESM(require_express2());
+var import_express203 = __toESM(require_express2());
 
 // node_modules/socket.io/wrapper.mjs
 var import_dist = __toESM(require_dist3(), 1);
@@ -252023,6 +252310,7 @@ init_state();
 init_contract();
 init_shots();
 init_generate();
+init_confirmGate();
 init_media();
 function describeError(err) {
   if (err instanceof QuickVideoError) return `[${err.code}] ${err.message}`;
@@ -252048,7 +252336,7 @@ var tools_default3 = (toolConfig) => {
   const userId2 = Number(toolConfig.resTool.data.userId ?? 0) || 1;
   const tools = {
     get_state: tool({
-      description: "\u83B7\u53D6\u5F53\u524D\u5FEB\u521B\u5DE5\u4F5C\u53F0\u7684\u5B8C\u6574\u72B6\u6001\uFF1A\u9636\u6BB5\u3001\u76EE\u6807\u65F6\u957F\u3001\u7B80\u62A5\u3001\u5206\u955C\uFF08\u542B\u6BCF\u4E2A\u955C\u5934\u7684\u751F\u6210\u72B6\u6001\uFF09\u3002\u5199\u64CD\u4F5C\u524D\u5FC5\u987B\u5148\u8C03\u7528\u672C\u5DE5\u5177\u786E\u8BA4\u524D\u7F6E\u6761\u4EF6\u3002",
+      description: "\u83B7\u53D6\u5F53\u524D\u5FEB\u521B\u5DE5\u4F5C\u53F0\u7684\u5B8C\u6574\u72B6\u6001\uFF1A\u9636\u6BB5\u3001\u76EE\u6807\u65F6\u957F\uFF08\u53EF\u80FD\u672A\u8BBE\u7F6E null\uFF09\u3001\u753B\u98CE\uFF08\u7A7A\u4E32=\u672A\u8BBE\u7F6E\uFF09\u3001\u914D\u7F6E\u7248\u672C\u3001\u751F\u6210\u786E\u8BA4\u72B6\u6001\u3001\u7B80\u62A5\u3001\u5206\u955C\uFF08\u542B\u6BCF\u4E2A\u955C\u5934\u7684\u751F\u6210\u72B6\u6001\uFF09\u3002\u5199\u64CD\u4F5C\u524D\u5FC5\u987B\u5148\u8C03\u7528\u672C\u5DE5\u5177\u786E\u8BA4\u524D\u7F6E\u6761\u4EF6\u3002",
       inputSchema: jsonSchema({ type: "object", properties: {}, additionalProperties: false }),
       execute: async () => {
         const state = await loadQuickVideoState(projectId);
@@ -252057,12 +252345,15 @@ var tools_default3 = (toolConfig) => {
           {
             version: state.version,
             stage: state.stage,
+            configVersion: state.configVersion,
             targetDuration: state.targetDuration,
             videoRatio: state.videoRatio,
-            artStyle: state.artStyle,
-            shotBounds: shotCountBounds(state.targetDuration),
+            artStyle: state.artStyle || "",
+            shotBounds: state.targetDuration != null ? shotCountBounds(state.targetDuration) : null,
             brief: state.brief,
-            storyboard: state.storyboard
+            storyboard: state.storyboard,
+            confirmationStatus: state.confirmationStatus,
+            pendingSnapshot: state.pendingSnapshot
           },
           null,
           2
@@ -252070,14 +252361,15 @@ var tools_default3 = (toolConfig) => {
       }
     }),
     update_config: tool({
-      description: "\u4FEE\u6539\u5355\u89C6\u9891\u9879\u76EE\u57FA\u7840\u914D\u7F6E\uFF08\u6807\u9898\u3001\u753B\u98CE\u3001\u753B\u9762\u6BD4\u4F8B\u3001\u76EE\u6807\u65F6\u957F\u3001\u7B80\u4ECB\uFF09\u3002\u5199\u5165\u524D\u5FC5\u987B\u8C03\u7528 get_state\uFF1B\u76EE\u6807\u65F6\u957F\u5728\u5206\u955C\u5DF2\u786E\u8BA4\u540E\u4E0D\u53EF\u4FEE\u6539\uFF0C\u9700\u5148\u63D0\u9192\u7528\u6237\u64A4\u9500\u5206\u955C\u786E\u8BA4\u3002\u4FEE\u6539\u753B\u98CE\u6216\u6BD4\u4F8B\u540E\u5E94\u91CD\u65B0\u89E3\u6790\u7D20\u6750/\u6210\u672C\u5FEB\u7167\uFF1B\u4FEE\u6539\u76EE\u6807\u65F6\u957F\u540E\u5E94\u6309\u65B0\u7684\u955C\u5934\u6570\u91CF\u533A\u95F4\u548C\u603B\u65F6\u957F\u7EA6\u675F\u91CD\u65B0\u6253\u78E8\u5206\u955C\u3002",
+      description: "\u4FEE\u6539\u5355\u89C6\u9891\u9879\u76EE\u57FA\u7840\u914D\u7F6E\uFF08\u6807\u9898\u3001\u753B\u98CE\u3001\u753B\u9762\u6BD4\u4F8B\u3001\u76EE\u6807\u65F6\u957F 5-60 \u7684\u6574\u6570\u79D2\u3001\u7B80\u4ECB\uFF09\u3002\u76EE\u6807\u65F6\u957F\u4E0E\u753B\u98CE\u5141\u8BB8\u672A\u8BBE\u7F6E\u65F6\uFF08\u65F6\u957F null/\u753B\u98CE\u7A7A\u4E32\uFF09\u76F4\u63A5\u8BBE\u7F6E\u3002\u89E3\u6790\u7528\u6237\u81EA\u7136\u8BED\u8A00\u65F6\u628A\u300C12\u79D2\u4EE5\u5185/\u5927\u7EA615\u79D2/\u6539\u621018\u79D2\u300D\u7B49\u8868\u8FBE\u89C4\u8303\u4E3A 5-60 \u7684\u6B63\u6574\u6570\u79D2\uFF0C\u628A\u753B\u98CE\u63D0\u70BC\u4E3A\u7B80\u77ED\u7684\u98CE\u683C\u63CF\u8FF0\u6587\u672C\u3002\u5199\u5165\u524D\u5FC5\u987B\u8C03\u7528 get_state\uFF1B\u76EE\u6807\u65F6\u957F\u5728\u5206\u955C\u5DF2\u786E\u8BA4\u540E\u4E0D\u53EF\u4FEE\u6539\uFF0C\u9700\u5148\u63D0\u9192\u7528\u6237\u64A4\u9500\u5206\u955C\u786E\u8BA4\u3002\u6BCF\u6B21\u4FEE\u6539\u753B\u98CE/\u65F6\u957F/\u6BD4\u4F8B\u90FD\u4F1A\u9012\u589E\u914D\u7F6E\u7248\u672C\u5E76\u4F7F\u65E7\u7684\u751F\u6210\u786E\u8BA4\u5931\u6548\uFF1B\u4FEE\u6539\u76EE\u6807\u65F6\u957F\u540E\u5E94\u6309\u65B0\u7684\u955C\u5934\u6570\u91CF\u533A\u95F4\u548C\u603B\u65F6\u957F\u7EA6\u675F\u91CD\u65B0\u6253\u78E8\u5206\u955C\u3002",
       inputSchema: jsonSchema(
         external_exports.object({
           name: external_exports.string().min(1).max(100).optional().describe("\u9879\u76EE\u6807\u9898"),
-          artStyle: external_exports.string().max(500).optional().describe("\u753B\u98CE"),
+          artStyle: external_exports.string().max(500).optional().describe("\u753B\u98CE\uFF08\u7A7A\u4E32\u8868\u793A\u6E05\u9664/\u672A\u8BBE\u7F6E\uFF09"),
           videoRatio: external_exports.enum(QUICK_VIDEO_RATIOS).optional().describe("\u753B\u9762\u6BD4\u4F8B"),
-          targetDuration: external_exports.union([external_exports.literal(15), external_exports.literal(30), external_exports.literal(60)]).optional().describe("\u76EE\u6807\u65F6\u957F\uFF08\u79D2\uFF09"),
-          intro: external_exports.string().max(2e3).optional().describe("\u9879\u76EE\u7B80\u4ECB")
+          targetDuration: external_exports.number().int().min(QUICK_VIDEO_DURATION_MIN).max(QUICK_VIDEO_DURATION_MAX).optional().describe(`\u76EE\u6807\u65F6\u957F\uFF08${QUICK_VIDEO_DURATION_MIN}-${QUICK_VIDEO_DURATION_MAX} \u7684\u6B63\u6574\u6570\u79D2\uFF09`),
+          intro: external_exports.string().max(2e3).optional().describe("\u9879\u76EE\u7B80\u4ECB"),
+          rawInput: external_exports.string().max(500).optional().describe("\u7528\u6237\u5173\u4E8E\u65F6\u957F/\u753B\u98CE\u7684\u539F\u59CB\u8868\u8FF0\uFF08\u5BA1\u8BA1\u7528\uFF0C\u5982\u300C12\u79D2\u4EE5\u5185\u300D\u300C\u6539\u621018\u79D2\u300D\uFF09")
         }).toJSONSchema()
       ),
       execute: async (input, options) => {
@@ -252089,18 +252381,19 @@ var tools_default3 = (toolConfig) => {
             { idempotencyKey: `tool:update_config:${toolCallId}` },
             async (s, trx) => {
               const targetDurationChanged = input.targetDuration != null && input.targetDuration !== s.targetDuration;
-              const visualConfigChanged = input.artStyle != null && input.artStyle !== s.artStyle || input.videoRatio != null && input.videoRatio !== s.videoRatio;
+              const visualConfigChanged = input.artStyle != null && input.artStyle !== (s.artStyle ?? "") || input.videoRatio != null && input.videoRatio !== s.videoRatio;
               const generationConfigChanged = targetDurationChanged || visualConfigChanged;
               if (targetDurationChanged && s.storyboard?.status === "confirmed") {
                 throw new QuickVideoError("FORBIDDEN", "\u5206\u955C\u5DF2\u786E\u8BA4\uFF0C\u4E0D\u5141\u8BB8\u4FEE\u6539\u76EE\u6807\u65F6\u957F\uFF1B\u8BF7\u5148\u8BA9\u7528\u6237\u64A4\u9500\u5206\u955C\u786E\u8BA4", s.version);
               }
               if (generationConfigChanged && ["generating", "ready_to_assemble", "completed"].includes(s.stage)) {
-                throw new QuickVideoError("FORBIDDEN", "\u751F\u6210\u5DF2\u5F00\u59CB\uFF0C\u4E0D\u80FD\u518D\u4FEE\u6539\u76EE\u6807\u65F6\u957F\u3001\u753B\u98CE\u6216\u6BD4\u4F8B\uFF1B\u5982\u9700\u8C03\u6574\u8BF7\u65B0\u5EFA\u9879\u76EE", s.version);
+                throw new QuickVideoError("FORBIDDEN", "\u751F\u6210\u5DF2\u5F00\u59CB\uFF0C\u751F\u6210\u53C2\u6570\u5DF2\u9501\u5B9A\uFF1B\u5F53\u524D\u751F\u6210\u5B8C\u6210\u6216\u65B0\u5EFA\u9879\u76EE\u540E\u624D\u80FD\u518D\u8C03\u6574\u76EE\u6807\u65F6\u957F\u3001\u753B\u98CE\u6216\u6BD4\u4F8B", s.version);
               }
               if (input.targetDuration != null) s.targetDuration = input.targetDuration;
               if (input.videoRatio != null) s.videoRatio = input.videoRatio;
               if (input.artStyle != null) s.artStyle = input.artStyle;
               if (generationConfigChanged) {
+                bumpConfigVersion(s);
                 s.generation.snapshot = null;
                 s.generation.materialsConfirmed = false;
                 s.generation.materialsConfirmedAt = null;
@@ -252118,10 +252411,54 @@ var tools_default3 = (toolConfig) => {
           );
           if (idempotentHit) return "\u8BE5\u6B21\u9879\u76EE\u914D\u7F6E\u66F4\u65B0\u5DF2\u5E94\u7528\u8FC7\uFF08\u5E42\u7B49\u547D\u4E2D\uFF09\uFF0C\u672A\u91CD\u590D\u5199\u5165\u3002";
           const durationHint = input.targetDuration != null ? `\u76EE\u6807\u65F6\u957F\u5DF2\u66F4\u65B0\u4E3A ${state.targetDuration} \u79D2` : "\u9879\u76EE\u914D\u7F6E\u5DF2\u66F4\u65B0";
+          const versionHint = `\u5F53\u524D\u914D\u7F6E\u7248\u672C configVersion=${state.configVersion}`;
           const storyboardHint = input.targetDuration != null && state.storyboard ? "\u8BF7\u6839\u636E\u65B0\u76EE\u6807\u65F6\u957F\u91CD\u65B0\u6253\u78E8\u5F53\u524D\u5206\u955C\u3002" : "";
           const visualHint = input.artStyle != null || input.videoRatio != null ? "\u8BF7\u5728\u7D20\u6750/\u6210\u672C\u786E\u8BA4\u524D\u91CD\u65B0\u89E3\u6790\u7D20\u6750\u5FEB\u7167\u3002" : "";
-          return `${durationHint}\uFF08\u72B6\u6001\u7248\u672C ${state.version}\uFF09\u3002${storyboardHint}${visualHint}`;
+          const auditHint = input.rawInput ? `\uFF08\u7528\u6237\u539F\u59CB\u8868\u8FF0\uFF1A${input.rawInput}\uFF09` : "";
+          return `${durationHint}${auditHint}\uFF08\u72B6\u6001\u7248\u672C ${state.version}\uFF0C${versionHint}\uFF09\u3002${storyboardHint}${visualHint}`;
         }).catch((err) => `\u66F4\u65B0\u9879\u76EE\u914D\u7F6E\u5931\u8D25\uFF1A${describeError(err)}`);
+      }
+    }),
+    request_generation_confirm: tool({
+      description: "\u53D1\u8D77\u751F\u6210\u786E\u8BA4\uFF08\u7528\u6237\u8981\u6C42\u751F\u6210/\u51FA\u7247\u65F6\u8C03\u7528\uFF09\uFF1A\u670D\u52A1\u7AEF\u6821\u9A8C\u5206\u955C\u5DF2\u786E\u8BA4\u4E14\u76EE\u6807\u65F6\u957F\u5DF2\u8BBE\u7F6E\u540E\uFF0C\u7EC4\u88C5\u5305\u542B\u6700\u65B0 configVersion\u3001\u76EE\u6807\u65F6\u957F\u3001\u753B\u98CE\u3001\u5206\u955C\u6570\u91CF\u4E0E\u9010\u955C\u6458\u8981\u7684\u751F\u6210\u786E\u8BA4\u6458\u8981\uFF0C\u53F3\u4FA7\u5DE5\u4F5C\u53F0\u4E0E\u804A\u5929\u533A\u4F1A\u51FA\u73B0\u300C\u751F\u6210\u786E\u8BA4\u5361\u7247\u300D\u3002\u5FC5\u987B\u7B49\u7528\u6237\u660E\u786E\u786E\u8BA4\uFF08\u70B9\u51FB\u5361\u7247\u6309\u94AE\u6216\u56DE\u590D\u300C\u786E\u8BA4/\u5F00\u59CB\u751F\u6210\u300D\uFF09\u540E\u624D\u80FD\u8C03\u7528 confirm_generation \u5F00\u59CB\u751F\u6210\u3002",
+      inputSchema: jsonSchema({ type: "object", properties: {}, additionalProperties: false }),
+      execute: async () => {
+        return withThinking(msg, "\u6B63\u5728\u7EC4\u88C5\u751F\u6210\u786E\u8BA4\u6458\u8981...", async () => {
+          const { state, pendingSnapshot } = await requestGenerationConfirm(projectId, { sessionId });
+          if (!pendingSnapshot) return "\u751F\u6210\u786E\u8BA4\u6458\u8981\u7EC4\u88C5\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5\u3002";
+          const styleText = pendingSnapshot.artStyle ? pendingSnapshot.artStyle : "\u672A\u8BBE\u7F6E";
+          const shotList = pendingSnapshot.shotSummaries.map((s) => `\u955C\u5934${s.index}\uFF08${s.duration}\u79D2\uFF09\uFF1A${s.description}`).join("\uFF1B");
+          return [
+            `\u751F\u6210\u786E\u8BA4\u6458\u8981\u5DF2\u751F\u6210\uFF08configVersion=${pendingSnapshot.configVersion}\uFF09\uFF1A`,
+            `\u76EE\u6807\u65F6\u957F ${pendingSnapshot.targetDuration} \u79D2\uFF1B\u753B\u98CE\uFF1A${styleText}\uFF1B\u753B\u9762\u6BD4\u4F8B ${pendingSnapshot.videoRatio}\uFF1B`,
+            `\u5206\u955C v${pendingSnapshot.storyboardVersion}\uFF0C\u5171 ${pendingSnapshot.shotCount} \u955C\uFF0C\u603B\u65F6\u957F ${pendingSnapshot.totalDuration} \u79D2\u3002`,
+            shotList ? `\u9010\u955C\u6458\u8981\uFF1A${shotList}\u3002` : "",
+            "\u8BF7\u5411\u7528\u6237\u590D\u8FF0\u4EE5\u4E0A\u8981\u70B9\uFF0C\u5E76\u63D0\u9192\u7528\u6237\uFF1A\u786E\u8BA4\u65E0\u8BEF\u8BF7\u70B9\u51FB\u53F3\u4FA7\u300C\u751F\u6210\u786E\u8BA4\u5361\u7247\u300D\u7684\u786E\u8BA4\u6309\u94AE\uFF0C\u6216\u76F4\u63A5\u56DE\u590D\u300C\u786E\u8BA4\u751F\u6210\u300D\uFF1B\u9700\u8981\u8C03\u6574\u8BF7\u56DE\u590D\u4FEE\u6539\u610F\u89C1\uFF08\u4FEE\u6539\u540E\u9700\u91CD\u65B0\u786E\u8BA4\uFF09\u3002",
+            `(\u72B6\u6001\u7248\u672C ${state.version}\uFF09`
+          ].filter(Boolean).join("\n");
+        }).catch((err) => `\u53D1\u8D77\u751F\u6210\u786E\u8BA4\u5931\u8D25\uFF1A${describeError(err)}`);
+      }
+    }),
+    confirm_generation: tool({
+      description: "\u786E\u8BA4\u751F\u6210\uFF08\u4EC5\u5728\u7528\u6237\u5DF2\u660E\u786E\u540C\u610F\u540E\u8C03\u7528\uFF0C\u5982\u7528\u6237\u56DE\u590D\u300C\u786E\u8BA4\u300D\u300C\u5F00\u59CB\u751F\u6210\u300D\u300C\u786E\u8BA4\u751F\u6210\u300D\uFF09\uFF1A\u4F20\u5165\u5F85\u786E\u8BA4\u6458\u8981\u7684 configVersion\uFF1B\u670D\u52A1\u7AEF\u6821\u9A8C\u8BE5\u7248\u672C\u4E0E\u6700\u65B0\u914D\u7F6E\u4E00\u81F4\u540E\u51BB\u7ED3\u53C2\u6570\u5E76\u542F\u52A8\u9010\u955C\u5934\u751F\u6210\u3002\u82E5\u53C2\u6570\u5728\u786E\u8BA4\u540E\u88AB\u4FEE\u6539\u8FC7\uFF08\u7248\u672C\u4E0D\u4E00\u81F4\uFF09\uFF0C\u8C03\u7528\u4F1A\u5931\u8D25\u5E76\u63D0\u793A\u91CD\u65B0\u786E\u8BA4\u3002",
+      inputSchema: jsonSchema(
+        external_exports.object({
+          configVersion: external_exports.number().int().min(0).describe("\u5F85\u786E\u8BA4\u6458\u8981\u4E2D\u7684\u914D\u7F6E\u7248\u672C\uFF08request_generation_confirm \u8FD4\u56DE\u6216 get_state \u4E2D\u7684 configVersion\uFF09")
+        }).toJSONSchema()
+      ),
+      execute: async (input, options) => {
+        const { toolCallId } = options;
+        return withThinking(msg, "\u6B63\u5728\u6821\u9A8C\u751F\u6210\u786E\u8BA4...", async () => {
+          const result = await confirmGeneration(projectId, {
+            idempotencyKey: `tool:confirm_generation:${toolCallId}`,
+            sessionId,
+            configVersion: input.configVersion,
+            userId: userId2
+          });
+          if (result.started) return `\u751F\u6210\u5DF2\u542F\u52A8\uFF08\u8FD0\u884C ${result.runId}\uFF09\uFF0C\u53C2\u6570\u5DF2\u6309 configVersion=${input.configVersion} \u9501\u5B9A\u3002\u7CFB\u7EDF\u5C06\u9010\u955C\u5934\u751F\u6210\u5206\u955C\u56FE\u548C\u89C6\u9891\u7247\u6BB5\uFF0C\u8BF7\u5728\u53F3\u4FA7\u9762\u677F\u67E5\u770B\u8FDB\u5EA6\u3002`;
+          if (result.alreadyRunning) return `\u751F\u6210\u5DF2\u5728\u8FDB\u884C\u4E2D\uFF08\u8FD0\u884C ${result.runId}\uFF09\uFF0C\u65E0\u9700\u91CD\u590D\u542F\u52A8\u3002`;
+          return "\u786E\u8BA4\u5DF2\u901A\u8FC7\u4F46\u751F\u6210\u542F\u52A8\u5931\u8D25\uFF0C\u8BF7\u8BA9\u7528\u6237\u5728\u53F3\u4FA7\u9762\u677F\u67E5\u770B\u955C\u5934\u72B6\u6001\uFF0C\u5931\u8D25\u955C\u5934\u53EF\u5355\u72EC\u91CD\u8BD5\u3002";
+        }).catch((err) => `\u786E\u8BA4\u751F\u6210\u5931\u8D25\uFF1A${describeError(err)}`);
       }
     }),
     save_brief: tool({
@@ -252180,6 +252517,13 @@ var tools_default3 = (toolConfig) => {
         return withThinking(msg, "\u6B63\u5728\u63D0\u4EA4\u5206\u955C...", async () => {
           const current = await loadQuickVideoState(projectId);
           if (!current) throw new QuickVideoError("STATE_NOT_FOUND", "\u672A\u627E\u5230\u5DE5\u4F5C\u53F0\u72B6\u6001", void 0);
+          if (current.targetDuration == null) {
+            throw new QuickVideoError(
+              "DURATION_NOT_SET",
+              "\u76EE\u6807\u65F6\u957F\u5C1A\u672A\u786E\u5B9A\uFF1A\u8BF7\u5148\u4E0E\u7528\u6237\u786E\u8BA4\u89C6\u9891\u65F6\u957F\uFF085-60 \u7684\u6574\u6570\u79D2\uFF09\uFF0C\u5E76\u7528 update_config \u5199\u5165\u540E\u518D\u63D0\u4EA4\u5206\u955C",
+              current.version
+            );
+          }
           const bounds = shotCountBounds(current.targetDuration);
           if (input.shots.length < bounds.min || input.shots.length > bounds.max) {
             throw new QuickVideoError(
@@ -252201,6 +252545,9 @@ var tools_default3 = (toolConfig) => {
               }
               if (s.storyboard?.status === "confirmed") {
                 throw new QuickVideoError("STORYBOARD_LOCKED", "\u5206\u955C\u5DF2\u786E\u8BA4\u9501\u5B9A\uFF0C\u5982\u9700\u91CD\u63D0\u8BF7\u5148\u8BA9\u7528\u6237\u64A4\u9500\u786E\u8BA4", s.version);
+              }
+              if (s.targetDuration == null) {
+                throw new QuickVideoError("DURATION_NOT_SET", "\u76EE\u6807\u65F6\u957F\u5C1A\u672A\u786E\u5B9A\uFF0C\u8BF7\u5148\u7528 update_config \u5199\u5165\u76EE\u6807\u65F6\u957F", s.version);
               }
               const shots = input.shots.map((shot, i) => ({
                 id: `shot-${i + 1}`,
@@ -252227,6 +252574,7 @@ var tools_default3 = (toolConfig) => {
                 summary: input.summary ?? "",
                 shots
               };
+              bumpConfigVersion(s);
             }
           );
           if (idempotentHit) return "\u8BE5\u6B21\u5206\u955C\u63D0\u4EA4\u5DF2\u5E94\u7528\u8FC7\uFF08\u5E42\u7B49\u547D\u4E2D\uFF09\uFF0C\u672A\u91CD\u590D\u5199\u5165\u3002";
@@ -252264,6 +252612,7 @@ var tools_default3 = (toolConfig) => {
               if (input.dialogue != null) shot.dialogue = input.dialogue;
               if (input.camera != null) shot.camera = input.camera;
               if (input.duration != null) shot.duration = normalizeShotDuration(input.duration);
+              bumpConfigVersion(s);
             }
           );
           return idempotentHit ? "\u8BE5\u6B21\u955C\u5934\u4FEE\u6539\u5DF2\u5E94\u7528\u8FC7\uFF08\u5E42\u7B49\u547D\u4E2D\uFF09\uFF0C\u672A\u91CD\u590D\u5199\u5165\u3002" : `\u955C\u5934 ${input.shotId} \u5DF2\u66F4\u65B0\uFF08\u72B6\u6001\u7248\u672C ${state.version}\uFF09\u3002`;
@@ -252312,6 +252661,7 @@ var tools_default3 = (toolConfig) => {
                 firstFrame: null
               });
               reindexShots(s);
+              bumpConfigVersion(s);
             }
           );
           return idempotentHit ? "\u8BE5\u6B21\u8FFD\u52A0\u5DF2\u5E94\u7528\u8FC7\uFF08\u5E42\u7B49\u547D\u4E2D\uFF09\u3002" : `\u955C\u5934\u5DF2\u8FFD\u52A0\uFF08\u72B6\u6001\u7248\u672C ${state.version}\uFF09\u3002`;
@@ -252342,6 +252692,7 @@ var tools_default3 = (toolConfig) => {
               }
               s.storyboard.shots = s.storyboard.shots.filter((x) => x.id !== input.shotId);
               reindexShots(s);
+              bumpConfigVersion(s);
             }
           );
           return idempotentHit ? "\u8BE5\u6B21\u5220\u9664\u5DF2\u5E94\u7528\u8FC7\uFF08\u5E42\u7B49\u547D\u4E2D\uFF09\u3002" : `\u955C\u5934 ${input.shotId} \u5DF2\u5220\u9664\uFF08\u72B6\u6001\u7248\u672C ${state.version}\uFF09\u3002`;
@@ -252375,6 +252726,7 @@ var tools_default3 = (toolConfig) => {
                 merged.set(`${asset.type}:${asset.name}`, { type: asset.type, name: asset.name, desc: asset.desc ?? "" });
               }
               shot.assetRefs = Array.from(merged.values()).slice(0, 10);
+              bumpConfigVersion(s);
             }
           );
           return idempotentHit ? "\u8BE5\u6B21\u7ED1\u5B9A\u5DF2\u5E94\u7528\u8FC7\uFF08\u5E42\u7B49\u547D\u4E2D\uFF09\u3002" : `\u955C\u5934 ${input.shotId} \u8D44\u4EA7\u7ED1\u5B9A\u5DF2\u66F4\u65B0\uFF08\u72B6\u6001\u7248\u672C ${state.version}\uFF09\u3002`;
@@ -252401,7 +252753,7 @@ var tools_default3 = (toolConfig) => {
       }
     }),
     generate_shots: tool({
-      description: "\u89E6\u53D1\u9010\u955C\u5934\u751F\u6210\uFF08\u5206\u955C\u56FE + 5-15 \u79D2\u89C6\u9891\u7247\u6BB5\uFF09\u3002\u524D\u7F6E\u6761\u4EF6\u7531\u670D\u52A1\u7AEF\u6821\u9A8C\uFF1A\u5206\u955C\u5DF2\u786E\u8BA4\u4E14\u7528\u6237\u5DF2\u901A\u8FC7\u7D20\u6750/\u6210\u672C\u786E\u8BA4\u95E8\uFF1B\u6761\u4EF6\u6EE1\u8DB3\u65F6\u542F\u52A8\u751F\u6210\uFF08\u5E42\u7B49\uFF0C\u91CD\u590D\u8C03\u7528\u4E0D\u4F1A\u91CD\u590D\u542F\u52A8\uFF09\uFF1B\u751F\u6210\u4E2D\u8C03\u7528\u5219\u8FD4\u56DE\u5F53\u524D\u8FDB\u5EA6\u3002\u6CE8\u610F\uFF1A\u786E\u8BA4\u95E8\u53EA\u80FD\u7531\u7528\u6237\u5728\u53F3\u4FA7\u9762\u677F\u64CD\u4F5C\uFF0C\u672C\u5DE5\u5177\u4E0D\u80FD\u4E5F\u4E0D\u4F1A\u4EE3\u66FF\u7528\u6237\u786E\u8BA4\u3002",
+      description: "\u5904\u7406\u7528\u6237\u7684\u751F\u6210\u8BF7\u6C42\uFF08\u5206\u955C\u56FE + 5-15 \u79D2\u89C6\u9891\u7247\u6BB5\uFF09\u3002\u5206\u955C\u5DF2\u786E\u8BA4\u4F46\u5C1A\u672A\u901A\u8FC7\u751F\u6210\u786E\u8BA4\u95E8\u65F6\uFF0C\u672C\u5DE5\u5177\u4F1A\u81EA\u52A8\u7EC4\u88C5\u751F\u6210\u786E\u8BA4\u6458\u8981\uFF08\u786E\u8BA4\u5361\u7247\uFF09\uFF0C\u5FC5\u987B\u7B49\u7528\u6237\u660E\u786E\u786E\u8BA4\uFF08\u70B9\u51FB\u5361\u7247\u6309\u94AE\u6216\u56DE\u590D\u300C\u786E\u8BA4\u751F\u6210\u300D\uFF09\u540E\u7528 confirm_generation \u5F00\u59CB\u751F\u6210\u2014\u2014\u7EDD\u4E0D\u4EE3\u66FF\u7528\u6237\u786E\u8BA4\u3002\u5DF2\u786E\u8BA4\u4F46\u751F\u6210\u4E2D\u65AD/\u672A\u8FD0\u884C\u65F6\u5E42\u7B49\u91CD\u542F\uFF1B\u751F\u6210\u4E2D\u8FD4\u56DE\u5F53\u524D\u8FDB\u5EA6\u3002",
       inputSchema: jsonSchema({ type: "object", properties: {}, additionalProperties: false }),
       execute: async () => {
         return withThinking(msg, "\u6B63\u5728\u68C0\u67E5\u751F\u6210\u6761\u4EF6...", async () => {
@@ -252420,17 +252772,23 @@ var tools_default3 = (toolConfig) => {
             }
           }
           if (state.stage === "storyboard_confirmed") {
-            if (!state.generation?.materialsConfirmed) {
-              return "\u5206\u955C\u5DF2\u786E\u8BA4\uFF0C\u4F46\u7D20\u6750/\u6210\u672C\u786E\u8BA4\u95E8\u5C1A\u672A\u901A\u8FC7\u3002\u8BF7\u63D0\u9192\u7528\u6237\u5728\u53F3\u4FA7\u300C\u7D20\u6750\u4E0E\u6210\u672C\u300D\u9762\u677F\u67E5\u770B\u89E3\u6790\u7ED3\u679C\u4E0E\u9884\u4F30\u8D39\u7528\uFF0C\u786E\u8BA4\u540E\u7CFB\u7EDF\u4F1A\u81EA\u52A8\u5F00\u59CB\u9010\u955C\u5934\u751F\u6210\u3002";
+            const { pendingSnapshot } = await requestGenerationConfirm(projectId, { sessionId });
+            if (!pendingSnapshot) return "\u751F\u6210\u786E\u8BA4\u6458\u8981\u7EC4\u88C5\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5\u3002";
+            if (state.generation?.materialsConfirmed) {
+              const { started, alreadyRunning, runId } = await startQuickVideoGeneration(projectId, userId2, sessionId);
+              if (started) return `\u751F\u6210\u5DF2\u91CD\u65B0\u542F\u52A8\uFF08\u8FD0\u884C ${runId}\uFF09\u3002`;
+              if (alreadyRunning) return `\u751F\u6210\u5DF2\u5728\u8FDB\u884C\u4E2D\uFF08\u8FD0\u884C ${runId}\uFF09\u3002`;
             }
-            const { started, alreadyRunning, runId } = await startQuickVideoGeneration(projectId, userId2, sessionId);
-            if (started) return `\u751F\u6210\u5DF2\u542F\u52A8\uFF08\u8FD0\u884C ${runId}\uFF09\uFF0C\u7CFB\u7EDF\u5C06\u9010\u955C\u5934\u751F\u6210\u5206\u955C\u56FE\u548C\u89C6\u9891\u7247\u6BB5\u3002`;
-            if (alreadyRunning) return `\u751F\u6210\u5DF2\u5728\u8FDB\u884C\u4E2D\uFF08\u8FD0\u884C ${runId}\uFF09\u3002`;
+            const styleText = pendingSnapshot.artStyle ? pendingSnapshot.artStyle : "\u672A\u8BBE\u7F6E";
+            return [
+              `\u5DF2\u751F\u6210\u786E\u8BA4\u6458\u8981\uFF08configVersion=${pendingSnapshot.configVersion}\uFF09\uFF1A\u76EE\u6807\u65F6\u957F ${pendingSnapshot.targetDuration} \u79D2\uFF0C\u753B\u98CE\uFF1A${styleText}\uFF0C\u5206\u955C ${pendingSnapshot.shotCount} \u955C\uFF08\u603B\u65F6\u957F ${pendingSnapshot.totalDuration} \u79D2\uFF09\u3002`,
+              "\u8BF7\u63D0\u9192\u7528\u6237\uFF1A\u786E\u8BA4\u65E0\u8BEF\u8BF7\u70B9\u51FB\u300C\u751F\u6210\u786E\u8BA4\u5361\u7247\u300D\u7684\u786E\u8BA4\u6309\u94AE\uFF0C\u6216\u76F4\u63A5\u56DE\u590D\u300C\u786E\u8BA4\u751F\u6210\u300D\uFF1B\u5982\u9700\u8C03\u6574\u65F6\u957F/\u753B\u98CE/\u5206\u955C\uFF0C\u8BF7\u76F4\u63A5\u63D0\u51FA\uFF08\u4FEE\u6539\u540E\u9700\u91CD\u65B0\u786E\u8BA4\uFF09\u3002"
+            ].join("\n");
           }
           if (state.stage === "ready_to_assemble") {
             return "\u6240\u6709\u955C\u5934\u5DF2\u751F\u6210\u5B8C\u6BD5\uFF0C\u53EF\u4EE5\u8FDB\u5165\u88C5\u914D/\u5BFC\u51FA\u73AF\u8282\u3002";
           }
-          return `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u8FD8\u4E0D\u80FD\u5F00\u59CB\u751F\u6210\uFF1A\u9700\u5148\u786E\u8BA4\u7B80\u62A5\u3001\u751F\u6210\u5E76\u786E\u8BA4\u5206\u955C\u3001\u518D\u901A\u8FC7\u7D20\u6750/\u6210\u672C\u786E\u8BA4\u95E8\u3002`;
+          return `\u5F53\u524D\u9636\u6BB5 ${state.stage} \u8FD8\u4E0D\u80FD\u5F00\u59CB\u751F\u6210\uFF1A\u9700\u5148\u786E\u8BA4\u7B80\u62A5\u3001\u751F\u6210\u5E76\u786E\u8BA4\u5206\u955C\uFF0C\u518D\u901A\u8FC7\u751F\u6210\u786E\u8BA4\u95E8\u3002`;
         }).catch((err) => `\u542F\u52A8\u751F\u6210\u5931\u8D25\uFF1A${describeError(err)}`);
       }
     })
@@ -252629,13 +252987,16 @@ async function runQuickVideoAgent(ctx) {
   const projectInfo = [
     "## \u9879\u76EE\u4FE1\u606F",
     `\u89C6\u9891\u6807\u9898\uFF1A${projectData?.name ?? "\u672A\u77E5"}`,
-    `\u753B\u98CE\uFF1A${state?.artStyle || projectData?.artStyle || "\u65E0"}`,
+    `\u753B\u98CE\uFF1A${state?.artStyle || "\u672A\u8BBE\u7F6E"}`,
     `\u753B\u9762\u6BD4\u4F8B\uFF1A${state?.videoRatio ?? projectData?.videoRatio ?? "16:9"}`,
-    `\u76EE\u6807\u65F6\u957F\uFF1A${state?.targetDuration ?? "\u672A\u77E5"}\u79D2`,
+    `\u76EE\u6807\u65F6\u957F\uFF1A${state?.targetDuration != null ? `${state.targetDuration}\u79D2` : "\u672A\u8BBE\u7F6E"}`,
+    state ? `\u914D\u7F6E\u7248\u672C\uFF1AconfigVersion=${state.configVersion}\uFF08\u6BCF\u6B21\u753B\u98CE/\u65F6\u957F/\u5206\u955C\u53D8\u66F4 +1\uFF09` : "",
+    state ? `\u751F\u6210\u786E\u8BA4\u72B6\u6001\uFF1A${state.confirmationStatus === "none" ? "\u65E0\u5F85\u786E\u8BA4" : state.confirmationStatus === "pending" ? "\u6709\u5F85\u786E\u8BA4\u7684\u751F\u6210\u6458\u8981" : "\u5DF2\u786E\u8BA4"}` : "",
     state ? `\u5F53\u524D\u9636\u6BB5\uFF1A${state.stage}\uFF08\u72B6\u6001\u7248\u672C ${state.version}\uFF09` : "",
     state?.brief ? `\u7B80\u62A5\u786E\u8BA4\u72B6\u6001\uFF1A${state.brief.confirmed ? "\u5DF2\u786E\u8BA4" : "\u672A\u786E\u8BA4"}` : "\u7B80\u62A5\uFF1A\u6682\u65E0",
     state?.storyboard ? `\u5206\u955C\uFF1Av${state.storyboard.version}\uFF08${state.storyboard.status === "confirmed" ? "\u5DF2\u786E\u8BA4" : "\u8349\u7A3F"}\uFF0C\u5171 ${state.storyboard.shots.length} \u955C\uFF09` : "\u5206\u955C\uFF1A\u6682\u65E0",
-    state ? `\u5141\u8BB8\u955C\u5934\u6570\u91CF\uFF1A${shotCountBounds(state.targetDuration).min}-${shotCountBounds(state.targetDuration).max} \u4E2A` : "",
+    state && state.targetDuration != null ? `\u5141\u8BB8\u955C\u5934\u6570\u91CF\uFF1A${shotCountBounds(state.targetDuration).min}-${shotCountBounds(state.targetDuration).max} \u4E2A` : "\u5141\u8BB8\u955C\u5934\u6570\u91CF\uFF1A\u76EE\u6807\u65F6\u957F\u672A\u8BBE\u7F6E\uFF0C\u5148\u4E0E\u7528\u6237\u786E\u8BA4\u65F6\u957F\uFF085-60 \u79D2\uFF09",
+    state?.targetDuration == null ? "\u6CE8\u610F\uFF1A\u76EE\u6807\u65F6\u957F\u5C1A\u672A\u8BBE\u7F6E\u3002\u8BF7\u5728\u7B80\u62A5\u6C9F\u901A\u4E2D\u660E\u786E\u7528\u6237\u671F\u671B\u7684\u89C6\u9891\u65F6\u957F\uFF085-60 \u79D2\u7684\u6574\u6570\uFF0C\u4F8B\u5982\u300C12\u79D2\u4EE5\u5185\u300D\u53D6 12\uFF09\u4E0E\u753B\u98CE\uFF0C\u5E76\u7528 update_config \u5199\u5165\uFF0C\u4E4B\u540E\u624D\u80FD\u63D0\u4EA4\u5206\u955C\u3002" : "",
     ctx.mode === "image" ? `\u672C\u8F6E\u7528\u6237\u5728\u804A\u5929\u6846\u9009\u62E9\u4E86\u300C\u56FE\u7247\u300D\u751F\u6210\u6A21\u5F0F\uFF0C\u6A21\u578B\uFF1A${ctx.imageModel}\u3002\u8BF7\u8C03\u7528 generate_image \u5DE5\u5177\u6309\u7528\u6237\u63CF\u8FF0\u751F\u6210\u56FE\u7247\uFF0C\u4E0D\u8981\u53EA\u7528\u6587\u5B57\u63CF\u8FF0\u753B\u9762\uFF1B\u751F\u6210\u7684\u56FE\u7247\u4F1A\u81EA\u52A8\u51FA\u73B0\u5728\u804A\u5929\u8BB0\u5F55\u548C\u8D44\u4EA7\u767D\u677F\u4E2D\uFF0C\u4E0D\u4F1A\u81EA\u52A8\u7ED1\u5B9A\u5230\u4EFB\u4F55\u955C\u5934\u6216\u81EA\u52A8\u786E\u8BA4\u5206\u955C\u3002` : ctx.mode === "video" ? `\u672C\u8F6E\u7528\u6237\u5728\u804A\u5929\u6846\u9009\u62E9\u4E86\u300C\u89C6\u9891\u300D\u751F\u6210\u6A21\u5F0F\uFF0C\u6A21\u578B\uFF1A${ctx.videoModel}\u3002\u8BF7\u8C03\u7528 generate_video \u5DE5\u5177\u6309\u7528\u6237\u63CF\u8FF0\u751F\u6210\u56FE\u751F\u89C6\u9891\uFF1B\u8BE5\u5DE5\u5177\u5FC5\u987B\u6709\u4E00\u5F20\u53C2\u8003\u56FE\u4F5C\u4E3A\u9996\u5E27\uFF0C\u6CA1\u6709\u53C2\u8003\u56FE\u65F6\u5DE5\u5177\u4F1A\u660E\u786E\u544A\u77E5\u7528\u6237\u5148\u5728\u804A\u5929\u8BB0\u5F55\u6216\u8D44\u4EA7\u767D\u677F\u590D\u5236\u4E00\u5F20\u56FE\u7247\uFF0C\u4E0D\u8981\u51ED\u7A7A\u751F\u6210\u6216\u6539\u7528\u5176\u4ED6\u65B9\u5F0F\u751F\u6210\uFF1B\u751F\u6210\u7684\u89C6\u9891\u4F1A\u81EA\u52A8\u51FA\u73B0\u5728\u804A\u5929\u8BB0\u5F55\u548C\u8D44\u4EA7\u767D\u677F\u4E2D\uFF0C\u4E0D\u4F1A\u81EA\u52A8\u7ED1\u5B9A\u5230\u4EFB\u4F55\u955C\u5934\u6216\u81EA\u52A8\u786E\u8BA4\u5206\u955C\u3002` : "",
     "",
     mem
@@ -252978,7 +253339,7 @@ async function ensureThumbnail(originalKey, thumbnailKey, size) {
 }
 
 // src/app.ts
-var app = (0, import_express202.default)();
+var app = (0, import_express203.default)();
 var server = import_node_http.default.createServer(app);
 async function checkPermissions() {
   if (!isEletron()) return true;
@@ -253014,8 +253375,8 @@ async function startServe(randomPort = false) {
   app.use((0, import_morgan.default)("dev"));
   app.use((0, import_cors.default)({ origin: "*" }));
   app.use((0, import_compression.default)());
-  app.use(import_express202.default.json({ limit: "100mb" }));
-  app.use(import_express202.default.urlencoded({ extended: true, limit: "100mb" }));
+  app.use(import_express203.default.json({ limit: "100mb" }));
+  app.use(import_express203.default.urlencoded({ extended: true, limit: "100mb" }));
   const OSS_MIME_TYPES = {
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
@@ -253055,7 +253416,7 @@ async function startServe(randomPort = false) {
   const webDist = process.env.WEB_DIST;
   if (webDist && import_fs6.default.existsSync(import_path21.default.join(webDist, "index.html"))) {
     app.use(
-      import_express202.default.static(webDist, {
+      import_express203.default.static(webDist, {
         // 与原 nginx 缓存策略对齐：带内容哈希的资源一年强缓存，index.html 协商缓存
         setHeaders(res, filePath) {
           if (filePath.endsWith(`index.html`)) res.setHeader("Cache-Control", "no-cache");
@@ -253151,8 +253512,8 @@ async function startServe(randomPort = false) {
       return res.status(401).send({ message: "\u65E0\u6548\u7684token" });
     }
   });
-  const router202 = await Promise.resolve().then(() => (init_router(), router_exports));
-  await router202.default(app);
+  const router203 = await Promise.resolve().then(() => (init_router(), router_exports));
+  await router203.default(app);
   app.use((_3, res, next) => {
     return res.status(404).send({ message: "API 404 Not Found" });
   });

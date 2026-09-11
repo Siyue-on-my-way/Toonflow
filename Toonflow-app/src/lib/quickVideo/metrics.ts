@@ -14,6 +14,7 @@ type QuickVideoCounter =
   | "exportFailed"
   | "exportCancelled"
   | "shotRetry"
+  | "generationConfirmed"
   | "generationShotImageDone"
   | "generationShotDone"
   | "generationShotFailed";

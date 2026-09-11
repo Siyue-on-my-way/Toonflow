@@ -2,7 +2,7 @@ import express from "express";
 import { z } from "zod";
 import { success } from "@/lib/responseFormat";
 import { validateFields } from "@/middleware/middleware";
-import { SHOT_COUNT_MAX, shotAssetRefSchema } from "@/lib/quickVideo/contract";
+import { SHOT_COUNT_MAX, shotAssetRefSchema, bumpConfigVersion } from "@/lib/quickVideo/contract";
 import { QuickVideoError, mutateQuickVideoState } from "@/lib/quickVideo/state";
 import { ensureStoryboardEditable, nextShotId, reindexShots } from "@/lib/quickVideo/shots";
 
@@ -47,6 +47,7 @@ export default router.post(
           firstFrame: null,
         });
         reindexShots(state);
+        bumpConfigVersion(state);
       });
       res.status(200).send(success({ state: result.state, idempotentHit: result.idempotentHit }));
     } catch (err: any) {

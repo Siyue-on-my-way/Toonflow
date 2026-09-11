@@ -2,8 +2,32 @@
  * QuickVideo / 单视频快创 —— 前端数据契约（与后端 src/lib/quickVideo/contract.ts 保持一致）
  */
 
-export const QUICK_VIDEO_DURATIONS = [15, 30, 60] as const;
-export type QuickVideoDuration = (typeof QUICK_VIDEO_DURATIONS)[number];
+/**
+ * 目标时长（秒）：5-60 的正整数秒（SIY-138 对话式配置），与后端 src/lib/quickVideo/contract.ts 一致。
+ * 旧版 15/30/60 三档是其子集，存量项目读回无需转换。
+ */
+export const QUICK_VIDEO_DURATION_MIN = 5;
+export const QUICK_VIDEO_DURATION_MAX = 60;
+export type QuickVideoDuration = number;
+
+/** 生成确认状态：none=无 pending=待用户确认 confirmed=已确认（生成已/将启动） */
+export type QuickVideoConfirmationStatus = "none" | "pending" | "confirmed";
+
+/** 待确认生成快照（生成确认门，SIY-138） */
+export interface QuickVideoPendingSnapshot {
+  configVersion: number;
+  targetDuration: number;
+  artStyle: string;
+  videoRatio: QuickVideoRatio;
+  storyboardVersion: number;
+  shotCount: number;
+  totalDuration: number;
+  shotSummaries: { index: number; duration: number; description: string }[];
+  estimatedImageCount: number;
+  estimatedVideoCount: number;
+  estimatedCostYuan: number;
+  requestedAt: number;
+}
 
 export const QUICK_VIDEO_RATIOS = ["16:9", "9:16", "1:1"] as const;
 export type QuickVideoRatio = (typeof QUICK_VIDEO_RATIOS)[number];
@@ -126,7 +150,7 @@ export interface QuickVideoMaterialItem {
 
 export interface QuickVideoGenerationSnapshot {
   storyboardVersion: number;
-  targetDuration: QuickVideoDuration;
+  targetDuration: number;
   videoRatio: QuickVideoRatio;
   artStyle: string;
   shots: {
@@ -199,7 +223,7 @@ export interface QuickVideoTimelineTailPad {
 }
 
 export interface QuickVideoTimelinePlan {
-  targetDuration: QuickVideoDuration;
+  targetDuration: number;
   videoRatio: QuickVideoRatio;
   width: number;
   height: number;
@@ -228,9 +252,15 @@ export interface QuickVideoState {
   schemaVersion: number;
   version: number;
   stage: QuickVideoStage;
-  targetDuration: QuickVideoDuration;
+  /** 目标时长（秒）：对话式配置，允许未设置（null）；存量项目为 15/30/60 */
+  targetDuration: QuickVideoDuration | null;
   videoRatio: QuickVideoRatio;
+  /** 画风：空串=未设置 */
   artStyle: string;
+  /** 配置版本号：画风/时长/比例或分镜内容每次变更 +1（SIY-138） */
+  configVersion: number;
+  pendingSnapshot: QuickVideoPendingSnapshot | null;
+  confirmationStatus: QuickVideoConfirmationStatus;
   createIdempotencyKey: string;
   brief: QuickVideoBrief | null;
   storyboard: QuickVideoStoryboard | null;
@@ -259,7 +289,7 @@ export interface QuickVideoConfigPatch {
   name?: string;
   artStyle?: string;
   videoRatio?: QuickVideoRatio;
-  targetDuration?: QuickVideoDuration;
+  targetDuration?: number;
   intro?: string;
 }
 

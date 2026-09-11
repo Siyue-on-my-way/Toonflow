@@ -4,7 +4,7 @@ import u from "@/utils";
 import { success, error } from "@/lib/responseFormat";
 import { validateFields } from "@/middleware/middleware";
 import { QuickVideoError, mutateQuickVideoState, loadQuickVideoState } from "@/lib/quickVideo/state";
-import { validateStoryboard } from "@/lib/quickVideo/contract";
+import { buildPendingSnapshot, validateStoryboard } from "@/lib/quickVideo/contract";
 import { buildSnapshot, applySnapshotToState, startQuickVideoGeneration } from "@/lib/quickVideo/generate";
 import { recordEvent, qvLog } from "@/lib/quickVideo/metrics";
 import { getOwnedSession } from "@/lib/quickVideo/session";
@@ -78,6 +78,9 @@ export default router.post(
             if (state.stage !== "storyboard_draft") {
               throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${state.stage} 不允许确认分镜`, state.version);
             }
+            if (state.targetDuration == null) {
+              throw new QuickVideoError("DURATION_NOT_SET", "目标时长尚未确定，请先在对话中确认视频时长（5-60 秒的整数）", state.version);
+            }
             const errors = validateStoryboard(state.targetDuration, state.storyboard.shots);
             if (errors.length) throw new QuickVideoError("STORYBOARD_INVALID", errors.join("；"), state.version);
             state.stage = "storyboard_confirmed";
@@ -102,6 +105,14 @@ export default router.post(
             if (state.stage !== "storyboard_confirmed") {
               throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${state.stage} 不允许素材确认`, state.version);
             }
+            // SIY-138 生成确认门：存在未失效的待确认摘要时，其 configVersion 必须仍是最新值，
+            // 否则说明确认后参数/分镜又被修改过，旧确认凭证作废，需重新发起生成确认。
+            if (state.confirmationStatus === "pending" && state.pendingSnapshot && state.pendingSnapshot.configVersion !== state.configVersion) {
+              throw new QuickVideoError("CONFIG_VERSION_MISMATCH", "参数已变更，原生成确认已失效；请重新发起生成确认", state.version);
+            }
+            if (state.targetDuration == null) {
+              throw new QuickVideoError("DURATION_NOT_SET", "目标时长尚未确定，请先在对话中确认视频时长（5-60 秒）", state.version);
+            }
             // 快照缺失或分镜版本已变化时，服务端现场重新解析（门的判定不依赖前端传值）
             const needResolve =
               !state.generation?.snapshot || state.generation.snapshot.storyboardVersion !== state.storyboard.version;
@@ -116,6 +127,14 @@ export default router.post(
             state.generation.materialsConfirmedAt = Date.now();
             state.generation.startedAt = Date.now();
             state.generation.finishedAt = null;
+            // 面板路径确认同样留下版本化的确认凭证（审计/锁定展示用）
+            const fresh = buildPendingSnapshot(state, {
+              estimatedImageCount: state.generation.snapshot.estimatedImageCount,
+              estimatedVideoCount: state.generation.snapshot.estimatedVideoCount,
+              estimatedCostYuan: state.generation.snapshot.estimatedCostYuan,
+            });
+            state.pendingSnapshot = fresh;
+            state.confirmationStatus = "confirmed";
             state.stage = "generating";
             shouldStartGeneration = true;
           } else {
@@ -124,6 +143,8 @@ export default router.post(
             }
             state.generation.materialsConfirmed = false;
             state.generation.materialsConfirmedAt = null;
+            state.pendingSnapshot = null;
+            state.confirmationStatus = "none";
           }
           return;
         }

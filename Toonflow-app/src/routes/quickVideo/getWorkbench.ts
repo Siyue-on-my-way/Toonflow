@@ -39,8 +39,8 @@ export default router.post(
         project,
         script: script ?? null,
         state,
-        // 分镜数量约束，供前端展示与预校验
-        shotBounds: state ? shotCountBounds(state.targetDuration) : null,
+        // 分镜数量约束，供前端展示与预校验；目标时长未设置（对话式配置中）时返回 null
+        shotBounds: state && state.targetDuration != null ? shotCountBounds(state.targetDuration) : null,
       }),
     );
   },

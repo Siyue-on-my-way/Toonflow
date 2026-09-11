@@ -185,18 +185,22 @@ export async function findProjectByCreateIdempotencyKey(idempotencyKey: string):
   return null;
 }
 
-/** 初始化 quickVideoAgent 状态行（createProject 事务内调用） */
+/** 初始化 quickVideoAgent 状态行（createProject 事务内调用）。
+ * 画风/目标时长允许缺省（SIY-138 对话式配置）：后续在聊天中用 update_config 设置。 */
 export async function initQuickVideoStateRow(
   trx: any,
-  { projectId, idempotencyKey, targetDuration, videoRatio, artStyle }: { projectId: number; idempotencyKey: string; targetDuration: number; videoRatio: string; artStyle: string },
+  { projectId, idempotencyKey, targetDuration, videoRatio, artStyle }: { projectId: number; idempotencyKey: string; targetDuration?: number | null; videoRatio: string; artStyle?: string },
 ) {
   const now = Date.now();
   const state = quickVideoStateSchema.parse({
     version: 1,
     stage: "collect_brief",
-    targetDuration,
+    targetDuration: targetDuration ?? null,
     videoRatio,
-    artStyle,
+    artStyle: artStyle ?? "",
+    configVersion: 0,
+    pendingSnapshot: null,
+    confirmationStatus: "none",
     createIdempotencyKey: idempotencyKey,
     brief: null,
     storyboard: null,

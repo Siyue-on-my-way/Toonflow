@@ -131,7 +131,7 @@ function makeQuickVideoStore(projectId: string) {
           const response = await axios.post("/quickVideo/getWorkbench", { projectId: Number(projectId) });
           const payload = response?.data ?? response;
           if (payload && payload.code && payload.code !== 200) throw new Error(payload.message ?? "getWorkbench failed");
-          workbench.value = payload ?? { project: null, script: null, state: null, shotBounds: null };
+          mergeWorkbench(payload ?? { project: null, script: null, state: null, shotBounds: null });
           syncPolling(workbench.value.state?.stage);
         } catch (error: any) {
           workbenchError.value = error?.message ?? "快创工作台状态加载失败";
@@ -148,6 +148,31 @@ function makeQuickVideoStore(projectId: string) {
       } finally {
         if (workbenchRequest === request) workbenchRequest = null;
       }
+    }
+
+    /**
+     * 基于 configVersion 的幂等合并（SIY-138）：
+     * 轮询、socket 空闲刷新与面板切换可能并发发出多个请求，先返回的旧响应
+     * 不能覆盖更新的状态。以 (configVersion, version) 字典序比较，只接受更新的
+     * 状态；project/script 无版本语义，始终采用最新响应。
+     */
+    function mergeWorkbench(next: QuickVideoWorkbench) {
+      const current = workbench.value;
+      const currentState = current.state;
+      const nextState = next?.state;
+      if (currentState && nextState) {
+        const currentRank = [currentState.configVersion ?? 0, currentState.version];
+        const nextRank = [nextState.configVersion ?? 0, nextState.version];
+        const stale = nextRank[0] < currentRank[0] || (nextRank[0] === currentRank[0] && nextRank[1] <= currentRank[1]);
+        workbench.value = {
+          project: next.project ?? current.project,
+          script: next.script ?? current.script,
+          state: stale ? currentState : nextState,
+          shotBounds: next.shotBounds ?? current.shotBounds,
+        };
+        return;
+      }
+      workbench.value = next ?? current;
     }
 
     /** 路由离开时释放 store-owned socket、页面事件和生成轮询。 */
@@ -357,6 +382,63 @@ function makeQuickVideoStore(projectId: string) {
       return payload ?? null;
     }
 
+    // ===== 生成确认门（SIY-138）=====
+
+    /**
+     * 发起生成确认：服务端组装含 configVersion/时长/画风/分镜摘要的待确认快照，
+     * 返回后右侧面板与聊天区展示「生成确认卡片」。失败（如时长未设置）时抛出带 message 的错误。
+     */
+    async function requestGenerationConfirm(): Promise<QuickVideoState | null> {
+      const response: any = await axios.post("/quickVideo/generateConfirm", {
+        projectId: Number(projectId),
+        sessionId: currentSessionId.value,
+        action: "request",
+        idempotencyKey: `web-genreq-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+      });
+      if (response?.code !== 200) {
+        throw new Error(response?.message ?? "发起生成确认失败");
+      }
+      await getWorkbench();
+      return workbench.value.state;
+    }
+
+    /**
+     * 确认生成：携带当前 configVersion 提交；服务端版本一致才冻结参数并启动逐镜头生成。
+     * 版本不一致（参数在确认后又改过）会返回 ok:false 与拦截提示。
+     */
+    async function confirmGeneration(
+      configVersion?: number,
+    ): Promise<{ ok: boolean; state: QuickVideoState | null; error?: { code: string; message: string } }> {
+      const current = state.value;
+      const response: any = await axios.post("/quickVideo/generateConfirm", {
+        projectId: Number(projectId),
+        sessionId: currentSessionId.value,
+        action: "confirm",
+        idempotencyKey: `web-genconfirm-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+        configVersion: configVersion ?? current?.configVersion,
+      });
+      if (response?.code !== 200) {
+        await getWorkbench();
+        return { ok: false, state: workbench.value.state, error: { code: String(response?.code ?? "CONFIRM_FAILED"), message: response?.message ?? "确认生成失败" } };
+      }
+      await getWorkbench();
+      return { ok: true, state: workbench.value.state };
+    }
+
+    /** 取消生成确认（返回修改）：清空待确认快照 */
+    async function cancelGenerationConfirm(): Promise<void> {
+      const response: any = await axios.post("/quickVideo/generateConfirm", {
+        projectId: Number(projectId),
+        sessionId: currentSessionId.value,
+        action: "cancel",
+        idempotencyKey: `web-gencancel-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+      });
+      if (response?.code !== 200) {
+        throw new Error(response?.message ?? "取消生成确认失败");
+      }
+      await getWorkbench();
+    }
+
     /** 镜头产物访问地址（imageRef/videoRef -> 预览链接，firstFrame -> 首帧缩略图），存在已完成镜头或已绑定首帧时按需调用 */
     async function getMediaUrls(): Promise<Record<string, { imageUrl: string | null; videoUrl: string | null; firstFrameUrl: string | null }>> {
       const response = await axios.post("/quickVideo/getMediaUrls", { projectId: Number(projectId) });
@@ -431,6 +513,9 @@ function makeQuickVideoStore(projectId: string) {
       getMediaUrls,
       getTimeline,
       updateConfig,
+      requestGenerationConfirm,
+      confirmGeneration,
+      cancelGenerationConfirm,
       sessions,
       loadingSessions,
       currentSessionId,

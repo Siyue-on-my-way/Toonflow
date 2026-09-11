@@ -72,13 +72,18 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
   const projectInfo = [
     "## 项目信息",
     `视频标题：${projectData?.name ?? "未知"}`,
-    `画风：${state?.artStyle || projectData?.artStyle || "无"}`,
+    `画风：${state?.artStyle || "未设置"}`,
     `画面比例：${state?.videoRatio ?? projectData?.videoRatio ?? "16:9"}`,
-    `目标时长：${state?.targetDuration ?? "未知"}秒`,
+    `目标时长：${state?.targetDuration != null ? `${state.targetDuration}秒` : "未设置"}`,
+    state ? `配置版本：configVersion=${state.configVersion}（每次画风/时长/分镜变更 +1）` : "",
+    state ? `生成确认状态：${state.confirmationStatus === "none" ? "无待确认" : state.confirmationStatus === "pending" ? "有待确认的生成摘要" : "已确认"}` : "",
     state ? `当前阶段：${state.stage}（状态版本 ${state.version}）` : "",
     state?.brief ? `简报确认状态：${state.brief.confirmed ? "已确认" : "未确认"}` : "简报：暂无",
     state?.storyboard ? `分镜：v${state.storyboard.version}（${state.storyboard.status === "confirmed" ? "已确认" : "草稿"}，共 ${state.storyboard.shots.length} 镜）` : "分镜：暂无",
-    state ? `允许镜头数量：${shotCountBounds(state.targetDuration).min}-${shotCountBounds(state.targetDuration).max} 个` : "",
+    state && state.targetDuration != null ? `允许镜头数量：${shotCountBounds(state.targetDuration).min}-${shotCountBounds(state.targetDuration).max} 个` : "允许镜头数量：目标时长未设置，先与用户确认时长（5-60 秒）",
+    state?.targetDuration == null
+      ? "注意：目标时长尚未设置。请在简报沟通中明确用户期望的视频时长（5-60 秒的整数，例如「12秒以内」取 12）与画风，并用 update_config 写入，之后才能提交分镜。"
+      : "",
     ctx.mode === "image"
       ? `本轮用户在聊天框选择了「图片」生成模式，模型：${ctx.imageModel}。请调用 generate_image 工具按用户描述生成图片，不要只用文字描述画面；生成的图片会自动出现在聊天记录和资产白板中，不会自动绑定到任何镜头或自动确认分镜。`
       : ctx.mode === "video"

@@ -88,7 +88,7 @@ const editProjectData = ref<{
   imageQuality: "1K" | "2K" | "4K" | "";
   mode: string;
   directorManual: string;
-  targetDuration?: 15 | 30 | 60;
+  targetDuration?: number | null;
   quickVideoStoryboardConfirmed?: boolean;
   quickVideoConfigLocked?: boolean;
 } | null>(null);
@@ -178,7 +178,7 @@ async function openEdit(item: {
   projectType: string;
   mode: string;
 }) {
-  let targetDuration: 15 | 30 | 60 | undefined;
+  let targetDuration: number | null | undefined;
   let quickVideoStoryboardConfirmed = false;
   let quickVideoConfigLocked = false;
   if (item.projectType === "quick_video") {
@@ -224,7 +224,7 @@ function editProjectFn(data: {
   imageQuality: "1K" | "2K" | "4K" | "";
   mode: string;
   projectType?: string;
-  targetDuration?: 15 | 30 | 60;
+  targetDuration?: number | null;
 }) {
   if (data.projectType === "quick_video") {
     axios
@@ -241,7 +241,7 @@ function editProjectFn(data: {
             name: data.name,
             artStyle: data.artStyle,
             videoRatio: data.videoRatio,
-            targetDuration: data.targetDuration ?? workbench.state.targetDuration,
+            ...(data.targetDuration != null ? { targetDuration: data.targetDuration } : {}),
             intro: data.intro,
           },
         });
@@ -285,7 +285,7 @@ async function addProjectFn(data: {
   textModel: string;
   imageQuality: string;
   mode: string;
-  targetDuration?: 15 | 30 | 60;
+  targetDuration?: number | null;
 }) {
   // 单视频快创走专用入口（含幂等键），不影响专业模式创建链路
   if (data.projectType === "quick_video") {
@@ -295,9 +295,10 @@ async function addProjectFn(data: {
       quickCreateIdempotencyKey.value ??= makeIdempotencyKey();
       const response: any = await axios.post("/quickVideo/createProject", {
         name: data.name,
-        artStyle: data.artStyle,
+        // SIY-138：画风与目标时长改为对话式配置，创建时不强制下发
+        artStyle: data.artStyle ?? "",
         videoRatio: data.videoRatio,
-        targetDuration: data.targetDuration ?? 15,
+        ...(data.targetDuration != null ? { targetDuration: data.targetDuration } : {}),
         intro: data.intro,
         draftScript: data.intro,
         idempotencyKey: quickCreateIdempotencyKey.value,

@@ -202,6 +202,7 @@ import route198 from "./routes/task/getTaskApi";
 import route199 from "./routes/task/getTaskCategories";
 import route200 from "./routes/task/taskDetails";
 import route201 from "./routes/test/test";
+import route202 from "./routes/quickVideo/generateConfirm";
 
 export default async (app: Express) => {
   app.use("/api/agents/clearMemory", route1);
@@ -405,4 +406,5 @@ export default async (app: Express) => {
   app.use("/api/task/getTaskCategories", route199);
   app.use("/api/task/taskDetails", route200);
   app.use("/api/test/test", route201);
+  app.use("/api/quickVideo/generateConfirm", route202);
 }

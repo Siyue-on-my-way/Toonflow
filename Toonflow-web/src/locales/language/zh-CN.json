@@ -775,7 +775,8 @@
         "quickArtStyle": "画风",
         "quickArtStylePh": "例如：国潮插画风、3D 卡通、真人实拍感",
         "targetDuration": "目标时长",
-        "quickIntroPh": "一句话描述你想创作的短视频，进入工作台后可与 AI 继续完善"
+        "quickIntroPh": "一句话描述你想创作的短视频，进入工作台后可与 AI 继续完善",
+        "quickChatConfigHint": "画风与目标时长无需在此选择：创建后在与快创助手的聊天中提出或随时调整，例如「生成12秒以内的水彩视频」「改成18秒」。"
       },
       "msg": {
         "fetchFailed": "获取项目列表失败",
@@ -1850,7 +1851,21 @@
       "exportedSize": "文件大小",
       "cancel": "取消",
       "retry": "重试",
-      "close": "关闭"
+      "close": "关闭",
+      "unset": "未设置",
+      "artStyleOptionalPh": "可留空，建议在对话中确定画风",
+      "durationRangeHint": "5-60 秒的正整数；也可以直接在对话中说「改成18秒」由快创助手设置",
+      "genConfirmTitle": "生成确认",
+      "genConfirmShotCount": "{count} 镜",
+      "genConfirmHint": "确认后将锁定以上参数并开始逐镜头生成；修改任意参数会使本次确认失效",
+      "genConfirmYes": "确认生成",
+      "genConfirmBack": "返回修改",
+      "genConfirmRequest": "发起生成确认",
+      "genConfirmPendingTag": "待确认",
+      "genConfirmRequested": "已生成确认摘要，请核对后确认",
+      "genConfirmStarted": "确认成功，生成已启动",
+      "genConfirmInvalidated": "参数已变更，原生成确认已失效，请重新确认",
+      "configVersionBumped": "配置已更新（版本 {version}），当前时长 {duration}"
     }
   },
   "login": {

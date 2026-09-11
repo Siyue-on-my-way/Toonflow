@@ -680,7 +680,8 @@
         "quickArtStyle": "Art style",
         "quickArtStylePh": "e.g. anime style, 3D cartoon, live-action look",
         "targetDuration": "Target duration",
-        "quickIntroPh": "Describe the short video in one sentence; refine it with AI in the workbench"
+        "quickIntroPh": "Describe the short video in one sentence; refine it with AI in the workbench",
+        "quickChatConfigHint": "No need to pick art style or duration here: tell the assistant in chat after creating, e.g. \"a watercolor video within 12 seconds\" or \"change to 18 seconds\"."
       },
       "msg": {
         "fetchFailed": "Failed to fetch project list",
@@ -1746,7 +1747,21 @@
       "exportedSize": "File size",
       "cancel": "Cancel",
       "retry": "Retry",
-      "close": "Close"
+      "close": "Close",
+      "unset": "Not set",
+      "artStyleOptionalPh": "Optional — decide the art style in chat",
+      "durationRangeHint": "Whole seconds between 5 and 60; you can also say \"change to 18s\" in chat",
+      "genConfirmTitle": "Confirm generation",
+      "genConfirmShotCount": "{count} shots",
+      "genConfirmHint": "Confirming locks these parameters and starts per-shot generation; any change invalidates this confirmation",
+      "genConfirmYes": "Confirm & generate",
+      "genConfirmBack": "Back to edit",
+      "genConfirmRequest": "Request confirmation",
+      "genConfirmPendingTag": "Pending",
+      "genConfirmRequested": "Confirmation summary ready, please review",
+      "genConfirmStarted": "Confirmed — generation started",
+      "genConfirmInvalidated": "Parameters changed, previous confirmation invalidated — please confirm again",
+      "configVersionBumped": "Config updated (v{version}), duration {duration}"
     }
   },
   "login": {

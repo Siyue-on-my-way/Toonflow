@@ -2,7 +2,7 @@ import express from "express";
 import { z } from "zod";
 import { success } from "@/lib/responseFormat";
 import { validateFields } from "@/middleware/middleware";
-import { shotAssetRefSchema } from "@/lib/quickVideo/contract";
+import { bumpConfigVersion, shotAssetRefSchema } from "@/lib/quickVideo/contract";
 import { QuickVideoError, mutateQuickVideoState } from "@/lib/quickVideo/state";
 import { ensureStoryboardEditable, findShot, normalizeShotDuration } from "@/lib/quickVideo/shots";
 
@@ -39,6 +39,7 @@ export default router.post(
         if (patch.camera != null) shot.camera = patch.camera;
         if (patch.duration != null) shot.duration = normalizeShotDuration(patch.duration);
         if (patch.assetRefs != null) shot.assetRefs = patch.assetRefs;
+        bumpConfigVersion(state);
       });
       res.status(200).send(success({ state: result.state, idempotentHit: result.idempotentHit }));
     } catch (err: any) {

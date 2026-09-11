@@ -15,6 +15,8 @@ import {
   GENERATION_CONCURRENCY,
   GENERATION_IMAGE_TIMEOUT_MS,
   GENERATION_VIDEO_TIMEOUT_MS,
+  QUICK_VIDEO_DURATION_MAX,
+  QUICK_VIDEO_DURATION_MIN,
   QuickVideoDuration,
   QuickVideoGenerationSnapshot,
   QuickVideoMaterialItem,
@@ -124,11 +126,14 @@ export function applySnapshotToState(
   materials: QuickVideoMaterialItem[],
   estimate: { estimatedImageCount: number; estimatedVideoCount: number; estimatedCostYuan: number; estimatedSeconds: number },
 ) {
+  if (s.targetDuration == null) {
+    throw new QuickVideoError("DURATION_NOT_SET", "目标时长尚未确定，无法解析素材快照；请先在对话中确认视频时长（5-60 秒）", s.version);
+  }
   s.generation.snapshot = {
     storyboardVersion,
     targetDuration: s.targetDuration,
     videoRatio: s.videoRatio,
-    artStyle: s.artStyle,
+    artStyle: s.artStyle ?? "",
     shots: snapshotShots,
     materials,
     ...estimate,
@@ -734,7 +739,7 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, message: string):
   }
 }
 
-/** 供路由使用：目标时长类型收窄 */
+/** 供路由使用：目标时长类型收窄（5-60 之外的非法值回退 30，与旧三档行为兼容） */
 export function asQuickVideoDuration(d: number): QuickVideoDuration {
-  return (d === 15 || d === 30 || d === 60 ? d : 30) as QuickVideoDuration;
+  return (Number.isInteger(d) && d >= QUICK_VIDEO_DURATION_MIN && d <= QUICK_VIDEO_DURATION_MAX ? d : 30) as QuickVideoDuration;
 }

@@ -4,7 +4,7 @@ import u from "@/utils";
 import { db as knexDb } from "@/utils/db";
 import { success } from "@/lib/responseFormat";
 import { validateFields } from "@/middleware/middleware";
-import { QUICK_VIDEO_PROJECT_TYPE, QUICK_VIDEO_RATIOS, QuickVideoState } from "@/lib/quickVideo/contract";
+import { QUICK_VIDEO_PROJECT_TYPE, QUICK_VIDEO_RATIOS, QuickVideoState, quickVideoDurationSchema } from "@/lib/quickVideo/contract";
 import { findProjectByCreateIdempotencyKey, initQuickVideoStateRow } from "@/lib/quickVideo/state";
 import { createQuickVideoSession } from "@/lib/quickVideo/session";
 
@@ -15,14 +15,16 @@ const router = express.Router();
  * 与专业模式 addProject 并存：不走旧链路，不改旧行为。
  * - 幂等键防重复创建：同键重复提交返回首次创建的项目。
  * - 事务内同时落 o_project、草稿脚本（可选，复用 o_script）与 quickVideoAgent 初始状态。
+ * - SIY-138：画风与目标时长改为对话式配置，创建时允许缺省（在聊天中用 update_config 设置）；
+ *   存量项目传 15/30/60 与画风仍然兼容。
  */
 export default router.post(
   "/",
   validateFields({
     name: z.string().min(1).max(100),
-    artStyle: z.string().max(500).default(""),
+    artStyle: z.string().max(500).optional().default(""),
     videoRatio: z.enum(QUICK_VIDEO_RATIOS),
-    targetDuration: z.union([z.literal(15), z.literal(30), z.literal(60)]),
+    targetDuration: quickVideoDurationSchema.optional(),
     draftScript: z.string().max(20000).optional().default(""),
     intro: z.string().max(2000).optional().default(""),
     idempotencyKey: z.string().min(8).max(64),

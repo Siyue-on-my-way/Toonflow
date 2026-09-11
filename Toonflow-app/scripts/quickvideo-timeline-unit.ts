@@ -8,8 +8,9 @@
  */
 import {
   QUICK_VIDEO_DIMENSIONS,
+  QUICK_VIDEO_DURATION_MAX,
+  QUICK_VIDEO_DURATION_MIN,
   QUICK_VIDEO_RATIOS,
-  QUICK_VIDEO_DURATIONS,
   quickVideoStateSchema,
   type QuickVideoTimelinePlan,
 } from "@/lib/quickVideo/contract";
@@ -146,7 +147,7 @@ console.log("== 8. 状态契约向后兼容（存量状态缺新字段） ==");
   const parsed = quickVideoStateSchema.safeParse(legacyState);
   assert(parsed.success, "存量状态（缺 generation/schemaVersion）解析通过", JSON.stringify(parsed.error?.issues ?? []).slice(0, 300));
   assert(parsed.success && parsed.data.generation.timeline === null && parsed.data.generation.exportInfo === null, "新字段补默认值 null");
-  assert(QUICK_VIDEO_DURATIONS.includes(30 as any) && QUICK_VIDEO_RATIOS.length === 3, "时长/比例枚举不变（不回归）");
+  assert(QUICK_VIDEO_DURATION_MIN === 5 && QUICK_VIDEO_DURATION_MAX === 60 && QUICK_VIDEO_RATIOS.length === 3, "时长范围（5-60 秒，含 15/30/60）与比例枚举不变（不回归）");
 }
 
 console.log(`\n结果：${passed} 通过，${failed} 失败`);

@@ -3,7 +3,7 @@ import { z } from "zod";
 import u from "@/utils";
 import { success } from "@/lib/responseFormat";
 import { validateFields } from "@/middleware/middleware";
-import { QUICK_VIDEO_RATIOS } from "@/lib/quickVideo/contract";
+import { QUICK_VIDEO_RATIOS, bumpConfigVersion, quickVideoDurationSchema } from "@/lib/quickVideo/contract";
 import { QuickVideoError, mutateQuickVideoState } from "@/lib/quickVideo/state";
 
 const router = express.Router();
@@ -11,6 +11,8 @@ const router = express.Router();
 /**
  * 编辑快创项目基础配置（标题/画风/比例/目标时长/简介）。
  * 乐观锁保护；目标时长在分镜确认后禁止修改（需先撤销确认），防止已确认分镜与目标脱钩。
+ * SIY-138：目标时长放宽为 5-60 的正整数秒；画风/时长/比例每次变更严格递增 configVersion
+ * 并使待确认快照失效；生成启动后执行态参数锁定。
  */
 export default router.post(
   "/",
@@ -22,7 +24,7 @@ export default router.post(
       name: z.string().min(1).max(100).optional(),
       artStyle: z.string().max(500).optional(),
       videoRatio: z.enum(QUICK_VIDEO_RATIOS).optional(),
-      targetDuration: z.union([z.literal(15), z.literal(30), z.literal(60)]).optional(),
+      targetDuration: quickVideoDurationSchema.optional(),
       intro: z.string().max(2000).optional(),
     }),
   }),
@@ -33,7 +35,7 @@ export default router.post(
       const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, async (state, trx) => {
         const targetDurationChanged = patch.targetDuration != null && patch.targetDuration !== state.targetDuration;
         const visualConfigChanged =
-          (patch.artStyle != null && patch.artStyle !== state.artStyle) ||
+          (patch.artStyle != null && patch.artStyle !== (state.artStyle ?? "")) ||
           (patch.videoRatio != null && patch.videoRatio !== state.videoRatio);
         const generationConfigChanged = targetDurationChanged || visualConfigChanged;
 
@@ -41,15 +43,16 @@ export default router.post(
           throw new QuickVideoError("FORBIDDEN", "分镜已确认，不允许修改目标时长；请先撤销分镜确认");
         }
         if (generationConfigChanged && ["generating", "ready_to_assemble", "completed"].includes(state.stage)) {
-          throw new QuickVideoError("FORBIDDEN", "生成已开始，不能再修改目标时长、画风或比例；如需调整请新建项目");
+          throw new QuickVideoError("FORBIDDEN", "生成已开始，生成参数已锁定；当前生成完成或新建项目后才能再调整目标时长、画风或比例");
         }
         if (patch.targetDuration != null) state.targetDuration = patch.targetDuration;
         if (patch.videoRatio != null) state.videoRatio = patch.videoRatio;
         if (patch.artStyle != null) state.artStyle = patch.artStyle;
 
-        // 目标/视觉配置会进入素材解析和生成提示词。配置变化后丢弃旧快照，
-        // 让下一次素材确认按新配置重建，避免沿用旧画风或比例。
+        // 目标/视觉配置会进入素材解析和生成提示词。配置变化必须递增 configVersion：
+        // 同时丢弃旧快照与待确认生成摘要，让下一次素材解析/生成确认按新配置重建。
         if (generationConfigChanged) {
+          bumpConfigVersion(state);
           state.generation.snapshot = null;
           state.generation.materialsConfirmed = false;
           state.generation.materialsConfirmedAt = null;

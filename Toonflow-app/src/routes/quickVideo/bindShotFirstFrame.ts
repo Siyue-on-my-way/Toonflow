@@ -3,6 +3,7 @@ import { z } from "zod";
 import { success } from "@/lib/responseFormat";
 import { validateFields } from "@/middleware/middleware";
 import { QuickVideoError, mutateQuickVideoState } from "@/lib/quickVideo/state";
+import { bumpConfigVersion } from "@/lib/quickVideo/contract";
 import { ensureStoryboardEditable, findShot } from "@/lib/quickVideo/shots";
 import { resolveMediaForFirstFrame } from "@/lib/quickVideo/media";
 
@@ -40,6 +41,8 @@ export default router.post(
         state.generation.snapshot = null;
         state.generation.materialsConfirmed = false;
         state.generation.materialsConfirmedAt = null;
+        // 分镜内容（首帧绑定）变更：递增配置版本并使旧的生成确认失效
+        bumpConfigVersion(state);
       });
       res.status(200).send(success({ state: result.state, idempotentHit: result.idempotentHit }));
     } catch (err: any) {

@@ -18,9 +18,15 @@ export const QUICK_VIDEO_SCHEMA_VERSION = 1;
 /** 项目类型枚举值（o_project.projectType 新增） */
 export const QUICK_VIDEO_PROJECT_TYPE = "quick_video";
 
-/** 目标时长（秒），仅支持 15 / 30 / 60 */
-export const QUICK_VIDEO_DURATIONS = [15, 30, 60] as const;
-export type QuickVideoDuration = (typeof QUICK_VIDEO_DURATIONS)[number];
+/**
+ * 目标时长（秒）：5-60 的正整数秒（SIY-138 对话式配置）。
+ * 旧版 15/30/60 三档是其子集，存量项目读回无需转换。
+ */
+export const QUICK_VIDEO_DURATION_MIN = 5;
+export const QUICK_VIDEO_DURATION_MAX = 60;
+/** 5-60 的正整数秒 zod 校验 */
+export const quickVideoDurationSchema = z.number().int().min(QUICK_VIDEO_DURATION_MIN).max(QUICK_VIDEO_DURATION_MAX);
+export type QuickVideoDuration = number;
 
 /** 画面比例 */
 export const QUICK_VIDEO_RATIOS = ["16:9", "9:16", "1:1"] as const;
@@ -36,6 +42,68 @@ export const SHOT_DURATION_MAX = 15;
 
 /** 分镜数量上限 */
 export const SHOT_COUNT_MAX = 12;
+
+// ---------------------------------------------------------------------------
+// 生成确认门（SIY-138）：版本化待确认快照
+// ---------------------------------------------------------------------------
+
+/** 生成确认状态：none=无 pending=待用户确认 confirmed=已确认（生成已/将启动） */
+export const QUICK_VIDEO_CONFIRMATION_STATUSES = ["none", "pending", "confirmed"] as const;
+export type QuickVideoConfirmationStatus = (typeof QUICK_VIDEO_CONFIRMATION_STATUSES)[number];
+
+/**
+ * 待确认快照：用户要求生成时冻结「当前 configVersion + 时长 + 画风 + 分镜摘要」。
+ * confirm 时逐项校验 configVersion 一致才放行；任何配置/分镜变更都会使其失效清空。
+ */
+export const pendingSnapshotSchema = z.object({
+  configVersion: z.number().int().min(0).describe("冻结时的 configVersion，confirm 时校验一致"),
+  targetDuration: quickVideoDurationSchema.describe("待确认的目标时长（秒）"),
+  artStyle: z.string().max(500).default("").describe("待确认的画风（空串=未设置）"),
+  videoRatio: z.enum(QUICK_VIDEO_RATIOS),
+  storyboardVersion: z.number().int().min(1).describe("分镜版本号"),
+  shotCount: z.number().int().min(1).max(SHOT_COUNT_MAX).describe("分镜数量"),
+  totalDuration: z.number().int().min(1).describe("分镜总时长（秒）"),
+  shotSummaries: z
+    .array(z.object({ index: z.number().int().min(1), duration: z.number().int().min(SHOT_DURATION_MIN).max(SHOT_DURATION_MAX), description: z.string().max(120) }))
+    .max(SHOT_COUNT_MAX)
+    .default([])
+    .describe("逐镜摘要（截断），供确认卡片展示"),
+  estimatedImageCount: z.number().int().min(0).default(0),
+  estimatedVideoCount: z.number().int().min(0).default(0),
+  estimatedCostYuan: z.number().min(0).default(0),
+  requestedAt: z.number().int().min(1).describe("发起确认的时间戳"),
+});
+export type QuickVideoPendingSnapshot = z.infer<typeof pendingSnapshotSchema>;
+
+/**
+ * 由当前状态 + 素材预估组装待确认快照（纯函数，路由与 Agent 工具共用）。
+ * 调用前置条件：storyboard 存在、targetDuration 已设置。
+ */
+export function buildPendingSnapshot(
+  state: Pick<QuickVideoState, "configVersion" | "targetDuration" | "artStyle" | "videoRatio" | "storyboard">,
+  estimate: { estimatedImageCount: number; estimatedVideoCount: number; estimatedCostYuan: number } = { estimatedImageCount: 0, estimatedVideoCount: 0, estimatedCostYuan: 0 },
+): QuickVideoPendingSnapshot {
+  if (!state.storyboard) throw new Error("NO_STORYBOARD");
+  if (state.targetDuration == null) throw new Error("DURATION_NOT_SET");
+  return {
+    configVersion: state.configVersion,
+    targetDuration: state.targetDuration,
+    artStyle: state.artStyle ?? "",
+    videoRatio: state.videoRatio,
+    storyboardVersion: state.storyboard.version,
+    shotCount: state.storyboard.shots.length,
+    totalDuration: state.storyboard.shots.reduce((sum, s) => sum + s.duration, 0),
+    shotSummaries: state.storyboard.shots.map((s) => ({
+      index: s.index,
+      duration: s.duration,
+      description: (s.description ?? "").slice(0, 120),
+    })),
+    estimatedImageCount: estimate.estimatedImageCount ?? 0,
+    estimatedVideoCount: estimate.estimatedVideoCount ?? 0,
+    estimatedCostYuan: estimate.estimatedCostYuan ?? 0,
+    requestedAt: Date.now(),
+  };
+}
 
 // ---------------------------------------------------------------------------
 // 阶段状态机
@@ -250,7 +318,7 @@ export type QuickVideoSnapshotShot = z.infer<typeof snapshotShotSchema>;
  */
 export const generationSnapshotSchema = z.object({
   storyboardVersion: z.number().int().min(1).describe("快照对应的分镜版本"),
-  targetDuration: z.union([z.literal(15), z.literal(30), z.literal(60)]),
+  targetDuration: quickVideoDurationSchema,
   videoRatio: z.enum(QUICK_VIDEO_RATIOS),
   artStyle: z.string().max(500).default(""),
   shots: z.array(snapshotShotSchema).min(1).max(SHOT_COUNT_MAX),
@@ -317,7 +385,7 @@ export type QuickVideoTimelineTailPad = z.infer<typeof timelineTailPadSchema>;
 
 /** 时间线装配规划（服务端推导；前端以实际媒体时长为准重新适配） */
 export const timelinePlanSchema = z.object({
-  targetDuration: z.union([z.literal(15), z.literal(30), z.literal(60)]),
+  targetDuration: quickVideoDurationSchema,
   videoRatio: z.enum(QUICK_VIDEO_RATIOS),
   width: z.number().int().min(1),
   height: z.number().int().min(1),
@@ -387,9 +455,20 @@ export const quickVideoStateSchema = z.object({
   /** 乐观锁版本号，每次成功写入自增 */
   version: z.number().int().min(1),
   stage: z.enum(QUICK_VIDEO_STAGES),
-  targetDuration: z.union([z.literal(15), z.literal(30), z.literal(60)]),
+  /** 目标时长（秒）：对话式配置，允许未设置（null）；存量项目为 15/30/60 */
+  targetDuration: z.preprocess((v) => (v == null ? null : v), quickVideoDurationSchema.nullable()),
   videoRatio: z.enum(QUICK_VIDEO_RATIOS),
+  /** 画风：对话式配置，空串=未设置 */
   artStyle: z.string().max(500).default(""),
+  /**
+   * 配置版本号（SIY-138）：画风/目标时长/比例或分镜内容每次变更严格 +1。
+   * 生成确认门用它校验「确认时看到的参数」与「触发生成时的参数」一致；存量状态缺省为 0。
+   */
+  configVersion: z.number().int().min(0).default(0),
+  /** 待确认的生成快照（生成确认门写入；配置/分镜变更时清空） */
+  pendingSnapshot: pendingSnapshotSchema.nullable().default(null),
+  /** 生成确认状态：none / pending / confirmed */
+  confirmationStatus: z.enum(QUICK_VIDEO_CONFIRMATION_STATUSES).default("none"),
   /** 创建幂等键（createProject 用，防重复建项目） */
   createIdempotencyKey: z.string().min(8).max(64),
   brief: quickVideoBriefSchema.nullable().default(null),
@@ -406,6 +485,36 @@ export type QuickVideoState = z.infer<typeof quickVideoStateSchema>;
 
 /** 幂等键记录上限，超过后淘汰最早写入的 key */
 export const IDEMPOTENCY_MAX_KEYS = 50;
+
+// ---------------------------------------------------------------------------
+// 配置版本与确认失效（SIY-138，mutator 内共用）
+// ---------------------------------------------------------------------------
+
+/** 生成链路的执行态阶段：进入这些阶段后生成参数被锁定 */
+export function isGenerationConfigLocked(stage: QuickVideoStage): boolean {
+  return ["generating", "ready_to_assemble", "completed"].includes(stage);
+}
+
+/**
+ * 使当前待确认快照失效（若有）。返回是否确实清掉了未失效的确认信息，
+ * 供调用方拼接提示文案。配置/分镜变更后旧确认凭证立即作废。
+ */
+export function invalidatePendingConfirmation(state: QuickVideoState): boolean {
+  if (!state.pendingSnapshot && state.confirmationStatus === "none") return false;
+  state.pendingSnapshot = null;
+  state.confirmationStatus = "none";
+  return true;
+}
+
+/**
+ * 递增配置版本号并使待确认快照失效。
+ * 画风、目标时长、比例或分镜内容发生变更时必须调用本函数。
+ */
+export function bumpConfigVersion(state: QuickVideoState): number {
+  state.configVersion = (state.configVersion ?? 0) + 1;
+  invalidatePendingConfirmation(state);
+  return state.configVersion;
+}
 
 // ---------------------------------------------------------------------------
 // 分镜校验规则（propose / confirm 时共用）

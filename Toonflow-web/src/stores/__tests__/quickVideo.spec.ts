@@ -281,3 +281,153 @@ describe("quickVideo store — 资产白板与首帧绑定（SIY-132）", () => 
     expect(post).toHaveBeenCalledWith("/quickVideo/bindShotFirstFrame", expect.objectContaining({ projectId: Number(id), shotId: "shot-1", mediaId: null }));
   });
 });
+
+describe("quickVideo store — configVersion 幂等合并与生成确认门（SIY-138）", () => {
+  function makeWorkbenchState(overrides: Record<string, any> = {}) {
+    return {
+      schemaVersion: 1,
+      version: 3,
+      stage: "storyboard_confirmed",
+      targetDuration: null,
+      videoRatio: "16:9",
+      artStyle: "",
+      configVersion: 0,
+      pendingSnapshot: null,
+      confirmationStatus: "none",
+      createIdempotencyKey: "k",
+      brief: null,
+      storyboard: { version: 1, status: "draft", confirmedAt: null, summary: "", shots: [] },
+      generation: { snapshot: null, materialsConfirmed: false, materialsConfirmedAt: null, runId: null, startedAt: null, finishedAt: null, materialImages: {}, timeline: null, exportInfo: null },
+      appliedKeys: {},
+      lastChatAt: null,
+      updateTime: 1000,
+      ...overrides,
+    };
+  }
+
+  function makeWorkbench(stateOverrides: Record<string, any> = {}) {
+    return { project: null, script: null, shotBounds: null, state: makeWorkbenchState(stateOverrides) };
+  }
+
+  it("getWorkbench：更旧的 configVersion 响应不覆盖新状态（乱序/面板切换防漂移）", async () => {
+    setupProject();
+    const store = useQuickVideoStore();
+
+    // 第一次：cv=2, v=5
+    post.mockResolvedValueOnce(envelope(makeWorkbench({ configVersion: 2, version: 5, targetDuration: 12, artStyle: "水彩" })));
+    await store.getWorkbench();
+    expect(store.state?.configVersion).toBe(2);
+    expect(store.state?.targetDuration).toBe(12);
+
+    // 第二次返回更旧的 cv=1, v=4（乱序旧响应）→ 不得回退
+    post.mockResolvedValueOnce(envelope(makeWorkbench({ configVersion: 1, version: 4, targetDuration: 30, artStyle: "" })));
+    await store.getWorkbench();
+    expect(store.state?.configVersion).toBe(2);
+    expect(store.state?.targetDuration).toBe(12);
+  });
+
+  it("getWorkbench：同 configVersion 下更旧的 version 也不覆盖；更新版本正常生效", async () => {
+    setupProject();
+    const store = useQuickVideoStore();
+
+    post.mockResolvedValueOnce(envelope(makeWorkbench({ configVersion: 2, version: 5, confirmationStatus: "pending" })));
+    await store.getWorkbench();
+
+    // 同 configVersion、更旧 version → 保留
+    post.mockResolvedValueOnce(envelope(makeWorkbench({ configVersion: 2, version: 4, confirmationStatus: "none" })));
+    await store.getWorkbench();
+    expect(store.state?.version).toBe(5);
+    expect(store.state?.confirmationStatus).toBe("pending");
+
+    // configVersion 递增的新状态 → 正常生效
+    post.mockResolvedValueOnce(envelope(makeWorkbench({ configVersion: 3, version: 6, confirmationStatus: "none", targetDuration: 18 })));
+    await store.getWorkbench();
+    expect(store.state?.configVersion).toBe(3);
+    expect(store.state?.version).toBe(6);
+    expect(store.state?.targetDuration).toBe(18);
+  });
+
+  it("requestGenerationConfirm / confirmGeneration：走 /quickVideo/generateConfirm，confirm 携带 configVersion", async () => {
+    const id = setupProject();
+    const store = useQuickVideoStore();
+
+    post.mockResolvedValueOnce(
+      envelope({
+        state: makeWorkbenchState({
+          configVersion: 1,
+          version: 8,
+          confirmationStatus: "pending",
+          pendingSnapshot: {
+            configVersion: 1,
+            targetDuration: 12,
+            artStyle: "水彩",
+            videoRatio: "16:9",
+            storyboardVersion: 2,
+            shotCount: 2,
+            totalDuration: 12,
+            shotSummaries: [{ index: 1, duration: 5, description: "镜头一" }],
+            estimatedImageCount: 2,
+            estimatedVideoCount: 2,
+            estimatedCostYuan: 3.6,
+            requestedAt: 1000,
+          },
+        }),
+        pendingSnapshot: { configVersion: 1 },
+        idempotentHit: false,
+      }),
+    );
+    // request 后的 getWorkbench 刷新
+    post.mockResolvedValueOnce(envelope(makeWorkbench({ configVersion: 1, version: 8, confirmationStatus: "pending" })));
+
+    await store.requestGenerationConfirm();
+
+    expect(post).toHaveBeenCalledWith("/quickVideo/generateConfirm", expect.objectContaining({ projectId: Number(id), action: "request" }));
+    expect(store.state?.confirmationStatus).toBe("pending");
+
+    post.mockResolvedValueOnce({ code: 200, data: { started: true, alreadyRunning: false, runId: "run-1" } });
+    post.mockResolvedValueOnce(envelope(makeWorkbench({ configVersion: 1, version: 9, stage: "generating", confirmationStatus: "confirmed" })));
+
+    const result = await store.confirmGeneration(1);
+
+    expect(post).toHaveBeenCalledWith("/quickVideo/generateConfirm", expect.objectContaining({ projectId: Number(id), action: "confirm", configVersion: 1 }));
+    expect(result.ok).toBe(true);
+    expect(store.state?.stage).toBe("generating");
+  });
+
+  it("confirmGeneration：服务端版本不一致拦截时返回 ok:false 与提示", async () => {
+    setupProject();
+    const store = useQuickVideoStore();
+    post.mockResolvedValueOnce(envelope(makeWorkbench({ configVersion: 2, version: 5 })));
+    await store.getWorkbench();
+
+    post.mockResolvedValueOnce({ code: "CONFIG_VERSION_MISMATCH", message: "参数已变更，请重新确认生成", currentVersion: 2 });
+    post.mockResolvedValueOnce(envelope(makeWorkbench({ configVersion: 2, version: 5 })));
+
+    const result = await store.confirmGeneration(1);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("CONFIG_VERSION_MISMATCH");
+      expect(result.error.message).toBe("参数已变更，请重新确认生成");
+    }
+  });
+
+  it("updateConfig：目标时长支持 5-60 任意整数（如 12/18）", async () => {
+    const id = setupProject();
+    post.mockResolvedValueOnce(envelope(makeWorkbench({ version: 3, configVersion: 0 })));
+    const store = useQuickVideoStore();
+    await store.getWorkbench();
+
+    post.mockResolvedValueOnce({ code: 200 });
+    post.mockResolvedValueOnce(envelope(makeWorkbench({ version: 4, configVersion: 1, targetDuration: 12, artStyle: "水彩" })));
+
+    const result = await store.updateConfig({ targetDuration: 12, artStyle: "水彩" });
+
+    expect(post).toHaveBeenCalledWith(
+      "/quickVideo/updateConfig",
+      expect.objectContaining({ projectId: Number(id), expectedVersion: 3, patch: { targetDuration: 12, artStyle: "水彩" } }),
+    );
+    expect(result.ok).toBe(true);
+    expect(store.state?.targetDuration).toBe(12);
+  });
+});

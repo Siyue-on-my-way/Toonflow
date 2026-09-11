@@ -35,6 +35,7 @@
     "vendor2json": "node scripts/vendor2json.ts",
     "test:aibotplatform": "tsx tests/aibotplatform.test.ts",
     "test:quickvideo-session": "tsx scripts/quickvideo-session-unit.ts",
+    "test:quickvideo-config-gate": "tsx scripts/quickvideo-config-gate-unit.ts",
     "test:quickvideo-media": "tsx scripts/quickvideo-media-unit.ts"
   },
   "dependencies": {

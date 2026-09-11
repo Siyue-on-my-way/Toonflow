@@ -36,6 +36,9 @@ export default router.post(
       if (state.stage !== "ready_to_assemble" && state.stage !== "completed") {
         throw new QuickVideoError("SHOTS_NOT_READY", `当前阶段 ${state.stage} 尚未完成全部镜头生成，无法装配时间线`, state.version);
       }
+      if (state.targetDuration == null) {
+        throw new QuickVideoError("DURATION_NOT_SET", "目标时长尚未确定，无法装配时间线", state.version);
+      }
       const shots = state.storyboard?.shots ?? [];
       const notDone = shots.filter((s) => s.videoState !== "done" || !s.videoRef);
       if (!shots.length || notDone.length) {

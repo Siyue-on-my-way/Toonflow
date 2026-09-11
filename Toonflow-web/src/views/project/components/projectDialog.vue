@@ -24,19 +24,24 @@
               <t-input v-model="formState.name" :placeholder="$t('workbench.project.dialog.projectNamePh')" />
             </t-form-item>
             <template v-if="formState.projectType === 'quick_video'">
-              <t-form-item :label="$t('workbench.project.dialog.quickArtStyle')">
+              <!-- SIY-138：画风与目标时长改为对话式配置（在快创工作台聊天中确定），创建时不再填写 -->
+              <t-form-item v-if="isEdit" :label="$t('workbench.project.dialog.quickArtStyle')">
                 <t-input v-model="formState.artStyle" :placeholder="$t('workbench.project.dialog.quickArtStylePh')" :disabled="formState.quickVideoConfigLocked" />
               </t-form-item>
-              <t-form-item :label="$t('workbench.project.dialog.targetDuration')">
-                <t-select v-model="formState.targetDuration" :disabled="formState.quickVideoStoryboardConfirmed">
-                  <t-option :value="15" label="15s" />
-                  <t-option :value="30" label="30s" />
-                  <t-option :value="60" label="60s" />
-                </t-select>
+              <t-form-item v-if="isEdit" :label="$t('workbench.project.dialog.targetDuration')">
+                <t-input-number
+                  v-model="quickDurationModel"
+                  :min="5"
+                  :max="60"
+                  :step="1"
+                  :disabled="formState.quickVideoStoryboardConfirmed"
+                  theme="column"
+                  style="width: 160px" />
                 <div v-if="formState.quickVideoStoryboardConfirmed" class="quickDurationHint">
                   {{ $t("workbench.quickVideo.targetDurationLocked") }}
                 </div>
               </t-form-item>
+              <div v-if="!isEdit" class="quickChatConfigHint">{{ $t("workbench.project.dialog.quickChatConfigHint") }}</div>
               <t-form-item :label="$t('workbench.project.dialog.videoRatio')">
                 <t-select v-model="formState.videoRatio" :options="QUICK_RATIO_OPTIONS" :disabled="formState.quickVideoConfigLocked" />
                 <div v-if="formState.quickVideoConfigLocked" class="quickDurationHint">
@@ -350,7 +355,7 @@ const emit = defineEmits<{
       projectType: string;
       imageQuality: "1K" | "2K" | "4K" | "";
       mode: string;
-      targetDuration: 15 | 30 | 60;
+      targetDuration: number | null;
       quickVideoStoryboardConfirmed?: boolean;
       quickVideoConfigLocked?: boolean;
     },
@@ -373,7 +378,7 @@ interface ProjectData {
   imageQuality: "1K" | "2K" | "4K" | "";
   visualManual?: string;
   mode: string;
-  targetDuration?: 15 | 30 | 60;
+  targetDuration?: number | null;
   quickVideoStoryboardConfirmed?: boolean;
   quickVideoConfigLocked?: boolean;
 }
@@ -391,7 +396,7 @@ interface ProjectFormData {
   textModel: string;
   imageQuality: "1K" | "2K" | "4K" | "";
   mode: string;
-  targetDuration: 15 | 30 | 60;
+  targetDuration: number | null;
   quickVideoStoryboardConfirmed?: boolean;
   quickVideoConfigLocked?: boolean;
 }
@@ -432,6 +437,14 @@ const DEFAULT_TAB_DATA: () => Data[] = () => [
 const isEdit = computed(() => !!props.projectData);
 const isQuickForm = computed(() => formState.value.projectType === "quick_video");
 const isQuickCreate = computed(() => !isEdit.value && props.createMode === "quick");
+
+/** t-input-number 的模型适配：null（未设置）与空输入互相映射 */
+const quickDurationModel = computed<number | undefined>({
+  get: () => formState.value.targetDuration ?? undefined,
+  set: (v) => {
+    formState.value.targetDuration = typeof v === "number" && Number.isFinite(v) ? Math.round(v) : null;
+  },
+});
 
 // ===== 常量 =====
 const DEFAULT_VIDEO_RATIO_OPTIONS = [
@@ -496,8 +509,8 @@ function handleOk() {
   }
   if (!formState.value.name) return window.$message.warning($t("workbench.project.msg.enterProjectName"));
   if (formState.value.projectType === "quick_video") {
-    // 单视频快创：画风/比例/目标时长必填，图片/视频模型可后续在设置中补充
-    if (!formState.value.artStyle) return window.$message.warning($t("workbench.project.msg.enterArtStyle"));
+    // 单视频快创：SIY-138 起画风与目标时长由聊天确定，创建时仅校验标题与比例；
+    // 图片/视频模型可后续在设置中补充
     if (!formState.value.videoRatio) return window.$message.warning($t("workbench.project.msg.enterVideoRatio"));
     if (isEdit.value) {
       emit("edit", {
@@ -1047,6 +1060,15 @@ function handleDirectorManualCoverFileChange(e: Event) {
   }
 }
 
+.quickChatConfigHint {
+  margin: 4px 0 12px;
+  padding: 8px 12px;
+  border: 1px dashed var(--td-brand-color-5);
+  border-radius: 8px;
+  color: var(--td-text-color-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
 .quickDurationHint {
   margin-top: 6px;
   color: var(--td-text-color-secondary);

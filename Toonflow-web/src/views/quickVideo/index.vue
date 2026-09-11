@@ -64,6 +64,38 @@
               </div>
             </template>
           </t-chat-list>
+          <!-- SIY-138 生成确认卡片：存在待确认快照时展示（结构化摘要 + 版本化确认按钮） -->
+          <div class="genConfirmCard" v-if="pendingSnapshot && state?.confirmationStatus === 'pending'" data-testid="quick-video-gen-confirm-card">
+            <div class="genConfirmHeader">
+              <span>{{ $t("workbench.quickVideo.genConfirmTitle") }}</span>
+              <t-tag shape="round" size="small" theme="warning">v{{ pendingSnapshot.configVersion }}</t-tag>
+            </div>
+            <div class="genConfirmRows">
+              <div class="briefRow"><label>{{ $t("workbench.quickVideo.targetDuration") }}</label><span>{{ pendingSnapshot.targetDuration }}s</span></div>
+              <div class="briefRow"><label>{{ $t("workbench.quickVideo.artStyle") }}</label><span>{{ pendingSnapshot.artStyle || $t("workbench.quickVideo.unset") }}</span></div>
+              <div class="briefRow"><label>{{ $t("workbench.quickVideo.videoRatio") }}</label><span>{{ pendingSnapshot.videoRatio }}</span></div>
+              <div class="briefRow">
+                <label>{{ $t("workbench.quickVideo.storyboard") }}</label>
+                <span>v{{ pendingSnapshot.storyboardVersion }} · {{ $t("workbench.quickVideo.genConfirmShotCount", { count: pendingSnapshot.shotCount }) }} · {{ pendingSnapshot.totalDuration }}s</span>
+              </div>
+              <div class="briefRow"><label>{{ $t("workbench.quickVideo.estimateCost") }}</label><span>≈ ¥{{ pendingSnapshot.estimatedCostYuan }}</span></div>
+            </div>
+            <div class="genConfirmShotList" v-if="pendingSnapshot.shotSummaries?.length">
+              <div class="genConfirmShot" v-for="s in pendingSnapshot.shotSummaries" :key="s.index">
+                <span class="shotIndex">#{{ s.index }} {{ s.duration }}s</span>
+                <span class="shotDesc">{{ s.description }}</span>
+              </div>
+            </div>
+            <div class="genConfirmHint">{{ $t("workbench.quickVideo.genConfirmHint") }}</div>
+            <div class="genConfirmOps">
+              <t-button size="small" theme="primary" :loading="genConfirmSubmitting" @click="submitGenerationConfirm" data-testid="quick-video-gen-confirm-yes">
+                {{ $t("workbench.quickVideo.genConfirmYes") }}
+              </t-button>
+              <t-button size="small" variant="outline" :disabled="genConfirmSubmitting" @click="backToEditFromGenConfirm">
+                {{ $t("workbench.quickVideo.genConfirmBack") }}
+              </t-button>
+            </div>
+          </div>
           <t-chat-sender
             class="inputBox"
             :disabled="status === 'pending' || status === 'streaming' || !connected"
@@ -118,14 +150,17 @@
             <div class="title">{{ workbench.project?.name }}</div>
             <div class="meta">
               <t-tag shape="round" theme="primary">{{ stageLabel(state?.stage) }}</t-tag>
-              <t-tag shape="round">{{ $t("workbench.quickVideo.targetDuration") }}：{{ state?.targetDuration }}s</t-tag>
+              <t-tag shape="round" :theme="state?.targetDuration != null ? undefined : 'default'">
+                {{ $t("workbench.quickVideo.targetDuration") }}：{{ state?.targetDuration != null ? `${state.targetDuration}s` : $t("workbench.quickVideo.unset") }}
+              </t-tag>
               <t-tag shape="round">{{ state?.videoRatio }}</t-tag>
               <t-tag shape="round" v-if="state?.artStyle">{{ state.artStyle }}</t-tag>
+              <t-tag shape="round" v-else :theme="'default'">{{ $t("workbench.quickVideo.artStyle") }}：{{ $t("workbench.quickVideo.unset") }}</t-tag>
               <t-button size="small" variant="outline" :disabled="!state" @click="openConfigEdit">
                 <template #icon><i-edit size="14" /></template>
                 {{ $t("workbench.quickVideo.editConfig") }}
               </t-button>
-              <t-button size="small" variant="outline" @click="getWorkbench()">
+              <t-button size="small" variant="outline" data-testid="quick-video-refresh" @click="getWorkbench()">
                 <template #icon><i-refresh size="14" /></template>
               </t-button>
             </div>
@@ -223,7 +258,7 @@
                   </t-tag>
                 </span>
                 <div class="actions">
-                  <t-tag v-if="totalDuration" shape="round">{{ totalDuration }}s / {{ state?.targetDuration }}s</t-tag>
+                  <t-tag v-if="totalDuration" shape="round">{{ totalDuration }}s / {{ state?.targetDuration != null ? `${state.targetDuration}s` : $t("workbench.quickVideo.unset") }}</t-tag>
                   <t-button
                     v-if="state?.stage === 'storyboard_draft'"
                     size="small"
@@ -366,14 +401,18 @@
                     @click="resolveAssets">
                     {{ $t("workbench.quickVideo.resolveMaterials") }}
                   </t-button>
+                  <!-- SIY-138 生成确认门：先组装版本化确认摘要（确认卡片），用户在卡片上确认后才启动生成 -->
                   <t-button
-                    v-if="state?.stage === 'storyboard_confirmed'"
+                    v-if="state?.stage === 'storyboard_confirmed' && state?.confirmationStatus !== 'pending'"
                     size="small"
                     theme="primary"
-                    :disabled="!state?.generation?.snapshot"
-                    @click="confirmGate('materials', 'confirm')">
-                    {{ $t("workbench.quickVideo.confirmMaterials") }}
+                    :loading="genConfirmRequesting"
+                    @click="startGenerationConfirm">
+                    {{ $t("workbench.quickVideo.genConfirmRequest") }}
                   </t-button>
+                  <t-tag v-if="state?.confirmationStatus === 'pending'" shape="round" theme="warning" size="small">
+                    {{ $t("workbench.quickVideo.genConfirmPendingTag") }}
+                  </t-tag>
                   <t-button
                     v-if="state?.stage === 'storyboard_confirmed' && state?.generation?.materialsConfirmed"
                     size="small"
@@ -541,7 +580,7 @@
       <div class="exportConfirmBody">
         <p>{{ $t("workbench.quickVideo.exportConfirmDesc") }}</p>
         <div class="exportConfirmRows">
-          <div class="briefRow"><label>{{ $t("workbench.quickVideo.targetDuration") }}</label><span>{{ state?.targetDuration }}s</span></div>
+          <div class="briefRow"><label>{{ $t("workbench.quickVideo.targetDuration") }}</label><span>{{ state?.targetDuration != null ? `${state.targetDuration}s` : $t("workbench.quickVideo.unset") }}</span></div>
           <div class="briefRow"><label>{{ $t("workbench.quickVideo.totalDuration") }}</label><span>{{ timelineSummary }}</span></div>
           <div class="briefRow"><label>{{ $t("workbench.quickVideo.resolution") }}</label><span>{{ timelineResolution }}</span></div>
           <div class="briefRow"><label>{{ $t("workbench.quickVideo.estimateSize") }}</label><span>{{ timelineSizeLabel }}</span></div>
@@ -564,7 +603,7 @@
             <t-input v-model="configEditData.name" :maxlength="100" />
           </t-form-item>
           <t-form-item :label="$t('workbench.quickVideo.artStyle')">
-            <t-input v-model="configEditData.artStyle" :maxlength="500" :disabled="generationConfigLocked" />
+            <t-input v-model="configEditData.artStyle" :maxlength="500" :disabled="generationConfigLocked" :placeholder="$t('workbench.quickVideo.artStyleOptionalPh')" />
           </t-form-item>
           <t-form-item :label="$t('workbench.quickVideo.videoRatio')">
             <t-select v-model="configEditData.videoRatio" :disabled="generationConfigLocked">
@@ -577,11 +616,15 @@
             </div>
           </t-form-item>
           <t-form-item :label="$t('workbench.quickVideo.targetDuration')">
-            <t-select v-model="configEditData.targetDuration" :disabled="targetDurationLocked">
-              <t-option :value="15" label="15s" />
-              <t-option :value="30" label="30s" />
-              <t-option :value="60" label="60s" />
-            </t-select>
+            <t-input-number
+              v-model="configDurationModel"
+              :min="5"
+              :max="60"
+              :step="1"
+              :disabled="targetDurationLocked"
+              theme="column"
+              style="width: 160px" />
+            <div class="fieldHint">{{ $t("workbench.quickVideo.durationRangeHint") }}</div>
             <div v-if="targetDurationLocked" class="fieldHint">
               {{ $t("workbench.quickVideo.targetDurationLocked") }}
             </div>
@@ -708,7 +751,7 @@ const { project } = storeToRefs(projectStore());
 const quickVideoStoreRef = quickVideoStore();
 const { connected, messages, status, workbench, state, loadingWorkbench, workbenchError, sessions, loadingSessions, currentSessionId, modelPreferences, isGenerating, clipboardMediaRef } =
   storeToRefs(quickVideoStoreRef);
-const { stopGenerate, getWorkbench, updateConfig, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference, getAssetBoard, bindShotFirstFrame } =
+const { stopGenerate, getWorkbench, updateConfig, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference, getAssetBoard, bindShotFirstFrame, requestGenerationConfirm, confirmGeneration, cancelGenerationConfirm } =
   quickVideoStoreRef;
 
 type QuickVideoPanel = "brief" | "storyboard" | "assets" | "preview";
@@ -1000,7 +1043,7 @@ interface QuickVideoConfigForm {
   name: string;
   artStyle: string;
   videoRatio: QuickVideoRatio;
-  targetDuration: QuickVideoDuration;
+  targetDuration: number | null;
   intro: string;
 }
 
@@ -1021,12 +1064,19 @@ const configEditData = ref<QuickVideoConfigForm>({
   targetDuration: 15,
   intro: "",
 });
-const configOriginalTargetDuration = ref<QuickVideoDuration>(15);
+const configOriginalTargetDuration = ref<number | null>(15);
+/** t-input-number 的模型适配：null（未设置）与空输入互相映射 */
+const configDurationModel = computed<number | undefined>({
+  get: () => configEditData.value.targetDuration ?? undefined,
+  set: (v) => {
+    configEditData.value.targetDuration = typeof v === "number" && Number.isFinite(v) ? Math.round(v) : null;
+  },
+});
 const storyboardRefreshHint = ref<StoryboardRefreshHint | null>(null);
 const targetDurationLocked = computed(() => state.value?.storyboard?.status === "confirmed");
 const generationConfigLocked = computed(() => ["generating", "ready_to_assemble", "completed"].includes(state.value?.stage ?? ""));
 
-function getShotBounds(targetDuration: QuickVideoDuration) {
+function getShotBounds(targetDuration: number) {
   const max = Math.max(1, Math.min(12, Math.floor(targetDuration / 5)));
   const min = Math.max(1, Math.min(5, Math.floor(targetDuration / 15) || 1));
   const tolerance = Math.max(3, Math.round(targetDuration * 0.2));
@@ -1034,7 +1084,7 @@ function getShotBounds(targetDuration: QuickVideoDuration) {
 }
 
 const configDurationPreview = computed(() => {
-  if (!state.value?.storyboard || configEditData.value.targetDuration === configOriginalTargetDuration.value) return null;
+  if (!state.value?.storyboard || configEditData.value.targetDuration == null || configEditData.value.targetDuration === configOriginalTargetDuration.value) return null;
   return { duration: configEditData.value.targetDuration, ...getShotBounds(configEditData.value.targetDuration) };
 });
 
@@ -1057,7 +1107,6 @@ async function saveConfigEdit() {
   const currentState = state.value;
   if (!currentState) return;
   if (!configEditData.value.name.trim()) return window.$message.warning($t("workbench.project.msg.enterProjectName"));
-  if (!configEditData.value.artStyle.trim()) return window.$message.warning($t("workbench.project.msg.enterArtStyle"));
 
   const previousTargetDuration = currentState.targetDuration;
   const targetDurationChanged = configEditData.value.targetDuration !== previousTargetDuration;
@@ -1068,7 +1117,8 @@ async function saveConfigEdit() {
       name: configEditData.value.name.trim(),
       artStyle: configEditData.value.artStyle.trim(),
       videoRatio: configEditData.value.videoRatio,
-      targetDuration: configEditData.value.targetDuration,
+      // 未设置（null）时不下发该字段，保持服务端当前值；下发时须为 5-60 整数
+      ...(configEditData.value.targetDuration != null ? { targetDuration: configEditData.value.targetDuration } : {}),
       intro: configEditData.value.intro,
     });
     if (!result.ok) {
@@ -1077,7 +1127,7 @@ async function saveConfigEdit() {
     }
 
     configEditVisible.value = false;
-    if (targetDurationChanged && hadStoryboard) {
+    if (targetDurationChanged && hadStoryboard && configEditData.value.targetDuration != null) {
       storyboardRefreshHint.value = { targetDuration: configEditData.value.targetDuration, ...getShotBounds(configEditData.value.targetDuration) };
     }
     window.$message.success($t("workbench.quickVideo.configSaved"));
@@ -1247,6 +1297,81 @@ async function resolveAssets() {
     resolving.value = false;
   }
 }
+
+// ===== 生成确认门（SIY-138）：确认卡片 + 版本校验 =====
+const pendingSnapshot = computed(() => state.value?.pendingSnapshot ?? null);
+const genConfirmRequesting = ref(false);
+const genConfirmSubmitting = ref(false);
+
+/** 发起生成确认：服务端组装版本化摘要（configVersion + 时长 + 画风 + 分镜摘要） */
+async function startGenerationConfirm() {
+  genConfirmRequesting.value = true;
+  try {
+    await requestGenerationConfirm();
+    window.$message.success($t("workbench.quickVideo.genConfirmRequested"));
+  } catch (e: any) {
+    window.$message.warning(e?.message ?? $t("workbench.quickVideo.opFailed"));
+  } finally {
+    genConfirmRequesting.value = false;
+  }
+}
+
+/** 确认生成：携带待确认摘要中的 configVersion；版本不一致由服务端拦截并提示重新确认 */
+async function submitGenerationConfirm() {
+  const snapshot = pendingSnapshot.value;
+  if (!snapshot) return;
+  genConfirmSubmitting.value = true;
+  try {
+    const result = await confirmGeneration(snapshot.configVersion);
+    if (!result.ok) {
+      window.$message.warning(result.error?.message ?? $t("workbench.quickVideo.opFailed"));
+      return;
+    }
+    window.$message.success($t("workbench.quickVideo.genConfirmStarted"));
+  } catch (e: any) {
+    window.$message.error(e?.message ?? $t("workbench.quickVideo.opFailed"));
+  } finally {
+    genConfirmSubmitting.value = false;
+  }
+}
+
+/** 返回修改：清空待确认快照，停在分镜已确认阶段继续打磨 */
+async function backToEditFromGenConfirm() {
+  try {
+    await cancelGenerationConfirm();
+  } catch (e: any) {
+    window.$message.warning(e?.message ?? $t("workbench.quickVideo.opFailed"));
+  }
+}
+
+/**
+ * 配置变更提示：监听 configVersion 递增（对话/面板改配置、分镜内容变更），给出一次性的
+ * 配置变更反馈；待确认快照被服务端失效时同步提示需重新确认。
+ */
+const lastSeenConfigVersion = ref<number | null>(null);
+watch(
+  () => state.value?.configVersion,
+  (version, prev) => {
+    if (version == null) return;
+    if (lastSeenConfigVersion.value == null) {
+      lastSeenConfigVersion.value = version;
+      return;
+    }
+    if (version > lastSeenConfigVersion.value) {
+      lastSeenConfigVersion.value = version;
+      // 首次渲染后的真实递增才提示；prev 为 undefined 时是首次订阅触发，跳过
+      if (prev != null && prev !== version) {
+        const s = state.value;
+        const durationText = s?.targetDuration != null ? `${s.targetDuration}s` : $t("workbench.quickVideo.unset");
+        window.$message.info($t("workbench.quickVideo.configVersionBumped", { version, duration: durationText }));
+        if (s?.confirmationStatus === "none") {
+          window.$message.warning($t("workbench.quickVideo.genConfirmInvalidated"));
+        }
+      }
+    }
+  },
+  { immediate: true },
+);
 
 // ===== 生成进度与重试 =====
 const shots = computed(() => state.value?.storyboard?.shots ?? []);
@@ -1706,6 +1831,75 @@ function cancelExport() {
     border: 0;
     border-radius: 0;
     background: transparent;
+  }
+  .genConfirmCard {
+    margin: 0 2px 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--td-warning-color-3);
+    border-radius: 10px;
+    background: var(--td-warning-color-1);
+    .genConfirmHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 650;
+      margin-bottom: 6px;
+    }
+    .genConfirmRows {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      .briefRow {
+        display: flex;
+        gap: 8px;
+        font-size: 12px;
+        line-height: 1.6;
+        label {
+          flex: 0 0 auto;
+          color: var(--td-text-color-secondary);
+        }
+        span {
+          min-width: 0;
+          word-break: break-all;
+        }
+      }
+    }
+    .genConfirmShotList {
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-height: 132px;
+      overflow-y: auto;
+      .genConfirmShot {
+        display: flex;
+        gap: 6px;
+        font-size: 12px;
+        line-height: 1.5;
+        .shotIndex {
+          flex: 0 0 auto;
+          color: var(--td-text-color-secondary);
+        }
+        .shotDesc {
+          min-width: 0;
+          overflow: hidden;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+      }
+    }
+    .genConfirmHint {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--td-text-color-secondary);
+    }
+    .genConfirmOps {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+    }
   }
   .panel {
     height: 100%;
