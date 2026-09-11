@@ -3,8 +3,8 @@ import { z } from "zod";
 import u from "@/utils";
 import { success, error } from "@/lib/responseFormat";
 import { validateFields } from "@/middleware/middleware";
-import { QuickVideoError, mutateQuickVideoState, loadQuickVideoState } from "@/lib/quickVideo/state";
-import { validateStoryboard } from "@/lib/quickVideo/contract";
+import { QuickVideoError, mutateQuickVideoState } from "@/lib/quickVideo/state";
+import { validateStoryboard, echoFinalParamsCard } from "@/lib/quickVideo/contract";
 import { buildSnapshot, applySnapshotToState, startQuickVideoGeneration } from "@/lib/quickVideo/generate";
 import { recordEvent, qvLog } from "@/lib/quickVideo/metrics";
 import { getOwnedSession } from "@/lib/quickVideo/session";
@@ -12,14 +12,16 @@ import { getOwnedSession } from "@/lib/quickVideo/session";
 const router = express.Router();
 
 /**
- * 用户确认门（三个关键确认点的统一入口）：
+ * 用户确认门（统一入口）：
  * - brief      简报确认：collect_brief -> brief_confirmed；reject 回退到 collect_brief
- * - storyboard 分镜确认：storyboard_draft -> storyboard_confirmed（校验镜头数量/时长）；reject 回草稿解锁编辑
- * - materials  素材/成本确认：storyboard_confirmed -> generating（冻结不可歧义的生成快照并启动逐镜头生成）；
- *              reject 清除素材确认（停在 storyboard_confirmed，可重新解析素材）
- * - export     成片导出确认：ready_to_assemble -> completed（装配/导出由后续任务接入）
+ * - storyboard 分镜确认：storyboard_draft -> storyboard_confirmed（校验镜头数量/时长）；
+ *              确认通过即组装最终生成参数、冻结生成快照并在聊天流回显确认卡片；reject 回草稿解锁编辑
+ * - materials  最终生成参数确认（字段名沿用旧版素材/成本门，语义已精简：不再要求确认素材清单或成本，
+ *              卡片仅展示时长/画风/分镜数量/分镜摘要）：storyboard_confirmed -> generating（确认后启动逐镜头生成）；
+ *              reject 清除确认状态（停在 storyboard_confirmed，可重新确认）
+ * - export     成片导出确认：ready_to_assemble -> completed
  * 仅用户可推进确认门；Agent 工具无权调用本接口。门的判定全部在服务端完成。
- * sessionId 必须真实属于该项目（校验跨项目/非法引用）；素材确认门据此把生成模型偏好定位到当前会话，
+ * sessionId 必须真实属于该项目（校验跨项目/非法引用）；最终参数确认据此把生成模型偏好定位到当前会话，
  * 并把触发该次写入的会话留痕到 o_agentWorkData.sessionId。
  */
 export default router.post(
@@ -83,6 +85,11 @@ export default router.post(
             state.stage = "storyboard_confirmed";
             state.storyboard.status = "confirmed";
             state.storyboard.confirmedAt = Date.now();
+            // 分镜确认后直接组装最终生成参数并回显确认卡片（快照同步冻结，供生成引擎读取）；
+            // 不再设置任何素材/成本前置门槛
+            const { materials, snapshotShots } = await buildSnapshot(projectId, state);
+            applySnapshotToState(state, state.storyboard.version, snapshotShots, materials);
+            echoFinalParamsCard(state);
           } else {
             if (state.stage !== "storyboard_confirmed") {
               throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${state.stage} 不需要撤销分镜确认`, state.version);
@@ -100,17 +107,17 @@ export default router.post(
           }
           if (action === "confirm") {
             if (state.stage !== "storyboard_confirmed") {
-              throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${state.stage} 不允许素材确认`, state.version);
+              throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${state.stage} 不允许最终参数确认`, state.version);
             }
             // 快照缺失或分镜版本已变化时，服务端现场重新解析（门的判定不依赖前端传值）
             const needResolve =
               !state.generation?.snapshot || state.generation.snapshot.storyboardVersion !== state.storyboard.version;
             if (needResolve) {
-              const { materials, estimate, snapshotShots } = await buildSnapshot(projectId, state);
-              applySnapshotToState(state, state.storyboard.version, snapshotShots, materials, estimate);
+              const { materials, snapshotShots } = await buildSnapshot(projectId, state);
+              applySnapshotToState(state, state.storyboard.version, snapshotShots, materials);
             }
             if (!state.generation.snapshot) {
-              throw new QuickVideoError("MATERIALS_RESOLVE_FAILED", "素材解析失败，无法确认", state.version);
+              throw new QuickVideoError("MATERIALS_RESOLVE_FAILED", "生成参数组装失败，无法确认", state.version);
             }
             state.generation.materialsConfirmed = true;
             state.generation.materialsConfirmedAt = Date.now();
@@ -120,7 +127,7 @@ export default router.post(
             shouldStartGeneration = true;
           } else {
             if (state.stage !== "storyboard_confirmed") {
-              throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${state.stage} 不允许撤销素材确认`, state.version);
+              throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${state.stage} 不允许撤销最终参数确认`, state.version);
             }
             state.generation.materialsConfirmed = false;
             state.generation.materialsConfirmedAt = null;
@@ -128,7 +135,7 @@ export default router.post(
           return;
         }
 
-        // gate === "export"（第三道确认门：ready_to_assemble -> completed；completed 允许携带新结果幂等重确认）
+        // gate === "export"（导出确认门：ready_to_assemble -> completed；completed 允许携带新结果幂等重确认）
         if (action !== "confirm") {
           throw new QuickVideoError("FORBIDDEN", "导出无需撤销，未导出即可继续编辑", state.version);
         }
@@ -146,7 +153,7 @@ export default router.post(
       }
       res.status(200).send(success({ state: result.state, idempotentHit: result.idempotentHit }));
 
-      // 素材确认门通过后启动逐镜头生成（分离运行，接口已返回；启动失败不回滚确认，
+      // 最终参数确认通过后启动逐镜头生成（分离运行，接口已返回；启动失败不回滚确认，
       // 用户可通过失败镜头重试或 Agent 的 generate_shots 幂等重启）
       if (shouldStartGeneration && !result.idempotentHit) {
         try {

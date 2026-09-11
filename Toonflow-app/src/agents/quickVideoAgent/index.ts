@@ -51,7 +51,7 @@ function buildMemPrompt(mem: Awaited<ReturnType<Memory["get"]>>): string {
 
 /**
  * 单视频快创 Agent：单层结构（无子 Agent），通过受限 JSON Schema 工具读写工作台状态。
- * 状态机的阶段推进（确认门）只由用户在右侧面板触发，Agent 不得也無法代替用户确认。
+ * 状态机的阶段推进（确认门）只由用户在右侧面板/聊天确认卡片触发，Agent 不得也無法代替用户确认。
  */
 export async function runQuickVideoAgent(ctx: AgentContext) {
   const { isolationKey, sessionId, text, textModel, userMessageTime, abortSignal, resTool, userId } = ctx;
@@ -78,6 +78,9 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
     state ? `当前阶段：${state.stage}（状态版本 ${state.version}）` : "",
     state?.brief ? `简报确认状态：${state.brief.confirmed ? "已确认" : "未确认"}` : "简报：暂无",
     state?.storyboard ? `分镜：v${state.storyboard.version}（${state.storyboard.status === "confirmed" ? "已确认" : "草稿"}，共 ${state.storyboard.shots.length} 镜）` : "分镜：暂无",
+    state?.storyboard?.status === "confirmed"
+      ? `最终生成参数确认：${state.generation?.materialsConfirmed ? "用户已确认，生成已启动或进行中" : "待确认（系统已在聊天回显确认卡片，仅含视频时长/整体画风/分镜数量/分镜摘要，等待用户点击「确认生成」）"}`
+      : "",
     state ? `允许镜头数量：${shotCountBounds(state.targetDuration).min}-${shotCountBounds(state.targetDuration).max} 个` : "",
     ctx.mode === "image"
       ? `本轮用户在聊天框选择了「图片」生成模式，模型：${ctx.imageModel}。请调用 generate_image 工具按用户描述生成图片，不要只用文字描述画面；生成的图片会自动出现在聊天记录和资产白板中，不会自动绑定到任何镜头或自动确认分镜。`

@@ -63,6 +63,40 @@
                 </div>
               </div>
             </template>
+            <!-- 最终生成参数确认卡片（分镜确认后聊天回显，仅含时长/画风/分镜数量/分镜摘要） -->
+            <div v-if="finalParamsCardsView.length" class="qvFinalParamsList" data-testid="quick-video-final-params">
+              <div
+                v-for="card in finalParamsCardsView"
+                :key="card.cardId"
+                class="qvFinalParamsCard"
+                :class="{ active: card.active, confirmed: card.confirmed, stale: !card.active && !card.confirmed }">
+                <div class="qvFinalParamsHead">
+                  <span class="qvFinalParamsTitle">{{ $t("workbench.quickVideo.finalParams.title") }}</span>
+                  <t-tag v-if="card.confirmed" shape="round" size="small" theme="success">
+                    {{ $t("workbench.quickVideo.finalParams.confirmedTag") }}
+                  </t-tag>
+                  <t-tag v-else-if="card.active" shape="round" size="small" theme="warning">
+                    {{ $t("workbench.quickVideo.finalParams.pendingTag") }}
+                  </t-tag>
+                  <t-tag v-else shape="round" size="small" theme="default">
+                    {{ $t("workbench.quickVideo.finalParams.staleTag") }}
+                  </t-tag>
+                </div>
+                <div class="qvFinalParamsRow"><label>{{ $t("workbench.quickVideo.finalParams.duration") }}</label><span>{{ card.targetDuration }}s</span></div>
+                <div class="qvFinalParamsRow"><label>{{ $t("workbench.quickVideo.finalParams.artStyle") }}</label><span>{{ card.artStyle || "-" }}</span></div>
+                <div class="qvFinalParamsRow"><label>{{ $t("workbench.quickVideo.finalParams.shotCount") }}</label><span>{{ card.shotCount }}</span></div>
+                <div class="qvFinalParamsRow">
+                  <label>{{ $t("workbench.quickVideo.finalParams.summary") }}</label>
+                  <span>{{ card.summary || $t("workbench.quickVideo.finalParams.noSummary") }}</span>
+                </div>
+                <div class="qvFinalParamsOps" v-if="card.active">
+                  <t-button size="small" theme="primary" :loading="confirmingFinalParams" data-testid="quick-video-confirm-generate" @click="confirmFinalParams">
+                    {{ $t("workbench.quickVideo.finalParams.confirmGenerate") }}
+                  </t-button>
+                </div>
+                <div class="qvFinalParamsStaleHint" v-else-if="!card.confirmed">{{ $t("workbench.quickVideo.finalParams.staleHint") }}</div>
+              </div>
+            </div>
           </t-chat-list>
           <t-chat-sender
             class="inputBox"
@@ -346,66 +380,6 @@
                 </div>
               </div>
               <t-empty v-else :title="$t('workbench.quickVideo.noStoryboard')" />
-            </div>
-
-            <!-- 素材与成本卡片（分镜确认后展示，素材/成本确认门） -->
-            <div class="card" v-if="activePanel === 'assets' && showMaterialsCard">
-              <div class="cardHeader">
-                <span>
-                  {{ $t("workbench.quickVideo.materials") }}
-                  <t-tag v-if="state?.generation?.materialsConfirmed" shape="round" size="small" theme="success" style="margin-left: 6px">
-                    {{ $t("workbench.quickVideo.confirmed") }}
-                  </t-tag>
-                </span>
-                <div class="actions">
-                  <t-button
-                    v-if="state?.stage === 'storyboard_confirmed'"
-                    size="small"
-                    variant="outline"
-                    :loading="resolving"
-                    @click="resolveAssets">
-                    {{ $t("workbench.quickVideo.resolveMaterials") }}
-                  </t-button>
-                  <t-button
-                    v-if="state?.stage === 'storyboard_confirmed'"
-                    size="small"
-                    theme="primary"
-                    :disabled="!state?.generation?.snapshot"
-                    @click="confirmGate('materials', 'confirm')">
-                    {{ $t("workbench.quickVideo.confirmMaterials") }}
-                  </t-button>
-                  <t-button
-                    v-if="state?.stage === 'storyboard_confirmed' && state?.generation?.materialsConfirmed"
-                    size="small"
-                    variant="outline"
-                    @click="confirmGate('materials', 'reject')">
-                    {{ $t("workbench.quickVideo.rejectConfirm") }}
-                  </t-button>
-                </div>
-              </div>
-              <div class="cardBody" v-if="state?.generation?.snapshot">
-                <div class="estimateRow">
-                  <t-tag shape="round">{{ $t("workbench.quickVideo.estimateImages") }}：{{ snapshot?.estimatedImageCount ?? 0 }}</t-tag>
-                  <t-tag shape="round">{{ $t("workbench.quickVideo.estimateVideos") }}：{{ snapshot?.estimatedVideoCount ?? 0 }}</t-tag>
-                  <t-tag shape="round" theme="warning">{{ $t("workbench.quickVideo.estimateCost") }}：≈ ¥{{ snapshot?.estimatedCostYuan ?? 0 }}</t-tag>
-                  <t-tag shape="round" theme="warning">{{ $t("workbench.quickVideo.estimateTime") }}：≈ {{ estimateMinutes }}</t-tag>
-                </div>
-                <div class="materialList">
-                  <div class="materialItem" v-for="m in snapshot?.materials ?? []" :key="m.type + m.name">
-                    <t-tag size="small" shape="round" variant="outline">{{ assetTypeLabel(m.type) }}</t-tag>
-                    <span class="materialName">{{ m.name }}</span>
-                    <span class="materialDesc">{{ m.desc || "-" }}</span>
-                    <t-tag size="small" shape="round" :theme="m.source === 'matched' ? 'success' : 'warning'">
-                      {{ m.source === "matched" ? $t("workbench.quickVideo.materialMatched") : $t("workbench.quickVideo.materialToGenerate") }}
-                    </t-tag>
-                  </div>
-                  <div v-if="!snapshot?.materials?.length" class="noMaterials">{{ $t("workbench.quickVideo.noMaterials") }}</div>
-                </div>
-                <div class="snapshotNote">{{ $t("workbench.quickVideo.snapshotNote") }}</div>
-              </div>
-              <div class="cardBody" v-else>
-                <div class="noMaterials">{{ $t("workbench.quickVideo.materialsHint") }}</div>
-              </div>
             </div>
 
             <!-- 生成进度卡片 -->
@@ -695,7 +669,7 @@
 import axios from "@/utils/axios";
 import projectStore from "@/stores/project";
 import quickVideoStore from "@/stores/quickVideo";
-import type { QuickVideoDuration, QuickVideoRatio, QuickVideoStage, QuickVideoShot, QuickVideoSession, MediaRef, ChatMediaExt } from "@/types/quickVideo";
+import type { QuickVideoDuration, QuickVideoRatio, QuickVideoStage, QuickVideoShot, QuickVideoSession, QuickVideoFinalParamsCard, MediaRef, ChatMediaExt } from "@/types/quickVideo";
 import modelSelect from "@/components/modelSelect.vue";
 import SessionList from "./components/SessionList.vue";
 import AssetBoard from "./components/AssetBoard.vue";
@@ -1222,29 +1196,72 @@ async function removeShot(shotId: string) {
   });
 }
 
-// ===== 素材解析与确认（素材/成本确认门） =====
-const snapshot = computed(() => state.value?.generation?.snapshot);
-const showMaterialsCard = computed(() => {
-  const stage = state.value?.stage;
-  return !!stage && ["storyboard_confirmed", "generating", "ready_to_assemble", "completed"].includes(stage);
-});
-const resolving = ref(false);
-const estimateMinutes = computed(() => {
-  const seconds = snapshot.value?.estimatedSeconds ?? 0;
-  return `${Math.max(1, Math.round(seconds / 60))} ${$t("workbench.quickVideo.minutes")}`;
+// ===== 最终生成参数确认卡片（分镜确认后聊天回显；参数变更后旧卡片失效） =====
+const confirmingFinalParams = ref(false);
+const finalParamsCards = computed(() => state.value?.generation?.finalParamsCards ?? []);
+const latestCardId = computed(() => finalParamsCards.value[finalParamsCards.value.length - 1]?.cardId ?? "");
+
+/** 卡片是否仍与当前实时参数一致（分镜版本/时长/画风/分镜数量/分镜摘要） */
+function cardMatchesLiveParams(card: QuickVideoFinalParamsCard): boolean {
+  const sb = state.value?.storyboard;
+  if (!sb) return false;
+  return (
+    sb.version === card.storyboardVersion &&
+    state.value?.targetDuration === card.targetDuration &&
+    (state.value?.artStyle ?? "") === card.artStyle &&
+    sb.shots.length === card.shotCount &&
+    (sb.summary ?? "") === card.summary
+  );
+}
+
+interface FinalParamsCardView extends QuickVideoFinalParamsCard {
+  confirmed: boolean;
+  active: boolean;
+}
+
+const finalParamsCardsView = computed<FinalParamsCardView[]>(() => {
+  const cards = finalParamsCards.value.map((card) => {
+    const isLatest = card.cardId === latestCardId.value;
+    const matches = cardMatchesLiveParams(card);
+    const confirmed = isLatest && matches && !!state.value?.generation?.materialsConfirmed;
+    const active =
+      isLatest && matches && state.value?.stage === "storyboard_confirmed" && !state.value?.generation?.materialsConfirmed;
+    return { ...card, confirmed, active };
+  });
+  // 兼容存量项目：已处于待确认状态但从未回显过卡片（旧版本状态机推进）时，现场合成一张当前参数卡片
+  if (!cards.some((c) => c.active) && state.value?.stage === "storyboard_confirmed" && !state.value?.generation?.materialsConfirmed && state.value.storyboard) {
+    cards.push({
+      cardId: "live",
+      storyboardVersion: state.value.storyboard.version,
+      targetDuration: state.value.targetDuration,
+      artStyle: state.value.artStyle,
+      shotCount: state.value.storyboard.shots.length,
+      summary: state.value.storyboard.summary ?? "",
+      echoedAt: 0,
+      confirmed: false,
+      active: true,
+    });
+  }
+  // 聊天流内最多展示最近 3 张卡片（最新在前），更早的回显历史不占空间
+  return cards.reverse().slice(0, 3);
 });
 
-async function resolveAssets() {
+async function confirmFinalParams() {
   if (!state.value) return;
-  resolving.value = true;
+  confirmingFinalParams.value = true;
   try {
-    await callQuickVideoApi("/quickVideo/resolveAssets", {
+    const ok = await callQuickVideoApi("/quickVideo/confirmStage", {
       projectId: Number(project.value?.id),
+      sessionId: currentSessionId.value,
       expectedVersion: state.value.version,
       idempotencyKey: newIdemKey(),
+      gate: "materials",
+      action: "confirm",
     });
+    // 确认后无缝进入逐镜头生成：切到预览面板实时展示各镜头进度
+    if (ok) activePanel.value = "preview";
   } finally {
-    resolving.value = false;
+    confirmingFinalParams.value = false;
   }
 }
 
@@ -1698,6 +1715,60 @@ function cancelExport() {
           line-height: 1.4;
         }
       }
+      .qvFinalParamsList {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 4px 12px 12px;
+      }
+      .qvFinalParamsCard {
+        border: 1px solid var(--td-component-border);
+        border-radius: 10px;
+        padding: 10px 12px;
+        background: var(--td-bg-color-container);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 13px;
+        &.active {
+          border-color: var(--td-brand-color);
+          box-shadow: 0 0 0 1px var(--td-brand-color-light);
+        }
+        &.stale {
+          opacity: 0.55;
+          background: var(--td-bg-color-secondarycontainer);
+        }
+        .qvFinalParamsHead {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          .qvFinalParamsTitle {
+            font-weight: 600;
+          }
+        }
+        .qvFinalParamsRow {
+          display: flex;
+          gap: 8px;
+          label {
+            flex-shrink: 0;
+            opacity: 0.55;
+          }
+          span {
+            flex: 1;
+            min-width: 0;
+            word-break: break-all;
+          }
+        }
+        .qvFinalParamsOps {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: 2px;
+        }
+        .qvFinalParamsStaleHint {
+          font-size: 12px;
+          opacity: 0.6;
+        }
+      }
     }
   }
   .chatSidebar .box {
@@ -1843,42 +1914,6 @@ function cancelExport() {
           display: flex;
           gap: 2px;
         }
-      }
-      .estimateRow {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 10px;
-      }
-      .materialList {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        .materialItem {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 13px;
-          .materialName {
-            font-weight: 600;
-          }
-          .materialDesc {
-            flex: 1;
-            opacity: 0.6;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          }
-        }
-        .noMaterials {
-          font-size: 13px;
-          opacity: 0.5;
-        }
-      }
-      .snapshotNote {
-        margin-top: 10px;
-        font-size: 12px;
-        opacity: 0.45;
       }
       .progressMeta {
         display: flex;

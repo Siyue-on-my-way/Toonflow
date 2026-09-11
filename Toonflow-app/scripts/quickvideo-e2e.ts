@@ -296,7 +296,7 @@ async function main() {
   assert(proWb.data === null && String(proWb.message).includes("非单视频快创"), "专业项目访问快创工作台被拒", JSON.stringify(proWb).slice(0, 200));
 
   // ===========================================================================
-  // 以下覆盖 SIY-109：工作台交互与生成闭环（素材解析、素材/成本确认门、
+  // 以下覆盖 SIY-109：工作台交互与生成闭环（素材解析、最终参数确认卡片、
   // 逐镜头生成、单镜头失败重试隔离、中断恢复）。成功路径使用「空模板」供应商
   // （imageRequest/videoRequest 空实现），零外部依赖地跑通完整任务链路。
   // ===========================================================================
@@ -328,7 +328,7 @@ async function main() {
     throw new Error(`dbWrite(${desc}) 失败: ${u.error(lastErr).message}`);
   }
 
-  console.log("== 9. 素材解析与素材/成本预估 ==");
+  console.log("== 9. 素材解析与最终参数确认卡片 ==");
   // 9.1 新项目（15 秒 → 1-3 镜）
   const p2 = await api("/quickVideo/createProject", {
     name: `E2E快创生成-${Date.now()}`,
@@ -385,10 +385,20 @@ async function main() {
     await u.db("o_assets").insert({ id: Number(assetMax?.maxId ?? 0) + 2, name: "霓虹奶茶店", type: "scene", projectId: p2Id, imageId: null });
   });
 
-  // 9.3 确认分镜 → 解析素材
+  // 9.3 确认分镜 → 自动组装最终生成参数并回显确认卡片
   const vC = await getState(p2Id);
   const confirmSb2 = await api("/quickVideo/confirmStage", { projectId: p2Id, sessionId: p2SessionId, expectedVersion: vC.version, idempotencyKey: key(), gate: "storyboard", action: "confirm" });
   assert(confirmSb2.code === 200 && confirmSb2.data.state.stage === "storyboard_confirmed", "P2 分镜确认成功");
+
+  // 分镜确认后聊天回显最终参数确认卡片：仅含时长/画风/分镜数量/分镜摘要
+  const echoCards = confirmSb2.data.state.generation?.finalParamsCards ?? [];
+  assert(echoCards.length === 1, "分镜确认后回显 1 张最终参数确认卡片", JSON.stringify(echoCards));
+  assert(
+    echoCards[0]?.targetDuration === 15 && echoCards[0]?.artStyle === "赛博朋克" && echoCards[0]?.shotCount === 3,
+    "卡片字段：时长 15s / 画风 赛博朋克 / 分镜数量 3",
+    JSON.stringify(echoCards[0]),
+  );
+  assert(confirmSb2.data.state.generation?.snapshot?.storyboardVersion === 1, "分镜确认时同步冻结生成快照");
 
   const resolved = await api("/quickVideo/resolveAssets", { projectId: p2Id, expectedVersion: confirmSb2.data.state.version, idempotencyKey: key() });
   assert(resolved.code === 200 && !!resolved.data.state.generation.snapshot, "resolveAssets 生成素材快照", JSON.stringify(resolved).slice(0, 200));
@@ -397,17 +407,23 @@ async function main() {
   const toGen = materials.find((m: any) => m.name === "霓虹奶茶店");
   assert(matched?.source === "matched" && !!matched.assetId && !!matched.filePath, "资产库命中：小茶 → matched（复用已有资产图）", JSON.stringify(matched));
   assert(toGen?.source === "to_generate", "无图资产：霓虹奶茶店 → to_generate", JSON.stringify(toGen));
-  assert(resolved.data.estimate?.estimatedImageCount === 4 && resolved.data.estimate?.estimatedVideoCount === 3, "预估：3 分镜图 + 1 素材图 / 3 视频", JSON.stringify(resolved.data.estimate));
-  assert(Math.abs(resolved.data.estimate?.estimatedCostYuan - 8.7) < 0.001, "预估费用 = 4×0.3 + 15×0.5 = 8.7 元", JSON.stringify(resolved.data.estimate));
 
-  // 9.4 分镜未确认时不允许素材确认（用 storyboard_draft 的主项目验证）
+  // 9.4 分镜已确认状态下修改画风 → 旧确认卡片失效并重新回显
+  const vCfg = await getState(p2Id);
+  const cfgChange = await api("/quickVideo/updateConfig", { projectId: p2Id, expectedVersion: vCfg.version, idempotencyKey: key(), patch: { artStyle: "赛博朋克·霓虹加强版" } });
+  assert(cfgChange.code === 200, "分镜已确认时修改画风成功", JSON.stringify(cfgChange).slice(0, 200));
+  const cardsAfterCfg = cfgChange.data.state.generation?.finalParamsCards ?? [];
+  assert(cardsAfterCfg.length === 2, "画风变更后重新回显确认卡片（旧卡片保留为失效）", JSON.stringify(cardsAfterCfg.map((c: any) => c.cardId)));
+  assert(cardsAfterCfg[1]?.artStyle === "赛博朋克·霓虹加强版" && cardsAfterCfg[1]?.storyboardVersion === 1, "新卡片携带最新画风", JSON.stringify(cardsAfterCfg[1]));
+
+  // 9.5 分镜未确认时不允许最终参数确认（用 storyboard_draft 的主项目验证）
   const draftConfirm = await api("/quickVideo/confirmStage", { projectId, sessionId, expectedVersion: (await getState(projectId)).version, idempotencyKey: key(), gate: "materials", action: "confirm" });
-  assert(draftConfirm.code === "NO_STORYBOARD", "分镜未确认时素材确认被拒", JSON.stringify(draftConfirm));
+  assert(draftConfirm.code === "NO_STORYBOARD", "分镜未确认时最终参数确认被拒", JSON.stringify(draftConfirm));
 
-  console.log("== 10. 素材确认门与逐镜头生成（无模型 → 统一失败可重试） ==");
+  console.log("== 10. 最终参数确认与逐镜头生成（无模型 → 统一失败可重试） ==");
   const confirmMat = await api("/quickVideo/confirmStage", { projectId: p2Id, sessionId: p2SessionId, expectedVersion: (await getState(p2Id)).version, idempotencyKey: key(), gate: "materials", action: "confirm" });
-  assert(confirmMat.code === 200 && confirmMat.data.state.stage === "generating", "素材确认 → generating", JSON.stringify(confirmMat).slice(0, 200));
-  assert(confirmMat.data.state.generation.materialsConfirmed === true, "素材确认门状态由服务端写入");
+  assert(confirmMat.code === 200 && confirmMat.data.state.stage === "generating", "最终参数确认 → generating", JSON.stringify(confirmMat).slice(0, 200));
+  assert(confirmMat.data.state.generation.materialsConfirmed === true, "最终参数确认状态由服务端写入");
   assert(confirmMat.data.state.generation.snapshot?.storyboardVersion === 1, "确认快照冻结分镜版本 v1");
 
   // 未配置图片/视频模型 → 整批标记失败，错误原因可读，阶段停在 generating
@@ -420,9 +436,9 @@ async function main() {
   const failureReason = String(failedState.storyboard.shots[0].errorReason ?? "").trim();
   assert(failureReason.length > 0, "失败原因可读且已写入", failureReason);
 
-  // 生成阶段重复素材确认被拒（门状态由服务端决定）
+  // 生成阶段重复最终参数确认被拒（门状态由服务端决定）
   const matAgain = await api("/quickVideo/confirmStage", { projectId: p2Id, sessionId: p2SessionId, expectedVersion: (await getState(p2Id)).version, idempotencyKey: key(), gate: "materials", action: "confirm" });
-  assert(matAgain.code === "STAGE_MISMATCH", "generating 阶段重复素材确认被拒", JSON.stringify(matAgain));
+  assert(matAgain.code === "STAGE_MISMATCH", "generating 阶段重复最终参数确认被拒", JSON.stringify(matAgain));
 
   console.log("== 11. 配置空模板供应商，单镜头重试隔离 ==");
   // 11.1 造「空模板」供应商（imageRequest/videoRequest 返回空串，完整走任务记录+保存链路）

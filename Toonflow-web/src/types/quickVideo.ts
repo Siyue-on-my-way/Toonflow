@@ -140,16 +140,29 @@ export interface QuickVideoGenerationSnapshot {
     firstFrame: (ShotFirstFrame & { filePath: string }) | null;
   }[];
   materials: QuickVideoMaterialItem[];
-  estimatedImageCount: number;
-  estimatedVideoCount: number;
-  estimatedCostYuan: number;
-  estimatedSeconds: number;
+}
+
+/**
+ * 最终生成参数确认卡片（分镜确认后在聊天流回显，仅展示四项）。
+ * 参数（时长/画风/分镜内容）变更后服务端重新回显新卡片，旧卡片由前端标记为已失效。
+ */
+export interface QuickVideoFinalParamsCard {
+  cardId: string;
+  storyboardVersion: number;
+  targetDuration: QuickVideoDuration;
+  artStyle: string;
+  shotCount: number;
+  summary: string;
+  echoedAt: number;
 }
 
 export interface QuickVideoGeneration {
   snapshot: QuickVideoGenerationSnapshot | null;
+  /** 最终生成参数确认状态（字段名沿用旧版，仅作内部标识） */
   materialsConfirmed: boolean;
   materialsConfirmedAt: number | null;
+  /** 最终生成参数确认卡片（最新在末尾） */
+  finalParamsCards: QuickVideoFinalParamsCard[];
   runId: string | null;
   startedAt: number | null;
   finishedAt: number | null;

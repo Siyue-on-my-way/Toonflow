@@ -203,7 +203,7 @@ describe("quickVideo store — 资产白板与首帧绑定（SIY-132）", () => 
       createIdempotencyKey: "k",
       brief: null,
       storyboard: { version: 1, status: "draft", confirmedAt: null, summary: "", shots: [] },
-      generation: { snapshot: null, materialsConfirmed: false, materialsConfirmedAt: null, runId: null, startedAt: null, finishedAt: null, materialImages: {}, timeline: null, exportInfo: null },
+      generation: { snapshot: null, materialsConfirmed: false, materialsConfirmedAt: null, finalParamsCards: [], runId: null, startedAt: null, finishedAt: null, materialImages: {}, timeline: null, exportInfo: null },
       appliedKeys: {},
       lastChatAt: null,
       updateTime: 1000,

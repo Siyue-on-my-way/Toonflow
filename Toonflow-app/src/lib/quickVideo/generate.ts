@@ -2,7 +2,7 @@
  * QuickVideo 逐镜头生成引擎（图片 → 5-15 秒视频片段）
  *
  * 设计要点（对应 SIY-109 约束）：
- * - 生成只读取素材/成本确认门冻结的快照（generationSnapshot），不读实时分镜内容；
+ * - 生成只读取最终生成参数确认时冻结的快照（generationSnapshot），不读实时分镜内容；
  *   镜头级生成状态（imageState/videoState/imageRef/videoRef/errorReason）实时回写 o_agentWorkData。
  * - 复用现有 AI 供应商链路（u.Ai.Image / u.Ai.Video，内部自带任务记录与重试型供应商轮询）
  *   与 MinIO 存储（u.oss）。
@@ -23,7 +23,6 @@ import {
   QuickVideoSnapshotShot,
   QuickVideoState,
   SnapshotFirstFrame,
-  computeGenerationEstimate,
 } from "./contract";
 import { QuickVideoError, loadQuickVideoState, mutateQuickVideoState } from "./state";
 import { recordEvent, qvLog } from "./metrics";
@@ -51,13 +50,13 @@ export function getActiveRunId(projectId: number): string | null {
 }
 
 // ---------------------------------------------------------------------------
-// 素材解析与预估
+// 素材解析与生成快照
 // ---------------------------------------------------------------------------
 
 /**
  * 解析分镜中引用的资产：按项目 + 名称（优先同类型）匹配资产库，
  * 命中则复用已有资产图作为生成参考，否则标记为需要先生成素材图。
- * 返回解析结果与预估，并写入 state.generation.snapshot（未确认，可反复刷新）。
+ * 返回解析结果并写入 state.generation.snapshot（未确认快照，可反复刷新）。
  */
 export async function resolveMaterialsSnapshot(
   projectId: number,
@@ -70,16 +69,16 @@ export async function resolveMaterialsSnapshot(
     throw new QuickVideoError("STAGE_FORBIDDEN", `当前阶段 ${state.stage} 不允许解析素材`, state.version);
   }
 
-  const { materials, estimate, snapshotShots } = await buildSnapshot(projectId, state);
+  const { materials, snapshotShots } = await buildSnapshot(projectId, state);
 
   const { state: next, idempotentHit } = await mutateQuickVideoState(projectId, opts, (s) => {
     if (!s.storyboard) throw new QuickVideoError("NO_STORYBOARD", "暂无分镜，无法解析素材", s.version);
-    applySnapshotToState(s, s.storyboard.version, snapshotShots, materials, estimate);
+    applySnapshotToState(s, s.storyboard.version, snapshotShots, materials);
   });
-  return { state: next, materials, estimate, idempotentHit };
+  return { state: next, materials, idempotentHit };
 }
 
-/** 素材解析 + 预估推导（不落库，供素材确认门现场重建快照时复用） */
+/** 素材解析（不落库，供最终参数确认/卡片回显现场重建快照时复用） */
 export async function buildSnapshot(projectId: number, state: QuickVideoState) {
   if (!state.storyboard) throw new QuickVideoError("NO_STORYBOARD", "暂无分镜，无法解析素材", state.version);
   const materials = await buildMaterials(projectId, state.storyboard.shots);
@@ -95,10 +94,8 @@ export async function buildSnapshot(projectId: number, state: QuickVideoState) {
       firstFrame: await resolveSnapshotFirstFrame(s),
     })),
   );
-  const estimate = computeGenerationEstimate(snapshotShots, materials);
-  return { materials, estimate, snapshotShots };
+  return { materials, snapshotShots };
 }
-
 /**
  * 冻结镜头的首帧引用：把 shot.firstFrame（mediaId/assetId/imageId）解析出 filePath 一并
  * 写入快照，生成引擎直接读取，不再二次查库/查权限。首帧已绑定但文件已失效时直接报错，
@@ -116,13 +113,12 @@ async function resolveSnapshotFirstFrame(shot: QuickVideoShot): Promise<Snapshot
   return { ...shot.firstFrame, filePath: image.filePath };
 }
 
-/** 把解析结果写入状态的 generation.snapshot（确认门前为未确认快照；新快照会重置确认门） */
+/** 把解析结果写入状态的 generation.snapshot（最终参数确认前为未确认快照；新快照会重置确认状态） */
 export function applySnapshotToState(
   s: QuickVideoState,
   storyboardVersion: number,
   snapshotShots: QuickVideoSnapshotShot[],
   materials: QuickVideoMaterialItem[],
-  estimate: { estimatedImageCount: number; estimatedVideoCount: number; estimatedCostYuan: number; estimatedSeconds: number },
 ) {
   s.generation.snapshot = {
     storyboardVersion,
@@ -131,7 +127,6 @@ export function applySnapshotToState(
     artStyle: s.artStyle,
     shots: snapshotShots,
     materials,
-    ...estimate,
   };
   s.generation.materialsConfirmed = false;
   s.generation.materialsConfirmedAt = null;
@@ -224,7 +219,7 @@ export async function resolveGenerationModels(projectId: number, sessionId?: num
 
 /**
  * 启动（或幂等复用）一次整项目生成运行。
- * 前置条件由服务端校验：generating 阶段 + 素材确认门已通过 + 快照存在。
+ * 前置条件由服务端校验：generating 阶段 + 最终生成参数确认已通过 + 快照存在。
  */
 export async function startQuickVideoGeneration(
   projectId: number,
@@ -237,10 +232,10 @@ export async function startQuickVideoGeneration(
   const state = await loadQuickVideoState(projectId);
   if (!state) throw new QuickVideoError("STATE_NOT_FOUND", "未找到 quickVideoAgent 状态");
   if (state.stage !== "generating") {
-    throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${state.stage} 不允许开始生成，请先通过确认门`, state.version);
+    throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${state.stage} 不允许开始生成，请先确认最终生成参数`, state.version);
   }
   if (!state.generation?.materialsConfirmed || !state.generation?.snapshot) {
-    throw new QuickVideoError("MATERIALS_NOT_CONFIRMED", "素材/成本确认门尚未通过，无法开始生成", state.version);
+    throw new QuickVideoError("MATERIALS_NOT_CONFIRMED", "最终生成参数尚未确认，无法开始生成", state.version);
   }
 
   const runId = `run-${u.uuid().slice(0, 8)}`;
@@ -279,7 +274,7 @@ export async function retryQuickVideoShots(projectId: number, userId: number, sh
     throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${state.stage} 不允许重试，仅生成阶段可重试失败镜头`, state.version);
   }
   if (!state.generation?.materialsConfirmed) {
-    throw new QuickVideoError("MATERIALS_NOT_CONFIRMED", "素材/成本确认门尚未通过", state.version);
+    throw new QuickVideoError("MATERIALS_NOT_CONFIRMED", "最终生成参数尚未确认", state.version);
   }
   if (runningGenerations.has(projectId)) {
     throw new QuickVideoError("GENERATION_RUNNING", "整批生成正在进行中，请等待结束后再重试失败镜头", state.version);
@@ -398,7 +393,7 @@ async function runGeneration(projectId: number, userId: number, runId: string, s
   const snapshot = state?.generation?.snapshot;
   if (!snapshot) {
     console.error(`[quickVideo] 运行 ${runId} 缺少生成快照，终止`);
-    await markShotsFailed(projectId, state?.storyboard?.shots.map((shot) => shot.id) ?? [], "生成快照缺失，请重新确认素材并重试");
+    await markShotsFailed(projectId, state?.storyboard?.shots.map((shot) => shot.id) ?? [], "生成快照缺失，请重新确认分镜并重试");
     return;
   }
 

@@ -3,7 +3,8 @@ import { z } from "zod";
 import u from "@/utils";
 import { success } from "@/lib/responseFormat";
 import { validateFields } from "@/middleware/middleware";
-import { QUICK_VIDEO_RATIOS } from "@/lib/quickVideo/contract";
+import { QUICK_VIDEO_RATIOS, echoFinalParamsCard } from "@/lib/quickVideo/contract";
+import { buildSnapshot, applySnapshotToState } from "@/lib/quickVideo/generate";
 import { QuickVideoError, mutateQuickVideoState } from "@/lib/quickVideo/state";
 
 const router = express.Router();
@@ -11,6 +12,7 @@ const router = express.Router();
 /**
  * 编辑快创项目基础配置（标题/画风/比例/目标时长/简介）。
  * 乐观锁保护；目标时长在分镜确认后禁止修改（需先撤销确认），防止已确认分镜与目标脱钩。
+ * 分镜已确认状态下修改画风/比例：旧最终参数确认立即失效，并重建快照、重新回显确认卡片。
  */
 export default router.post(
   "/",
@@ -47,8 +49,8 @@ export default router.post(
         if (patch.videoRatio != null) state.videoRatio = patch.videoRatio;
         if (patch.artStyle != null) state.artStyle = patch.artStyle;
 
-        // 目标/视觉配置会进入素材解析和生成提示词。配置变化后丢弃旧快照，
-        // 让下一次素材确认按新配置重建，避免沿用旧画风或比例。
+        // 目标/视觉配置会进入生成快照和提示词。配置变化后丢弃旧快照并使确认状态失效，
+        // 让下一次确认按新配置重建，避免沿用旧画风或比例。
         if (generationConfigChanged) {
           state.generation.snapshot = null;
           state.generation.materialsConfirmed = false;
@@ -56,6 +58,13 @@ export default router.post(
           state.generation.materialImages = {};
           state.generation.timeline = null;
           state.generation.exportInfo = null;
+          // 分镜已确认时同步重建快照并重新回显最终参数确认卡片（旧卡片随之失效），
+          // 引导用户按新参数重新确认后再开始生成
+          if (state.stage === "storyboard_confirmed") {
+            const { materials, snapshotShots } = await buildSnapshot(projectId, state);
+            applySnapshotToState(state, state.storyboard!.version, snapshotShots, materials);
+            echoFinalParamsCard(state);
+          }
         }
 
         // o_project 与状态同事务更新，保证列表数据一致

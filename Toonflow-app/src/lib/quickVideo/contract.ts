@@ -46,10 +46,10 @@ export const SHOT_COUNT_MAX = 12;
  * - collect_brief        收集/打磨简报
  * - brief_confirmed      简报已确认（用户确认门 1）
  * - storyboard_draft     分镜草稿打磨中
- * - storyboard_confirmed 分镜已确认（用户确认门 2），进入素材/成本确认与生成
+ * - storyboard_confirmed 分镜已确认（用户确认门 2），系统回显最终生成参数确认卡片，等待用户确认后开始生成
  * - generating           逐镜头生成图片/视频中
  * - ready_to_assemble    全部镜头生成完毕，可装配时间线
- * - completed            成片导出完成（用户确认门 3：导出确认后落定）
+ * - completed            成片导出完成（导出确认门：导出确认后落定）
  */
 export const QUICK_VIDEO_STAGES = [
   "collect_brief",
@@ -245,8 +245,9 @@ export const snapshotShotSchema = z.object({
 export type QuickVideoSnapshotShot = z.infer<typeof snapshotShotSchema>;
 
 /**
- * 素材/成本确认快照：用户通过素材确认门时冻结。
- * 「不可歧义」：记录分镜版本、比例、画风、镜头内容与素材解析结果 + 预估，生成引擎只读这里。
+ * 生成快照：最终生成参数确认通过时冻结（分镜确认回显卡片时预先构建）。
+ * 「不可歧义」：记录分镜版本、比例、画风、镜头内容与素材解析结果，生成引擎只读这里。
+ * 注意：素材解析结果仅作为生成参考图来源（内部机制），不再要求用户单独确认素材或成本。
  */
 export const generationSnapshotSchema = z.object({
   storyboardVersion: z.number().int().min(1).describe("快照对应的分镜版本"),
@@ -255,14 +256,57 @@ export const generationSnapshotSchema = z.object({
   artStyle: z.string().max(500).default(""),
   shots: z.array(snapshotShotSchema).min(1).max(SHOT_COUNT_MAX),
   materials: z.array(materialItemSchema).max(30).default([]),
-  estimatedImageCount: z.number().int().min(0).default(0).describe("预计图片任务数（分镜图 + 需补生成的素材图）"),
-  estimatedVideoCount: z.number().int().min(0).default(0).describe("预计视频任务数"),
-  estimatedCostYuan: z.number().min(0).default(0).describe("预估费用（元，粗估值）"),
-  estimatedSeconds: z.number().int().min(0).default(0).describe("预估总耗时（秒，粗估值）"),
 });
 export type QuickVideoGenerationSnapshot = z.infer<typeof generationSnapshotSchema>;
 
-/** 生成链路运行态（素材确认门状态 + 快照 + 运行记录） */
+/**
+ * 最终生成参数确认卡片（分镜确认后在聊天流回显）：
+ * 仅展示「视频时长 / 整体画风 / 分镜数量 / 分镜摘要」四项，卡片数据在回显时冻结。
+ * 用户再修改画风、时长或分镜后，服务端重新回显新卡片；旧卡片由前端按
+ * 「是否还有更新的卡片」标记为已失效（置灰并提示重新确认）。
+ */
+export const finalParamsCardSchema = z.object({
+  cardId: z.string().min(1).max(64).describe("卡片 ID（card-<时间戳>-<随机>），前端渲染 key 与最新卡判定"),
+  storyboardVersion: z.number().int().min(1).describe("回显时的分镜版本"),
+  targetDuration: z.union([z.literal(15), z.literal(30), z.literal(60)]),
+  artStyle: z.string().max(500).default(""),
+  shotCount: z.number().int().min(1).max(SHOT_COUNT_MAX),
+  summary: z.string().max(1000).default("").describe("分镜摘要（storyboard.summary）"),
+  echoedAt: z.number().int().min(1).describe("回显时间戳"),
+});
+export type QuickVideoFinalParamsCard = z.infer<typeof finalParamsCardSchema>;
+
+/** 聊天流内保留的最终参数确认卡片数量上限（超出后淘汰最早的卡片） */
+export const FINAL_PARAMS_CARDS_MAX = 5;
+
+/**
+ * 组装一张最终生成参数确认卡片（回显时冻结四项展示字段，与实时分镜/配置解耦）。
+ */
+export function buildFinalParamsCard(state: QuickVideoState): QuickVideoFinalParamsCard {
+  return {
+    cardId: `card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    storyboardVersion: state.storyboard?.version ?? 1,
+    targetDuration: state.targetDuration,
+    artStyle: state.artStyle,
+    shotCount: state.storyboard?.shots.length ?? 0,
+    summary: state.storyboard?.summary ?? "",
+    echoedAt: Date.now(),
+  };
+}
+
+/**
+ * 回显一张新卡片并淘汰最早的旧卡片（旧卡片由前端按「存在更新的卡片」标记为已失效）。
+ * 何时调用（服务端确定性触发，不依赖 Agent 自觉）：
+ * - 分镜确认通过时（confirmStage gate=storyboard confirm）
+ * - 分镜已确认状态下画风/比例变更后（updateConfig / update_config）
+ */
+export function echoFinalParamsCard(state: QuickVideoState): QuickVideoFinalParamsCard {
+  const card = buildFinalParamsCard(state);
+  state.generation.finalParamsCards = [...(state.generation.finalParamsCards ?? []), card].slice(-FINAL_PARAMS_CARDS_MAX);
+  return card;
+}
+
+/** 生成链路运行态（最终参数确认状态 + 快照 + 运行记录） */
 // ---------------------------------------------------------------------------
 // 时间线装配与导出（SIY-111）
 // ---------------------------------------------------------------------------
@@ -349,10 +393,15 @@ export const quickVideoExportInfoSchema = z.object({
 export type QuickVideoExportInfo = z.infer<typeof quickVideoExportInfoSchema>;
 
 export const quickVideoGenerationSchema = z.object({
-  /** 最近一次素材解析快照（素材确认前可反复刷新） */
+  /** 最近一次生成快照（最终参数确认时冻结；参数变更后重建） */
   snapshot: generationSnapshotSchema.nullable().default(null),
-  materialsConfirmed: z.boolean().default(false).describe("素材/成本确认门是否已通过"),
+  /** 最终生成参数确认是否已通过（用户点击聊天确认卡片「确认生成」后写入） */
+  materialsConfirmed: z.boolean().default(false).describe("最终生成参数确认状态（字段名沿用旧版，仅作内部标识）"),
   materialsConfirmedAt: z.number().nullable().default(null),
+  /** 最终生成参数确认卡片（分镜确认/参数变更时回显，最新在末尾；存量状态缺该字段时补空数组） */
+  finalParamsCards: z
+    .preprocess((v) => (Array.isArray(v) ? v.slice(-FINAL_PARAMS_CARDS_MAX) : []), z.array(finalParamsCardSchema))
+    .default([]),
   /** 最近一次生成运行 ID */
   runId: z.string().max(64).nullable().default(null),
   startedAt: z.number().nullable().default(null),
@@ -374,12 +423,6 @@ export const GENERATION_CONCURRENCY = 2;
 export const GENERATION_IMAGE_TIMEOUT_MS = 10 * 60 * 1000;
 /** 单个镜头视频任务超时（毫秒） */
 export const GENERATION_VIDEO_TIMEOUT_MS = 15 * 60 * 1000;
-/** 预估单价（元）：粗略估算仅作展示，实际以供应商计费为准 */
-export const ESTIMATE_IMAGE_COST_YUAN = 0.3;
-export const ESTIMATE_VIDEO_COST_PER_SECOND_YUAN = 0.5;
-/** 预估单任务耗时（秒） */
-export const ESTIMATE_IMAGE_SECONDS = 30;
-export const ESTIMATE_VIDEO_SECONDS = 90;
 
 /** o_agentWorkData(key=quickVideoAgent).data 的完整结构 */
 export const quickVideoStateSchema = z.object({
@@ -448,20 +491,6 @@ export function validateStoryboard(targetDuration: QuickVideoDuration, shots: Qu
     }
   });
   return errors;
-}
-
-/**
- * 按素材解析结果与分镜推导预估（图片任务数 / 视频任务数 / 费用 / 耗时）。
- * 图片任务 = 分镜图 + 需补生成的素材图；视频任务 = 每个镜头一条。
- */
-export function computeGenerationEstimate(shots: { duration: number }[], materials: QuickVideoMaterialItem[]) {
-  const toGenerateCount = materials.filter((m) => m.source === "to_generate").length;
-  const imageCount = shots.length + toGenerateCount;
-  const videoCount = shots.length;
-  const totalVideoSeconds = shots.reduce((sum, s) => sum + s.duration, 0);
-  const estimatedCostYuan = Math.round((imageCount * ESTIMATE_IMAGE_COST_YUAN + totalVideoSeconds * ESTIMATE_VIDEO_COST_PER_SECOND_YUAN) * 100) / 100;
-  const estimatedSeconds = imageCount * ESTIMATE_IMAGE_SECONDS + totalVideoSeconds * ESTIMATE_VIDEO_SECONDS;
-  return { estimatedImageCount: imageCount, estimatedVideoCount: videoCount, estimatedCostYuan, estimatedSeconds };
 }
 
 // ---------------------------------------------------------------------------

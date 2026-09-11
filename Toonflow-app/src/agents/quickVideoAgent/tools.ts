@@ -12,9 +12,10 @@ import {
   shotAssetRefSchema,
   shotCountBounds,
   validateStoryboard,
+  echoFinalParamsCard,
 } from "@/lib/quickVideo/contract";
 import { findShot, nextShotId, normalizeShotDuration, reindexShots } from "@/lib/quickVideo/shots";
-import { startQuickVideoGeneration, assertVideoSupportsSingleImage, castAspectRatio } from "@/lib/quickVideo/generate";
+import { startQuickVideoGeneration, buildSnapshot, applySnapshotToState, assertVideoSupportsSingleImage, castAspectRatio } from "@/lib/quickVideo/generate";
 import { createChatMedia, markChatMediaDone, markChatMediaFailed, resolveMediaImageBase64 } from "@/lib/quickVideo/media";
 
 /**
@@ -63,7 +64,7 @@ export default (toolConfig: ToolConfig) => {
 
   const tools: Record<string, Tool> = {
     get_state: tool({
-      description: "获取当前快创工作台的完整状态：阶段、目标时长、简报、分镜（含每个镜头的生成状态）。写操作前必须先调用本工具确认前置条件。",
+      description: "获取当前快创工作台的完整状态：阶段、目标时长、简报、分镜（含每个镜头的生成状态）、最终生成参数确认状态。写操作前必须先调用本工具确认前置条件。",
       inputSchema: jsonSchema<Record<string, never>>({ type: "object", properties: {}, additionalProperties: false }),
       execute: async () => {
         const state = await loadQuickVideoState(projectId);
@@ -78,6 +79,10 @@ export default (toolConfig: ToolConfig) => {
             shotBounds: shotCountBounds(state.targetDuration),
             brief: state.brief,
             storyboard: state.storyboard,
+            finalParams: {
+              confirmed: state.generation?.materialsConfirmed ?? false,
+              latestCard: state.generation?.finalParamsCards?.slice(-1)[0] ?? null,
+            },
           },
           null,
           2,
@@ -87,7 +92,7 @@ export default (toolConfig: ToolConfig) => {
 
     update_config: tool({
       description:
-        "修改单视频项目基础配置（标题、画风、画面比例、目标时长、简介）。写入前必须调用 get_state；目标时长在分镜已确认后不可修改，需先提醒用户撤销分镜确认。修改画风或比例后应重新解析素材/成本快照；修改目标时长后应按新的镜头数量区间和总时长约束重新打磨分镜。",
+        "修改单视频项目基础配置（标题、画风、画面比例、目标时长、简介）。写入前必须调用 get_state；目标时长在分镜已确认后不可修改，需先提醒用户撤销分镜确认。分镜已确认时修改画风或比例，系统会自动使旧确认失效并重新回显最终参数确认卡片；修改目标时长后应按新的镜头数量区间和总时长约束重新打磨分镜。",
       inputSchema: jsonSchema<{
         name?: string;
         artStyle?: string;
@@ -137,6 +142,12 @@ export default (toolConfig: ToolConfig) => {
                 s.generation.materialImages = {};
                 s.generation.timeline = null;
                 s.generation.exportInfo = null;
+                // 分镜已确认时同步重建快照并重新回显最终参数确认卡片（旧卡片随之失效）
+                if (s.stage === "storyboard_confirmed") {
+                  const { materials, snapshotShots } = await buildSnapshot(projectId, s);
+                  applySnapshotToState(s, s.storyboard!.version, snapshotShots, materials);
+                  echoFinalParamsCard(s);
+                }
               }
 
               const projectPatch: Record<string, string> = {};
@@ -151,7 +162,7 @@ export default (toolConfig: ToolConfig) => {
           if (idempotentHit) return "该次项目配置更新已应用过（幂等命中），未重复写入。";
           const durationHint = input.targetDuration != null ? `目标时长已更新为 ${state.targetDuration} 秒` : "项目配置已更新";
           const storyboardHint = input.targetDuration != null && state.storyboard ? "请根据新目标时长重新打磨当前分镜。" : "";
-          const visualHint = input.artStyle != null || input.videoRatio != null ? "请在素材/成本确认前重新解析素材快照。" : "";
+          const visualHint = input.artStyle != null || input.videoRatio != null ? "系统已重新回显最终参数确认卡片，请提醒用户按新参数重新确认后再开始生成。" : "";
           return `${durationHint}（状态版本 ${state.version}）。${storyboardHint}${visualHint}`;
         }).catch((err) => `更新项目配置失败：${describeError(err)}`);
       },
@@ -483,7 +494,7 @@ export default (toolConfig: ToolConfig) => {
 
     generate_shots: tool({
       description:
-        "触发逐镜头生成（分镜图 + 5-15 秒视频片段）。前置条件由服务端校验：分镜已确认且用户已通过素材/成本确认门；条件满足时启动生成（幂等，重复调用不会重复启动）；生成中调用则返回当前进度。注意：确认门只能由用户在右侧面板操作，本工具不能也不会代替用户确认。",
+        "触发逐镜头生成（分镜图 + 5-15 秒视频片段）。前置条件由服务端校验：分镜已确认且用户已在聊天确认卡片上通过最终生成参数确认；条件满足时启动生成（幂等，重复调用不会重复启动）；生成中调用则返回当前进度。注意：确认只能由用户在聊天确认卡片上操作，本工具不能也不会代替用户确认。",
       inputSchema: jsonSchema<Record<string, never>>({ type: "object", properties: {}, additionalProperties: false }),
       execute: async () => {
         return withThinking(msg, "正在检查生成条件...", async () => {
@@ -493,7 +504,7 @@ export default (toolConfig: ToolConfig) => {
           if (state.stage === "generating") {
             // 阶段已就绪但没有任何运行在跑（如服务重启后的遗留）：幂等重启
             if (!state.generation?.materialsConfirmed) {
-              return "处于生成阶段但素材/成本确认状态异常，请让用户在右侧面板重新操作确认门。";
+              return "处于生成阶段但最终生成参数确认状态异常，请让用户重新确认分镜后再开始生成。";
             }
             const { started, alreadyRunning, runId } = await startQuickVideoGeneration(projectId, userId, sessionId);
             if (started) {
@@ -506,7 +517,7 @@ export default (toolConfig: ToolConfig) => {
 
           if (state.stage === "storyboard_confirmed") {
             if (!state.generation?.materialsConfirmed) {
-              return "分镜已确认，但素材/成本确认门尚未通过。请提醒用户在右侧「素材与成本」面板查看解析结果与预估费用，确认后系统会自动开始逐镜头生成。";
+              return "分镜已确认，最终生成参数确认卡片已在聊天中回显（仅含视频时长、整体画风、分镜数量与分镜摘要）。请提醒用户点击卡片上的「确认生成」按钮，确认后系统会自动开始逐镜头生成。";
             }
             const { started, alreadyRunning, runId } = await startQuickVideoGeneration(projectId, userId, sessionId);
             if (started) return `生成已启动（运行 ${runId}），系统将逐镜头生成分镜图和视频片段。`;
@@ -517,7 +528,7 @@ export default (toolConfig: ToolConfig) => {
             return "所有镜头已生成完毕，可以进入装配/导出环节。";
           }
 
-          return `当前阶段 ${state.stage} 还不能开始生成：需先确认简报、生成并确认分镜、再通过素材/成本确认门。`;
+          return `当前阶段 ${state.stage} 还不能开始生成：需先确认简报、生成并确认分镜，再在聊天确认卡片上确认最终生成参数。`;
         }).catch((err) => `启动生成失败：${describeError(err)}`);
       },
     }),
