@@ -1,7 +1,7 @@
 <template>
-  <div class="quickVideo">
-    <div class="workspaceLayout">
-      <aside class="chatSidebar operate" aria-label="Quick Video conversation" data-testid="quick-video-chat-sidebar">
+  <div class="quickVideo" :class="{ narrow: isNarrow, dragging: layoutDragging }">
+    <div ref="workspaceLayoutRef" class="workspaceLayout">
+      <aside class="chatSidebar operate" aria-label="Quick Video conversation" data-testid="quick-video-chat-sidebar" :style="chatSidebarStyle">
         <div class="chatSidebarHeader">
           <div class="chatSidebarTitleRow">
             <div class="chatSidebarTitle">
@@ -9,6 +9,15 @@
               <span>{{ $t("workbench.quickVideo.sessions.title") }}</span>
             </div>
             <i-dot class="chatSidebarStatus" theme="outline" :fill="connected ? 'green' : 'red'" />
+            <button
+              v-if="isNarrow"
+              type="button"
+              class="chatSidebarClose"
+              :aria-label="$t('workbench.quickVideo.closeChat')"
+              data-testid="quick-video-drawer-close"
+              @click="closeDrawer">
+              <i-close size="16" />
+            </button>
           </div>
           <div class="chatSidebarProject" :title="workbench.project?.name || ''">
             {{ workbench.project?.name || $t("workbench.quickVideo.sessions.defaultTitle") }}
@@ -129,6 +138,24 @@
           </t-chat-sender>
         </div>
       </aside>
+      <!-- 可调节分隔线（SIY-141）：Pointer Events 拖拽 + 键盘方向键 / Home / End，窄屏降级为抽屉后隐藏 -->
+      <div
+        v-if="!isNarrow"
+        class="layoutResizer"
+        :class="{ active: layoutDragging }"
+        role="separator"
+        tabindex="0"
+        aria-orientation="vertical"
+        :aria-label="$t('workbench.quickVideo.resizeChat')"
+        :aria-valuemin="resizerAria.min"
+        :aria-valuemax="resizerAria.max"
+        :aria-valuenow="resizerAria.now"
+        data-testid="quick-video-layout-resizer"
+        @pointerdown="onResizerPointerdown"
+        @pointermove="onResizerPointermove"
+        @pointerup="onResizerPointerup"
+        @pointercancel="onResizerPointercancel"
+        @keydown="onResizerKeydown"></div>
       <nav class="quickNav" aria-label="Quick Video workspace navigation" data-testid="quick-video-workspace-nav">
         <button
           v-for="item in navigationItems"
@@ -503,6 +530,18 @@
       </div>
     </div>
 
+    <!-- 窄屏抽屉兜底（SIY-141）：遮罩 + 浮动"打开聊天"按钮；聊天组件始终挂载，仅做位移不重建 -->
+    <div v-if="isNarrow && narrowDrawerOpen" class="drawerScrim" data-testid="quick-video-drawer-scrim" @click="closeDrawer"></div>
+    <button
+      v-if="isNarrow && !narrowDrawerOpen"
+      type="button"
+      class="chatDrawerFab"
+      data-testid="quick-video-chat-fab"
+      @click="toggleDrawer">
+      <i-chat size="16" />
+      <span>{{ $t("workbench.quickVideo.openChat") }}</span>
+    </button>
+
     <!-- 第三道确认门：成片导出确认 -->
     <t-dialog
       v-model:visible="exportConfirmVisible"
@@ -677,6 +716,7 @@ import dayjs from "dayjs";
 import ExportProgress from "./ExportProgress.vue";
 import { useTimelinePlayer } from "./timelinePlayer";
 import { estimateExportBytes, formatBytes, formatTime } from "./timelineCore";
+import { QUICK_VIDEO_SPLIT_CONSTRAINTS, quickVideoLayoutStorageKey, useQuickVideoSplitLayout } from "./splitLayout";
 
 const { project } = storeToRefs(projectStore());
 const quickVideoStoreRef = quickVideoStore();
@@ -696,6 +736,40 @@ const navigationItems: { key: QuickVideoPanel; label: string; icon: string }[] =
 ];
 
 const inputValue = ref("");
+
+// ===== 可调节双栏布局（SIY-141）—— 纯布局层：只改样式与交互，不触碰分镜数据流 / Socket / WebAV =====
+const workspaceLayoutRef = ref<HTMLElement | null>(null);
+// LocalStorage 键按项目隔离：同一浏览器里各快创项目记忆各自的栏宽比例
+const layoutStorageKey = computed(() => quickVideoLayoutStorageKey(project.value?.id));
+const {
+  containerWidth: layoutContainerWidth,
+  appliedWidth: layoutAppliedWidth,
+  leftBounds: layoutLeftBounds,
+  dragging: layoutDragging,
+  isNarrow,
+  narrowDrawerOpen,
+  onResizerPointerdown,
+  onResizerPointermove,
+  onResizerPointerup,
+  onResizerPointercancel,
+  onResizerKeydown,
+  toggleDrawer,
+  closeDrawer,
+} = useQuickVideoSplitLayout(workspaceLayoutRef, layoutStorageKey, QUICK_VIDEO_SPLIT_CONSTRAINTS);
+
+// 窄屏抽屉模式下宽度交给样式接管（min(360px, 88vw)），内联 width 置空避免覆盖
+const chatSidebarStyle = computed(() =>
+  isNarrow.value || layoutAppliedWidth.value === null ? {} : { width: `${layoutAppliedWidth.value}px` },
+);
+const resizerAria = computed(() => {
+  const bounds = layoutLeftBounds.value;
+  const fallbackMax = Math.floor(QUICK_VIDEO_SPLIT_CONSTRAINTS.maxLeftRatio * (layoutContainerWidth.value || 0));
+  return {
+    min: bounds?.min ?? QUICK_VIDEO_SPLIT_CONSTRAINTS.minLeft,
+    max: bounds?.max ?? Math.max(QUICK_VIDEO_SPLIT_CONSTRAINTS.minLeft, fallbackMax),
+    now: layoutAppliedWidth.value ?? Math.round(QUICK_VIDEO_SPLIT_CONSTRAINTS.defaultRatio * layoutContainerWidth.value),
+  };
+});
 
 type QuickVideoModelType = "text" | "image" | "video";
 
@@ -1509,12 +1583,54 @@ function cancelExport() {
 <style lang="scss" scoped>
 .quickVideo {
   height: calc(100% - 16px);
+  min-width: 0;
   overflow: hidden;
+  position: relative;
   .workspaceLayout {
     height: 100%;
+    min-width: 0;
     min-height: 0;
     display: flex;
     gap: 8px;
+  }
+  .layoutResizer {
+    flex: 0 0 8px;
+    width: 8px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    position: relative;
+    cursor: col-resize;
+    /* 触屏拖动时不触发页面滚动 */
+    touch-action: none;
+    outline: none;
+    &::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 4px;
+      bottom: 4px;
+      width: 2px;
+      transform: translateX(-50%);
+      border-radius: 1px;
+      background: var(--td-border-level-1-color);
+      transition: background-color 0.15s ease, width 0.15s ease;
+    }
+    &:hover::before,
+    &.active::before {
+      width: 3px;
+      background: var(--td-brand-color);
+    }
+    &:focus-visible::before {
+      background: var(--td-brand-color);
+    }
+    &:focus-visible {
+      box-shadow: inset 0 0 0 2px var(--td-brand-color-light);
+    }
+    &.active {
+      background: var(--td-brand-color-1);
+    }
   }
   .workspacePanels {
     flex: 1;
@@ -1523,10 +1639,12 @@ function cancelExport() {
     overflow: hidden;
   }
   .chatSidebar {
-    flex: 0 1 clamp(248px, 28vw, 340px);
-    width: clamp(248px, 28vw, 340px);
-    min-width: 248px;
-    max-width: 340px;
+    /* SIY-141：可调节双栏 —— 宽度由 splitLayout 内联接管（默认 35%，300px~55% 且右栏 ≥420px），
+       此处仅保留无 JS 测量前的兜底与边界护栏 */
+    flex: 0 0 auto;
+    width: 35%;
+    min-width: 300px;
+    max-width: 55%;
     min-height: 0;
     display: flex;
     flex-direction: column;
@@ -1559,6 +1677,24 @@ function cancelExport() {
     .chatSidebarStatus {
       flex-shrink: 0;
     }
+    .chatSidebarClose {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      padding: 0;
+      border: 0;
+      border-radius: 6px;
+      color: var(--td-text-color-secondary);
+      background: transparent;
+      cursor: pointer;
+      &:hover {
+        color: var(--td-text-color-primary);
+        background: var(--td-bg-color-secondarycontainer);
+      }
+    }
     .chatSidebarProject {
       margin-top: 8px;
       overflow: hidden;
@@ -1576,6 +1712,8 @@ function cancelExport() {
     }
     .box {
       min-height: 0;
+      min-width: 0;
+      max-width: 100%;
       padding: 0 8px 8px;
       border: 0;
       border-radius: 0;
@@ -1583,6 +1721,15 @@ function cancelExport() {
     }
     .box :deep(.t-chat-list) {
       min-height: 0;
+      min-width: 0;
+      max-width: 100%;
+      /* 长链接 / 长连续字符不允许撑出横向滚动，横向溢出一律在栏内消化 */
+      overflow-x: hidden;
+    }
+    .box :deep(.t-chat-message) {
+      min-width: 0;
+      max-width: 100%;
+      overflow-wrap: anywhere;
     }
   }
   .quickNav {
@@ -1675,6 +1822,8 @@ function cancelExport() {
         flex-wrap: wrap;
         gap: 8px;
         margin: -4px 12px 10px 44px;
+        max-width: 100%;
+        min-width: 0;
       }
       .qvChatMediaCard {
         width: 96px;
@@ -1720,6 +1869,8 @@ function cancelExport() {
         flex-direction: column;
         gap: 8px;
         margin: 4px 12px 12px;
+        min-width: 0;
+        max-width: 100%;
       }
       .qvFinalParamsCard {
         border: 1px solid var(--td-component-border);
@@ -1756,6 +1907,7 @@ function cancelExport() {
           span {
             flex: 1;
             min-width: 0;
+            overflow-wrap: anywhere;
             word-break: break-all;
           }
         }
@@ -1849,6 +2001,8 @@ function cancelExport() {
     border-radius: 10px;
     background: var(--td-bg-color-container);
     overflow: hidden;
+    min-width: 0;
+    max-width: 100%;
     .cardHeader {
       display: flex;
       align-items: center;
@@ -1864,6 +2018,10 @@ function cancelExport() {
     }
     .cardBody {
       padding: 12px 14px;
+      min-width: 0;
+      max-width: 100%;
+      /* SIY-141：分镜表等超宽内容的横向滚动收在卡片内部闭环，页面禁止出现全局横向滚动条 */
+      overflow-x: auto;
       .briefRow {
         display: flex;
         gap: 10px;
@@ -1991,6 +2149,7 @@ function cancelExport() {
   }
   .assembleLayout {
     display: flex;
+    flex-wrap: wrap;
     gap: 14px;
     align-items: flex-start;
     .previewBox {
@@ -2074,15 +2233,73 @@ function cancelExport() {
       }
     }
   }
+
+  /* 拖拽全程锁定光标与文字选中，防止跨元素拖拽丢帧（body 级 user-select 由 splitLayout 兜底） */
+  &.dragging {
+    cursor: col-resize;
+    user-select: none;
+  }
+
+  /* SIY-141 窄屏兜底：两栏最小宽度无法并存（容器 < 约824px）时，主体铺满、聊天栏降级为抽屉覆盖层。
+     聊天组件始终挂载（无 v-if 切换），仅做 transform 位移 —— 输入内容与 Socket 状态不受影响 */
+  &.narrow {
+    .layoutResizer {
+      display: none;
+    }
+    .chatSidebar {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 40;
+      width: min(360px, 88vw);
+      min-width: 0;
+      max-width: none;
+      transform: translateX(calc(-100% - 16px));
+      transition: transform 0.22s ease;
+      box-shadow: var(--td-shadow-2, 0 4px 16px rgba(0, 0, 0, 0.16));
+    }
+    .chatSidebarHint {
+      display: none;
+    }
+    &.drawerOpen .chatSidebar {
+      transform: translateX(0);
+    }
+    /* 主体工作区铺满剩余空间 */
+    .workspacePanels {
+      flex: 1 1 auto;
+    }
+  }
+  .drawerScrim {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    background: rgba(0, 0, 0, 0.4);
+  }
+  .chatDrawerFab {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    z-index: 35;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    border: 0;
+    border-radius: 999px;
+    color: #fff;
+    font-size: 13px;
+    background: var(--td-brand-color);
+    box-shadow: var(--td-shadow-1, 0 2px 8px rgba(0, 0, 0, 0.2));
+    cursor: pointer;
+    &:hover {
+      background: var(--td-brand-color-hover);
+    }
+  }
 }
 
 @media (max-width: 960px) {
   .quickVideo {
-    .chatSidebar {
-      flex-basis: 280px;
-      width: 280px;
-      max-width: 280px;
-    }
     .panel {
       .panelHeader {
         align-items: flex-start;
@@ -2097,21 +2314,6 @@ function cancelExport() {
 
 @media (max-width: 720px) {
   .quickVideo {
-    .workspaceLayout {
-      gap: 4px;
-    }
-    .chatSidebar {
-      flex-basis: 220px;
-      width: 220px;
-      min-width: 220px;
-      max-width: 220px;
-      .chatSidebarHeader {
-        padding: 10px;
-      }
-      .chatSidebarHint {
-        display: none;
-      }
-    }
     .quickNav {
       flex-basis: 54px;
       padding: 6px 3px;
