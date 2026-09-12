@@ -191,6 +191,52 @@ describe("quickVideo store — 会话（SIY-128）", () => {
   });
 });
 
+describe("quickVideo store — 历史恢复去重（SIY-143）", () => {
+  function mediaHistory(id: string, mediaId: number) {
+    return {
+      id,
+      role: "assistant",
+      name: "快创助手",
+      status: "complete",
+      datetime: "2026-09-12T00:00:00.000Z",
+      content: [
+        { type: "image", status: "complete", data: { name: "一只猫", url: `http://x/${mediaId}.jpg` }, ext: { mediaId, kind: "image", state: "done", source: "chat" } },
+      ],
+    };
+  }
+
+  it("getHistory：重复 mediaId 的媒体消息只挂载一张卡片，文本历史不受影响", async () => {
+    setupProject();
+    const session = makeSession({ id: 1 });
+    post.mockResolvedValueOnce(envelope({ sessions: [session] }));
+    const store = useQuickVideoStore();
+    await store.loadSessions();
+
+    const textHistory = { id: "hist-1", role: "assistant", status: "complete", content: [{ type: "markdown", data: "简报文本", status: "complete" }] };
+    post.mockResolvedValueOnce(envelope([textHistory, mediaHistory("media-7", 7), mediaHistory("media-7-dup", 7)]));
+    await store.getHistory();
+
+    const mediaMessages = store.messages.filter((m: any) => m.id !== "welcome" && m.id !== "hist-1");
+    expect(mediaMessages).toHaveLength(1);
+    expect((mediaMessages[0] as any).content[0].ext.mediaId).toBe(7);
+    expect(store.messages.some((m: any) => m.id === "hist-1")).toBe(true);
+  });
+
+  it("getHistory：同提示词同 URL 但不同 mediaId 的两次生成各自保留", async () => {
+    setupProject();
+    const session = makeSession({ id: 1 });
+    post.mockResolvedValueOnce(envelope({ sessions: [session] }));
+    const store = useQuickVideoStore();
+    await store.loadSessions();
+
+    post.mockResolvedValueOnce(envelope([mediaHistory("media-7", 7), mediaHistory("media-8", 8)]));
+    await store.getHistory();
+
+    const mediaMessages = store.messages.filter((m: any) => String(m.id).startsWith("media-"));
+    expect(mediaMessages).toHaveLength(2);
+  });
+});
+
 describe("quickVideo store — 资产白板与首帧绑定（SIY-132）", () => {
   function makeWorkbenchState(overrides: Record<string, any> = {}) {
     return {

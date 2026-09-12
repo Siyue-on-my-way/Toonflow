@@ -40,6 +40,44 @@ export interface XmlChildItem {
   value: string;
 }
 
+/** 聊天消息中承载生成媒体的内容块类型；前端由自定义媒体卡片渲染，不进默认气泡（SIY-143） */
+export function isMediaBlock(block: any): boolean {
+  return block?.type === "image" || block?.type === "video";
+}
+
+/**
+ * 历史恢复的防御性去重（SIY-143）：quickVideoAgent 的历史由 getMemory 把文本记忆与
+ * 资产白板媒体按时间轴合并后返回，重复恢复或上游重试可能让同一稳定 mediaId 挂载多个
+ * 展示记录。只按消息 id 与媒体块 ext.mediaId 判重，绝不按 URL 或提示词判重——同一
+ * 提示词的两次生成是两个独立结果，不能误删。媒体块去重后内容为空的消息（重复的纯
+ * 媒体消息副本）整条丢弃。
+ */
+export function dedupeRestoredMessages<T extends { id?: string | number; content?: any }>(list: T[]): T[] {
+  const seenMessageIds = new Set<string | number>();
+  const seenMediaIds = new Set<string | number>();
+  const result: T[] = [];
+  for (const message of list) {
+    if (!message || typeof message !== "object" || seenMessageIds.has(message.id as string | number)) continue;
+    seenMessageIds.add(message.id as string | number);
+
+    const content = Array.isArray(message.content) ? message.content : null;
+    if (!content) {
+      result.push(message);
+      continue;
+    }
+
+    const dedupedContent = content.filter((block: any) => {
+      if (!isMediaBlock(block) || block.ext?.mediaId == null) return true;
+      if (seenMediaIds.has(block.ext.mediaId)) return false;
+      seenMediaIds.add(block.ext.mediaId);
+      return true;
+    });
+    if (!dedupedContent.length) continue;
+    result.push(dedupedContent.length === content.length ? message : { ...message, content: dedupedContent });
+  }
+  return result;
+}
+
 export interface XmlTagEvent {
   messageId: string;
   contentId?: string;

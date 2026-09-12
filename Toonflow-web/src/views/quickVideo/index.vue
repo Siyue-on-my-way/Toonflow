@@ -44,8 +44,11 @@
             @toggle-archive="handleSessionToggleArchive" />
           <t-chat-list :clear-history="false">
             <template v-for="message in messages" :key="message.id">
+              <!-- SIY-143：气泡只承载文本/Markdown/思考等内容，媒体统一由下方 qvChatMediaCard 渲染；
+                   t-chat-item 对 image 块固定渲染默认图片气泡且无法用插槽关闭，直接传完整消息会双重渲染 -->
               <t-chat-message
-                :message="message"
+                v-if="hasBubbleContent(message)"
+                :message="bubbleMessageOf(message)"
                 :name="(message as any).name"
                 :placement="message.role === 'user' ? 'right' : 'left'"
                 :variant="message.role === 'user' ? 'base' : 'outline'"
@@ -717,6 +720,7 @@ import ExportProgress from "./ExportProgress.vue";
 import { useTimelinePlayer } from "./timelinePlayer";
 import { estimateExportBytes, formatBytes, formatTime } from "./timelineCore";
 import { QUICK_VIDEO_SPLIT_CONSTRAINTS, quickVideoLayoutStorageKey, useQuickVideoSplitLayout } from "./splitLayout";
+import { createBubbleMessageView } from "./chatMedia";
 
 const { project } = storeToRefs(projectStore());
 const quickVideoStoreRef = quickVideoStore();
@@ -908,12 +912,22 @@ interface ChatMediaCard {
   promptSummary: string | null;
 }
 
+// 气泡展示副本：剥离 image/video 块交给 t-chat-message，媒体统一由 qvChatMediaCard 渲染（SIY-143）
+const { bubbleMessageOf, hasBubbleContent } = createBubbleMessageView(messages);
+
 function mediaCardsOf(message: any): ChatMediaCard[] {
   const content = message?.content;
   if (!Array.isArray(content)) return [];
-  return content
-    .filter((c: any) => (c.type === "image" || c.type === "video") && c.ext?.mediaId)
-    .map((c: any) => ({ key: `${message.id}-${c.id ?? c.ext.mediaId}`, ext: c.ext as ChatMediaExt, url: c.data?.url ?? null, promptSummary: c.ext?.promptSummary ?? null }));
+  const seenMediaIds = new Set<string | number>();
+  const cards: ChatMediaCard[] = [];
+  for (const c of content) {
+    if (!(c.type === "image" || c.type === "video") || !c.ext?.mediaId) continue;
+    // 同一 mediaId 只出一张卡片：实时链路极端情况（重连重放）下的兜底，与历史恢复去重同一判据
+    if (seenMediaIds.has(c.ext.mediaId)) continue;
+    seenMediaIds.add(c.ext.mediaId);
+    cards.push({ key: `${message.id}-${c.id ?? c.ext.mediaId}`, ext: c.ext as ChatMediaExt, url: c.data?.url ?? null, promptSummary: c.ext?.promptSummary ?? null });
+  }
+  return cards;
 }
 
 function toMediaRefFromCard(card: ChatMediaCard): MediaRef {

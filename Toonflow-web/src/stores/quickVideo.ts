@@ -1,7 +1,7 @@
 import axios from "@/utils/axios";
 import projectStore from "@/stores/project";
 import settingStore from "@/stores/setting";
-import { useChat } from "@/utils/useChat";
+import { useChat, dedupeRestoredMessages } from "@/utils/useChat";
 import type {
   QuickVideoConfigPatch,
   QuickVideoReject,
@@ -269,9 +269,11 @@ function makeQuickVideoStore(projectId: string) {
 
         // The welcome card is local UI copy, not a persisted Agent message.
         // Preserve it while replacing stale/in-memory history with the
-        // server's chronological result.
+        // server's chronological result. Media blocks are deduplicated by
+        // their stable mediaId so a repeated restore never mounts a second
+        // card for the same asset (SIY-143).
         const welcomeMessages = messages.value.filter((message) => message.id === "welcome");
-        messages.value = [...welcomeMessages, ...payload];
+        messages.value = [...welcomeMessages, ...dedupeRestoredMessages(payload)];
       } catch (error) {
         console.error("[quickVideo] 加载聊天历史失败", error);
       } finally {
