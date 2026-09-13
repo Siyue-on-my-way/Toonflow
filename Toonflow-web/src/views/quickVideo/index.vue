@@ -121,14 +121,21 @@
                 <img v-if="p.previewUrl" :src="p.previewUrl" alt="" />
                 <div v-else class="attachLoading"><t-loading size="small" :text="$t('workbench.quickVideo.attach.uploading')" /></div>
                 <t-tag v-if="p.status === 'failed'" theme="danger" size="small" class="attachState">{{ $t("workbench.quickVideo.attach.failed") }}</t-tag>
+                <!-- 右上角删除 x：上传中/就绪/失败任何状态都可见可点，点击仅从托盘移除（不动已入库资产） -->
+                <button
+                  class="attachRemove"
+                  type="button"
+                  :title="$t('workbench.quickVideo.attach.remove')"
+                  :aria-label="$t('workbench.quickVideo.attach.remove')"
+                  data-testid="quick-video-attach-remove"
+                  @click.stop="removePendingAttachment(i)">
+                  <i-close size="10" />
+                </button>
               </div>
-              <div class="attachName" :title="p.name">{{ p.name }}</div>
-              <div class="attachActions" v-if="p.status !== 'uploading'">
-                <t-button v-if="p.status === 'failed'" size="small" variant="text" :title="$t('workbench.quickVideo.attach.retry')" @click="retryPendingAttachment(i)">
-                  <template #icon><i-refresh size="13" /></template>
-                </t-button>
-                <t-button size="small" variant="text" :title="$t('workbench.quickVideo.attach.remove')" @click="removePendingAttachment(i)">
-                  <template #icon><i-close size="13" /></template>
+              <div class="attachMeta">
+                <div class="attachName" :title="p.name">{{ p.name }}</div>
+                <t-button v-if="p.status === 'failed'" size="small" variant="text" class="attachRetry" :title="$t('workbench.quickVideo.attach.retry')" @click="retryPendingAttachment(i)">
+                  <template #icon><i-refresh size="12" /></template>
                 </t-button>
               </div>
             </div>
@@ -2030,21 +2037,45 @@ function cancelExport() {
               top: 2px;
               left: 2px;
             }
+            // 右上角删除 x：深色圆形底 + 白色 x，明暗主题都清晰可见；任何状态都可点
+            .attachRemove {
+              position: absolute;
+              top: 2px;
+              right: 2px;
+              z-index: 2;
+              width: 16px;
+              height: 16px;
+              padding: 0;
+              border: none;
+              border-radius: 50%;
+              background-color: rgba(0, 0, 0, 0.55);
+              color: #fff;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+              &:hover {
+                background-color: var(--td-error-color);
+              }
+            }
+          }
+          .attachMeta {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            margin-top: 2px;
+            min-width: 0;
           }
           .attachName {
-            margin-top: 2px;
+            flex: 1;
+            min-width: 0;
             font-size: 11px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
           }
-          .attachActions {
-            position: absolute;
-            top: 6px;
-            right: 6px;
-            display: flex;
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 6px;
+          .attachRetry {
+            flex-shrink: 0;
           }
         }
       }
