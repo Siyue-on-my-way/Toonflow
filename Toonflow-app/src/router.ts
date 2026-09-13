@@ -121,6 +121,7 @@ import route117 from "./routes/quickVideo/confirmStage";
 import route118 from "./routes/quickVideo/createProject";
 import route119 from "./routes/quickVideo/createSession";
 import route120 from "./routes/quickVideo/getAssetBoard";
+import route120b from "./routes/quickVideo/uploadMedia";
 import route121 from "./routes/quickVideo/getMediaUrls";
 import route122 from "./routes/quickVideo/getMetrics";
 import route123 from "./routes/quickVideo/getTimeline";
@@ -324,6 +325,7 @@ export default async (app: Express) => {
   app.use("/api/quickVideo/createProject", route118);
   app.use("/api/quickVideo/createSession", route119);
   app.use("/api/quickVideo/getAssetBoard", route120);
+  app.use("/api/quickVideo/uploadMedia", route120b);
   app.use("/api/quickVideo/getMediaUrls", route121);
   app.use("/api/quickVideo/getMetrics", route122);
   app.use("/api/quickVideo/getTimeline", route123);

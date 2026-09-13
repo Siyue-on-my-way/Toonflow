@@ -12,6 +12,7 @@
  */
 import { db as knexDb } from "@/utils/db";
 import u from "@/utils";
+import crypto from "crypto";
 import {
   MediaRef,
   QuickVideoMediaKind,
@@ -125,6 +126,32 @@ export async function validateVideoModelKey(modelKey: string): Promise<{ vendorI
 }
 
 // ---------------------------------------------------------------------------
+// 模型能力查询（SIY-144 三模式守门：不支持的组合直接阻断，严禁静默丢图退化）
+// ---------------------------------------------------------------------------
+
+/** 文本模型是否具备视觉理解能力（协议目录 vision=true）；缺省视为不支持 */
+export async function isVisionTextModel(modelKey: string): Promise<boolean> {
+  const split = splitModelKey(modelKey);
+  if (!split) return false;
+  const catalog = await getVendorModelCatalog(split.vendorId);
+  if (!catalog?.enabled) return false;
+  const hit = pickEnabledModel(catalog.models, catalog.enabledNames, split.modelName, "text");
+  return hit?.vision === true;
+}
+
+/** 图片模型是否支持参考图（图生图）：目录 mode 含 singleImage/multiReference */
+export async function imageModelSupportsReference(modelKey: string): Promise<boolean> {
+  const split = splitModelKey(modelKey);
+  if (!split) return false;
+  const catalog = await getVendorModelCatalog(split.vendorId);
+  if (!catalog?.enabled) return false;
+  const hit = pickEnabledModel(catalog.models, catalog.enabledNames, split.modelName, "image");
+  if (!hit) return false;
+  const modes = Array.isArray(hit.mode) ? (hit.mode as unknown[]) : [];
+  return modes.includes("singleImage") || modes.includes("multiReference");
+}
+
+// ---------------------------------------------------------------------------
 // 媒体落库（生成中占位 -> 完成/失败回写）
 // ---------------------------------------------------------------------------
 
@@ -229,6 +256,74 @@ export async function markChatMediaFailed(mediaId: number, reason: string): Prom
     }
     await trx("o_quickVideoMedia").where("id", mediaId).update({ state: "failed", errorReason: reason, updateTime: Date.now() });
   });
+}
+
+// ---------------------------------------------------------------------------
+// 聊天粘贴/上传落库（SIY-144）
+// ---------------------------------------------------------------------------
+
+/** 上传白名单：MIME -> 扩展名 */
+export const UPLOAD_MIME_EXT: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+};
+
+/** 单图大小上限：20MB */
+export const UPLOAD_MAX_BYTES = 20 * 1024 * 1024;
+
+export interface PersistUploadedMediaInput {
+  projectId: number;
+  sessionId: number | null;
+  buffer: Buffer;
+  mimeType: string;
+  name: string;
+}
+
+/**
+ * 聊天粘贴/本地上传图片落库：SHA-256 幂等（同项目同文件不产生重复资产），
+ * 复用 createChatMedia 的三表事务（o_image + o_assets(chat_media) + o_quickVideoMedia(source=upload)）。
+ * 幂等命中 done/generating 时直接复用既有记录；命中 failed 时就地重试（重写 MinIO 并回写完成），
+ * 保证"重复粘贴同一张图"始终收敛到同一个 mediaId。
+ */
+export async function persistUploadedMedia(
+  input: PersistUploadedMediaInput,
+): Promise<{ media: QuickVideoMediaRow; idempotentHit: boolean }> {
+  const ext = UPLOAD_MIME_EXT[input.mimeType];
+  if (!ext) throw new QuickVideoError("MIME_REJECTED", "仅支持 PNG / JPEG / WebP 图片");
+  if (input.buffer.byteLength > UPLOAD_MAX_BYTES) throw new QuickVideoError("FILE_TOO_LARGE", "图片超过 20MB 上限");
+  if (!input.buffer.byteLength) throw new QuickVideoError("FILE_EMPTY", "图片内容为空");
+
+  const mediaHash = crypto.createHash("sha256").update(input.buffer).digest("hex");
+  const idempotencyKey = `upload:sha256:${mediaHash}`;
+  const name = input.name.slice(0, 60) || "粘贴图片";
+
+  const { media, idempotentHit } = await createChatMedia({
+    projectId: input.projectId,
+    sessionId: input.sessionId,
+    messageId: null,
+    kind: "image",
+    model: "",
+    prompt: name,
+    source: "upload",
+    idempotencyKey,
+  });
+
+  if (idempotentHit && media.state === "done") {
+    return { media, idempotentHit };
+  }
+
+  const savePath = `/${input.projectId}/quickVideo/upload-${mediaHash.slice(0, 12)}-${u.uuid().slice(0, 8)}.${ext}`;
+  try {
+    await u.oss.writeFile(savePath, input.buffer);
+  } catch (err) {
+    const reason = u.error(err as Error).message;
+    await markChatMediaFailed(media.id, `上传写 storage 失败：${reason}`);
+    throw new QuickVideoError("UPLOAD_FAILED", `图片上传失败：${reason}`);
+  }
+  await markChatMediaDone(media.id, savePath);
+  const fresh = await u.db("o_quickVideoMedia").where("id", media.id).first();
+  return { media: (fresh ?? media) as QuickVideoMediaRow, idempotentHit };
 }
 
 // ---------------------------------------------------------------------------

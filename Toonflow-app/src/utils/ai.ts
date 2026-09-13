@@ -80,6 +80,12 @@ async function resolveModelName(value: AiType | `${string}:${string}`): Promise<
   return value as `${number}:${string}`;
 }
 
+/** 解析指定 Agent 实际将使用的模型 key（vendorId:modelName），供快创聊天图文模式守门使用（SIY-144） */
+export async function resolveAgentModelKey(aiType: AiType, modelOverride?: string): Promise<`${string}:${string}`> {
+  const trimmed = String(modelOverride ?? "").trim();
+  return trimmed ? (trimmed as `${string}:${string}`) : resolveModelName(aiType);
+}
+
 async function getModelConfig(value: AiType | `${string}:${string}`) {
   if (AiTypeValues.includes(value as AiType)) {
     const agentUseModeVal = await u.db("o_setting").where("key", "agentUseMode").first();

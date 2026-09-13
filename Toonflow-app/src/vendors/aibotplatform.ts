@@ -56,7 +56,7 @@ export const vendor: VendorConfig = {
     baseUrl: "https://bus-ie.aibotplatform.com/assistant/vendor-api/v2",
   },
   models: [
-    { name: "GPT-4o", modelName: "gpt-4o", type: "text", think: false },
+    { name: "GPT-4o", modelName: "gpt-4o", type: "text", think: false, vision: true },
     { name: "GPT-3.5-Turbo", modelName: "gpt-3.5-turbo", type: "text", think: false },
     { name: "GPT-5.6 Terra", modelName: "gpt-5.6-terra", type: "text", think: false },
   ],

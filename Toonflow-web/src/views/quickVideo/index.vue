@@ -110,14 +110,38 @@
               </div>
             </div>
           </t-chat-list>
-          <t-chat-sender
-            class="inputBox"
-            :disabled="status === 'pending' || status === 'streaming' || !connected"
-            v-model="inputValue"
-            :loading="status === 'pending' || status === 'streaming'"
-            :placeholder="$t('workbench.quickVideo.inputPlaceholder')"
-            @send="handleSend"
-            @stop="handleStop">
+          <!-- 待发送附件托盘（SIY-144）：粘贴/截图上传的缩略图、上传中状态、失败重试与单个移除 -->
+          <div class="attachTray" v-if="pendingAttachments.length">
+            <div
+              v-for="(p, i) in pendingAttachments"
+              :key="p.localId"
+              class="attachItem"
+              :class="{ failed: p.status === 'failed' }">
+              <div class="attachThumb">
+                <img v-if="p.previewUrl" :src="p.previewUrl" alt="" />
+                <div v-else class="attachLoading"><t-loading size="small" :text="$t('workbench.quickVideo.attach.uploading')" /></div>
+                <t-tag v-if="p.status === 'failed'" theme="danger" size="small" class="attachState">{{ $t("workbench.quickVideo.attach.failed") }}</t-tag>
+              </div>
+              <div class="attachName" :title="p.name">{{ p.name }}</div>
+              <div class="attachActions" v-if="p.status !== 'uploading'">
+                <t-button v-if="p.status === 'failed'" size="small" variant="text" :title="$t('workbench.quickVideo.attach.retry')" @click="retryPendingAttachment(i)">
+                  <template #icon><i-refresh size="13" /></template>
+                </t-button>
+                <t-button size="small" variant="text" :title="$t('workbench.quickVideo.attach.remove')" @click="removePendingAttachment(i)">
+                  <template #icon><i-close size="13" /></template>
+                </t-button>
+              </div>
+            </div>
+          </div>
+          <div class="senderWrap" @paste="onSenderPaste">
+            <t-chat-sender
+              class="inputBox"
+              :disabled="status === 'pending' || status === 'streaming' || !connected"
+              v-model="inputValue"
+              :loading="status === 'pending' || status === 'streaming'"
+              :placeholder="$t('workbench.quickVideo.inputPlaceholder')"
+              @send="handleSend"
+              @stop="handleStop">
             <template #footer-prefix>
               <div class="modelPicker" @click.stop>
                 <t-select
@@ -138,7 +162,8 @@
                   :disabled="status === 'pending' || status === 'streaming'" />
               </div>
             </template>
-          </t-chat-sender>
+            </t-chat-sender>
+          </div>
         </div>
       </aside>
       <!-- 可调节分隔线（SIY-141）：Pointer Events 拖拽 + 键盘方向键 / Home / End，窄屏降级为抽屉后隐藏 -->
@@ -721,12 +746,13 @@ import { useTimelinePlayer } from "./timelinePlayer";
 import { estimateExportBytes, formatBytes, formatTime } from "./timelineCore";
 import { QUICK_VIDEO_SPLIT_CONSTRAINTS, quickVideoLayoutStorageKey, useQuickVideoSplitLayout } from "./splitLayout";
 import { createBubbleMessageView } from "./chatMedia";
+import { readMediaRefsFromText } from "./chatPaste";
 
 const { project } = storeToRefs(projectStore());
 const quickVideoStoreRef = quickVideoStore();
 const { connected, messages, status, workbench, state, loadingWorkbench, workbenchError, sessions, loadingSessions, currentSessionId, modelPreferences, isGenerating, clipboardMediaRef } =
   storeToRefs(quickVideoStoreRef);
-const { stopGenerate, getWorkbench, updateConfig, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference, getAssetBoard, bindShotFirstFrame } =
+const { stopGenerate, getWorkbench, updateConfig, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference, getAssetBoard, bindShotFirstFrame, uploadChatMedia } =
   quickVideoStoreRef;
 
 type QuickVideoPanel = "brief" | "storyboard" | "assets" | "preview";
@@ -842,6 +868,141 @@ const defMsg = [
 ];
 if (messages.value.length <= 0) messages.value = [...defMsg, ...messages.value] as any;
 
+// ===== 聊天输入框粘贴/上传附件（SIY-144） =====
+interface PendingAttachment {
+  localId: string;
+  name: string;
+  status: "uploading" | "ready" | "failed";
+  previewUrl?: string;
+  /** 本地预览对象 URL，移除/发送后需 revoke */
+  objectUrl?: string;
+  file?: File;
+  mediaRef?: MediaRef;
+}
+const pendingAttachments = ref<PendingAttachment[]>([]);
+const pendingAttachmentLimit = 4;
+
+function addPendingFile(file: File) {
+  if (pendingAttachments.value.length >= pendingAttachmentLimit) {
+    window.$message.warning($t("workbench.quickVideo.attach.tooMany", { max: pendingAttachmentLimit }));
+    return;
+  }
+  if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+    window.$message.warning($t("workbench.quickVideo.attach.mimeRejected"));
+    return;
+  }
+  if (file.size > 20 * 1024 * 1024) {
+    window.$message.warning($t("workbench.quickVideo.attach.tooLarge"));
+    return;
+  }
+  const item: PendingAttachment = {
+    localId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name: file.name || $t("workbench.quickVideo.attach.pastedImage"),
+    status: "uploading",
+    objectUrl: URL.createObjectURL(file),
+    file,
+  };
+  item.previewUrl = item.objectUrl;
+  pendingAttachments.value.push(item);
+  uploadPendingAttachment(item);
+}
+
+function readAsDataURL(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error($t("workbench.quickVideo.attach.readFailed")));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadPendingAttachment(item: PendingAttachment) {
+  if (!item.file) return;
+  item.status = "uploading";
+  try {
+    const base64Data = (await readAsDataURL(item.file)).replace(/^data:[^;]+;base64,/, "");
+    const media = await uploadChatMedia({
+      base64Data,
+      mimeType: item.file.type,
+      name: item.file.name ? item.file.name.replace(/\.[^.]+$/, "") : undefined,
+    });
+    item.mediaRef = media;
+    item.name = media.promptSummary || item.name;
+    // 服务端短期预览地址优先；不可用时保留本地 objectURL 预览
+    if (media.url) item.previewUrl = media.url;
+    item.status = "ready";
+  } catch (err: any) {
+    item.status = "failed";
+    window.$message.error(err?.message ?? $t("workbench.quickVideo.attach.failed"));
+  }
+}
+
+function retryPendingAttachment(index: number) {
+  const item = pendingAttachments.value[index];
+  if (item) uploadPendingAttachment(item);
+}
+
+function removePendingAttachment(index: number) {
+  const item = pendingAttachments.value[index];
+  if (item?.objectUrl) URL.revokeObjectURL(item.objectUrl);
+  pendingAttachments.value.splice(index, 1);
+}
+
+function clearPendingAttachments() {
+  for (const p of pendingAttachments.value) {
+    if (p.objectUrl) URL.revokeObjectURL(p.objectUrl);
+  }
+  pendingAttachments.value = [];
+}
+
+/** 把稳定媒体引用放入待发送托盘（按 mediaId 去重） */
+function stagePendingRef(ref: MediaRef) {
+  if (pendingAttachments.value.some((p) => p.mediaRef?.mediaId === ref.mediaId)) return;
+  if (pendingAttachments.value.length >= pendingAttachmentLimit) {
+    window.$message.warning($t("workbench.quickVideo.attach.tooMany", { max: pendingAttachmentLimit }));
+    return;
+  }
+  pendingAttachments.value.push({
+    localId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name: ref.promptSummary || "图片引用",
+    status: "ready",
+    previewUrl: ref.url ?? undefined,
+    mediaRef: ref,
+  });
+}
+
+// 输入框粘贴（SIY-144）：优先二进制图片（截图/本地图）→ 上传落库；
+// 其次剪贴板文本中的稳定 MediaRef JSON；最后消费应用内剪贴板选中的引用。
+function onSenderPaste(e: ClipboardEvent) {
+  const files: File[] = [];
+  for (const item of e.clipboardData?.items ?? []) {
+    if (item.kind === "file" && item.type.startsWith("image/")) {
+      const f = item.getAsFile();
+      if (f) files.push(f);
+    }
+  }
+  if (files.length) {
+    e.preventDefault();
+    files.forEach((f) => addPendingFile(f));
+    return;
+  }
+
+  const text = e.clipboardData?.getData("text/plain") ?? "";
+  const refsFromText = readMediaRefsFromText(text);
+  if (refsFromText?.length) {
+    e.preventDefault();
+    refsFromText.forEach(stagePendingRef);
+    window.$message.success($t("workbench.quickVideo.attach.refPasted", { count: refsFromText.length }));
+    return;
+  }
+
+  if (!text.trim() && clipboardMediaRef.value) {
+    e.preventDefault();
+    stagePendingRef(clipboardMediaRef.value);
+    window.$message.success($t("workbench.quickVideo.attach.refPasted", { count: 1 }));
+  }
+}
+
 function handleSend(text: string) {
   const mode = activeModelType.value === "image" ? "image" : activeModelType.value === "video" ? "video" : "text";
   if (mode === "image" && !modelPreferences.value.image) {
@@ -852,14 +1013,31 @@ function handleSend(text: string) {
     window.$message.warning($t("workbench.quickVideo.selectVideoModelFirst"));
     return;
   }
-  // 应用内部剪贴板选中的引用媒体一并带上，供图生图/图生视频使用（SIY-134）；
+  // 上传未完成/有失败项时不允许发送，避免引用缺位或静默丢图（SIY-144）
+  if (pendingAttachments.value.some((p) => p.status === "uploading")) {
+    window.$message.warning($t("workbench.quickVideo.attach.stillUploading"));
+    return;
+  }
+  if (pendingAttachments.value.some((p) => p.status === "failed")) {
+    window.$message.warning($t("workbench.quickVideo.attach.failedBlock"));
+    return;
+  }
+  // 应用内部剪贴板选中的引用媒体与粘贴上传的附件一并带上，供图生图/图生视频使用（SIY-134/SIY-144）；
   // 切换文本模型不会新建或切换 session_id，socket 隔离键由服务端按当前会话固定。
+  const referenceIds: number[] = [];
+  for (const p of pendingAttachments.value) {
+    if (p.mediaRef && !referenceIds.includes(p.mediaRef.mediaId)) referenceIds.push(p.mediaRef.mediaId);
+  }
+  if (clipboardMediaRef.value && !referenceIds.includes(clipboardMediaRef.value.mediaId)) {
+    referenceIds.push(clipboardMediaRef.value.mediaId);
+  }
   quickVideoStoreRef.chat(text, undefined, modelPreferences.value.text || undefined, {
     mode,
     imageModel: mode === "image" ? modelPreferences.value.image : undefined,
     videoModel: mode === "video" ? modelPreferences.value.video : undefined,
-    references: clipboardMediaRef.value ? [clipboardMediaRef.value.mediaId] : undefined,
+    references: referenceIds.length ? referenceIds.slice(0, 4) : undefined,
   });
+  clearPendingAttachments();
   inputValue.value = "";
 }
 function handleStop() {
@@ -1810,6 +1988,65 @@ function cancelExport() {
       .inputBox {
         padding-right: 8px;
         padding-bottom: 8px;
+      }
+      // 待发送附件托盘（SIY-144）
+      .attachTray {
+        display: flex;
+        gap: 8px;
+        padding: 0 8px 6px;
+        overflow-x: auto;
+        .attachItem {
+          position: relative;
+          width: 76px;
+          flex-shrink: 0;
+          border: 1px solid var(--td-border-level-1-color);
+          border-radius: 8px;
+          padding: 4px;
+          &.failed {
+            border-color: var(--td-error-color);
+          }
+          .attachThumb {
+            position: relative;
+            width: 100%;
+            height: 48px;
+            border-radius: 6px;
+            overflow: hidden;
+            background-color: var(--td-bg-color-secondarycontainer);
+            img {
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+              display: block;
+            }
+            .attachLoading {
+              width: 100%;
+              height: 100%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
+            .attachState {
+              position: absolute;
+              top: 2px;
+              left: 2px;
+            }
+          }
+          .attachName {
+            margin-top: 2px;
+            font-size: 11px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .attachActions {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            display: flex;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 6px;
+          }
+        }
       }
       .modelPicker {
         display: flex;

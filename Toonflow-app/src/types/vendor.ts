@@ -18,6 +18,8 @@ export interface TextModel {
   modelName: string;
   type: "text";
   think: boolean;
+  /** 是否具备视觉理解能力（可接收图文多模态输入）；缺省视为不支持，快创聊天图文模式据此守门（SIY-144） */
+  vision?: boolean;
 }
 
 export interface ImageModel {

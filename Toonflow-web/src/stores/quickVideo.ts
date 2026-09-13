@@ -413,6 +413,25 @@ function makeQuickVideoStore(projectId: string) {
       return { ok: true as const, state: workbench.value.state };
     }
 
+    /**
+     * 聊天粘贴/本地上传图片落库（SIY-144）：POST /quickVideo/uploadMedia。
+     * 服务端校验 MIME/大小并以 SHA-256 幂等，返回稳定 MediaRef（含短期预览地址）；
+     * 上传资产自动进入当前项目资产白板（o_quickVideoMedia source=upload）。
+     */
+    async function uploadChatMedia(input: { base64Data: string; mimeType: string; name?: string }): Promise<MediaRef> {
+      const response: any = await axios.post("/quickVideo/uploadMedia", {
+        projectId: Number(projectId),
+        sessionId: currentSessionId.value ?? undefined,
+        base64Data: input.base64Data,
+        mimeType: input.mimeType,
+        name: input.name,
+      });
+      if (response?.code !== 200) throw new Error(response?.message ?? "图片上传失败");
+      const media = response?.data?.media as MediaRef | undefined;
+      if (!media?.mediaId) throw new Error(response?.message ?? "图片上传失败");
+      return media;
+    }
+
     return {
       connected,
       messages,
@@ -433,6 +452,7 @@ function makeQuickVideoStore(projectId: string) {
       getMediaUrls,
       getTimeline,
       updateConfig,
+      uploadChatMedia,
       sessions,
       loadingSessions,
       currentSessionId,

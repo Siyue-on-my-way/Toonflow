@@ -1853,7 +1853,21 @@
       "exportedSize": "文件大小",
       "cancel": "取消",
       "retry": "重试",
-      "close": "关闭"
+      "close": "关闭",
+      "attach": {
+        "uploading": "上传中",
+        "failed": "上传失败",
+        "retry": "重试",
+        "remove": "移除",
+        "tooMany": "单轮最多 {max} 个附件/引用",
+        "mimeRejected": "仅支持 PNG / JPEG / WebP 图片",
+        "tooLarge": "图片不能超过 20MB",
+        "readFailed": "读取图片失败",
+        "pastedImage": "粘贴图片",
+        "refPasted": "已添加 {count} 个媒体引用",
+        "stillUploading": "附件仍在上传中，请稍候",
+        "failedBlock": "存在上传失败的附件，请重试或移除后再发送"
+      }
     }
   },
   "login": {

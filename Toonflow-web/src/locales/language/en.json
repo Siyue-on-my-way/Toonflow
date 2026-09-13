@@ -1749,7 +1749,21 @@
       "exportedSize": "File size",
       "cancel": "Cancel",
       "retry": "Retry",
-      "close": "Close"
+      "close": "Close",
+      "attach": {
+        "uploading": "Uploading",
+        "failed": "Upload failed",
+        "retry": "Retry",
+        "remove": "Remove",
+        "tooMany": "Up to {max} attachments/references per turn",
+        "mimeRejected": "Only PNG / JPEG / WebP images are supported",
+        "tooLarge": "Image must be under 20MB",
+        "readFailed": "Failed to read image",
+        "pastedImage": "Pasted image",
+        "refPasted": "{count} media reference(s) added",
+        "stillUploading": "Attachments are still uploading, please wait",
+        "failedBlock": "Some attachments failed to upload. Retry or remove them before sending"
+      }
     }
   },
   "login": {

@@ -8,6 +8,8 @@ export const vendorModelSchema = z.discriminatedUnion("type", [
     modelName: z.string(),
     type: z.literal("text"),
     think: z.boolean(),
+    // 视觉理解能力标记（快创聊天图文模式守门用，SIY-144）；缺省视为不支持
+    vision: z.boolean().optional(),
   }),
   z.object({
     name: z.string(),

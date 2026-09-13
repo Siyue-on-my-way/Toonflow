@@ -7,6 +7,8 @@ import * as fs from "fs";
 import path from "path";
 import { loadQuickVideoState } from "@/lib/quickVideo/state";
 import { shotCountBounds, QuickVideoChatMode } from "@/lib/quickVideo/contract";
+import { isVisionTextModel, resolveMediaImageBase64 } from "@/lib/quickVideo/media";
+import { resolveAgentModelKey } from "@/utils/ai";
 
 export interface AgentContext {
   socket: Socket;
@@ -56,7 +58,9 @@ function buildMemPrompt(mem: Awaited<ReturnType<Memory["get"]>>): string {
 export async function runQuickVideoAgent(ctx: AgentContext) {
   const { isolationKey, sessionId, text, textModel, userMessageTime, abortSignal, resTool, userId } = ctx;
   const memory = new Memory("quickVideoAgent", isolationKey, userId);
-  await memory.add("user", text, { createTime: userMessageTime });
+  // 引用媒体仅以稳定 mediaId 记入记忆正文（不含 Base64/私有 Key/签名 URL）
+  const refNote = ctx.references?.length ? `\n[本轮附带图片引用 mediaId: ${ctx.references.slice(0, 4).join(", ")}]` : "";
+  await memory.add("user", `${text}${refNote}`, { createTime: userMessageTime });
 
   const skill = path.join(u.getPath("skills"), "quick_video_agent.md");
   const prompt = await fs.promises.readFile(skill, "utf-8");
@@ -68,6 +72,29 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
   const state = await loadQuickVideoState(Number(resTool.data.projectId));
   // 文本模型优先级：本轮显式传入 > 当前会话保存的偏好 > 项目历史默认值（兼容未迁移前的选择）
   const effectiveTextModel = textModel || (sessionData?.textModel as `${string}:${string}` | undefined) || (projectData?.textModel as `${string}:${string}` | undefined);
+
+  // SIY-144 文本模式图文守门：引用在 image/video 模式由受限工具直接消费；
+  // text 模式要让文本模型"看懂"图片，必须具备视觉理解能力（协议目录 vision=true），
+  // 不支持时直接阻断本轮并给出可见原因，严禁静默丢图退化为纯文本对话。
+  let referenceImages: { type: "image"; image: string }[] = [];
+  if ((ctx.mode ?? "text") === "text" && ctx.references?.length) {
+    const modelKey = await resolveAgentModelKey("quickVideoAgent", effectiveTextModel);
+    if (!(await isVisionTextModel(modelKey))) {
+      await emitVisionBlocked(ctx, memory, `当前文本模型「${modelKey}」不支持图片理解，请切换为具备视觉能力的文本模型后再发送图片，或改用「图片」模式生成`);
+      return;
+    }
+    const dataUrls: string[] = [];
+    for (const mediaId of ctx.references.slice(0, 4)) {
+      try {
+        dataUrls.push(await resolveMediaImageBase64(Number(resTool.data.projectId), mediaId));
+      } catch (err) {
+        await emitVisionBlocked(ctx, memory, `参考图 mediaId ${mediaId} 读取失败（${u.error(err as Error).message}），请重新选择有效的图片引用`);
+        return;
+      }
+    }
+    // 图文多模态内容只进本轮 LLM 消息，不落记忆
+    referenceImages = dataUrls.map((image) => ({ type: "image" as const, image }));
+  }
 
   const projectInfo = [
     "## 项目信息",
@@ -103,7 +130,7 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
     messages: [
       { role: "system", content: prompt },
       { role: "assistant", content: projectInfo },
-      { role: "user", content: text },
+      { role: "user", content: referenceImages.length ? [{ type: "text", text }, ...referenceImages] : text },
     ],
     abortSignal,
     tools: {
@@ -128,6 +155,18 @@ async function mutateLastChatAt(projectId: number, sessionId: number) {
     });
   } catch {
     // 状态行不存在等场景忽略
+  }
+}
+
+/** 文本模式图文守门阻断：在聊天流给出可见原因，并把阻断说明落记忆保持会话连续（SIY-144） */
+async function emitVisionBlocked(ctx: AgentContext, memory: Memory, reason: string) {
+  const note = ctx.msg.markdown(`⚠️ ${reason}`);
+  note.complete();
+  ctx.msg.complete();
+  try {
+    await memory.add("assistant", `[未处理] ${reason}`);
+  } catch {
+    // 记忆失败不阻断错误提示
   }
 }
 
