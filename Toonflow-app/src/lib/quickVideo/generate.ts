@@ -26,7 +26,8 @@ import {
 } from "./contract";
 import { QuickVideoError, loadQuickVideoState, mutateQuickVideoState } from "./state";
 import { recordEvent, qvLog } from "./metrics";
-import { CHAT_MEDIA_ASSET_TYPE, getVendorModelCatalog } from "./media";
+import { CHAT_MEDIA_ASSET_TYPE, getVendorModelCatalog, findFirstAvailableModel } from "./media";
+import { isVideoModelSupportingSingleImage } from "./modelValidation";
 
 /** 进程内生成运行登记：projectId -> 运行 runId（防止重复启动） */
 const runningGenerations = new Map<number, { runId: string }>();
@@ -179,25 +180,6 @@ async function matchProjectAsset(
 // ---------------------------------------------------------------------------
 // 模型解析
 // ---------------------------------------------------------------------------
-
-/** 项目未配置生成模型时，按「启用的供应商 → 该类型第一个模型」兜底选择 */
-async function findFirstAvailableModel(type: "image" | "video"): Promise<string> {
-  const vendorRows = await u.db("o_vendorConfig").select("id").where("enable", 1);
-  for (const row of vendorRows) {
-    try {
-      const models = (await u.vendor.getModelList(row.id)) ?? [];
-      const hit = models.find((m: any) => m.type === type);
-      if (!hit) continue;
-      const enabled = await u.vendor.getEnabledModelNames(row.id);
-      if (enabled.length === 0 || enabled.includes(hit.modelName)) {
-        return `${row.id}:${hit.modelName}`;
-      }
-    } catch {
-      // 单个供应商查询失败不影响兜底选择
-    }
-  }
-  return "";
-}
 
 export async function resolveGenerationModels(projectId: number, sessionId?: number | null): Promise<{ imageModel: string; videoModel: string }> {
   const project = await u.db("o_project").where("id", projectId).first();
@@ -599,8 +581,7 @@ export async function assertVideoSupportsSingleImage(videoModelKey: string, hasB
   const catalog = await getVendorModelCatalog(vendorId);
   if (!catalog) return;
   const hit = catalog.models.find((m) => m?.modelName === modelName && m?.type === "video");
-  const modes = Array.isArray(hit?.mode) ? (hit!.mode as string[]) : null;
-  if (modes && !modes.includes("singleImage")) {
+  if (!isVideoModelSupportingSingleImage(hit)) {
     const hint = hasBoundFirstFrame ? "请更换视频模型或解除该镜头首帧后重试" : "请更换视频模型后重试";
     throw new Error(`所选视频模型「${modelName}」不支持单图/首帧输入，${hint}`);
   }

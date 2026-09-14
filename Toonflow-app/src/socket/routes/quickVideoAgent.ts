@@ -99,6 +99,14 @@ export default (nsp: Namespace) => {
           msg.error(err instanceof QuickVideoError ? err.message : u.error(err as Error).message);
           return;
         }
+        if (data.imageModel) {
+          try {
+            await validateImageModelKey(data.imageModel);
+            validatedImageModel = data.imageModel;
+          } catch {
+            // 选填图片模型校验失败不阻断视频模式主流程，后续由服务端自动解析可用图片模型
+          }
+        }
       }
 
       const ctx: agent.AgentContext = {

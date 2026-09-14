@@ -26,7 +26,12 @@ import {
   QUICK_VIDEO_MEDIA_STATES,
   QUICK_VIDEO_MEDIA_SOURCES,
 } from "@/lib/quickVideo/contract";
-import { pickEnabledModel, type VendorModelEntry } from "@/lib/quickVideo/modelValidation";
+import {
+  pickEnabledModel,
+  isVideoModelSupportingText,
+  isVideoModelSupportingSingleImage,
+  type VendorModelEntry,
+} from "@/lib/quickVideo/modelValidation";
 
 let passed = 0;
 let failed = 0;
@@ -225,6 +230,24 @@ console.log("== 12. shotMediaUrlsSchema 契约与 resolveVideoPosterUrl 封面�
   };
   const parsedNull = shotMediaUrlsSchema.safeParse(nullSample);
   assert(parsedNull.success, "全为 null 的 ShotMediaUrls 应通过 schema 校验");
+}
+
+console.log("== 13. isVideoModelSupportingText / isVideoModelSupportingSingleImage 纯函数识别（SIY-149） ==");
+{
+  const textVideoModel: VendorModelEntry = { modelName: "v-text", type: "video", mode: ["text", "singleImage"] };
+  const singleImageOnly: VendorModelEntry = { modelName: "v-image", type: "video", mode: ["singleImage"] };
+  const textOnly: VendorModelEntry = { modelName: "v-text-only", type: "video", mode: ["text"] };
+  const noMode: VendorModelEntry = { modelName: "v-legacy", type: "video" };
+
+  assert(isVideoModelSupportingText(textVideoModel), "mode 含 text 时判定支持文生视频");
+  assert(isVideoModelSupportingText(textOnly), "mode 仅含 text 时判定支持文生视频");
+  assert(!isVideoModelSupportingText(singleImageOnly), "mode 仅含 singleImage 时判定不支持文生视频");
+  assert(!isVideoModelSupportingText(null), "null 安全返回 false");
+
+  assert(isVideoModelSupportingSingleImage(textVideoModel), "mode 含 singleImage 时判定支持单图首帧");
+  assert(isVideoModelSupportingSingleImage(singleImageOnly), "mode 仅含 singleImage 时判定支持单图首帧");
+  assert(isVideoModelSupportingSingleImage(noMode), "未声明 mode 默认放行");
+  assert(!isVideoModelSupportingSingleImage(textOnly), "显式声明仅 text 模式排他时判定不支持单图首帧");
 }
 
 console.log(`\n结果：${passed} 通过，${failed} 失败`);

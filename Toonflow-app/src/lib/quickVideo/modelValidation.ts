@@ -28,3 +28,23 @@ export function pickEnabledModel(
   if (enabledNames.length > 0 && !enabledNames.includes(modelName)) return null;
   return hit;
 }
+
+/**
+ * 纯函数：检查视频模型是否原生支持文本生视频（mode 包含 "text"）
+ */
+export function isVideoModelSupportingText(model: VendorModelEntry | null | undefined): boolean {
+  if (!model) return false;
+  const modes = Array.isArray(model.mode) ? (model.mode as unknown[]) : [];
+  return modes.includes("text");
+}
+
+/**
+ * 纯函数：检查视频模型是否支持单图/首帧模式（未声明 mode 或 mode 包含 "singleImage"）
+ */
+export function isVideoModelSupportingSingleImage(model: VendorModelEntry | null | undefined): boolean {
+  if (!model) return true;
+  const modes = Array.isArray(model.mode) ? (model.mode as unknown[]) : null;
+  if (!modes) return true;
+  return modes.includes("singleImage");
+}
+

@@ -16,7 +16,7 @@ import {
 } from "@/lib/quickVideo/contract";
 import { findShot, nextShotId, normalizeShotDuration, reindexShots } from "@/lib/quickVideo/shots";
 import { startQuickVideoGeneration, buildSnapshot, applySnapshotToState, assertVideoSupportsSingleImage, castAspectRatio } from "@/lib/quickVideo/generate";
-import { createChatMedia, markChatMediaDone, markChatMediaFailed, resolveMediaImageBase64 } from "@/lib/quickVideo/media";
+import { createChatMedia, markChatMediaDone, markChatMediaFailed, resolveMediaImageBase64, videoModelSupportsText, resolveDefaultImageModel } from "@/lib/quickVideo/media";
 
 /**
  * QuickVideoAgent 受限工具层。
@@ -717,8 +717,10 @@ export default (toolConfig: ToolConfig) => {
     const videoModel = toolConfig.videoModel;
     tools.generate_video = tool({
       description:
-        "在当前聊天会话中生成一段图生视频（必须提供一张参考图作为首帧输入，不支持纯文字生视频）。生成成功会自动出现在聊天记录和资产白板中，" +
-        "但不会绑定到任何镜头、不会修改分镜、不会代替用户确认任何确认门——绑定镜头首帧是用户在右侧分镜表的专属操作。",
+        "在当前聊天会话中生成短视频（支持一句话纯文本直接生成短视频，亦支持基于参考图生成图生视频）。" +
+        "用户可直接输入纯文本描述，无需先上传或引用图片；无参考图时系统自动采用双轨自适应模式（原生支持文生视频则直接生成，仅支持单图首帧则自动生成概念首帧图链式生视频）。" +
+        "生成的视频和概念图将自动进入聊天记录和资产白板，" +
+        "但不会自动绑定到任何镜头、不会修改分镜、不会代替用户确认任何确认门——绑定镜头首帧是用户在右侧分镜表的专属操作。",
       inputSchema: jsonSchema<{ prompt: string; referenceMediaId?: number; duration?: number }>(
         z
           .object({
@@ -728,7 +730,7 @@ export default (toolConfig: ToolConfig) => {
               .int()
               .positive()
               .optional()
-              .describe("作为首帧的参考图 mediaId，只能是用户在本轮聊天中明确选中/复制的图片，不要凭空编造 id；未提供时使用用户当前选中的引用"),
+              .describe("作为首帧的参考图 mediaId，可选；若用户未提供图片引用，可留空，系统将自适应文生视频或链式生成概念图后生视频"),
             duration: z
               .number()
               .int()
@@ -743,21 +745,161 @@ export default (toolConfig: ToolConfig) => {
         const { toolCallId } = options as { toolCallId: string };
         return withThinking(msg, "正在生成视频...", async () => {
           const referenceId = input.referenceMediaId ?? toolConfig.references?.[0];
-          if (!referenceId) {
-            return "生视频需要先提供一张参考图作为首帧：请提醒用户在聊天记录或资产白板中复制一张图片作为引用后再发送生视频请求，我不会凭空生成视频。";
+          const project = await u.db("o_project").where("id", projectId).select("videoRatio").first();
+          const aspectRatio = castAspectRatio((project?.videoRatio || "16:9") as QuickVideoRatio);
+          const duration = input.duration ?? SHOT_DURATION_MIN;
+
+          // 场景 A：用户提供了参考图（图生视频明确指定首帧）
+          if (referenceId) {
+            try {
+              await assertVideoSupportsSingleImage(videoModel, false);
+            } catch (err) {
+              return `视频生成失败：${describeError(err)}`;
+            }
+
+            const { media, idempotentHit } = await createChatMedia({
+              projectId,
+              sessionId,
+              messageId: msg.id,
+              kind: "video",
+              model: videoModel,
+              prompt: input.prompt,
+              source: "chat",
+              idempotencyKey: `tool:generate_video:${toolCallId}`,
+            });
+            if (idempotentHit) {
+              if (media.state === "done") return "该次视频生成请求已处理过（幂等命中），视频已在聊天记录和资产白板中。";
+              if (media.state === "failed") return `该次视频生成请求已处理过（幂等命中），生成失败：${media.errorReason ?? "未知原因"}`;
+              return "该次视频生成请求正在处理中（幂等命中），请稍候查看聊天记录或资产白板。";
+            }
+
+            let imageBase64: string;
+            try {
+              imageBase64 = await resolveMediaImageBase64(projectId, referenceId);
+            } catch (err) {
+              const reason = describeError(err);
+              await markChatMediaFailed(media.id, reason);
+              return `视频生成失败：参考图无效（${reason}）。请提醒用户重新选择一张已生成完成的图片作为参考后再试，不要凭空重试。`;
+            }
+
+            try {
+              const videoAi = u.Ai.Video(videoModel as `${string}:${string}`, userId);
+              await videoAi.run(
+                {
+                  prompt: input.prompt,
+                  referenceList: [{ type: "image", base64: imageBase64 }],
+                  mode: ["singleImage"],
+                  duration,
+                  aspectRatio,
+                  resolution: "720p",
+                },
+                {
+                  taskClass: "快创聊天生视频",
+                  describe: `聊天生视频：${input.prompt.slice(0, 100)}`,
+                  relatedObjects: JSON.stringify({ projectId, sessionId, mediaId: media.id }),
+                  projectId,
+                },
+              );
+              const savePath = `/${projectId}/quickVideo/chat-${u.uuid().slice(0, 8)}.mp4`;
+              await videoAi.save(savePath);
+              await markChatMediaDone(media.id, savePath);
+
+              const url = await u.oss.getFileUrl(savePath);
+              msg.video(
+                { name: input.prompt.slice(0, 60), url },
+                { mediaId: media.id, assetId: media.assetId, videoId: media.videoId, kind: "video", model: videoModel, promptSummary: input.prompt.slice(0, 200), state: "done", source: "chat" },
+              );
+              return `视频已生成并加入聊天记录与资产白板（mediaId ${media.id}）。提醒用户：如需用作某个镜头的首帧，请在右侧分镜表对应镜头点击"设为首帧"手动绑定（仅图片可作首帧），我不会自动绑定。`;
+            } catch (err) {
+              const reason = describeError(err);
+              await markChatMediaFailed(media.id, reason);
+              return `视频生成失败：${reason}。可以请用户换一个描述、换一张参考图或换一个视频模型后重新发送。`;
+            }
           }
 
+          // 场景 B：用户未提供参考图（纯文本一句话直接生视频，双轨自适应模式）
+          const supportsText = await videoModelSupportsText(videoModel);
+
+          // 轨道 1：模型原生支持 text2video（直接提交纯文本生成任务）
+          if (supportsText) {
+            const { media, idempotentHit } = await createChatMedia({
+              projectId,
+              sessionId,
+              messageId: msg.id,
+              kind: "video",
+              model: videoModel,
+              prompt: input.prompt,
+              source: "chat",
+              idempotencyKey: `tool:generate_video:${toolCallId}`,
+            });
+            if (idempotentHit) {
+              if (media.state === "done") return "该次视频生成请求已处理过（幂等命中），视频已在聊天记录和资产白板中。";
+              if (media.state === "failed") return `该次视频生成请求已处理过（幂等命中），生成失败：${media.errorReason ?? "未知原因"}`;
+              return "该次视频生成请求正在处理中（幂等命中），请稍候查看聊天记录或资产白板。";
+            }
+
+            try {
+              const videoAi = u.Ai.Video(videoModel as `${string}:${string}`, userId);
+              await videoAi.run(
+                {
+                  prompt: input.prompt,
+                  mode: ["text"],
+                  duration,
+                  aspectRatio,
+                  resolution: "720p",
+                },
+                {
+                  taskClass: "快创聊天生视频",
+                  describe: `聊天生视频：${input.prompt.slice(0, 100)}`,
+                  relatedObjects: JSON.stringify({ projectId, sessionId, mediaId: media.id }),
+                  projectId,
+                },
+              );
+              const savePath = `/${projectId}/quickVideo/chat-${u.uuid().slice(0, 8)}.mp4`;
+              await videoAi.save(savePath);
+              await markChatMediaDone(media.id, savePath);
+
+              const url = await u.oss.getFileUrl(savePath);
+              msg.video(
+                { name: input.prompt.slice(0, 60), url },
+                { mediaId: media.id, assetId: media.assetId, videoId: media.videoId, kind: "video", model: videoModel, promptSummary: input.prompt.slice(0, 200), state: "done", source: "chat" },
+              );
+              return `视频已生成并加入聊天记录与资产白板（mediaId ${media.id}）。提醒用户：如需用作某个镜头的首帧，请在右侧分镜表对应镜头点击"设为首帧"手动绑定（仅图片可作首帧），我不会自动绑定。`;
+            } catch (err) {
+              const reason = describeError(err);
+              await markChatMediaFailed(media.id, reason);
+              return `视频生成失败：${reason}。可以请用户换一个描述或换一个视频模型后重新发送。`;
+            }
+          }
+
+          // 轨道 2：模型仅支持 singleImage（链式唤起文生图生成概念首帧图，再作为参考图生视频）
           try {
             await assertVideoSupportsSingleImage(videoModel, false);
           } catch (err) {
             return `视频生成失败：${describeError(err)}`;
           }
 
-          const project = await u.db("o_project").where("id", projectId).select("videoRatio").first();
-          const aspectRatio = castAspectRatio((project?.videoRatio || "16:9") as QuickVideoRatio);
-          const duration = input.duration ?? SHOT_DURATION_MIN;
+          let effectiveImageModel = toolConfig.imageModel;
+          if (!effectiveImageModel) {
+            effectiveImageModel = await resolveDefaultImageModel(projectId, sessionId);
+          }
+          if (!effectiveImageModel) {
+            return "所选视频模型仅支持图生视频（单图首帧），系统尝试自动生成概念首帧图，但未找到可用的图片模型，请在设置中配置或启用图片模型。";
+          }
 
-          const { media, idempotentHit } = await createChatMedia({
+          // 在事务内自动并行唤起文生图占位与视频占位（两项均进入 o_quickVideoMedia 与资产白板）
+          const { media: imageMedia, idempotentHit: imageIdempotentHit } = await createChatMedia({
+            projectId,
+            sessionId,
+            messageId: msg.id,
+            kind: "image",
+            model: effectiveImageModel,
+            prompt: input.prompt,
+            source: "chat",
+            idempotencyKey: `tool:generate_video:first_frame:${toolCallId}`,
+          });
+
+          const { media: videoMedia, idempotentHit: videoIdempotentHit } = await createChatMedia({
             projectId,
             sessionId,
             messageId: msg.id,
@@ -767,21 +909,61 @@ export default (toolConfig: ToolConfig) => {
             source: "chat",
             idempotencyKey: `tool:generate_video:${toolCallId}`,
           });
-          if (idempotentHit) {
-            if (media.state === "done") return "该次视频生成请求已处理过（幂等命中），视频已在聊天记录和资产白板中。";
-            if (media.state === "failed") return `该次视频生成请求已处理过（幂等命中），生成失败：${media.errorReason ?? "未知原因"}`;
-            return "该次视频生成请求正在处理中（幂等命中），请稍候查看聊天记录或资产白板。";
+
+          if (videoIdempotentHit && videoMedia.state === "done") {
+            return "该次视频生成请求已处理过（幂等命中），视频已在聊天记录和资产白板中。";
           }
 
+          // 生成概念首帧图
           let imageBase64: string;
-          try {
-            imageBase64 = await resolveMediaImageBase64(projectId, referenceId);
-          } catch (err) {
-            const reason = describeError(err);
-            await markChatMediaFailed(media.id, reason);
-            return `视频生成失败：参考图无效（${reason}）。请提醒用户重新选择一张已生成完成的图片作为参考后再试，不要凭空重试。`;
+          if (imageIdempotentHit && imageMedia.state === "done" && imageMedia.imageId) {
+            try {
+              imageBase64 = await resolveMediaImageBase64(projectId, imageMedia.id);
+            } catch (err) {
+              const reason = describeError(err);
+              await markChatMediaFailed(videoMedia.id, `首帧概念图读取失败: ${reason}`);
+              return `视频生成失败：首帧概念图读取失败（${reason}）。请重试或换一个描述。`;
+            }
+          } else {
+            try {
+              const imageCls = u.Ai.Image(effectiveImageModel as `${string}:${string}`, userId);
+              await imageCls.run(
+                { prompt: input.prompt, referenceList: [], size: "1K", aspectRatio },
+                {
+                  taskClass: "快创聊天概念首帧",
+                  describe: `概念首帧：${input.prompt.slice(0, 100)}`,
+                  relatedObjects: JSON.stringify({ projectId, sessionId, mediaId: imageMedia.id }),
+                  projectId,
+                },
+              );
+              const imageSavePath = `/${projectId}/quickVideo/chat-concept-${u.uuid().slice(0, 8)}.jpg`;
+              await imageCls.save(imageSavePath);
+              await markChatMediaDone(imageMedia.id, imageSavePath);
+
+              const imageUrl = await u.oss.getFileUrl(imageSavePath);
+              msg.image(
+                { name: `[概念首帧] ${input.prompt.slice(0, 50)}`, url: imageUrl },
+                {
+                  mediaId: imageMedia.id,
+                  assetId: imageMedia.assetId,
+                  imageId: imageMedia.imageId,
+                  kind: "image",
+                  model: effectiveImageModel,
+                  promptSummary: input.prompt.slice(0, 200),
+                  state: "done",
+                  source: "chat",
+                },
+              );
+              imageBase64 = await resolveMediaImageBase64(projectId, imageMedia.id);
+            } catch (err) {
+              const reason = describeError(err);
+              await markChatMediaFailed(imageMedia.id, reason);
+              await markChatMediaFailed(videoMedia.id, `概念首帧图生成失败: ${reason}`);
+              return `视频生成失败：所选视频模型需要首帧参考图，系统尝试自动生成概念首帧图失败（${reason}）。可以请用户换一个描述或换一个模型后重试。`;
+            }
           }
 
+          // 将概念首帧图作为参考图送入视频模型生成视频
           try {
             const videoAi = u.Ai.Video(videoModel as `${string}:${string}`, userId);
             await videoAi.run(
@@ -796,24 +978,33 @@ export default (toolConfig: ToolConfig) => {
               {
                 taskClass: "快创聊天生视频",
                 describe: `聊天生视频：${input.prompt.slice(0, 100)}`,
-                relatedObjects: JSON.stringify({ projectId, sessionId, mediaId: media.id }),
+                relatedObjects: JSON.stringify({ projectId, sessionId, mediaId: videoMedia.id }),
                 projectId,
               },
             );
-            const savePath = `/${projectId}/quickVideo/chat-${u.uuid().slice(0, 8)}.mp4`;
-            await videoAi.save(savePath);
-            await markChatMediaDone(media.id, savePath);
+            const videoSavePath = `/${projectId}/quickVideo/chat-${u.uuid().slice(0, 8)}.mp4`;
+            await videoAi.save(videoSavePath);
+            await markChatMediaDone(videoMedia.id, videoSavePath);
 
-            const url = await u.oss.getFileUrl(savePath);
+            const videoUrl = await u.oss.getFileUrl(videoSavePath);
             msg.video(
-              { name: input.prompt.slice(0, 60), url },
-              { mediaId: media.id, assetId: media.assetId, videoId: media.videoId, kind: "video", model: videoModel, promptSummary: input.prompt.slice(0, 200), state: "done", source: "chat" },
+              { name: input.prompt.slice(0, 60), url: videoUrl },
+              {
+                mediaId: videoMedia.id,
+                assetId: videoMedia.assetId,
+                videoId: videoMedia.videoId,
+                kind: "video",
+                model: videoModel,
+                promptSummary: input.prompt.slice(0, 200),
+                state: "done",
+                source: "chat",
+              },
             );
-            return `视频已生成并加入聊天记录与资产白板（mediaId ${media.id}）。提醒用户：如需用作某个镜头的首帧，请在右侧分镜表对应镜头点击"设为首帧"手动绑定（仅图片可作首帧），我不会自动绑定。`;
+            return `视频已生成并加入聊天记录与资产白板（视频 mediaId ${videoMedia.id}，概念首帧 mediaId ${imageMedia.id}）。概念首帧图已收录白板，支持一键设为分镜首帧；视频可在聊天流中直接播放与全屏预览。`;
           } catch (err) {
             const reason = describeError(err);
-            await markChatMediaFailed(media.id, reason);
-            return `视频生成失败：${reason}。可以请用户换一个描述、换一张参考图或换一个视频模型后重新发送。`;
+            await markChatMediaFailed(videoMedia.id, reason);
+            return `视频生成失败：${reason}（概念首帧图已生成并保存在资产白板中，mediaId ${imageMedia.id}）。可以请用户换一个描述或换一个视频模型后重试。`;
           }
         }).catch((err) => `视频生成失败：${describeError(err)}`);
       },

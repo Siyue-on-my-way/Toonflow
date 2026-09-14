@@ -20,7 +20,7 @@ import {
   QuickVideoMediaState,
 } from "./contract";
 import { QuickVideoError } from "./state";
-import { pickEnabledModel, type VendorModelEntry } from "./modelValidation";
+import { pickEnabledModel, isVideoModelSupportingText, type VendorModelEntry } from "./modelValidation";
 
 /** o_assets.type 取值：聊天/白板生成的媒体资产，与专业模式 role/scene/tool 资产分开，不参与素材匹配 */
 export const CHAT_MEDIA_ASSET_TYPE = "chat_media";
@@ -149,6 +149,46 @@ export async function imageModelSupportsReference(modelKey: string): Promise<boo
   if (!hit) return false;
   const modes = Array.isArray(hit.mode) ? (hit.mode as unknown[]) : [];
   return modes.includes("singleImage") || modes.includes("multiReference");
+}
+
+/** 视频模型是否原生支持文生视频（目录 mode 含 text） */
+export async function videoModelSupportsText(videoModelKey: string): Promise<boolean> {
+  const split = splitModelKey(videoModelKey);
+  if (!split) return false;
+  const catalog = await getVendorModelCatalog(split.vendorId);
+  if (!catalog?.enabled) return false;
+  const hit = pickEnabledModel(catalog.models, catalog.enabledNames, split.modelName, "video");
+  return isVideoModelSupportingText(hit);
+}
+
+/** 项目未配置生成模型时，按「启用的供应商 → 该类型第一个模型」兜底选择 */
+export async function findFirstAvailableModel(type: "image" | "video"): Promise<string> {
+  const vendorRows = await u.db("o_vendorConfig").select("id").where("enable", 1);
+  for (const row of vendorRows) {
+    try {
+      const models = (await u.vendor.getModelList(row.id)) ?? [];
+      const hit = models.find((m: any) => m.type === type);
+      if (!hit) continue;
+      const enabled = await u.vendor.getEnabledModelNames(row.id);
+      if (enabled.length === 0 || enabled.includes(hit.modelName)) {
+        return `${row.id}:${hit.modelName}`;
+      }
+    } catch {
+      // 单个供应商查询失败不影响兜底选择
+    }
+  }
+  return "";
+}
+
+/** 为会话/项目解析可用的默认图片模型（优先会话 > 项目 > 首个可用图片模型） */
+export async function resolveDefaultImageModel(projectId: number, sessionId?: number | null): Promise<string> {
+  const session = sessionId ? await u.db("o_quickVideoSession").where({ id: sessionId, projectId }).first() : null;
+  const project = await u.db("o_project").where("id", projectId).first();
+  let imageModel = String(session?.imageModel || project?.imageModel || "");
+  if (!imageModel) {
+    imageModel = await findFirstAvailableModel("image");
+  }
+  return imageModel;
 }
 
 // ---------------------------------------------------------------------------
