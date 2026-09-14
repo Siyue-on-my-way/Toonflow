@@ -533,3 +533,32 @@ export function buildDefaultSessionTitle(projectName: string | null | undefined,
   const name = projectName?.trim();
   return name ? `${name}-session${sequence}` : DEFAULT_SESSION_TITLE;
 }
+
+// ---------------------------------------------------------------------------
+// 镜头媒体产物访问地址（SIY-147）
+// ---------------------------------------------------------------------------
+
+/**
+ * 镜头媒体产物访问地址契约：
+ * - imageUrl: 镜头生成图访问地址（已完成且生成成功时有值）
+ * - videoUrl: 镜头生成视频访问地址（已完成且生成成功时有值）
+ * - videoPosterUrl: 视频卡片封面，按优先级依次取：视频专有首帧（绑定的 firstFrame）> 镜头生成图 > null
+ * - firstFrameUrl: 人工绑定的首帧缩略图
+ */
+export const shotMediaUrlsSchema = z.object({
+  imageUrl: z.string().nullable(),
+  videoUrl: z.string().nullable(),
+  videoPosterUrl: z.string().nullable(),
+  firstFrameUrl: z.string().nullable(),
+});
+export type ShotMediaUrls = z.infer<typeof shotMediaUrlsSchema>;
+
+/**
+ * 视频封面优先级计算：优先视频专有首帧（绑定的 firstFrame），其次镜头生成图，最后 null
+ */
+export function resolveVideoPosterUrl(
+  firstFrameUrl: string | null | undefined,
+  imageUrl: string | null | undefined,
+): string | null {
+  return firstFrameUrl ?? imageUrl ?? null;
+}

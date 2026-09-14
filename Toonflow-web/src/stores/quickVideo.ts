@@ -10,6 +10,7 @@ import type {
   QuickVideoSession,
   QuickVideoSessionStatus,
   MediaRef,
+  QuickVideoShotMediaUrls,
 } from "@/types/quickVideo";
 
 /**
@@ -360,7 +361,7 @@ function makeQuickVideoStore(projectId: string) {
     }
 
     /** 镜头产物访问地址（imageRef/videoRef -> 预览链接，firstFrame -> 首帧缩略图），存在已完成镜头或已绑定首帧时按需调用 */
-    async function getMediaUrls(): Promise<Record<string, { imageUrl: string | null; videoUrl: string | null; firstFrameUrl: string | null }>> {
+    async function getMediaUrls(): Promise<Record<string, QuickVideoShotMediaUrls>> {
       const response = await axios.post("/quickVideo/getMediaUrls", { projectId: Number(projectId) });
       const payload = response?.data ?? response;
       // Axios has already unwrapped the HTTP response body; the endpoint

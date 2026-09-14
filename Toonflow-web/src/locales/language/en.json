@@ -1724,6 +1724,8 @@
       },
       "preview": "Preview",
       "videoPreview": "Shot Video Preview",
+      "imagePreviewUnavailable": "Image preview unavailable",
+      "videoPreviewUnavailable": "Video preview unavailable",
       "retryShot": "Retry this shot",
       "retryAllFailed": "Retry all failed shots",
       "generation": "Generation Progress",

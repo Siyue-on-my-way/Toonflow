@@ -96,6 +96,14 @@ export interface QuickVideoShot {
   firstFrame: ShotFirstFrame | null;
 }
 
+/** 镜头产物访问地址（与后端 getMediaUrls 返回的 ShotMediaUrls 保持一致，SIY-147 增加 videoPosterUrl） */
+export interface QuickVideoShotMediaUrls {
+  imageUrl: string | null;
+  videoUrl: string | null;
+  videoPosterUrl: string | null;
+  firstFrameUrl: string | null;
+}
+
 export interface QuickVideoBrief {
   theme: string;
   hook: string;

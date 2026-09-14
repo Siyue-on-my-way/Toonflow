@@ -19,6 +19,8 @@ import {
   snapshotFirstFrameSchema,
   quickVideoShotSchema,
   snapshotShotSchema,
+  shotMediaUrlsSchema,
+  resolveVideoPosterUrl,
   QUICK_VIDEO_CHAT_MODES,
   QUICK_VIDEO_MEDIA_KINDS,
   QUICK_VIDEO_MEDIA_STATES,
@@ -186,6 +188,43 @@ console.log("== 11. MediaRef 契约：kind=video 时 videoId 有值、imageId �
   };
   const parsed = mediaRefSchema.safeParse(videoRef);
   assert(parsed.success, "kind=video 的 MediaRef（imageId null / videoId 有值）应通过校验", parsed.success ? "" : JSON.stringify((parsed as any).error?.issues));
+}
+
+console.log("== 12. shotMediaUrlsSchema 契约与 resolveVideoPosterUrl 封面优先级（SIY-147） ==");
+{
+  assert(
+    resolveVideoPosterUrl("http://first-frame.jpg", "http://image.jpg") === "http://first-frame.jpg",
+    "首帧和镜头图均存在时，优先使用首帧作为视频封面",
+  );
+  assert(
+    resolveVideoPosterUrl(null, "http://image.jpg") === "http://image.jpg",
+    "无首帧时，回退使用镜头生成图作为视频封面",
+  );
+  assert(
+    resolveVideoPosterUrl(null, null) === null,
+    "首帧和镜头图均无时，封面返回 null（前端走 video metadata 或占位）",
+  );
+  assert(
+    resolveVideoPosterUrl(undefined, undefined) === null,
+    "首帧和镜头图均为 undefined 时，封面返回 null",
+  );
+  const sample = {
+    imageUrl: "http://image.jpg",
+    videoUrl: "http://video.mp4",
+    videoPosterUrl: "http://first-frame.jpg",
+    firstFrameUrl: "http://first-frame.jpg",
+  };
+  const parsed = shotMediaUrlsSchema.safeParse(sample);
+  assert(parsed.success, "合法 ShotMediaUrls 应通过 schema 校验", parsed.success ? "" : JSON.stringify((parsed as any).error?.issues));
+
+  const nullSample = {
+    imageUrl: null,
+    videoUrl: null,
+    videoPosterUrl: null,
+    firstFrameUrl: null,
+  };
+  const parsedNull = shotMediaUrlsSchema.safeParse(nullSample);
+  assert(parsedNull.success, "全为 null 的 ShotMediaUrls 应通过 schema 校验");
 }
 
 console.log(`\n结果：${passed} 通过，${failed} 失败`);

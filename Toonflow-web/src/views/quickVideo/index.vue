@@ -380,24 +380,24 @@
                     </div>
                   </template>
                   <template #preview="{ row }">
-                    <div class="shotPreview">
-                      <t-image
-                        v-if="mediaUrls[row.id]?.imageUrl"
-                        :src="mediaUrls[row.id].imageUrl!"
-                        fit="cover"
-                        shape="round"
-                        :style="{ width: '56px', height: '36px', cursor: 'pointer' }"
-                        @click="openImagePreview(mediaUrls[row.id].imageUrl!)" />
-                      <t-button
-                        v-if="mediaUrls[row.id]?.videoUrl"
-                        size="small"
-                        variant="outline"
-                        shape="round"
-                        @click="openVideoPreview(mediaUrls[row.id].videoUrl!)">
-                        <template #icon><i-play-circle size="14" /></template>
-                      </t-button>
-                      <span v-if="!mediaUrls[row.id]?.imageUrl && !mediaUrls[row.id]?.videoUrl" class="noPreview">-</span>
-                    </div>
+                    <ShotPreviewCell
+                      :shot="row"
+                      :urls="mediaUrls[row.id]"
+                      :urls-pending="mediaUrlsLoading"
+                      :can-retry="state?.stage === 'generating'"
+                      :retrying="retryingShots.includes(row.id)"
+                      :reload-tick="mediaReloadTick"
+                      :image-label="$t('workbench.quickVideo.image')"
+                      :video-label="$t('workbench.quickVideo.video')"
+                      :generating-text="$t('workbench.quickVideo.gen.generating')"
+                      :failed-text="$t('workbench.quickVideo.gen.failed')"
+                      :image-unavailable-text="$t('workbench.quickVideo.imagePreviewUnavailable')"
+                      :video-unavailable-text="$t('workbench.quickVideo.videoPreviewUnavailable')"
+                      :retry-text="$t('workbench.quickVideo.retryShot')"
+                      @open-image="openImagePreview"
+                      @open-video="(url: string) => openVideoPreview(url, row.id)"
+                      @retry="retryShots([row.id])"
+                      @refresh="refreshMediaUrls()" />
                   </template>
                   <template #genState="{ row }">
                     <t-tooltip v-if="row.errorReason" :content="row.errorReason">
@@ -708,8 +708,17 @@
     </t-dialog>
 
     <!-- 镜头视频预览 -->
-    <t-dialog v-model:visible="videoPreviewVisible" :header="$t('workbench.quickVideo.videoPreview')" width="480px" placement="center" :footer="false">
-      <video v-if="videoPreviewUrl" :src="videoPreviewUrl" controls autoplay class="videoPreview" />
+    <t-dialog v-model:visible="videoPreviewVisible" :header="$t('workbench.quickVideo.videoPreview')" width="640px" placement="center" :footer="false">
+      <video
+        v-if="videoPreviewUrl"
+        :key="`qv-dialog-video-${mediaReloadTick}-${videoPreviewUrl}`"
+        :src="videoPreviewUrl"
+        controls
+        autoplay
+        playsinline
+        class="videoPreview"
+        @error="onVideoDialogError" />
+      <div v-else class="videoPreviewEmpty">{{ $t("workbench.quickVideo.videoPreviewUnavailable") }}</div>
     </t-dialog>
 
     <!-- 镜头图预览 -->
@@ -743,7 +752,7 @@
 import axios from "@/utils/axios";
 import projectStore from "@/stores/project";
 import quickVideoStore from "@/stores/quickVideo";
-import type { QuickVideoDuration, QuickVideoRatio, QuickVideoStage, QuickVideoShot, QuickVideoSession, QuickVideoFinalParamsCard, MediaRef, ChatMediaExt } from "@/types/quickVideo";
+import type { QuickVideoDuration, QuickVideoRatio, QuickVideoStage, QuickVideoShot, QuickVideoSession, QuickVideoFinalParamsCard, MediaRef, ChatMediaExt, QuickVideoShotMediaUrls } from "@/types/quickVideo";
 import modelSelect from "@/components/modelSelect.vue";
 import SessionList from "./components/SessionList.vue";
 import AssetBoard from "./components/AssetBoard.vue";
@@ -752,6 +761,7 @@ import ExportProgress from "./ExportProgress.vue";
 import { useTimelinePlayer } from "./timelinePlayer";
 import { estimateExportBytes, formatBytes, formatTime } from "./timelineCore";
 import { QUICK_VIDEO_SPLIT_CONSTRAINTS, quickVideoLayoutStorageKey, useQuickVideoSplitLayout } from "./splitLayout";
+import ShotPreviewCell from "./components/ShotPreviewCell.vue";
 import { createBubbleMessageView } from "./chatMedia";
 import { readMediaRefsFromText } from "./chatPaste";
 
@@ -1356,7 +1366,7 @@ const shotColumns = [
   { colKey: "camera", title: $t("workbench.quickVideo.shotCamera"), width: 110, ellipsis: true },
   { colKey: "assetRefs", title: $t("workbench.quickVideo.shotAssets"), width: 150 },
   { colKey: "firstFrame", title: $t("workbench.quickVideo.firstFrame"), width: 130 },
-  { colKey: "preview", title: $t("workbench.quickVideo.preview"), width: 110 },
+  { colKey: "preview", title: $t("workbench.quickVideo.preview"), width: 168 },
   { colKey: "genState", title: $t("workbench.quickVideo.genState"), width: 175 },
   { colKey: "op", title: "", width: 110 },
 ];
@@ -1565,31 +1575,70 @@ async function retryShots(shotIds: string[]) {
   }
 }
 
-// ===== 镜头产物预览（imageRef/videoRef -> 访问地址） =====
-const mediaUrls = ref<Record<string, { imageUrl: string | null; videoUrl: string | null; firstFrameUrl: string | null }>>({});
+// ===== 镜头产物预览（imageRef/videoRef -> 访问地址，SIY-147 双卡片预览） =====
+const mediaUrls = ref<Record<string, QuickVideoShotMediaUrls>>({});
+const mediaUrlsLoading = ref(false);
+/** 静默刷新媒体地址后自增：作为 <img>/<video> :key 的一部分，强制重新挂载以重试同一地址 */
+const mediaReloadTick = ref(0);
+let lastMediaRefreshAt = 0;
+
+/** 按需重新拉取短期媒体地址：产物回写（force）或卡片地址失效（点击/加载失败）时调用 */
+async function refreshMediaUrls(force = false) {
+  if (mediaUrlsLoading.value) return;
+  // 防抖：多个卡片同时报错只触发一次静默刷新
+  const now = Date.now();
+  if (!force && now - lastMediaRefreshAt < 2000) return;
+  mediaUrlsLoading.value = true;
+  try {
+    mediaUrls.value = await getMediaUrls();
+    mediaReloadTick.value++;
+    lastMediaRefreshAt = Date.now();
+  } catch {
+    // 预览地址获取失败不影响工作台
+  } finally {
+    mediaUrlsLoading.value = false;
+  }
+}
+
 const mediaSignature = computed(() =>
   shots.value
     .map((s) => `${s.id}:${s.imageRef ?? ""}:${s.videoRef ?? ""}:${s.firstFrame?.mediaId ?? ""}`)
     .join("|"),
 );
-watch(mediaSignature, async (sig, prev) => {
+watch(mediaSignature, (sig, prev) => {
   if (sig === prev) return;
   if (!shots.value.some((s) => s.imageRef || s.videoRef || s.firstFrame)) {
     mediaUrls.value = {};
     return;
   }
-  try {
-    mediaUrls.value = await getMediaUrls();
-  } catch {
-    // 预览地址获取失败不影响工作台
-  }
+  // 监听 imageRef/videoRef 变更（分镜重新生成、单镜头重试回写）自动刷新预览缓存
+  refreshMediaUrls(true);
 }, { immediate: true });
 
 const videoPreviewVisible = ref(false);
 const videoPreviewUrl = ref("");
-function openVideoPreview(url: string) {
+const videoPreviewShotId = ref<string | null>(null);
+// 同一地址只在弹窗内自动静默刷新一次，避免持续失效时反复重拉
+let dialogAutoRefreshedUrl: string | null = null;
+function openVideoPreview(url: string, shotId?: string) {
   videoPreviewUrl.value = url;
+  videoPreviewShotId.value = shotId ?? null;
+  dialogAutoRefreshedUrl = null;
   videoPreviewVisible.value = true;
+}
+/** 弹窗内播放失败（地址过期/403）：静默换新地址后借 reloadTick 重挂载重试一次 */
+async function onVideoDialogError() {
+  const url = videoPreviewUrl.value;
+  if (!url || dialogAutoRefreshedUrl === url) return;
+  dialogAutoRefreshedUrl = url;
+  await refreshMediaUrls(true);
+  const fresh = (videoPreviewShotId.value ? mediaUrls.value[videoPreviewShotId.value]?.videoUrl : null) ?? null;
+  if (fresh) {
+    videoPreviewUrl.value = fresh;
+  } else {
+    videoPreviewVisible.value = false;
+    window.$message.warning($t("workbench.quickVideo.videoPreviewUnavailable"));
+  }
 }
 
 const imagePreviewVisible = ref(false);
@@ -2335,14 +2384,6 @@ function cancelExport() {
           opacity: 0.6;
         }
       }
-      .shotPreview {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        .noPreview {
-          opacity: 0.4;
-        }
-      }
       .firstFrameCell {
         display: flex;
         flex-direction: column;
@@ -2392,6 +2433,11 @@ function cancelExport() {
     width: 100%;
     border-radius: 8px;
     background: #000;
+  }
+  .videoPreviewEmpty {
+    padding: 48px 0;
+    text-align: center;
+    color: var(--td-text-color-secondary);
   }
   .firstFramePickerBody {
     .firstFramePickerPreview {

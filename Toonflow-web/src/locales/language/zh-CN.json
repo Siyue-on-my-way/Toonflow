@@ -1828,6 +1828,8 @@
       },
       "preview": "预览",
       "videoPreview": "镜头视频预览",
+      "imagePreviewUnavailable": "图片预览不可用",
+      "videoPreviewUnavailable": "视频预览不可用",
       "retryShot": "重试该镜头",
       "retryAllFailed": "重试全部失败镜头",
       "generation": "生成进度",
