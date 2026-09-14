@@ -50,7 +50,8 @@ export function buildTimelinePlan({ shots, targetDuration, videoRatio, ctaText =
   const n = ordered.length;
   const transition = n >= 2 ? TIMELINE_TRANSITION_DURATION_S : 0;
   const sourceTotal = ordered.reduce((sum, s) => sum + s.duration, 0);
-  const mediaNeeded = targetDuration + (n - 1) * transition;
+  const effectiveTargetDuration = targetDuration ?? sourceTotal;
+  const mediaNeeded = effectiveTargetDuration + (n - 1) * transition;
 
   let playbackRate: number;
   let trimFraction = 1; // r0 > MAX_SPEED 时按比例裁剪源窗口

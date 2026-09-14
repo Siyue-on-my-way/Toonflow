@@ -327,3 +327,79 @@ describe("quickVideo store — 资产白板与首帧绑定（SIY-132）", () => 
     expect(post).toHaveBeenCalledWith("/quickVideo/bindShotFirstFrame", expect.objectContaining({ projectId: Number(id), shotId: "shot-1", mediaId: null }));
   });
 });
+
+describe("quickVideo store — 渐进式参数配置与自适应时长（SIY-148）", () => {
+  function makeWorkbench(stateOverrides: Record<string, any> = {}) {
+    return {
+      project: null,
+      script: null,
+      shotBounds: null,
+      state: {
+        schemaVersion: 1,
+        version: 1,
+        stage: "collect_brief",
+        targetDuration: null,
+        videoRatio: "9:16",
+        artStyle: "",
+        configVersion: 0,
+        createIdempotencyKey: "k",
+        brief: null,
+        storyboard: null,
+        generation: {
+          snapshot: null,
+          materialsConfirmed: false,
+          materialsConfirmedAt: null,
+          finalParamsCards: [],
+          runId: null,
+          startedAt: null,
+          finishedAt: null,
+          materialImages: {},
+          timeline: null,
+          exportInfo: null,
+        },
+        appliedKeys: {},
+        lastChatAt: null,
+        updateTime: 1000,
+        ...stateOverrides,
+      },
+    };
+  }
+
+  it("updateConfig：支持更新自定义时长 18s 与画风，并刷新状态", async () => {
+    const id = setupProject();
+    post.mockResolvedValueOnce(envelope(makeWorkbench()));
+    const store = useQuickVideoStore();
+    await store.getWorkbench();
+    expect(store.state?.targetDuration).toBe(null);
+
+    post.mockResolvedValueOnce({ code: 200 });
+    post.mockResolvedValueOnce(envelope(makeWorkbench({ version: 2, configVersion: 1, targetDuration: 18, artStyle: "水彩风" })));
+
+    const result = await store.updateConfig({ targetDuration: 18, artStyle: "水彩风" });
+    expect(result.ok).toBe(true);
+    expect(post).toHaveBeenCalledWith(
+      "/quickVideo/updateConfig",
+      expect.objectContaining({
+        projectId: Number(id),
+        patch: expect.objectContaining({ targetDuration: 18, artStyle: "水彩风" }),
+      }),
+    );
+    expect(store.state?.targetDuration).toBe(18);
+    expect(store.state?.artStyle).toBe("水彩风");
+  });
+
+  it("updateConfig：支持设置为 null（留空自适应时长）与空画风", async () => {
+    const id = setupProject();
+    post.mockResolvedValueOnce(envelope(makeWorkbench({ targetDuration: 30, artStyle: "写实" })));
+    const store = useQuickVideoStore();
+    await store.getWorkbench();
+
+    post.mockResolvedValueOnce({ code: 200 });
+    post.mockResolvedValueOnce(envelope(makeWorkbench({ version: 3, configVersion: 2, targetDuration: null, artStyle: "" })));
+
+    const result = await store.updateConfig({ targetDuration: null, artStyle: "" });
+    expect(result.ok).toBe(true);
+    expect(store.state?.targetDuration).toBe(null);
+    expect(store.state?.artStyle).toBe("");
+  });
+});

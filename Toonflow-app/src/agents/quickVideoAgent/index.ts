@@ -99,14 +99,15 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
   const projectInfo = [
     "## 项目信息",
     `视频标题：${projectData?.name ?? "未知"}`,
-    `画风：${state?.artStyle || projectData?.artStyle || "无"}`,
+    `画风：${state?.artStyle || projectData?.artStyle || "自由画风（由聊天或分镜自然生成）"}`,
     `画面比例：${state?.videoRatio ?? projectData?.videoRatio ?? "16:9"}`,
-    `目标时长：${state?.targetDuration ?? "未知"}秒`,
-    state ? `当前阶段：${state.stage}（状态版本 ${state.version}）` : "",
+    `目标时长：${state?.targetDuration ? `${state.targetDuration}秒` : "自适应（未指定，上限60秒）"}`,
+    state ? `配置版本：configVersion=${state.configVersion ?? 0}（状态版本 ${state.version}）` : "",
+    state ? `当前阶段：${state.stage}` : "",
     state?.brief ? `简报确认状态：${state.brief.confirmed ? "已确认" : "未确认"}` : "简报：暂无",
     state?.storyboard ? `分镜：v${state.storyboard.version}（${state.storyboard.status === "confirmed" ? "已确认" : "草稿"}，共 ${state.storyboard.shots.length} 镜）` : "分镜：暂无",
     state?.storyboard?.status === "confirmed"
-      ? `最终生成参数确认：${state.generation?.materialsConfirmed ? "用户已确认，生成已启动或进行中" : "待确认（系统已在聊天回显确认卡片，仅含视频时长/整体画风/分镜数量/分镜摘要，等待用户点击「确认生成」）"}`
+      ? `最终生成参数确认：${state.generation?.materialsConfirmed ? "用户已确认，生成已启动或进行中" : "待确认（系统已在聊天回显确认卡片，仅含视频时长/整体画风/分镜数量/分镜摘要，支持点击卡片「确认生成」或聊天回复「确认」后调用 confirm_generation）"}`
       : "",
     state ? `允许镜头数量：${shotCountBounds(state.targetDuration).min}-${shotCountBounds(state.targetDuration).max} 个` : "",
     ctx.mode === "image"

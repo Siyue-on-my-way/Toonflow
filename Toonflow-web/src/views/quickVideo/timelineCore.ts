@@ -46,7 +46,8 @@ export function buildTimelinePlan({ shots, targetDuration, videoRatio, ctaText =
   const n = ordered.length;
   const transition = n >= 2 ? TRANSITION_DURATION : 0;
   const sourceTotal = ordered.reduce((sum, s) => sum + s.duration, 0);
-  const mediaNeeded = targetDuration + (n - 1) * transition;
+  const effectiveTargetDuration = targetDuration ?? sourceTotal;
+  const mediaNeeded = effectiveTargetDuration + (n - 1) * transition;
 
   let playbackRate: number;
   let trimFraction = 1;

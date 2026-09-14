@@ -94,8 +94,8 @@
                     {{ $t("workbench.quickVideo.finalParams.staleTag") }}
                   </t-tag>
                 </div>
-                <div class="qvFinalParamsRow"><label>{{ $t("workbench.quickVideo.finalParams.duration") }}</label><span>{{ card.targetDuration }}s</span></div>
-                <div class="qvFinalParamsRow"><label>{{ $t("workbench.quickVideo.finalParams.artStyle") }}</label><span>{{ card.artStyle || "-" }}</span></div>
+                <div class="qvFinalParamsRow"><label>{{ $t("workbench.quickVideo.finalParams.duration") }}</label><span>{{ card.durationText || (card.targetDuration ? `${card.targetDuration}s` : $t("workbench.quickVideo.finalParams.adaptiveDuration")) }}</span></div>
+                <div class="qvFinalParamsRow"><label>{{ $t("workbench.quickVideo.finalParams.artStyle") }}</label><span>{{ card.artStyleText || card.artStyle || $t("workbench.quickVideo.finalParams.freeArtStyle") }}</span></div>
                 <div class="qvFinalParamsRow"><label>{{ $t("workbench.quickVideo.finalParams.shotCount") }}</label><span>{{ card.shotCount }}</span></div>
                 <div class="qvFinalParamsRow">
                   <label>{{ $t("workbench.quickVideo.finalParams.summary") }}</label>
@@ -104,6 +104,9 @@
                 <div class="qvFinalParamsOps" v-if="card.active">
                   <t-button size="small" theme="primary" :loading="confirmingFinalParams" data-testid="quick-video-confirm-generate" @click="confirmFinalParams">
                     {{ $t("workbench.quickVideo.finalParams.confirmGenerate") }}
+                  </t-button>
+                  <t-button size="small" variant="outline" :disabled="confirmingFinalParams" data-testid="quick-video-return-modify" @click="rejectModifyFinalParams">
+                    {{ $t("workbench.quickVideo.finalParams.returnModify") }}
                   </t-button>
                 </div>
                 <div class="qvFinalParamsStaleHint" v-else-if="!card.confirmed">{{ $t("workbench.quickVideo.finalParams.staleHint") }}</div>
@@ -214,7 +217,7 @@
             <div class="title">{{ workbench.project?.name }}</div>
             <div class="meta">
               <t-tag shape="round" theme="primary">{{ stageLabel(state?.stage) }}</t-tag>
-              <t-tag shape="round">{{ $t("workbench.quickVideo.targetDuration") }}：{{ state?.targetDuration }}s</t-tag>
+              <t-tag shape="round">{{ $t("workbench.quickVideo.targetDuration") }}：{{ state?.targetDuration ? `${state.targetDuration}s` : $t("workbench.quickVideo.adaptiveDuration") }}</t-tag>
               <t-tag shape="round">{{ state?.videoRatio }}</t-tag>
               <t-tag shape="round" v-if="state?.artStyle">{{ state.artStyle }}</t-tag>
               <t-button size="small" variant="outline" :disabled="!state" @click="openConfigEdit">
@@ -319,7 +322,7 @@
                   </t-tag>
                 </span>
                 <div class="actions">
-                  <t-tag v-if="totalDuration" shape="round">{{ totalDuration }}s / {{ state?.targetDuration }}s</t-tag>
+                  <t-tag v-if="totalDuration" shape="round">{{ totalDuration }}s{{ state?.targetDuration ? ` / ${state.targetDuration}s` : '' }}</t-tag>
                   <t-button
                     v-if="state?.stage === 'storyboard_draft'"
                     size="small"
@@ -589,7 +592,7 @@
       <div class="exportConfirmBody">
         <p>{{ $t("workbench.quickVideo.exportConfirmDesc") }}</p>
         <div class="exportConfirmRows">
-          <div class="briefRow"><label>{{ $t("workbench.quickVideo.targetDuration") }}</label><span>{{ state?.targetDuration }}s</span></div>
+          <div class="briefRow"><label>{{ $t("workbench.quickVideo.targetDuration") }}</label><span>{{ state?.targetDuration ? `${state.targetDuration}s` : $t("workbench.quickVideo.adaptiveDuration") }}</span></div>
           <div class="briefRow"><label>{{ $t("workbench.quickVideo.totalDuration") }}</label><span>{{ timelineSummary }}</span></div>
           <div class="briefRow"><label>{{ $t("workbench.quickVideo.resolution") }}</label><span>{{ timelineResolution }}</span></div>
           <div class="briefRow"><label>{{ $t("workbench.quickVideo.estimateSize") }}</label><span>{{ timelineSizeLabel }}</span></div>
@@ -625,11 +628,30 @@
             </div>
           </t-form-item>
           <t-form-item :label="$t('workbench.quickVideo.targetDuration')">
-            <t-select v-model="configEditData.targetDuration" :disabled="targetDurationLocked">
-              <t-option :value="15" label="15s" />
-              <t-option :value="30" label="30s" />
-              <t-option :value="60" label="60s" />
-            </t-select>
+            <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+              <t-select
+                v-model="drawerDurationPreset"
+                :disabled="targetDurationLocked"
+                style="flex: 1;"
+                @change="onDrawerDurationPresetChange">
+                <t-option value="15" label="15s" />
+                <t-option value="30" label="30s" />
+                <t-option value="60" label="60s" />
+                <t-option value="adaptive" :label="$t('workbench.quickVideo.adaptiveDuration')" />
+                <t-option value="custom" :label="$t('workbench.project.dialog.customDuration')" />
+              </t-select>
+              <t-input-number
+                v-if="drawerDurationPreset === 'custom'"
+                v-model="drawerCustomDuration"
+                :min="5"
+                :max="60"
+                :step="1"
+                :disabled="targetDurationLocked"
+                theme="column"
+                style="width: 110px;"
+                @change="onDrawerCustomDurationChange"
+              />
+            </div>
             <div v-if="targetDurationLocked" class="fieldHint">
               {{ $t("workbench.quickVideo.targetDurationLocked") }}
             </div>
@@ -1283,11 +1305,60 @@ const storyboardRefreshHint = ref<StoryboardRefreshHint | null>(null);
 const targetDurationLocked = computed(() => state.value?.storyboard?.status === "confirmed");
 const generationConfigLocked = computed(() => ["generating", "ready_to_assemble", "completed"].includes(state.value?.stage ?? ""));
 
+const drawerDurationPreset = ref<"15" | "30" | "60" | "custom" | "adaptive">("adaptive");
+const drawerCustomDuration = ref<number>(20);
+
+function syncDrawerDurationFromForm() {
+  const d = configEditData.value.targetDuration;
+  if (d === 15) {
+    drawerDurationPreset.value = "15";
+  } else if (d === 30) {
+    drawerDurationPreset.value = "30";
+  } else if (d === 60) {
+    drawerDurationPreset.value = "60";
+  } else if (d == null) {
+    drawerDurationPreset.value = "adaptive";
+  } else {
+    drawerDurationPreset.value = "custom";
+    drawerCustomDuration.value = d;
+  }
+}
+
+function onDrawerDurationPresetChange(preset: any) {
+  if (targetDurationLocked.value) return;
+  drawerDurationPreset.value = preset;
+  if (preset === "15") {
+    configEditData.value.targetDuration = 15;
+  } else if (preset === "30") {
+    configEditData.value.targetDuration = 30;
+  } else if (preset === "60") {
+    configEditData.value.targetDuration = 60;
+  } else if (preset === "adaptive") {
+    configEditData.value.targetDuration = null;
+  } else if (preset === "custom") {
+    const val = drawerCustomDuration.value ? Math.max(5, Math.min(60, Math.round(drawerCustomDuration.value))) : 20;
+    drawerCustomDuration.value = val;
+    configEditData.value.targetDuration = val;
+  }
+}
+
+function onDrawerCustomDurationChange(val: any) {
+  const num = typeof val === "number" ? val : Number(val);
+  if (!Number.isNaN(num) && num > 0) {
+    const clamped = Math.max(5, Math.min(60, Math.round(num)));
+    drawerCustomDuration.value = clamped;
+    configEditData.value.targetDuration = clamped;
+  }
+}
+
 function getShotBounds(targetDuration: QuickVideoDuration) {
+  if (targetDuration == null) {
+    return { min: 2, max: 12, lower: 10, upper: 60 };
+  }
   const max = Math.max(1, Math.min(12, Math.floor(targetDuration / 5)));
   const min = Math.max(1, Math.min(5, Math.floor(targetDuration / 15) || 1));
   const tolerance = Math.max(3, Math.round(targetDuration * 0.2));
-  return { min, max, lower: targetDuration - tolerance, upper: targetDuration + tolerance };
+  return { min, max, lower: Math.max(1, targetDuration - tolerance), upper: targetDuration + tolerance };
 }
 
 const configDurationPreview = computed(() => {
@@ -1307,6 +1378,7 @@ function openConfigEdit() {
     intro: currentProject?.intro ?? "",
   };
   configOriginalTargetDuration.value = currentState.targetDuration;
+  syncDrawerDurationFromForm();
   configEditVisible.value = true;
 }
 
@@ -1314,7 +1386,6 @@ async function saveConfigEdit() {
   const currentState = state.value;
   if (!currentState) return;
   if (!configEditData.value.name.trim()) return window.$message.warning($t("workbench.project.msg.enterProjectName"));
-  if (!configEditData.value.artStyle.trim()) return window.$message.warning($t("workbench.project.msg.enterArtStyle"));
 
   const previousTargetDuration = currentState.targetDuration;
   const targetDurationChanged = configEditData.value.targetDuration !== previousTargetDuration;
@@ -1323,7 +1394,7 @@ async function saveConfigEdit() {
   try {
     const result = await updateConfig({
       name: configEditData.value.name.trim(),
-      artStyle: configEditData.value.artStyle.trim(),
+      artStyle: configEditData.value.artStyle ? configEditData.value.artStyle.trim() : "",
       videoRatio: configEditData.value.videoRatio,
       targetDuration: configEditData.value.targetDuration,
       intro: configEditData.value.intro,
@@ -1490,8 +1561,8 @@ function cardMatchesLiveParams(card: QuickVideoFinalParamsCard): boolean {
   if (!sb) return false;
   return (
     sb.version === card.storyboardVersion &&
-    state.value?.targetDuration === card.targetDuration &&
-    (state.value?.artStyle ?? "") === card.artStyle &&
+    (state.value?.targetDuration ?? null) === (card.targetDuration ?? null) &&
+    (state.value?.artStyle ?? "") === (card.artStyle ?? "") &&
     sb.shots.length === card.shotCount &&
     (sb.summary ?? "") === card.summary
   );
@@ -1518,6 +1589,8 @@ const finalParamsCardsView = computed<FinalParamsCardView[]>(() => {
       storyboardVersion: state.value.storyboard.version,
       targetDuration: state.value.targetDuration,
       artStyle: state.value.artStyle,
+      durationText: state.value.targetDuration ? `${state.value.targetDuration}s` : "自适应",
+      artStyleText: state.value.artStyle?.trim() ? state.value.artStyle : "自由画风",
       shotCount: state.value.storyboard.shots.length,
       summary: state.value.storyboard.summary ?? "",
       echoedAt: 0,
@@ -1543,6 +1616,27 @@ async function confirmFinalParams() {
     });
     // 确认后无缝进入逐镜头生成：切到预览面板实时展示各镜头进度
     if (ok) activePanel.value = "preview";
+  } finally {
+    confirmingFinalParams.value = false;
+  }
+}
+
+async function rejectModifyFinalParams() {
+  if (!state.value) return;
+  confirmingFinalParams.value = true;
+  try {
+    const ok = await callQuickVideoApi("/quickVideo/confirmStage", {
+      projectId: Number(project.value?.id),
+      sessionId: currentSessionId.value,
+      expectedVersion: state.value.version,
+      idempotencyKey: newIdemKey(),
+      gate: "storyboard",
+      action: "reject",
+    });
+    if (ok) {
+      activePanel.value = "storyboard";
+      window.$message.info($t("workbench.quickVideo.finalParams.returnedToModify"));
+    }
   } finally {
     confirmingFinalParams.value = false;
   }

@@ -188,7 +188,7 @@ export async function findProjectByCreateIdempotencyKey(idempotencyKey: string):
 /** 初始化 quickVideoAgent 状态行（createProject 事务内调用） */
 export async function initQuickVideoStateRow(
   trx: any,
-  { projectId, idempotencyKey, targetDuration, videoRatio, artStyle }: { projectId: number; idempotencyKey: string; targetDuration: number; videoRatio: string; artStyle: string },
+  { projectId, idempotencyKey, targetDuration, videoRatio, artStyle }: { projectId: number; idempotencyKey: string; targetDuration: number | null; videoRatio: string; artStyle: string },
 ) {
   const now = Date.now();
   const state = quickVideoStateSchema.parse({
@@ -197,6 +197,7 @@ export async function initQuickVideoStateRow(
     targetDuration,
     videoRatio,
     artStyle,
+    configVersion: 0,
     createIdempotencyKey: idempotencyKey,
     brief: null,
     storyboard: null,

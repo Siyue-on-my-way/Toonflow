@@ -18,9 +18,12 @@ export const QUICK_VIDEO_SCHEMA_VERSION = 1;
 /** 项目类型枚举值（o_project.projectType 新增） */
 export const QUICK_VIDEO_PROJECT_TYPE = "quick_video";
 
-/** 目标时长（秒），仅支持 15 / 30 / 60 */
+/** 目标时长（秒），支持 5-60 的正整数秒或 null（自适应） */
+export const QUICK_VIDEO_DURATION_MIN = 5;
+export const QUICK_VIDEO_DURATION_MAX = 60;
 export const QUICK_VIDEO_DURATIONS = [15, 30, 60] as const;
-export type QuickVideoDuration = (typeof QUICK_VIDEO_DURATIONS)[number];
+export const quickVideoDurationSchema = z.number().int().min(QUICK_VIDEO_DURATION_MIN).max(QUICK_VIDEO_DURATION_MAX).nullable().default(null);
+export type QuickVideoDuration = number | null;
 
 /** 画面比例 */
 export const QUICK_VIDEO_RATIOS = ["16:9", "9:16", "1:1"] as const;
@@ -251,7 +254,7 @@ export type QuickVideoSnapshotShot = z.infer<typeof snapshotShotSchema>;
  */
 export const generationSnapshotSchema = z.object({
   storyboardVersion: z.number().int().min(1).describe("快照对应的分镜版本"),
-  targetDuration: z.union([z.literal(15), z.literal(30), z.literal(60)]),
+  targetDuration: quickVideoDurationSchema,
   videoRatio: z.enum(QUICK_VIDEO_RATIOS),
   artStyle: z.string().max(500).default(""),
   shots: z.array(snapshotShotSchema).min(1).max(SHOT_COUNT_MAX),
@@ -262,17 +265,20 @@ export type QuickVideoGenerationSnapshot = z.infer<typeof generationSnapshotSche
 /**
  * 最终生成参数确认卡片（分镜确认后在聊天流回显）：
  * 仅展示「视频时长 / 整体画风 / 分镜数量 / 分镜摘要」四项，卡片数据在回显时冻结。
+ * 若时长或画风未设置，安全回退为自适应时长与自由画风文案。
  * 用户再修改画风、时长或分镜后，服务端重新回显新卡片；旧卡片由前端按
  * 「是否还有更新的卡片」标记为已失效（置灰并提示重新确认）。
  */
 export const finalParamsCardSchema = z.object({
   cardId: z.string().min(1).max(64).describe("卡片 ID（card-<时间戳>-<随机>），前端渲染 key 与最新卡判定"),
   storyboardVersion: z.number().int().min(1).describe("回显时的分镜版本"),
-  targetDuration: z.union([z.literal(15), z.literal(30), z.literal(60)]),
+  targetDuration: quickVideoDurationSchema,
   artStyle: z.string().max(500).default(""),
   shotCount: z.number().int().min(1).max(SHOT_COUNT_MAX),
   summary: z.string().max(1000).default("").describe("分镜摘要（storyboard.summary）"),
   echoedAt: z.number().int().min(1).describe("回显时间戳"),
+  durationText: z.string().max(100).optional().describe("时长文案（未设置时自适应）"),
+  artStyleText: z.string().max(500).optional().describe("画风文案（未设置时自由画风）"),
 });
 export type QuickVideoFinalParamsCard = z.infer<typeof finalParamsCardSchema>;
 
@@ -281,13 +287,18 @@ export const FINAL_PARAMS_CARDS_MAX = 5;
 
 /**
  * 组装一张最终生成参数确认卡片（回显时冻结四项展示字段，与实时分镜/配置解耦）。
+ * 若时长或画风未设置，安全回退为自适应时长与自由画风文案。
  */
 export function buildFinalParamsCard(state: QuickVideoState): QuickVideoFinalParamsCard {
+  const durationText = state.targetDuration ? `${state.targetDuration}s` : "自适应";
+  const artStyleText = state.artStyle?.trim() ? state.artStyle : "自由画风";
   return {
     cardId: `card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     storyboardVersion: state.storyboard?.version ?? 1,
-    targetDuration: state.targetDuration,
-    artStyle: state.artStyle,
+    targetDuration: state.targetDuration ?? null,
+    artStyle: state.artStyle || "",
+    durationText,
+    artStyleText,
     shotCount: state.storyboard?.shots.length ?? 0,
     summary: state.storyboard?.summary ?? "",
     echoedAt: Date.now(),
@@ -361,7 +372,7 @@ export type QuickVideoTimelineTailPad = z.infer<typeof timelineTailPadSchema>;
 
 /** 时间线装配规划（服务端推导；前端以实际媒体时长为准重新适配） */
 export const timelinePlanSchema = z.object({
-  targetDuration: z.union([z.literal(15), z.literal(30), z.literal(60)]),
+  targetDuration: quickVideoDurationSchema,
   videoRatio: z.enum(QUICK_VIDEO_RATIOS),
   width: z.number().int().min(1),
   height: z.number().int().min(1),
@@ -430,9 +441,11 @@ export const quickVideoStateSchema = z.object({
   /** 乐观锁版本号，每次成功写入自增 */
   version: z.number().int().min(1),
   stage: z.enum(QUICK_VIDEO_STAGES),
-  targetDuration: z.union([z.literal(15), z.literal(30), z.literal(60)]),
+  targetDuration: quickVideoDurationSchema,
   videoRatio: z.enum(QUICK_VIDEO_RATIOS),
   artStyle: z.string().max(500).default(""),
+  /** 配置版本号，修改画风/时长/比例时自增 */
+  configVersion: z.number().int().min(0).default(0),
   /** 创建幂等键（createProject 用，防重复建项目） */
   createIdempotencyKey: z.string().min(8).max(64),
   brief: quickVideoBriefSchema.nullable().default(null),
@@ -447,6 +460,12 @@ export const quickVideoStateSchema = z.object({
 });
 export type QuickVideoState = z.infer<typeof quickVideoStateSchema>;
 
+/** 递增配置版本号 */
+export function bumpConfigVersion(state: QuickVideoState): number {
+  state.configVersion = (state.configVersion ?? 0) + 1;
+  return state.configVersion;
+}
+
 /** 幂等键记录上限，超过后淘汰最早写入的 key */
 export const IDEMPOTENCY_MAX_KEYS = 50;
 
@@ -456,10 +475,13 @@ export const IDEMPOTENCY_MAX_KEYS = 50;
 
 /**
  * 按目标时长推导允许的镜头数量区间：
- * 每个镜头 5-15 秒，故 15 秒目标最多 3 镜、30 秒最多 6 镜、60 秒最多 12 镜；
- * 下限尽量向“5 个镜头以上”的产品预期靠拢（时长允许时）。
+ * 每个镜头 5-15 秒；targetDuration 为 null（自适应）时，放行 2-12 镜；
+ * 否则按目标时长动态推导，尽量向“5 个镜头以上”的产品预期靠拢（时长允许时）。
  */
 export function shotCountBounds(targetDuration: QuickVideoDuration): { min: number; max: number } {
+  if (targetDuration == null) {
+    return { min: 2, max: SHOT_COUNT_MAX };
+  }
   const max = Math.max(1, Math.min(SHOT_COUNT_MAX, Math.floor(targetDuration / SHOT_DURATION_MIN)));
   const min = Math.max(1, Math.min(5, Math.floor(targetDuration / SHOT_DURATION_MAX) || 1));
   return { min, max };
@@ -468,19 +490,33 @@ export function shotCountBounds(targetDuration: QuickVideoDuration): { min: numb
 /**
  * 校验一份分镜是否满足落库/确认条件：
  * - 镜头数量在区间内
- * - 总时长与目标时长误差在 ±20%（且不少于 1 秒差）
+ * - targetDuration != null 时：总时长与目标时长误差在 ±20%（且不少于 1 秒差）
+ * - targetDuration == null 时：自适应放行 2–12 镜头、成片不超过 60 秒的合理分镜，不抛出 DURATION_NOT_SET 异常
  * 返回错误原因数组；空数组表示通过。
  */
 export function validateStoryboard(targetDuration: QuickVideoDuration, shots: QuickVideoShot[]): string[] {
   const errors: string[] = [];
   const { min, max } = shotCountBounds(targetDuration);
   if (shots.length < min || shots.length > max) {
-    errors.push(`镜头数量需在 ${min}-${max} 个之间（目标时长 ${targetDuration} 秒，当前 ${shots.length} 个）`);
+    errors.push(
+      targetDuration != null
+        ? `镜头数量需在 ${min}-${max} 个之间（目标时长 ${targetDuration} 秒，当前 ${shots.length} 个）`
+        : `镜头数量需在 ${min}-${max} 个之间（当前 ${shots.length} 个）`,
+    );
   }
   const total = shots.reduce((sum, s) => sum + s.duration, 0);
-  const tolerance = Math.max(3, Math.round(targetDuration * 0.2));
-  if (Math.abs(total - targetDuration) > tolerance) {
-    errors.push(`镜头总时长 ${total} 秒与目标时长 ${targetDuration} 秒偏差超过 ${tolerance} 秒`);
+  if (targetDuration != null) {
+    const tolerance = Math.max(3, Math.round(targetDuration * 0.2));
+    if (Math.abs(total - targetDuration) > tolerance) {
+      errors.push(`镜头总时长 ${total} 秒与目标时长 ${targetDuration} 秒偏差超过 ${tolerance} 秒`);
+    }
+  } else {
+    if (total > 60) {
+      errors.push(`自适应模式下成片总时长不得超过 60 秒（当前 ${total} 秒）`);
+    }
+    if (total < 5) {
+      errors.push(`成片总时长至少为 5 秒（当前 ${total} 秒）`);
+    }
   }
   const ids = new Set<string>();
   shots.forEach((shot, i) => {

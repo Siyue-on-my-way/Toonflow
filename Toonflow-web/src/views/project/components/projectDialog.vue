@@ -25,14 +25,53 @@
             </t-form-item>
             <template v-if="formState.projectType === 'quick_video'">
               <t-form-item :label="$t('workbench.project.dialog.quickArtStyle')">
-                <t-input v-model="formState.artStyle" :placeholder="$t('workbench.project.dialog.quickArtStylePh')" :disabled="formState.quickVideoConfigLocked" />
+                <t-input
+                  v-model="formState.artStyle"
+                  :placeholder="$t('workbench.project.dialog.quickArtStyleNaturalHint')"
+                  :disabled="formState.quickVideoConfigLocked" />
+                <div class="quickDurationHint">
+                  {{ $t("workbench.project.dialog.quickArtStyleDesc") }}
+                </div>
               </t-form-item>
               <t-form-item :label="$t('workbench.project.dialog.targetDuration')">
-                <t-select v-model="formState.targetDuration" :disabled="formState.quickVideoStoryboardConfirmed">
-                  <t-option :value="15" label="15s" />
-                  <t-option :value="30" label="30s" />
-                  <t-option :value="60" label="60s" />
-                </t-select>
+                <div class="quickDurationTags" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  <t-check-tag
+                    :checked="durationPreset === '15'"
+                    :disabled="formState.quickVideoStoryboardConfirmed"
+                    @click="selectDurationPreset('15')">15s</t-check-tag>
+                  <t-check-tag
+                    :checked="durationPreset === '30'"
+                    :disabled="formState.quickVideoStoryboardConfirmed"
+                    @click="selectDurationPreset('30')">30s</t-check-tag>
+                  <t-check-tag
+                    :checked="durationPreset === '60'"
+                    :disabled="formState.quickVideoStoryboardConfirmed"
+                    @click="selectDurationPreset('60')">60s</t-check-tag>
+                  <t-check-tag
+                    :checked="durationPreset === 'custom'"
+                    :disabled="formState.quickVideoStoryboardConfirmed"
+                    @click="selectDurationPreset('custom')">{{ $t("workbench.project.dialog.customDuration") }}</t-check-tag>
+                  <t-check-tag
+                    :checked="durationPreset === 'adaptive'"
+                    :disabled="formState.quickVideoStoryboardConfirmed"
+                    @click="selectDurationPreset('adaptive')">{{ $t("workbench.project.dialog.adaptiveDuration") }}</t-check-tag>
+                </div>
+                <div v-if="durationPreset === 'custom'" class="customDurationRow" style="margin-top: 8px; display: flex; align-items: center; gap: 8px;">
+                  <t-input-number
+                    v-model="customDurationNumber"
+                    :min="5"
+                    :max="60"
+                    :step="1"
+                    theme="column"
+                    style="width: 130px"
+                    :disabled="formState.quickVideoStoryboardConfirmed"
+                    @change="onCustomDurationNumberChange"
+                  />
+                  <span style="font-size: 12px; color: var(--td-text-color-secondary);">{{ $t("workbench.project.dialog.customDurationUnit") }}</span>
+                </div>
+                <div v-if="durationPreset === 'adaptive'" class="quickDurationHint" style="margin-top: 4px;">
+                  {{ $t("workbench.project.dialog.adaptiveDurationHint") }}
+                </div>
                 <div v-if="formState.quickVideoStoryboardConfirmed" class="quickDurationHint">
                   {{ $t("workbench.quickVideo.targetDurationLocked") }}
                 </div>
@@ -350,7 +389,7 @@ const emit = defineEmits<{
       projectType: string;
       imageQuality: "1K" | "2K" | "4K" | "";
       mode: string;
-      targetDuration: 15 | 30 | 60;
+      targetDuration: number | null;
       quickVideoStoryboardConfirmed?: boolean;
       quickVideoConfigLocked?: boolean;
     },
@@ -373,7 +412,7 @@ interface ProjectData {
   imageQuality: "1K" | "2K" | "4K" | "";
   visualManual?: string;
   mode: string;
-  targetDuration?: 15 | 30 | 60;
+  targetDuration?: number | null;
   quickVideoStoryboardConfirmed?: boolean;
   quickVideoConfigLocked?: boolean;
 }
@@ -391,7 +430,7 @@ interface ProjectFormData {
   textModel: string;
   imageQuality: "1K" | "2K" | "4K" | "";
   mode: string;
-  targetDuration: 15 | 30 | 60;
+  targetDuration: number | null;
   quickVideoStoryboardConfirmed?: boolean;
   quickVideoConfigLocked?: boolean;
 }
@@ -456,7 +495,7 @@ const DEFAULT_FORM: (projectType?: "novel" | "quick_video") => ProjectFormData &
   type: "",
   artStyle: "",
   era: "",
-  videoRatio: "16:9",
+  videoRatio: projectType === "quick_video" ? "9:16" : "16:9",
   createTime: 0,
   userId: 0,
   imageModel: "",
@@ -465,7 +504,7 @@ const DEFAULT_FORM: (projectType?: "novel" | "quick_video") => ProjectFormData &
   imageQuality: "",
   mode: "",
   directorManual: "",
-  targetDuration: 15,
+  targetDuration: projectType === "quick_video" ? null : 15,
   quickVideoStoryboardConfirmed: false,
   quickVideoConfigLocked: false,
 });
@@ -473,10 +512,57 @@ const DEFAULT_FORM: (projectType?: "novel" | "quick_video") => ProjectFormData &
 // ===== 表单 =====
 const formState = ref(DEFAULT_FORM());
 
+const durationPreset = ref<"15" | "30" | "60" | "custom" | "adaptive">("adaptive");
+const customDurationNumber = ref<number>(20);
+
+function syncDurationFromForm() {
+  const d = formState.value.targetDuration;
+  if (d === 15) {
+    durationPreset.value = "15";
+  } else if (d === 30) {
+    durationPreset.value = "30";
+  } else if (d === 60) {
+    durationPreset.value = "60";
+  } else if (d == null) {
+    durationPreset.value = "adaptive";
+  } else {
+    durationPreset.value = "custom";
+    customDurationNumber.value = d;
+  }
+}
+
+function selectDurationPreset(preset: "15" | "30" | "60" | "custom" | "adaptive") {
+  if (formState.value.quickVideoStoryboardConfirmed) return;
+  durationPreset.value = preset;
+  if (preset === "15") {
+    formState.value.targetDuration = 15;
+  } else if (preset === "30") {
+    formState.value.targetDuration = 30;
+  } else if (preset === "60") {
+    formState.value.targetDuration = 60;
+  } else if (preset === "adaptive") {
+    formState.value.targetDuration = null;
+  } else if (preset === "custom") {
+    const val = customDurationNumber.value ? Math.max(5, Math.min(60, Math.round(customDurationNumber.value))) : 20;
+    customDurationNumber.value = val;
+    formState.value.targetDuration = val;
+  }
+}
+
+function onCustomDurationNumberChange(val: any) {
+  const num = typeof val === "number" ? val : Number(val);
+  if (!Number.isNaN(num) && num > 0) {
+    const clamped = Math.max(5, Math.min(60, Math.round(num)));
+    customDurationNumber.value = clamped;
+    formState.value.targetDuration = clamped;
+  }
+}
+
 function resetForm(projectType: "novel" | "quick_video" = isQuickCreate.value ? "quick_video" : "novel") {
   formState.value = DEFAULT_FORM(projectType);
   videoRatioOptions.value = [...DEFAULT_VIDEO_RATIO_OPTIONS];
   imageModelDetail.value = null;
+  syncDurationFromForm();
 }
 
 function handleCancel() {
@@ -485,19 +571,20 @@ function handleCancel() {
 }
 
 function handleOk() {
-  // Keep the submitted values aligned with the selected manual cards.
-  if (!formState.value.artStyle) {
-    const visual = visualManualOptions.value.find((item) => item.stylePath);
-    if (visual) formState.value.artStyle = visual.stylePath;
-  }
-  if (!formState.value.directorManual) {
-    const director = directorManualOptions.value.find((item) => item.directorManual);
-    if (director) formState.value.directorManual = director.directorManual;
+  // Keep the submitted values aligned with the selected manual cards for novel/script.
+  if (formState.value.projectType !== "quick_video") {
+    if (!formState.value.artStyle) {
+      const visual = visualManualOptions.value.find((item) => item.stylePath);
+      if (visual) formState.value.artStyle = visual.stylePath;
+    }
+    if (!formState.value.directorManual) {
+      const director = directorManualOptions.value.find((item) => item.directorManual);
+      if (director) formState.value.directorManual = director.directorManual;
+    }
   }
   if (!formState.value.name) return window.$message.warning($t("workbench.project.msg.enterProjectName"));
   if (formState.value.projectType === "quick_video") {
-    // 单视频快创：画风/比例/目标时长必填，图片/视频模型可后续在设置中补充
-    if (!formState.value.artStyle) return window.$message.warning($t("workbench.project.msg.enterArtStyle"));
+    // 单视频快创：画风允许为空串（由聊天或分镜自然生成），目标时长允许为具体秒数或 null（自适应）
     if (!formState.value.videoRatio) return window.$message.warning($t("workbench.project.msg.enterVideoRatio"));
     if (isEdit.value) {
       emit("edit", {
@@ -505,7 +592,7 @@ function handleOk() {
         name: formState.value.name,
         intro: formState.value.intro,
         type: "",
-        artStyle: formState.value.artStyle,
+        artStyle: formState.value.artStyle || "",
         videoRatio: formState.value.videoRatio,
         imageModel: "",
         videoModel: "",
@@ -522,7 +609,7 @@ function handleOk() {
         name: formState.value.name,
         intro: formState.value.intro,
         type: "",
-        artStyle: formState.value.artStyle,
+        artStyle: formState.value.artStyle || "",
         videoRatio: formState.value.videoRatio || "9:16",
         imageModel: "",
         videoModel: "",
@@ -620,10 +707,11 @@ watch(addProjectShow, async (visible) => {
         projectType: props.projectData.projectType || "novel",
         mode: props.projectData.mode || "text",
         directorManual: props.projectData.directorManual || "",
-        targetDuration: props.projectData.targetDuration ?? 15,
+        targetDuration: props.projectData.targetDuration !== undefined ? props.projectData.targetDuration : null,
         quickVideoStoryboardConfirmed: props.projectData.quickVideoStoryboardConfirmed ?? false,
         quickVideoConfigLocked: props.projectData.quickVideoConfigLocked ?? false,
       };
+      syncDurationFromForm();
       // 编辑模式下主动获取视频模型详情，填充 mode 列表以回显 label
       if (props.projectData.videoModel) {
         try {

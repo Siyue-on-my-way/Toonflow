@@ -24,7 +24,7 @@ export default router.post(
       name: z.string().min(1).max(100).optional(),
       artStyle: z.string().max(500).optional(),
       videoRatio: z.enum(QUICK_VIDEO_RATIOS).optional(),
-      targetDuration: z.union([z.literal(15), z.literal(30), z.literal(60)]).optional(),
+      targetDuration: z.number().int().min(5).max(60).nullable().optional(),
       intro: z.string().max(2000).optional(),
     }),
   }),
@@ -33,10 +33,10 @@ export default router.post(
 
     try {
       const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey }, async (state, trx) => {
-        const targetDurationChanged = patch.targetDuration != null && patch.targetDuration !== state.targetDuration;
+        const targetDurationChanged = patch.targetDuration !== undefined && patch.targetDuration !== state.targetDuration;
         const visualConfigChanged =
-          (patch.artStyle != null && patch.artStyle !== state.artStyle) ||
-          (patch.videoRatio != null && patch.videoRatio !== state.videoRatio);
+          (patch.artStyle !== undefined && patch.artStyle !== state.artStyle) ||
+          (patch.videoRatio !== undefined && patch.videoRatio !== state.videoRatio);
         const generationConfigChanged = targetDurationChanged || visualConfigChanged;
 
         if (targetDurationChanged && state.storyboard?.status === "confirmed") {
@@ -45,9 +45,10 @@ export default router.post(
         if (generationConfigChanged && ["generating", "ready_to_assemble", "completed"].includes(state.stage)) {
           throw new QuickVideoError("FORBIDDEN", "生成已开始，不能再修改目标时长、画风或比例；如需调整请新建项目");
         }
-        if (patch.targetDuration != null) state.targetDuration = patch.targetDuration;
-        if (patch.videoRatio != null) state.videoRatio = patch.videoRatio;
-        if (patch.artStyle != null) state.artStyle = patch.artStyle;
+        if (patch.targetDuration !== undefined) state.targetDuration = patch.targetDuration;
+        if (patch.videoRatio !== undefined) state.videoRatio = patch.videoRatio;
+        if (patch.artStyle !== undefined) state.artStyle = patch.artStyle;
+        state.configVersion = (state.configVersion ?? 0) + 1;
 
         // 目标/视觉配置会进入生成快照和提示词。配置变化后丢弃旧快照并使确认状态失效，
         // 让下一次确认按新配置重建，避免沿用旧画风或比例。

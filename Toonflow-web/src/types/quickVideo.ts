@@ -3,7 +3,7 @@
  */
 
 export const QUICK_VIDEO_DURATIONS = [15, 30, 60] as const;
-export type QuickVideoDuration = (typeof QUICK_VIDEO_DURATIONS)[number];
+export type QuickVideoDuration = number | null;
 
 export const QUICK_VIDEO_RATIOS = ["16:9", "9:16", "1:1"] as const;
 export type QuickVideoRatio = (typeof QUICK_VIDEO_RATIOS)[number];
@@ -162,6 +162,8 @@ export interface QuickVideoFinalParamsCard {
   shotCount: number;
   summary: string;
   echoedAt: number;
+  durationText?: string;
+  artStyleText?: string;
 }
 
 export interface QuickVideoGeneration {
@@ -252,6 +254,7 @@ export interface QuickVideoState {
   targetDuration: QuickVideoDuration;
   videoRatio: QuickVideoRatio;
   artStyle: string;
+  configVersion?: number;
   createIdempotencyKey: string;
   brief: QuickVideoBrief | null;
   storyboard: QuickVideoStoryboard | null;

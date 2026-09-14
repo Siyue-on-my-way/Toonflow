@@ -20,9 +20,9 @@ export default router.post(
   "/",
   validateFields({
     name: z.string().min(1).max(100),
-    artStyle: z.string().max(500).default(""),
+    artStyle: z.string().max(500).optional().default(""),
     videoRatio: z.enum(QUICK_VIDEO_RATIOS),
-    targetDuration: z.union([z.literal(15), z.literal(30), z.literal(60)]),
+    targetDuration: z.number().int().min(5).max(60).nullable().optional().default(null),
     draftScript: z.string().max(20000).optional().default(""),
     intro: z.string().max(2000).optional().default(""),
     idempotencyKey: z.string().min(8).max(64),
