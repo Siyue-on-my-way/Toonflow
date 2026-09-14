@@ -27,6 +27,12 @@ import {
 import { QuickVideoError, loadQuickVideoState, mutateQuickVideoState } from "./state";
 import { recordEvent, qvLog } from "./metrics";
 import { CHAT_MEDIA_ASSET_TYPE, getVendorModelCatalog } from "./media";
+import {
+  extractVideoLastFrameBuffer,
+  saveLastFrameToAssetBoard,
+  augmentPromptForCutContinuity,
+  getShotDependencyId,
+} from "./continuity";
 
 /** 进程内生成运行登记：projectId -> 运行 runId（防止重复启动） */
 const runningGenerations = new Map<number, { runId: string }>();
@@ -91,6 +97,7 @@ export async function buildSnapshot(projectId: number, state: QuickVideoState) {
       dialogue: s.dialogue,
       camera: s.camera,
       assetRefs: s.assetRefs,
+      continuity: s.continuity ?? "last_frame",
       firstFrame: await resolveSnapshotFirstFrame(s),
     })),
   );
@@ -410,13 +417,64 @@ async function runGeneration(projectId: number, userId: number, runId: string, s
   // 先补齐需要生成的素材图（同一素材只生成一次，供引用它的镜头做参考图）
   await ensureMaterialImages(ctx);
 
-  // 镜头按并发分批执行；单镜头失败只影响自身
-  const shotIds = snapshot.shots.map((s) => s.id);
-  for (let i = 0; i < shotIds.length; i += GENERATION_CONCURRENCY) {
-    const batch = shotIds.slice(i, i + GENERATION_CONCURRENCY);
-    await Promise.all(batch.map((shotId) => runShotPipeline(projectId, userId, shotId, ctx).catch((err) => {
-      console.error(`[quickVideo] 运行 ${runId} 镜头 ${shotId} 管线异常:`, u.error(err).message);
-    })));
+  // 流水线生成调度（SIY-150）：
+  // 有依赖关系的镜头（顺承 last_frame 或切镜 assets_only）等待前置镜头产出后自动启动，
+  // 独立镜头（independent）在并发上限内并发执行；单镜头失败只影响自身及直接后继
+  const shots = snapshot.shots;
+  const completedShotIds = new Set<string>();
+  const failedShotIds = new Set<string>();
+  const activeRuns = new Map<string, Promise<void>>();
+
+  const isShotReady = (s: QuickVideoSnapshotShot) => {
+    if (completedShotIds.has(s.id) || failedShotIds.has(s.id) || activeRuns.has(s.id)) return false;
+    const depId = getShotDependencyId(s.index, shots);
+    if (!depId) return true;
+    return completedShotIds.has(depId);
+  };
+
+  while (completedShotIds.size + failedShotIds.size < shots.length) {
+    // 检查是否有前置依赖已失败但后续仍在等待的镜头
+    for (const s of shots) {
+      if (completedShotIds.has(s.id) || failedShotIds.has(s.id) || activeRuns.has(s.id)) continue;
+      const depId = getShotDependencyId(s.index, shots);
+      if (depId && failedShotIds.has(depId)) {
+        failedShotIds.add(s.id);
+        await updateShotState(projectId, s.id, {
+          imageState: "failed",
+          videoState: "failed",
+          errorReason: `前置镜头 ${depId} 生成失败，无法保障跨镜头连续性，请先重试前置镜头`,
+        });
+      }
+    }
+
+    // 调度就绪的镜头，不超过并发上限 GENERATION_CONCURRENCY
+    for (const s of shots) {
+      if (activeRuns.size >= GENERATION_CONCURRENCY) break;
+      if (isShotReady(s)) {
+        const shotId = s.id;
+        const taskPromise = runShotPipeline(projectId, userId, shotId, ctx)
+          .catch((err) => {
+            console.error(`[quickVideo] 运行 ${runId} 镜头 ${shotId} 管线异常:`, u.error(err).message);
+          })
+          .then(async () => {
+            const freshState = await loadQuickVideoState(projectId);
+            const shotNow = freshState?.storyboard?.shots.find((x) => x.id === shotId);
+            if (shotNow?.videoState === "done") {
+              completedShotIds.add(shotId);
+            } else {
+              failedShotIds.add(shotId);
+            }
+            activeRuns.delete(shotId);
+          });
+        activeRuns.set(shotId, taskPromise);
+      }
+    }
+
+    if (activeRuns.size === 0) {
+      break;
+    }
+
+    await Promise.race(activeRuns.values());
   }
 }
 
@@ -500,17 +558,60 @@ async function runShotPipeline(projectId: number, userId: number, shotId: string
       return { projectId, userId, runId: `retry-${u.uuid().slice(0, 8)}`, snapshot, sessionId, ...models } as GenerationContext;
     })());
 
+  const prevShot = shotContent.index > 1 ? snapshot.shots.find((s) => s.index === shotContent.index - 1) : null;
+  const continuity = shotContent.continuity ?? "last_frame";
+
+  // --- 顺承镜头（last_frame）尾帧注入处理 ---
+  // 若本镜头为顺承镜头且未显式指定首帧，从上一镜头已生成的视频中自动提取尾帧，存入资产白板并绑定为本镜头的首帧
+  if (shotContent.index > 1 && continuity === "last_frame") {
+    if (!shotContent.firstFrame) {
+      const liveState = await loadQuickVideoState(projectId);
+      const prevLive = liveState?.storyboard?.shots.find((s) => s.index === shotContent.index - 1);
+      if (prevLive?.videoRef && prevLive.videoState === "done") {
+        try {
+          const videoBuffer = await u.oss.getFile(prevLive.videoRef);
+          const frameBuffer = await extractVideoLastFrameBuffer(videoBuffer);
+          const savedFrame = await saveLastFrameToAssetBoard(projectId, ctx.sessionId, prevLive.id, ctx.runId, frameBuffer);
+          const firstFrameInfo = {
+            mediaId: savedFrame.mediaId,
+            assetId: savedFrame.assetId,
+            imageId: savedFrame.imageId,
+            boundAt: Date.now(),
+          };
+          await mutateQuickVideoState(projectId, {}, (s) => {
+            const cur = s.storyboard?.shots.find((x) => x.id === shotId);
+            if (cur) {
+              cur.firstFrame = firstFrameInfo;
+              cur.imageState = "done";
+              cur.imageRef = savedFrame.filePath;
+              cur.errorReason = null;
+            }
+          });
+          shotContent.firstFrame = { ...firstFrameInfo, filePath: savedFrame.filePath };
+          liveShot.firstFrame = firstFrameInfo;
+          liveShot.imageState = "done";
+          liveShot.imageRef = savedFrame.filePath;
+        } catch (extractErr) {
+          console.warn(`[quickVideo] 提取上一镜头 ${prevLive.id} 尾帧失败:`, u.error(extractErr).message);
+        }
+      }
+    } else {
+      liveShot.imageState = "done";
+      liveShot.imageRef = shotContent.firstFrame.filePath;
+    }
+  }
+
   // --- 分镜图 ---
-  let imageRef = liveShot.imageRef;
+  let imageRef = shotContent.firstFrame?.filePath ?? liveShot.imageRef;
   if (liveShot.imageState !== "done" || !imageRef) {
     await updateShotState(projectId, shotId, { imageState: "generating", errorReason: null });
     try {
-      const referenceList = await buildShotImageReferences(ctx, shotContent);
+      const referenceList = await buildShotImageReferences(ctx, shotContent, prevShot);
       const imageCls = u.Ai.Image(ctx.imageModel as `${string}:${string}`, ctx.userId);
       await withTimeout(
         imageCls.run(
           {
-            prompt: buildShotImagePrompt(ctx.snapshot, shotContent),
+            prompt: buildShotImagePrompt(ctx.snapshot, shotContent, prevShot),
             referenceList,
             size: "1K",
             aspectRatio: castAspectRatio(ctx.snapshot.videoRatio),
@@ -555,7 +656,7 @@ async function runShotPipeline(projectId: number, userId: number, shotId: string
     await withTimeout(
       videoAi.run(
         {
-          prompt: buildShotVideoPrompt(shotContent),
+          prompt: buildShotVideoPrompt(shotContent, prevShot),
           referenceList: [{ type: "image", base64: imageBase64 }],
           mode: ["singleImage"],
           duration: shotContent.duration,
@@ -577,6 +678,34 @@ async function runShotPipeline(projectId: number, userId: number, shotId: string
     await updateShotState(projectId, shotId, { videoState: "done", videoRef, errorReason: null });
     recordEvent("generationShotDone");
     qvLog("shot_done", { projectId, shotId, duration: shotContent.duration });
+
+    // 预抽尾帧：若后序镜头为顺承镜头，立即抽帧存入资产白板并预注入首帧
+    const nextShot = snapshot.shots.find((s) => s.index === shotContent.index + 1);
+    if (nextShot && (nextShot.continuity ?? "last_frame") === "last_frame" && !nextShot.firstFrame) {
+      try {
+        const videoBuffer = await u.oss.getFile(videoRef);
+        const frameBuffer = await extractVideoLastFrameBuffer(videoBuffer);
+        const savedFrame = await saveLastFrameToAssetBoard(projectId, ctx.sessionId, shotId, ctx.runId, frameBuffer);
+        const firstFrameInfo = {
+          mediaId: savedFrame.mediaId,
+          assetId: savedFrame.assetId,
+          imageId: savedFrame.imageId,
+          boundAt: Date.now(),
+        };
+        await mutateQuickVideoState(projectId, {}, (s) => {
+          const cur = s.storyboard?.shots.find((x) => x.id === nextShot.id);
+          if (cur) {
+            cur.firstFrame = firstFrameInfo;
+            cur.imageState = "done";
+            cur.imageRef = savedFrame.filePath;
+            cur.errorReason = null;
+          }
+        });
+        nextShot.firstFrame = { ...firstFrameInfo, filePath: savedFrame.filePath };
+      } catch (err) {
+        console.warn(`[quickVideo] 镜头 ${shotId} 完成后预抽尾帧失败:`, u.error(err).message);
+      }
+    }
   } catch (err) {
     const reason = u.error(err as Error).message;
     await updateShotState(projectId, shotId, { videoState: "failed", errorReason: reason });
@@ -655,8 +784,12 @@ function materialLabel(type: string): string {
   return type === "role" ? "角色" : type === "scene" ? "场景" : "道具";
 }
 
-/** 镜头分镜图提示词：画风 + 画面描述 + 运镜 + 引用资产描述 */
-function buildShotImagePrompt(snapshot: QuickVideoGenerationSnapshot, shot: QuickVideoSnapshotShot): string {
+/** 镜头分镜图提示词：画风 + 画面描述 + 运镜 + 引用资产描述 + 切镜主体特征自动补齐 */
+function buildShotImagePrompt(
+  snapshot: QuickVideoGenerationSnapshot,
+  shot: QuickVideoSnapshotShot,
+  prevShot?: QuickVideoSnapshotShot | null,
+): string {
   const parts = [
     snapshot.artStyle ? `整体画面风格：${snapshot.artStyle}` : "",
     `画面比例 ${snapshot.videoRatio}`,
@@ -667,12 +800,16 @@ function buildShotImagePrompt(snapshot: QuickVideoGenerationSnapshot, shot: Quic
       : "",
     "单幅完整画面，无文字、无水印、无分屏",
   ];
-  return parts.filter(Boolean).join("；");
+  let prompt = parts.filter(Boolean).join("；");
+  if (shot.continuity === "assets_only" && prevShot) {
+    prompt = augmentPromptForCutContinuity(prompt, prevShot, shot);
+  }
+  return prompt;
 }
 
-/** 镜头视频提示词：以分镜图为首帧，按画面描述与时长运动 */
-function buildShotVideoPrompt(shot: QuickVideoSnapshotShot): string {
-  return [
+/** 镜头视频提示词：以分镜图为首帧，按画面描述与时长运动 + 切镜连续性动作特征 */
+function buildShotVideoPrompt(shot: QuickVideoSnapshotShot, prevShot?: QuickVideoSnapshotShot | null): string {
+  let prompt = [
     `以参考图为首帧，生成 ${shot.duration} 秒的连续镜头`,
     shot.description,
     shot.camera ? `运镜：${shot.camera}` : "",
@@ -681,18 +818,32 @@ function buildShotVideoPrompt(shot: QuickVideoSnapshotShot): string {
   ]
     .filter(Boolean)
     .join("；");
+  if (shot.continuity === "assets_only" && prevShot) {
+    prompt = augmentPromptForCutContinuity(prompt, prevShot, shot);
+  }
+  return prompt;
 }
 
-/** 镜头参考图：命中的资产图 + 已生成的素材图（按镜头 assetRefs 过滤） */
+/** 镜头参考图：命中的资产图 + 已生成的素材图（按镜头 assetRefs 过滤；切镜模式下合并上一镜头的角色/道具图） */
 async function buildShotImageReferences(
   ctx: GenerationContext,
   shot: QuickVideoSnapshotShot,
+  prevShot?: QuickVideoSnapshotShot | null,
 ): Promise<{ type: "image"; base64: string }[]> {
   const state = await loadQuickVideoState(ctx.projectId);
   const materialImages = state?.generation?.materialImages ?? {};
   const refs: { type: "image"; base64: string }[] = [];
 
-  for (const ref of shot.assetRefs ?? []) {
+  const combinedAssetRefs = [...(shot.assetRefs ?? [])];
+  if (shot.continuity === "assets_only" && prevShot?.assetRefs) {
+    for (const r of prevShot.assetRefs) {
+      if ((r.type === "role" || r.type === "tool") && !combinedAssetRefs.some((x) => x.type === r.type && x.name === r.name)) {
+        combinedAssetRefs.push(r);
+      }
+    }
+  }
+
+  for (const ref of combinedAssetRefs) {
     const material = ctx.snapshot.materials.find((m) => m.type === ref.type && m.name === ref.name);
     if (!material) continue;
     const path = material.source === "matched" ? material.filePath : materialImages[material.name];

@@ -1792,6 +1792,13 @@
       "shotDialogue": "台词/字幕",
       "shotCamera": "景别/运镜",
       "shotAssets": "资产",
+      "continuity": "连续性策略",
+      "continuityFirstShot": "首镜头(独立)",
+      "continuityTypes": {
+        "last_frame": "继承上一镜头尾帧",
+        "assets_only": "继承人物与道具素材",
+        "independent": "独立镜头"
+      },
       "genState": "生成状态",
       "image": "图",
       "video": "视频",

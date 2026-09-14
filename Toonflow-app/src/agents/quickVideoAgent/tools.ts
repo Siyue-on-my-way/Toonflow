@@ -13,6 +13,8 @@ import {
   shotCountBounds,
   validateStoryboard,
   echoFinalParamsCard,
+  SHOT_CONTINUITY_TYPES,
+  ShotContinuityType,
 } from "@/lib/quickVideo/contract";
 import { findShot, nextShotId, normalizeShotDuration, reindexShots } from "@/lib/quickVideo/shots";
 import { startQuickVideoGeneration, buildSnapshot, applySnapshotToState, assertVideoSupportsSingleImage, castAspectRatio } from "@/lib/quickVideo/generate";
@@ -225,7 +227,7 @@ export default (toolConfig: ToolConfig) => {
         "提交一版完整分镜（替换式）：5-12 个镜头、每镜 5-15 秒、总时长贴近目标时长。前置条件：简报已存在且简报已确认（用户在确认门确认过）。提交后分镜为草稿，需用户在右侧面板确认。",
       inputSchema: jsonSchema<{
         summary: string;
-        shots: { duration: number; description: string; dialogue: string; camera: string }[];
+        shots: { duration: number; description: string; dialogue: string; camera: string; continuity?: "last_frame" | "assets_only" | "independent" }[];
       }>(
         z
           .object({
@@ -237,6 +239,11 @@ export default (toolConfig: ToolConfig) => {
                   description: z.string().min(1).max(2000).describe("画面描述（镜头内容、动作、氛围）"),
                   dialogue: z.string().max(500).describe("台词/旁白（用作字幕，可为空字符串）"),
                   camera: z.string().max(200).describe("景别/运镜（如 全景、缓慢推进）"),
+                  continuity: z
+                    .enum(SHOT_CONTINUITY_TYPES)
+                    .optional()
+                    .default("last_frame")
+                    .describe("跨镜头连续性策略：last_frame=继承上一镜头尾帧（默认） / assets_only=继承人物与道具素材 / independent=独立镜头"),
                 }),
               )
               .min(1)
@@ -283,6 +290,7 @@ export default (toolConfig: ToolConfig) => {
                 dialogue: shot.dialogue ?? "",
                 camera: shot.camera ?? "",
                 assetRefs: [],
+                continuity: (shot as any).continuity ?? "last_frame",
                 imageState: "pending",
                 videoState: "pending",
                 imageRef: null,
@@ -312,13 +320,14 @@ export default (toolConfig: ToolConfig) => {
     }),
 
     update_shot: tool({
-      description: "修改单个草稿镜头的字段（画面描述/台词/运镜/时长/资产）。仅分镜草稿状态可用；镜头 id 与顺序不可改。",
+      description: "修改单个草稿镜头的字段（画面描述/台词/运镜/时长/资产/连续性策略）。仅分镜草稿状态可用；镜头 id 与顺序不可改。",
       inputSchema: jsonSchema<{
         shotId: string;
         description?: string;
         dialogue?: string;
         camera?: string;
         duration?: number;
+        continuity?: "last_frame" | "assets_only" | "independent";
       }>(
         z
           .object({
@@ -327,6 +336,10 @@ export default (toolConfig: ToolConfig) => {
             dialogue: z.string().max(500).optional().describe("新的台词/旁白"),
             camera: z.string().max(200).optional().describe("新的景别/运镜"),
             duration: z.number().int().min(SHOT_DURATION_MIN).max(SHOT_DURATION_MAX).optional().describe("新的镜头时长（秒）"),
+            continuity: z
+              .enum(SHOT_CONTINUITY_TYPES)
+              .optional()
+              .describe("新的跨镜头连续性策略：last_frame=继承上一镜头尾帧 / assets_only=继承人物与道具素材 / independent=独立镜头"),
           })
           .toJSONSchema(),
       ),
@@ -348,6 +361,7 @@ export default (toolConfig: ToolConfig) => {
               if (input.dialogue != null) shot.dialogue = input.dialogue;
               if (input.camera != null) shot.camera = input.camera;
               if (input.duration != null) shot.duration = normalizeShotDuration(input.duration);
+              if (input.continuity != null) shot.continuity = input.continuity;
             },
           );
           return idempotentHit
@@ -359,13 +373,18 @@ export default (toolConfig: ToolConfig) => {
 
     add_shot: tool({
       description: "在分镜草稿末尾追加一个镜头。",
-      inputSchema: jsonSchema<{ duration: number; description: string; dialogue: string; camera: string }>(
+      inputSchema: jsonSchema<{ duration: number; description: string; dialogue: string; camera: string; continuity?: "last_frame" | "assets_only" | "independent" }>(
         z
           .object({
             duration: z.number().int().min(SHOT_DURATION_MIN).max(SHOT_DURATION_MAX).describe(`镜头时长（秒）`),
             description: z.string().min(1).max(2000).describe("画面描述"),
             dialogue: z.string().max(500).describe("台词/旁白，可为空字符串"),
             camera: z.string().max(200).describe("景别/运镜"),
+            continuity: z
+              .enum(SHOT_CONTINUITY_TYPES)
+              .optional()
+              .default("last_frame")
+              .describe("跨镜头连续性策略：last_frame=继承上一镜头尾帧（默认） / assets_only=继承人物与道具素材 / independent=独立镜头"),
           })
           .toJSONSchema(),
       ),
@@ -393,6 +412,7 @@ export default (toolConfig: ToolConfig) => {
                 dialogue: input.dialogue ?? "",
                 camera: input.camera ?? "",
                 assetRefs: [],
+                continuity: input.continuity ?? "last_frame",
                 imageState: "pending",
                 videoState: "pending",
                 imageRef: null,
@@ -486,6 +506,7 @@ export default (toolConfig: ToolConfig) => {
           state.storyboard.shots.map((s) => ({
             shotId: s.id,
             index: s.index,
+            continuity: s.continuity ?? "last_frame",
             imageState: s.imageState,
             videoState: s.videoState,
             errorReason: s.errorReason,

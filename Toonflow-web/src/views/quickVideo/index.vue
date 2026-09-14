@@ -349,6 +349,24 @@
                     </t-tag>
                     <span v-if="!row.assetRefs?.length">-</span>
                   </template>
+                  <template #continuity="{ row }">
+                    <span v-if="row.index === 1">
+                      <t-tag size="small" variant="light" shape="round">{{ $t("workbench.quickVideo.continuityFirstShot") }}</t-tag>
+                    </span>
+                    <span v-else>
+                      <t-select
+                        v-if="canEditStoryboard"
+                        :value="row.continuity ?? 'last_frame'"
+                        size="small"
+                        :options="continuitySelectOptions"
+                        :popup-props="{ zIndex: 5000 }"
+                        style="width: 135px"
+                        @change="(val: any) => onContinuityChange(row.id, val)" />
+                      <t-tag v-else size="small" shape="round" :theme="continuityTagTheme(row.continuity)">
+                        {{ continuityLabel(row.continuity) }}
+                      </t-tag>
+                    </span>
+                  </template>
                   <template #firstFrame="{ row }">
                     <div class="firstFrameCell">
                       <template v-if="row.firstFrame">
@@ -724,6 +742,9 @@
           </t-form-item>
           <t-form-item :label="$t('workbench.quickVideo.shotCamera')">
             <t-input v-model="shotEditData.camera" />
+          </t-form-item>
+          <t-form-item :label="$t('workbench.quickVideo.continuity')" v-if="shotEditIsAdd || shotEditIndex > 1">
+            <t-select v-model="shotEditData.continuity" :options="continuitySelectOptions" />
           </t-form-item>
         </t-form>
       </div>
@@ -1435,12 +1456,43 @@ const shotColumns = [
   { colKey: "description", title: $t("workbench.quickVideo.shotDescription"), ellipsis: true },
   { colKey: "dialogue", title: $t("workbench.quickVideo.shotDialogue"), ellipsis: true },
   { colKey: "camera", title: $t("workbench.quickVideo.shotCamera"), width: 110, ellipsis: true },
-  { colKey: "assetRefs", title: $t("workbench.quickVideo.shotAssets"), width: 150 },
+  { colKey: "assetRefs", title: $t("workbench.quickVideo.shotAssets"), width: 140 },
+  { colKey: "continuity", title: $t("workbench.quickVideo.continuity"), width: 140 },
   { colKey: "firstFrame", title: $t("workbench.quickVideo.firstFrame"), width: 130 },
   { colKey: "preview", title: $t("workbench.quickVideo.preview"), width: 168 },
   { colKey: "genState", title: $t("workbench.quickVideo.genState"), width: 175 },
   { colKey: "op", title: "", width: 110 },
 ];
+
+const continuitySelectOptions = computed(() => [
+  { label: $t("workbench.quickVideo.continuityTypes.last_frame"), value: "last_frame" },
+  { label: $t("workbench.quickVideo.continuityTypes.assets_only"), value: "assets_only" },
+  { label: $t("workbench.quickVideo.continuityTypes.independent"), value: "independent" },
+]);
+
+function continuityTagTheme(type?: string) {
+  if (type === "last_frame" || !type) return "primary";
+  if (type === "assets_only") return "warning";
+  return "default";
+}
+
+function continuityLabel(type?: string) {
+  if (type === "assets_only") return $t("workbench.quickVideo.continuityTypes.assets_only");
+  if (type === "independent") return $t("workbench.quickVideo.continuityTypes.independent");
+  return $t("workbench.quickVideo.continuityTypes.last_frame");
+}
+
+async function onContinuityChange(shotId: string, continuity: string) {
+  if (!state.value) return;
+  await callQuickVideoApi("/quickVideo/updateShot", {
+    projectId: Number(project.value?.id),
+    sessionId: currentSessionId.value,
+    expectedVersion: state.value.version,
+    idempotencyKey: newIdemKey(),
+    shotId,
+    patch: { continuity },
+  });
+}
 
 // ===== 写接口调用（乐观锁 + 幂等键） =====
 function newIdemKey() {
@@ -1509,18 +1561,33 @@ async function saveBriefEdit() {
 const shotEditVisible = ref(false);
 const shotEditIsAdd = ref(false);
 const shotEditId = ref("");
-const shotEditData = ref({ duration: 5, description: "", dialogue: "", camera: "" });
+const shotEditIndex = ref(1);
+const shotEditData = ref<{
+  duration: number;
+  description: string;
+  dialogue: string;
+  camera: string;
+  continuity?: ShotContinuityType;
+}>({ duration: 5, description: "", dialogue: "", camera: "", continuity: "last_frame" });
 
 function openShotEdit(shot: QuickVideoShot) {
   shotEditIsAdd.value = false;
   shotEditId.value = shot.id;
-  shotEditData.value = { duration: shot.duration, description: shot.description, dialogue: shot.dialogue, camera: shot.camera };
+  shotEditIndex.value = shot.index;
+  shotEditData.value = {
+    duration: shot.duration,
+    description: shot.description,
+    dialogue: shot.dialogue,
+    camera: shot.camera,
+    continuity: shot.continuity ?? "last_frame",
+  };
   shotEditVisible.value = true;
 }
 
 function openShotAdd() {
   shotEditIsAdd.value = true;
-  shotEditData.value = { duration: 5, description: "", dialogue: "", camera: "" };
+  shotEditIndex.value = (state.value?.storyboard?.shots.length ?? 0) + 1;
+  shotEditData.value = { duration: 5, description: "", dialogue: "", camera: "", continuity: "last_frame" };
   shotEditVisible.value = true;
 }
 

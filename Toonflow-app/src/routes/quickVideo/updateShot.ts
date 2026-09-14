@@ -2,7 +2,7 @@ import express from "express";
 import { z } from "zod";
 import { success } from "@/lib/responseFormat";
 import { validateFields } from "@/middleware/middleware";
-import { shotAssetRefSchema } from "@/lib/quickVideo/contract";
+import { shotAssetRefSchema, SHOT_CONTINUITY_TYPES } from "@/lib/quickVideo/contract";
 import { QuickVideoError, mutateQuickVideoState } from "@/lib/quickVideo/state";
 import { ensureStoryboardEditable, findShot, normalizeShotDuration } from "@/lib/quickVideo/shots";
 
@@ -10,7 +10,7 @@ const router = express.Router();
 
 /**
  * 用户编辑单个镜头（仅草稿状态允许）。
- * patch 走白名单字段（description/dialogue/camera/duration/assetRefs），
+ * patch 走白名单字段（description/dialogue/camera/duration/assetRefs/continuity），
  * 镜头 id / index / 生成状态不允许通过本接口修改。
  */
 export default router.post(
@@ -26,6 +26,7 @@ export default router.post(
       camera: z.string().max(200).optional(),
       duration: z.number().int().min(5).max(15).optional(),
       assetRefs: z.array(shotAssetRefSchema).max(10).optional(),
+      continuity: z.enum(SHOT_CONTINUITY_TYPES).optional(),
     }),
   }),
   async (req, res) => {
@@ -39,6 +40,7 @@ export default router.post(
         if (patch.camera != null) shot.camera = patch.camera;
         if (patch.duration != null) shot.duration = normalizeShotDuration(patch.duration);
         if (patch.assetRefs != null) shot.assetRefs = patch.assetRefs;
+        if (patch.continuity != null) shot.continuity = patch.continuity;
       });
       res.status(200).send(success({ state: result.state, idempotentHit: result.idempotentHit }));
     } catch (err: any) {

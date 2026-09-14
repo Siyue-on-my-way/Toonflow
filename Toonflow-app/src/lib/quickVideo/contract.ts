@@ -40,6 +40,20 @@ export const SHOT_DURATION_MAX = 15;
 /** 分镜数量上限 */
 export const SHOT_COUNT_MAX = 12;
 
+/**
+ * 跨镜头连续性策略：
+ * - last_frame    继承上一镜头尾帧（默认，针对应顺承镜头，ffmpeg抽帧并注入为首帧，像素级连贯）
+ * - assets_only   继承人物与道具素材（针对切镜，注入角色/道具参考图并在 Prompt 补充一致性特征词）
+ * - independent   独立镜头（前后完全独立）
+ */
+export const SHOT_CONTINUITY_TYPES = ["last_frame", "assets_only", "independent"] as const;
+export type ShotContinuityType = (typeof SHOT_CONTINUITY_TYPES)[number];
+export const SHOT_CONTINUITY_LABELS: Record<ShotContinuityType, string> = {
+  last_frame: "继承上一镜头尾帧",
+  assets_only: "继承人物与道具素材",
+  independent: "独立镜头",
+};
+
 // ---------------------------------------------------------------------------
 // 阶段状态机
 // ---------------------------------------------------------------------------
@@ -187,6 +201,10 @@ export const quickVideoShotSchema = z.object({
   dialogue: z.string().max(500).default("").describe("台词/旁白（用作字幕，可为空）"),
   camera: z.string().max(200).default("").describe("景别/运镜（如 全景、缓慢推进）"),
   assetRefs: z.array(shotAssetRefSchema).max(10).default([]).describe("该镜头引用的资产列表"),
+  continuity: z
+    .enum(SHOT_CONTINUITY_TYPES)
+    .default("last_frame")
+    .describe("跨镜头连续性策略：last_frame=继承上一镜头尾帧 / assets_only=继承人物与道具素材 / independent=独立镜头"),
   imageState: z.enum(SHOT_GEN_STATES).default("pending").describe("分镜图生成状态"),
   videoState: z.enum(SHOT_GEN_STATES).default("pending").describe("视频片段生成状态"),
   imageRef: z.string().max(500).nullable().default(null).describe("分镜图文件引用（OSS key）"),
@@ -242,6 +260,7 @@ export const snapshotShotSchema = z.object({
   dialogue: z.string().max(500).default(""),
   camera: z.string().max(200).default(""),
   assetRefs: z.array(shotAssetRefSchema).max(10).default([]),
+  continuity: z.enum(SHOT_CONTINUITY_TYPES).default("last_frame"),
   /** 冻结的首帧引用（含 filePath，生成引擎直接读取）；无人工首帧时为 null，回退用分镜图 imageRef */
   firstFrame: snapshotFirstFrameSchema.nullable().default(null),
 });
@@ -357,7 +376,7 @@ export type QuickVideoTimelineClipPlan = z.infer<typeof timelineClipPlanSchema>;
 
 export const timelineTransitionSchema = z.object({
   afterShotId: z.string().min(1).max(40).describe("与下一镜头之间的转场，位于该镜头之后"),
-  type: z.literal("crossfade"),
+  type: z.enum(["crossfade", "none"]).default("crossfade"),
   duration: z.number().min(0),
 });
 export type QuickVideoTimelineTransition = z.infer<typeof timelineTransitionSchema>;
@@ -494,7 +513,10 @@ export function shotCountBounds(targetDuration: QuickVideoDuration): { min: numb
  * - targetDuration == null 时：自适应放行 2–12 镜头、成片不超过 60 秒的合理分镜，不抛出 DURATION_NOT_SET 异常
  * 返回错误原因数组；空数组表示通过。
  */
-export function validateStoryboard(targetDuration: QuickVideoDuration, shots: QuickVideoShot[]): string[] {
+export function validateStoryboard(
+  targetDuration: QuickVideoDuration,
+  shots: Array<Pick<QuickVideoShot, "id" | "duration"> & Partial<QuickVideoShot>>,
+): string[] {
   const errors: string[] = [];
   const { min, max } = shotCountBounds(targetDuration);
   if (shots.length < min || shots.length > max) {

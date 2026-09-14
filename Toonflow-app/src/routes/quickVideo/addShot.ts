@@ -2,7 +2,7 @@ import express from "express";
 import { z } from "zod";
 import { success } from "@/lib/responseFormat";
 import { validateFields } from "@/middleware/middleware";
-import { SHOT_COUNT_MAX, shotAssetRefSchema } from "@/lib/quickVideo/contract";
+import { SHOT_COUNT_MAX, shotAssetRefSchema, SHOT_CONTINUITY_TYPES } from "@/lib/quickVideo/contract";
 import { QuickVideoError, mutateQuickVideoState } from "@/lib/quickVideo/state";
 import { ensureStoryboardEditable, nextShotId, reindexShots } from "@/lib/quickVideo/shots";
 
@@ -21,6 +21,7 @@ export default router.post(
       dialogue: z.string().max(500).optional().default(""),
       camera: z.string().max(200).optional().default(""),
       assetRefs: z.array(shotAssetRefSchema).max(10).optional().default([]),
+      continuity: z.enum(SHOT_CONTINUITY_TYPES).optional().default("last_frame"),
     }),
   }),
   async (req, res) => {
@@ -39,6 +40,7 @@ export default router.post(
           dialogue: shot.dialogue ?? "",
           camera: shot.camera ?? "",
           assetRefs: shot.assetRefs ?? [],
+          continuity: shot.continuity ?? "last_frame",
           imageState: "pending",
           videoState: "pending",
           imageRef: null,

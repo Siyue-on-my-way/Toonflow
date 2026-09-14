@@ -59,6 +59,47 @@ describe("buildTimelinePlan", () => {
     expect(plan.width).toBe(1280);
     expect(plan.height).toBe(720);
   });
+
+  it("SIY-150 双模态连续性：14s+8s顺承镜头(last_frame)无缝无重叠串联拼接出完整22s成片", () => {
+    const plan = buildTimelinePlan({
+      shots: [
+        { id: "shot-1", index: 1, duration: 14, continuity: "independent" },
+        { id: "shot-2", index: 2, duration: 8, continuity: "last_frame" },
+      ],
+      targetDuration: 22,
+      videoRatio: "16:9",
+    });
+
+    expect(plan.clips).toHaveLength(2);
+    // 顺承镜头转场时长为0，无缝拼接
+    expect(plan.transitions).toHaveLength(1);
+    expect(plan.transitions[0]).toMatchObject({ afterShotId: "shot-1", type: "none", duration: 0 });
+
+    // 播放速率为原速 1.0，无裁剪与放慢
+    expect(plan.clips[0].playbackRate).toBe(1);
+    expect(plan.clips[1].playbackRate).toBe(1);
+    expect(plan.clips[0].start).toBe(0);
+    expect(plan.clips[0].end).toBe(14);
+    expect(plan.clips[1].start).toBe(14);
+    expect(plan.clips[1].end).toBe(22);
+
+    // 总时长精确为 22 秒
+    expect(plan.totalDuration).toBe(22);
+    expect(plan.tailPad).toBeNull();
+  });
+
+  it("SIY-150 切镜(assets_only)保持标准 crossfade 转场", () => {
+    const plan = buildTimelinePlan({
+      shots: [
+        { id: "shot-1", index: 1, duration: 14, continuity: "independent" },
+        { id: "shot-2", index: 2, duration: 8, continuity: "assets_only" },
+      ],
+      targetDuration: 22,
+      videoRatio: "16:9",
+    });
+    expect(plan.transitions).toHaveLength(1);
+    expect(plan.transitions[0]).toMatchObject({ afterShotId: "shot-1", type: "crossfade", duration: 0.5 });
+  });
 });
 
 describe("buildSubtitleCues / 字幕轨", () => {

@@ -80,6 +80,15 @@ export interface ShotFirstFrame {
 
 export type QuickVideoChatMode = "text" | "image" | "video";
 
+/** 跨镜头连续性策略：last_frame=继承上一镜头尾帧 / assets_only=继承人物与道具素材 / independent=独立镜头 */
+export const SHOT_CONTINUITY_TYPES = ["last_frame", "assets_only", "independent"] as const;
+export type ShotContinuityType = (typeof SHOT_CONTINUITY_TYPES)[number];
+export const SHOT_CONTINUITY_LABELS: Record<ShotContinuityType, string> = {
+  last_frame: "继承上一镜头尾帧",
+  assets_only: "继承人物与道具素材",
+  independent: "独立镜头",
+};
+
 export interface QuickVideoShot {
   id: string;
   index: number;
@@ -88,6 +97,7 @@ export interface QuickVideoShot {
   dialogue: string;
   camera: string;
   assetRefs: ShotAssetRef[];
+  continuity?: ShotContinuityType;
   imageState: ShotGenState;
   videoState: ShotGenState;
   imageRef: string | null;
@@ -145,6 +155,7 @@ export interface QuickVideoGenerationSnapshot {
     dialogue: string;
     camera: string;
     assetRefs: ShotAssetRef[];
+    continuity?: ShotContinuityType;
     firstFrame: (ShotFirstFrame & { filePath: string }) | null;
   }[];
   materials: QuickVideoMaterialItem[];

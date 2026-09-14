@@ -617,14 +617,21 @@ export function useTimelinePlayer() {
     sprite.rect.y = (ch - h) / 2;
   }
 
-  /** crossfade：与前/后镜头的重叠区做透明度动画（透出/盖住下层片段） */
+  /** crossfade：与前/后镜头的重叠区做透明度动画（透出/盖住下层片段；无缝顺承镜头 duration=0 / type=none 时不设动画） */
   function applyCrossfade(sprite: VisibleSprite, index: number, span: number) {
     if (!plan) return;
-    const D = plan.transitions[index]?.duration ?? plan.transitions[index - 1]?.duration ?? 0;
-    if (!D || span <= D + 0.5) return;
-    const fadeInPct = Math.round(((index > 0 ? D : 0) / span) * 10000) / 100;
-    const fadeOutPct = Math.round(((index < plan.clips.length - 1 ? D : 0) / span) * 10000) / 100;
-    const keyframes: Record<string, { opacity: number }> = { "0%": { opacity: index > 0 ? 0 : 1 }, "100%": { opacity: index < plan.clips.length - 1 ? 0 : 1 } };
+    const prevTrans = index > 0 ? plan.transitions[index - 1] : null;
+    const nextTrans = index < plan.clips.length - 1 ? plan.transitions[index] : null;
+    const prevD = prevTrans && prevTrans.type !== "none" ? prevTrans.duration : 0;
+    const nextD = nextTrans && nextTrans.type !== "none" ? nextTrans.duration : 0;
+    if ((!prevD && !nextD) || span <= Math.max(prevD, nextD) + 0.5) return;
+
+    const fadeInPct = Math.round(((prevD > 0 ? prevD : 0) / span) * 10000) / 100;
+    const fadeOutPct = Math.round(((nextD > 0 ? span - nextD : span) / span) * 10000) / 100;
+    const keyframes: Record<string, { opacity: number }> = {
+      "0%": { opacity: prevD > 0 ? 0 : 1 },
+      "100%": { opacity: nextD > 0 ? 0 : 1 },
+    };
     if (fadeInPct > 0 && fadeInPct < 100) keyframes[`${fadeInPct}%`] = { opacity: 1 };
     if (fadeOutPct > 0 && fadeOutPct < 100) keyframes[`${fadeOutPct}%`] = keyframes[`${fadeOutPct}%`] ?? { opacity: 1 };
     sprite.setAnimation(keyframes, { duration: span * 1e6, iterCount: 1 });

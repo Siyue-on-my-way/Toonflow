@@ -1688,6 +1688,13 @@
       "shotDialogue": "Dialogue/Subtitle",
       "shotCamera": "Shot/Camera",
       "shotAssets": "Assets",
+      "continuity": "Continuity",
+      "continuityFirstShot": "First Shot",
+      "continuityTypes": {
+        "last_frame": "Inherit Tail Frame",
+        "assets_only": "Inherit Assets",
+        "independent": "Independent"
+      },
       "genState": "Generation",
       "image": "Img",
       "video": "Video",

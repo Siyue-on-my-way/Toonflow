@@ -18,6 +18,7 @@ import {
   QuickVideoRatio,
   QuickVideoTimelinePlan,
   SHOT_COUNT_MAX,
+  ShotContinuityType,
   TIMELINE_MAX_SPEED,
   TIMELINE_MIN_SPEED,
   TIMELINE_TRANSITION_DURATION_S,
@@ -29,6 +30,7 @@ export interface TimelinePlanShotInput {
   index: number;
   duration: number;
   dialogue?: string;
+  continuity?: ShotContinuityType;
 }
 
 export interface BuildTimelinePlanInput {
@@ -42,16 +44,31 @@ export interface BuildTimelinePlanInput {
 /**
  * 构建时间线装配规划。
  * 总时长恒等于目标时长（精确贴合）；clips 相邻处在转场时长内重叠。
+ * 针对顺承镜头（last_frame），相邻镜头间为无缝硬切（转场为0），切镜/独立镜头保留 crossfade。
  */
 export function buildTimelinePlan({ shots, targetDuration, videoRatio, ctaText = "" }: BuildTimelinePlanInput): QuickVideoTimelinePlan {
   const ordered = [...shots].sort((a, b) => a.index - b.index).slice(0, SHOT_COUNT_MAX);
   if (!ordered.length) throw new Error("TIMELINE_NO_SHOTS");
 
   const n = ordered.length;
-  const transition = n >= 2 ? TIMELINE_TRANSITION_DURATION_S : 0;
+  // 计算相邻镜头间的转场时长：顺承镜头（last_frame）为无缝硬切（转场为0），切镜/独立镜头保留 crossfade
+  const transitionDurations: number[] = [];
+  const transitionTypes: ("crossfade" | "none")[] = [];
+  for (let i = 0; i < n - 1; i++) {
+    const nextShot = ordered[i + 1];
+    const isSeamless = nextShot.continuity === "last_frame";
+    if (isSeamless) {
+      transitionDurations.push(0);
+      transitionTypes.push("none");
+    } else {
+      transitionDurations.push(TIMELINE_TRANSITION_DURATION_S);
+      transitionTypes.push("crossfade");
+    }
+  }
+  const totalTransitionOverlap = transitionDurations.reduce((sum, d) => sum + d, 0);
   const sourceTotal = ordered.reduce((sum, s) => sum + s.duration, 0);
   const effectiveTargetDuration = targetDuration ?? sourceTotal;
-  const mediaNeeded = effectiveTargetDuration + (n - 1) * transition;
+  const mediaNeeded = effectiveTargetDuration + totalTransitionOverlap;
 
   let playbackRate: number;
   let trimFraction = 1; // r0 > MAX_SPEED 时按比例裁剪源窗口
@@ -85,13 +102,14 @@ export function buildTimelinePlan({ shots, targetDuration, videoRatio, ctaText =
       end,
       subtitleText: (shot.dialogue ?? "").trim(),
     });
-    cursor = end - (i < n - 1 ? transition : 0);
+    const nextTransDuration = i < n - 1 ? transitionDurations[i] : 0;
+    cursor = end - nextTransDuration;
   });
 
-  const transitions = clips.slice(0, -1).map((clip) => ({
+  const transitions = clips.slice(0, -1).map((clip, i) => ({
     afterShotId: clip.shotId,
-    type: "crossfade" as const,
-    duration: transition,
+    type: transitionTypes[i] ?? ("crossfade" as const),
+    duration: transitionDurations[i] ?? 0,
   }));
 
   const lastEnd = clips[clips.length - 1].end;
