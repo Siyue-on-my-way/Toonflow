@@ -1901,7 +1901,13 @@
       "multiShotFill": "多镜填入",
       "multiShotFilled": "已按「镜头N：」语法填入聊天框，可放入参考图（用 ##图1## 引用）后发送",
       "imagePromptLabel": "生图提示词",
-      "videoPromptLabel": "生视频提示词"
+      "videoPromptLabel": "生视频提示词",
+      "timelineNotReady": "时间线尚未装配完成，请稍候再试",
+      "uiAction": {
+        "switchedPanel": "已切换到「{panel}」",
+        "exportConfirmOpened": "已打开导出确认弹窗，请确认后开始导出",
+        "focusedShot": "已定位到镜头{index}"
+      }
     }
   },
   "login": {

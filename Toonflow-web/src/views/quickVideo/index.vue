@@ -336,7 +336,15 @@
                 </div>
               </div>
               <div class="cardBody" v-if="state?.storyboard">
-                <t-table row-key="id" :data="state.storyboard.shots" :columns="shotColumns" :max-height="420" size="small">
+                <t-table
+                  ref="storyboardTableRef"
+                  row-key="id"
+                  :data="state.storyboard.shots"
+                  :columns="shotColumns"
+                  :row-class-name="shotRowClassName"
+                  :max-height="420"
+                  size="small"
+                  class="storyboardTable">
                   <template #duration="{ row }">{{ row.duration }}s</template>
                   <template #assetRefs="{ row }">
                     <t-tag v-for="a in row.assetRefs" :key="a.type + a.name" size="small" shape="round" style="margin: 1px 2px">
@@ -782,7 +790,7 @@
 import axios from "@/utils/axios";
 import projectStore from "@/stores/project";
 import quickVideoStore from "@/stores/quickVideo";
-import type { QuickVideoDuration, QuickVideoRatio, QuickVideoStage, QuickVideoShot, QuickVideoSession, QuickVideoFinalParamsCard, MediaRef, ChatMediaExt, QuickVideoShotMediaUrls, ShotContinuityType } from "@/types/quickVideo";
+import type { QuickVideoDuration, QuickVideoRatio, QuickVideoStage, QuickVideoShot, QuickVideoSession, QuickVideoFinalParamsCard, MediaRef, ChatMediaExt, QuickVideoShotMediaUrls, ShotContinuityType, QuickVideoPanel } from "@/types/quickVideo";
 import modelSelect from "@/components/modelSelect.vue";
 import SessionList from "./components/SessionList.vue";
 import AssetBoard from "./components/AssetBoard.vue";
@@ -794,15 +802,14 @@ import { QUICK_VIDEO_SPLIT_CONSTRAINTS, quickVideoLayoutStorageKey, useQuickVide
 import { buildImageFillPrompt, buildVideoFillPrompt, buildShotPromptCopyText, buildMultiShotPrompt } from "./shotPrompts";
 import { createBubbleMessageView } from "./chatMedia";
 import { readMediaRefsFromText } from "./chatPaste";
+import { createUiActionExecutor } from "./uiActions";
 
 const { project } = storeToRefs(projectStore());
 const quickVideoStoreRef = quickVideoStore();
 const { connected, messages, status, workbench, state, loadingWorkbench, workbenchError, sessions, loadingSessions, currentSessionId, modelPreferences, isGenerating, clipboardMediaRef } =
   storeToRefs(quickVideoStoreRef);
-const { stopGenerate, getWorkbench, updateConfig, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference, getAssetBoard, bindShotFirstFrame, uploadChatMedia } =
+const { stopGenerate, getWorkbench, updateConfig, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference, getAssetBoard, bindShotFirstFrame, uploadChatMedia, setUiActionRunner } =
   quickVideoStoreRef;
-
-type QuickVideoPanel = "brief" | "storyboard" | "assets" | "preview";
 
 const activePanel = ref<QuickVideoPanel>("brief");
 const navigationItems: { key: QuickVideoPanel; label: string; icon: string }[] = [
@@ -1956,7 +1963,12 @@ function formatStamp(ts: number) {
 }
 
 async function startExport() {
-  if (!state.value || !timelineData.value) return;
+  if (!state.value) return;
+  if (!timelineData.value) {
+    // 聊天动作也可能打开本确认弹窗（SIY-153）：时间线尚未装配完成时给出可见反馈，弹窗保持打开
+    window.$message.warning($t("workbench.quickVideo.timelineNotReady"));
+    return;
+  }
   exportConfirmVisible.value = false;
   exportStatus.value = "encoding";
   exportProgress.value = 0;
@@ -2007,6 +2019,84 @@ function cancelExport() {
   exportSignal.cancelled = true;
   timelinePlayer.cancelExport();
 }
+
+// ===== 聊天驱动 UI 动作协议（SIY-153）：白名单执行器（聊天窗 = 万能遥控器） =====
+// store 识别带 ext.actions 的助手消息并区分实时/回放两条路径；这里的执行器负责实际副作用：
+// 切换面板、打开导出确认弹窗（编码与确认回写仍走 startExport 既有链路）、分镜表定位高亮。
+const storyboardTableRef = ref<any>(null);
+const highlightedShotId = ref<string | null>(null);
+const shotHighlightFading = ref(false);
+let shotHighlightTimer: ReturnType<typeof setTimeout> | null = null;
+let shotHighlightFadeTimer: ReturnType<typeof setTimeout> | null = null;
+
+const uiActionPanelLabels = computed<Record<QuickVideoPanel, string>>(() => ({
+  brief: $t("workbench.quickVideo.brief"),
+  storyboard: $t("workbench.quickVideo.storyboard"),
+  assets: $t("workbench.quickVideo.assetBoard"),
+  preview: $t("workbench.quickVideo.preview"),
+}));
+
+/** 聊天引用镜头时：切到分镜表、滚动定位并高亮该镜头行（约 3 秒后淡出） */
+async function focusShotRow(shotId: string) {
+  if (activePanel.value !== "storyboard") activePanel.value = "storyboard";
+  // 等待 v-if 面板与 t-table 完成挂载后再定位
+  await nextTick();
+  await nextTick();
+  const index = (state.value?.storyboard?.shots ?? []).findIndex((s) => s.id === shotId);
+  if (index < 0) return;
+  const tableEl = (storyboardTableRef.value as any)?.$el as HTMLElement | undefined;
+  // tbody 行序与 shots 数据序一致（row-key=id，按播放顺序渲染）；thead 行不在 tbody 内不会误中
+  const row = tableEl?.querySelectorAll<HTMLElement>("tbody tr")[index];
+  row?.scrollIntoView({ behavior: "smooth", block: "center" });
+  highlightedShotId.value = shotId;
+  shotHighlightFading.value = false;
+  if (shotHighlightTimer) clearTimeout(shotHighlightTimer);
+  if (shotHighlightFadeTimer) clearTimeout(shotHighlightFadeTimer);
+  shotHighlightFadeTimer = setTimeout(() => {
+    shotHighlightFadeTimer = null;
+    shotHighlightFading.value = true;
+  }, 2400);
+  shotHighlightTimer = setTimeout(() => {
+    shotHighlightTimer = null;
+    highlightedShotId.value = null;
+    shotHighlightFading.value = false;
+  }, 3000);
+}
+
+/** 聊天定位的镜头行高亮样式（.qv-shot-row-highlighted / 淡出期追加 .qv-shot-row-fading） */
+function shotRowClassName({ row }: { row: QuickVideoShot }) {
+  if (row.id !== highlightedShotId.value) return "";
+  return shotHighlightFading.value ? "qv-shot-row-highlighted qv-shot-row-fading" : "qv-shot-row-highlighted";
+}
+
+const uiActionExecutor = createUiActionExecutor({
+  getStage: () => state.value?.stage,
+  resolveShot: (shotId) => {
+    const shot = state.value?.storyboard?.shots.find((s) => s.id === shotId);
+    return shot ? { id: shot.id, index: shot.index } : null;
+  },
+  switchPanel: (panel) => {
+    activePanel.value = panel;
+    window.$message.success($t("workbench.quickVideo.uiAction.switchedPanel", { panel: uiActionPanelLabels.value[panel] }));
+  },
+  openExportConfirm: () => {
+    // 阶段守卫已在执行器完成；先切到预览面板让装配卡片/时间线就绪，弹窗仍需用户亲自确认
+    if (activePanel.value !== "preview") activePanel.value = "preview";
+    exportConfirmVisible.value = true;
+    window.$message.success($t("workbench.quickVideo.uiAction.exportConfirmOpened"));
+  },
+  focusShot: (shotId) => {
+    const shot = state.value?.storyboard?.shots.find((s) => s.id === shotId);
+    void focusShotRow(shotId);
+    window.$message.success($t("workbench.quickVideo.uiAction.focusedShot", { index: shot?.index ?? "" }));
+  },
+});
+quickVideoStoreRef.setUiActionRunner(uiActionExecutor);
+
+onBeforeUnmount(() => {
+  if (shotHighlightTimer) clearTimeout(shotHighlightTimer);
+  if (shotHighlightFadeTimer) clearTimeout(shotHighlightFadeTimer);
+});
 </script>
 
 <style lang="scss" scoped>
@@ -2570,6 +2660,18 @@ function cancelExport() {
         .summary {
           font-size: 12px;
           opacity: 0.6;
+        }
+      }
+      // 聊天定位镜头行的高亮（SIY-153）：背景色约 3 秒后经 .qv-shot-row-fading 过渡淡出
+      .storyboardTable {
+        :deep(.t-table__body tr.qv-shot-row-highlighted) {
+          td {
+            background: var(--td-brand-color-1);
+            transition: background-color 0.5s ease;
+          }
+          &.qv-shot-row-fading td {
+            background: transparent;
+          }
         }
       }
       .firstFrameCell {

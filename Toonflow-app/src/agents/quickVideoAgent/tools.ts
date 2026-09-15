@@ -15,6 +15,14 @@ import {
   echoFinalParamsCard,
   SHOT_CONTINUITY_TYPES,
   ShotContinuityType,
+  QuickVideoUiAction,
+  QuickVideoUiActionType,
+  QuickVideoPanel,
+  QUICK_VIDEO_PANELS,
+  QUICK_VIDEO_UI_ACTION_TYPES,
+  QUICK_VIDEO_UI_ACTIONS_MAX,
+  canOpenExportConfirmStage,
+  normalizeQuickVideoUiActions,
 } from "@/lib/quickVideo/contract";
 import { findShot, nextShotId, normalizeShotDuration, reindexShots } from "@/lib/quickVideo/shots";
 import { startQuickVideoGeneration, buildSnapshot, applySnapshotToState, assertVideoSupportsSingleImage, castAspectRatio } from "@/lib/quickVideo/generate";
@@ -81,6 +89,22 @@ export default (toolConfig: ToolConfig) => {
   const { msg, sessionId } = toolConfig;
   const projectId = Number(toolConfig.resTool.data.projectId);
   const userId = Number(toolConfig.resTool.data.userId ?? 0) || 1;
+
+  // ===== 聊天驱动 UI 动作协议（SIY-153） =====
+  // 本轮已收集的白名单动作（emit_ui_actions 多次调用累计、去重），随助手消息 complete 时
+  // 经 msg.mergeExt({ actions }) 下发给前端执行器，并在 onFinish 时随记忆持久化供历史回放。
+  // 动作只是展示层附属信息：不写入 o_agentWorkData，不触碰确认门与阶段流转。
+  const uiActions: QuickVideoUiAction[] = [];
+
+  function uiActionKey(action: QuickVideoUiAction): string {
+    return `${action.type}|${action.panel ?? ""}|${action.shotId ?? ""}`;
+  }
+
+  function describeUiAction(action: QuickVideoUiAction): string {
+    if (action.type === "switch_panel") return `switch_panel:${action.panel}`;
+    if (action.type === "focus_shot") return `focus_shot:${action.shotId}`;
+    return "open_export_confirm";
+  }
 
   const tools: Record<string, Tool> = {
     get_state: tool({
@@ -687,6 +711,64 @@ export default (toolConfig: ToolConfig) => {
 
           return `当前阶段 ${state.stage} 还不能开始生成：请先保存简报并提交分镜（propose_storyboard），再启动生成管道。`;
         }).catch((err) => `启动生成失败：${describeError(err)}`);
+      },
+    }),
+
+    emit_ui_actions: tool({
+      description:
+        "请求前端工作台执行界面联动动作（聊天窗即万能遥控器，SIY-153）：动作只改变界面呈现（切换右侧面板/打开导出确认弹窗/定位镜头行），不修改任何状态机数据，前端执行时会做白名单与阶段校验。" +
+        "何时附带：用户想看某个面板（如「看一下分镜表」→ switch_panel: storyboard）；刚提交/更新分镜后引导用户去分镜表查看（switch_panel: storyboard）；" +
+        "用户想导出/出成片且当前处于 ready_to_assemble 或 completed 阶段（open_export_confirm，导出确认弹窗仍需用户亲自确认，你无权代为导出）；" +
+        "用户提到某个具体镜头想定位查看（focus_shot: shot-N）。单条回复最多 3 个动作；用户没有界面诉求时不要调用，避免打扰。",
+      inputSchema: jsonSchema<{ actions: { type: QuickVideoUiActionType; panel?: QuickVideoPanel; shotId?: string }[] }>(
+        z
+          .object({
+            actions: z
+              .array(
+                z.object({
+                  type: z.enum(QUICK_VIDEO_UI_ACTION_TYPES).describe("动作类型"),
+                  panel: z.enum(QUICK_VIDEO_PANELS).optional().describe("switch_panel 的目标面板"),
+                  shotId: z.string().min(1).max(40).optional().describe("focus_shot 的目标镜头 ID（如 shot-2）"),
+                }),
+              )
+              .min(1)
+              .max(5)
+              .describe("要请求前端执行的动作列表（去重后最多附带 3 个）"),
+          })
+          .toJSONSchema(),
+      ),
+      execute: async (input) => {
+        const { accepted, rejected } = normalizeQuickVideoUiActions(input.actions);
+        const feedback: string[] = [...rejected.map((reason) => `已忽略：${reason}`)];
+        const state = await loadQuickVideoState(projectId);
+
+        let added = 0;
+        for (const action of accepted) {
+          // 服务端先做一轮可读校验给模型反馈；前端执行器仍是最终守卫（阶段/分镜在执行时可能已变化）
+          if (action.type === "open_export_confirm" && !canOpenExportConfirmStage(state?.stage)) {
+            feedback.push(`open_export_confirm 已忽略：当前阶段 ${state?.stage ?? "未知"} 还不能导出，请告知用户待全部镜头生成完毕后再导出`);
+            continue;
+          }
+          if (action.type === "focus_shot" && !state?.storyboard?.shots.some((s) => s.id === action.shotId)) {
+            feedback.push(`focus_shot(${action.shotId}) 已忽略：当前分镜中不存在该镜头，请用 get_state 确认镜头 ID`);
+            continue;
+          }
+          const key = uiActionKey(action);
+          if (uiActions.some((a) => uiActionKey(a) === key)) {
+            feedback.push(`${describeUiAction(action)} 已附带过，跳过重复动作`);
+            continue;
+          }
+          if (uiActions.length >= QUICK_VIDEO_UI_ACTIONS_MAX) {
+            feedback.push(`已达单条消息动作上限（${QUICK_VIDEO_UI_ACTIONS_MAX}），多余动作未附带`);
+            break;
+          }
+          uiActions.push(action);
+          added++;
+        }
+
+        if (uiActions.length) msg.mergeExt({ actions: [...uiActions] });
+        const addedText = added ? `已附带 ${added} 个界面动作（${uiActions.map(describeUiAction).join("、")}），前端会自动执行并给出提示` : "没有新附带任何界面动作";
+        return `${addedText}。${feedback.join("；")}`.trim();
       },
     }),
   };

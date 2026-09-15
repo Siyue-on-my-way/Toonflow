@@ -11,6 +11,7 @@ import type {
   QuickVideoSessionStatus,
   MediaRef,
   QuickVideoShotMediaUrls,
+  QuickVideoUiAction,
 } from "@/types/quickVideo";
 
 /**
@@ -25,6 +26,15 @@ import type {
  */
 const POLL_INTERVAL_MS = 4000;
 const CHAT_HISTORY_LIMIT = 20;
+
+/**
+ * UI 动作白名单执行器（views/quickVideo/uiActions.ts 的 createUiActionExecutor 产物）。
+ * dispatch: 实时执行；markReplayed: 历史回放只登记不执行（按消息 id 幂等）。
+ */
+export interface QuickVideoUiActionRunner {
+  dispatch(messageId: string, actions: unknown): void;
+  markReplayed(messageId: string): void;
+}
 
 function makeQuickVideoStore(projectId: string) {
   return defineStore(`quickVideo-${projectId}`, () => {
@@ -83,6 +93,37 @@ function makeQuickVideoStore(projectId: string) {
         }, 4000);
       }
     });
+
+    // ===== 聊天驱动 UI 动作协议（SIY-153） =====
+    // 视图层注册的白名单执行器（切换面板/打开导出确认弹窗/定位镜头 + 幂等去重都在执行器内）。
+    // store 只负责识别"哪些消息带了动作"并区分实时/回放两条路径，不执行任何界面副作用。
+    let uiActionRunner: QuickVideoUiActionRunner | null = null;
+
+    function setUiActionRunner(runner: QuickVideoUiActionRunner | null) {
+      uiActionRunner = runner;
+    }
+
+    /** 读取助手消息上的 UI 动作元数据（ext.actions）；无动作返回 null */
+    function messageUiActions(message: any): QuickVideoUiAction[] | null {
+      const actions = message?.ext?.actions;
+      return Array.isArray(actions) && actions.length ? (actions as QuickVideoUiAction[]) : null;
+    }
+
+    // 实时链路：助手消息完成时（ext.actions 随 complete 的 message:update 合并进来）派发执行。
+    // 流式期间的每次内容变更都会触发本监听，执行器内的消息 id 去重保证动作只执行一次。
+    watch(
+      messages,
+      (list) => {
+        if (!uiActionRunner) return;
+        for (const message of list) {
+          if (message.role !== "assistant" || message.status !== "complete") continue;
+          const actions = messageUiActions(message);
+          if (!actions) continue;
+          uiActionRunner.dispatch(String(message.id), actions);
+        }
+      },
+      { deep: true },
+    );
 
     // 生成阶段自动轮询；离开生成阶段停止
     watch(
@@ -164,6 +205,8 @@ function makeQuickVideoStore(projectId: string) {
         clearTimeout(titleRefreshTimer);
         titleRefreshTimer = null;
       }
+      // 视图已卸载：断开 UI 动作执行器，避免卸载后的视图再收到动作派发（重进页面会重新注册）
+      uiActionRunner = null;
       destroyChat();
     }
 
@@ -274,7 +317,16 @@ function makeQuickVideoStore(projectId: string) {
         // their stable mediaId so a repeated restore never mounts a second
         // card for the same asset (SIY-143).
         const welcomeMessages = messages.value.filter((message) => message.id === "welcome");
-        messages.value = [...welcomeMessages, ...dedupeRestoredMessages(payload)];
+        const restored = dedupeRestoredMessages(payload);
+        messages.value = [...welcomeMessages, ...restored];
+        // UI 动作协议（SIY-153）：历史回放的消息只登记消息 id、不执行动作——
+        // 重进页面/切换会话后同一条消息的动作不会重复触发（实时链路在监听器里执行）。
+        if (uiActionRunner) {
+          for (const message of restored) {
+            if ((message as any).role !== "assistant") continue;
+            if (messageUiActions(message)) uiActionRunner.markReplayed(String((message as any).id));
+          }
+        }
       } catch (error) {
         console.error("[quickVideo] 加载聊天历史失败", error);
       } finally {
@@ -467,6 +519,7 @@ function makeQuickVideoStore(projectId: string) {
       clipboardMediaRef,
       getAssetBoard,
       bindShotFirstFrame,
+      setUiActionRunner,
       resume,
       dispose,
     };

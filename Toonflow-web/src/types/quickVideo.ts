@@ -332,3 +332,27 @@ export interface QuickVideoSession {
   createTime: number;
   updateTime: number;
 }
+
+// ---------------------------------------------------------------------------
+// 聊天驱动 UI 动作协议（与后端 src/lib/quickVideo/contract.ts 保持一致，SIY-153）
+// 助手消息 ext.actions 携带白名单动作，前端执行器按白名单派发；动作元数据是消息的
+// 展示层附属信息，不写入 o_agentWorkData 状态机，不改变任何确认门与阶段流转。
+// ---------------------------------------------------------------------------
+
+/** 右侧面板 key（与 views/quickVideo/index.vue 的 activePanel 一致） */
+export const QUICK_VIDEO_PANELS = ["brief", "storyboard", "assets", "preview"] as const;
+export type QuickVideoPanel = (typeof QUICK_VIDEO_PANELS)[number];
+
+/** 白名单动作类型：白名单之外的动作元数据一律忽略（console.warn，不报错、不中断聊天流） */
+export const QUICK_VIDEO_UI_ACTION_TYPES = ["switch_panel", "open_export_confirm", "focus_shot"] as const;
+export type QuickVideoUiActionType = (typeof QUICK_VIDEO_UI_ACTION_TYPES)[number];
+
+/** 单条助手消息最多附带的动作数（超出部分被拒绝） */
+export const QUICK_VIDEO_UI_ACTIONS_MAX = 3;
+
+/** 动作元数据：switch_panel 需 panel；focus_shot 需 shotId（如 shot-2）；open_export_confirm 无附加参数 */
+export interface QuickVideoUiAction {
+  type: QuickVideoUiActionType;
+  panel?: QuickVideoPanel;
+  shotId?: string;
+}

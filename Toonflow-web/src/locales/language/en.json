@@ -1797,7 +1797,13 @@
       "multiShotFill": "Fill all shots",
       "multiShotFilled": "Filled with \"Shot N:\" syntax; attach reference images (use ##图1## placeholders) before sending",
       "imagePromptLabel": "Image prompt",
-      "videoPromptLabel": "Video prompt"
+      "videoPromptLabel": "Video prompt",
+      "timelineNotReady": "Timeline is not assembled yet, please try again shortly",
+      "uiAction": {
+        "switchedPanel": "Switched to \"{panel}\"",
+        "exportConfirmOpened": "Export confirmation opened, please confirm to start exporting",
+        "focusedShot": "Focused on shot {index}"
+      }
     }
   },
   "login": {

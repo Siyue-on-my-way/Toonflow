@@ -169,7 +169,14 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
     },
     onFinish: async (completion) => {
       await mutateLastChatAt(Number(resTool.data.projectId), sessionId);
-      await memory.add("assistant", removeAllXmlTags(completion.text));
+      // UI 动作元数据（ext.actions，SIY-153）随记忆正文一起持久化：getMemory 还原历史时
+      // 会解析回消息 ext 供前端回放展示；回放动作由前端执行器按消息 id 去重，不会重复执行。
+      const uiActions = ctx.msg.getExt()?.actions;
+      await memory.add(
+        "assistant",
+        removeAllXmlTags(completion.text),
+        Array.isArray(uiActions) && uiActions.length ? { ext: JSON.stringify(uiActions) } : undefined,
+      );
     },
   });
 
