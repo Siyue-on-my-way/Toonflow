@@ -23,6 +23,11 @@ import {
   QuickVideoSnapshotShot,
   QuickVideoState,
   SnapshotFirstFrame,
+  applyStoryboardGateReject,
+  assertRetryShotStage,
+  assertStoryboardGate,
+  echoFinalParamsCard,
+  validateStoryboard,
 } from "./contract";
 import { QuickVideoError, loadQuickVideoState, mutateQuickVideoState } from "./state";
 import { recordEvent, qvLog } from "./metrics";
@@ -273,15 +278,45 @@ export async function startQuickVideoGeneration(
 }
 
 /**
+ * gate=storyboard 内核：确认 / 撤销确认（REST confirmStage 与 Agent 的 confirm_storyboard /
+ * reject_storyboard 工具共用，必须在 mutateQuickVideoState 的 mutator 内调用，事务 + 乐观锁 + 幂等由调用方负责）。
+ * - confirm：校验镜头数量与总时长，通过后锁定分镜并组装生成快照、回显最终参数确认卡片；
+ * - reject：分镜回到草稿状态解锁编辑（纯转移见 contract.applyStoryboardGateReject）。
+ */
+export async function applyStoryboardGate(projectId: number, state: QuickVideoState, action: "confirm" | "reject"): Promise<void> {
+  assertStoryboardGate(state, action);
+  if (action === "reject") {
+    applyStoryboardGateReject(state);
+    return;
+  }
+  const storyboard = state.storyboard!;
+  const errors = validateStoryboard(state.targetDuration, storyboard.shots);
+  if (errors.length) throw new QuickVideoError("STORYBOARD_INVALID", errors.join("；"), state.version);
+  state.stage = "storyboard_confirmed";
+  storyboard.status = "confirmed";
+  storyboard.confirmedAt = Date.now();
+  // 分镜确认后直接组装最终生成参数并回显确认卡片（快照同步冻结，供生成引擎读取）；
+  // 不再设置任何素材/成本前置门槛
+  const { materials, snapshotShots } = await buildSnapshot(projectId, state);
+  applySnapshotToState(state, storyboard.version, snapshotShots, materials);
+  echoFinalParamsCard(state);
+}
+
+/**
  * 重试镜头：重置失败（或中断遗留 pending/generating）镜头的状态并单独重建任务。
  * 已成功（done）的镜头不会被重置，其他镜头任务不受影响。
  */
-export async function retryQuickVideoShots(projectId: number, userId: number, shotIds: string[], sessionId?: number | null) {
+export async function retryQuickVideoShots(
+  projectId: number,
+  userId: number,
+  shotIds: string[],
+  sessionId?: number | null,
+  /** 幂等键（Agent retry_shot 工具按 toolCallId 传入；REST 不传，行为不变：重试是显式新动作） */
+  idempotencyKey?: string,
+) {
   const state = await loadQuickVideoState(projectId);
   if (!state) throw new QuickVideoError("STATE_NOT_FOUND", "未找到 quickVideoAgent 状态");
-  if (state.stage !== "generating") {
-    throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${state.stage} 不允许重试，仅生成阶段可重试失败镜头`, state.version);
-  }
+  assertRetryShotStage(state);
   if (!state.generation?.materialsConfirmed) {
     throw new QuickVideoError("MATERIALS_NOT_CONFIRMED", "最终生成参数尚未确认", state.version);
   }
@@ -300,24 +335,32 @@ export async function retryQuickVideoShots(projectId: number, userId: number, sh
     }
   }
 
-  // 重试是显式的新动作：不记幂等键（同镜头可反复重试）；done 镜头已在上方拦截
+  // 重试是显式的新动作：REST 不记幂等键（同镜头可反复重试）；Agent 工具传入 toolCallId 幂等键时
+  // 只用于同一调用的重放去重。done 镜头已在上方拦截
   const runId = `retry-${u.uuid().slice(0, 8)}`;
-  const { state: next } = await mutateQuickVideoState(projectId, { sessionId: sessionId ?? undefined }, (s) => {
-    s.generation.runId = runId;
-    for (const shotId of shotIds) {
-      const shot = s.storyboard?.shots.find((x) => x.id === shotId);
-      if (!shot) continue;
-      // 只重置未成功的部分；done 保持不动
-      if (shot.imageState !== "done") shot.imageState = "pending";
-      if (shot.videoState !== "done") shot.videoState = "pending";
-      shot.errorReason = null;
-    }
-  });
+  const { state: next, idempotentHit } = await mutateQuickVideoState(
+    projectId,
+    { sessionId: sessionId ?? undefined, idempotencyKey },
+    (s) => {
+      s.generation.runId = runId;
+      for (const shotId of shotIds) {
+        const shot = s.storyboard?.shots.find((x) => x.id === shotId);
+        if (!shot) continue;
+        // 只重置未成功的部分；done 保持不动
+        if (shot.imageState !== "done") shot.imageState = "pending";
+        if (shot.videoState !== "done") shot.videoState = "pending";
+        shot.errorReason = null;
+      }
+    },
+  );
+  if (idempotentHit) {
+    return { state: next, retried: [] as string[], runId: null as string | null, idempotentHit };
+  }
 
   for (const shotId of shotIds) {
     launchShotPipeline(projectId, userId, runId, shotId, sessionId);
   }
-  return { state: next, retried: shotIds, runId };
+  return { state: next, retried: shotIds, runId, idempotentHit };
 }
 
 /** 启动单镜头管线（登记 + 分离运行），重复启动会被登记挡下 */

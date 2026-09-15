@@ -4,8 +4,8 @@ import u from "@/utils";
 import { success, error } from "@/lib/responseFormat";
 import { validateFields } from "@/middleware/middleware";
 import { QuickVideoError, mutateQuickVideoState } from "@/lib/quickVideo/state";
-import { validateStoryboard, echoFinalParamsCard } from "@/lib/quickVideo/contract";
-import { buildSnapshot, applySnapshotToState, startQuickVideoGeneration } from "@/lib/quickVideo/generate";
+import { applyBriefGate } from "@/lib/quickVideo/contract";
+import { applyStoryboardGate, buildSnapshot, applySnapshotToState, startQuickVideoGeneration } from "@/lib/quickVideo/generate";
 import { recordEvent, qvLog } from "@/lib/quickVideo/metrics";
 import { getOwnedSession } from "@/lib/quickVideo/session";
 
@@ -20,7 +20,9 @@ const router = express.Router();
  *              卡片仅展示时长/画风/分镜数量/分镜摘要）：storyboard_confirmed -> generating（确认后启动逐镜头生成）；
  *              reject 清除确认状态（停在 storyboard_confirmed，可重新确认）
  * - export     成片导出确认：ready_to_assemble -> completed
- * 仅用户可推进确认门；Agent 工具无权调用本接口。门的判定全部在服务端完成。
+ * 仅用户可推进确认门；Agent 工具无权调用本接口（Agent 的 confirm_brief / reject_brief /
+ * confirm_storyboard / reject_storyboard 工具复用 lib 层同一份门内核，SIY-152）。
+ * 门的判定全部在服务端完成。
  * sessionId 必须真实属于该项目（校验跨项目/非法引用）；最终参数确认据此把生成模型偏好定位到当前会话，
  * 并把触发该次写入的会话留痕到 o_agentWorkData.sessionId。
  */
@@ -53,51 +55,14 @@ export default router.post(
     let shouldStartGeneration = false;
     try {
       const result = await mutateQuickVideoState(projectId, { expectedVersion, idempotencyKey, sessionId }, async (state) => {
+        // brief / storyboard 两道门的判定与阶段流转收敛到 lib 层内核，与 Agent 确认类工具（SIY-152）同口径
         if (gate === "brief") {
-          if (!state.brief) throw new QuickVideoError("NO_BRIEF", "暂无简报，无法操作", state.version);
-          if (action === "confirm") {
-            if (!["collect_brief", "storyboard_draft", "brief_confirmed"].includes(state.stage)) {
-              throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${state.stage} 不允许确认简报`, state.version);
-            }
-            // collect_brief -> brief_confirmed 为白名单转移；brief_confirmed 保持不变（重复确认幂等）
-            state.stage = "brief_confirmed";
-            state.brief.confirmed = true;
-            state.brief.confirmedAt = Date.now();
-          } else {
-            if (state.stage !== "brief_confirmed" && state.stage !== "collect_brief") {
-              throw new QuickVideoError("STAGE_MISMATCH", "简报已进入后续流程，请改为直接编辑简报", state.version);
-            }
-            state.stage = "collect_brief";
-            state.brief.confirmed = false;
-            state.brief.confirmedAt = null;
-          }
+          applyBriefGate(state, action);
           return;
         }
 
         if (gate === "storyboard") {
-          if (!state.storyboard) throw new QuickVideoError("NO_STORYBOARD", "暂无分镜，无法操作", state.version);
-          if (action === "confirm") {
-            if (state.stage !== "storyboard_draft") {
-              throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${state.stage} 不允许确认分镜`, state.version);
-            }
-            const errors = validateStoryboard(state.targetDuration, state.storyboard.shots);
-            if (errors.length) throw new QuickVideoError("STORYBOARD_INVALID", errors.join("；"), state.version);
-            state.stage = "storyboard_confirmed";
-            state.storyboard.status = "confirmed";
-            state.storyboard.confirmedAt = Date.now();
-            // 分镜确认后直接组装最终生成参数并回显确认卡片（快照同步冻结，供生成引擎读取）；
-            // 不再设置任何素材/成本前置门槛
-            const { materials, snapshotShots } = await buildSnapshot(projectId, state);
-            applySnapshotToState(state, state.storyboard.version, snapshotShots, materials);
-            echoFinalParamsCard(state);
-          } else {
-            if (state.stage !== "storyboard_confirmed") {
-              throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${state.stage} 不需要撤销分镜确认`, state.version);
-            }
-            state.stage = "storyboard_draft";
-            state.storyboard.status = "draft";
-            state.storyboard.confirmedAt = null;
-          }
+          await applyStoryboardGate(projectId, state, action);
           return;
         }
 

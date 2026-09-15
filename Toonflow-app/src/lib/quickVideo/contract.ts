@@ -9,6 +9,22 @@
  */
 import { z } from "zod";
 
+/**
+ * QuickVideo 业务错误：带 code 与当前状态版本。
+ * REST 层与 Agent 工具层都按 code 分支、把 message 原文转述给用户。
+ * 定义在 contract（纯模块）以便确认门内核与单元测试零 DB 依赖地引用；state.ts 转出口。
+ */
+export class QuickVideoError extends Error {
+  public code: string;
+  public currentVersion?: number;
+
+  constructor(code: string, message: string, currentVersion?: number) {
+    super(message);
+    this.code = code;
+    this.currentVersion = currentVersion;
+  }
+}
+
 /** o_agentWorkData.key 的固定值 */
 export const QUICK_VIDEO_AGENT_KEY = "quickVideoAgent";
 
@@ -555,6 +571,127 @@ export function validateStoryboard(
     }
   });
   return errors;
+}
+
+// ---------------------------------------------------------------------------
+// 确认门内核（SIY-152：REST confirmStage / retryShot 与 Agent 确认类工具共用同一份判定）
+// ---------------------------------------------------------------------------
+
+/**
+ * 乐观锁校验：请求持有的版本与服务端当前版本不一致时拒绝。
+ * mutateQuickVideoState（权威校验）与 Agent 确认类工具（前置校验）共用，报错文案与按钮链路完全一致。
+ */
+export function assertExpectedVersion(currentVersion: number, expectedVersion: number | null | undefined): void {
+  if (expectedVersion != null && expectedVersion !== currentVersion) {
+    throw new QuickVideoError(
+      "VERSION_CONFLICT",
+      `状态版本冲突：服务端当前版本 ${currentVersion}，请求基于版本 ${expectedVersion}，请刷新后重试`,
+      currentVersion,
+    );
+  }
+}
+
+/**
+ * gate=brief 预校验：暂无简报 / 阶段不符时抛错，不改动状态。
+ * 错误文案与 REST confirmStage 保持逐字一致（Agent 工具的拦截提示与按钮 toast 同语义）。
+ */
+export function assertBriefGate(state: QuickVideoState, action: "confirm" | "reject"): void {
+  if (!state.brief) throw new QuickVideoError("NO_BRIEF", "暂无简报，无法操作", state.version);
+  if (action === "confirm") {
+    if (!["collect_brief", "storyboard_draft", "brief_confirmed"].includes(state.stage)) {
+      throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${state.stage} 不允许确认简报`, state.version);
+    }
+  } else {
+    if (state.stage !== "brief_confirmed" && state.stage !== "collect_brief") {
+      throw new QuickVideoError("STAGE_MISMATCH", "简报已进入后续流程，请改为直接编辑简报", state.version);
+    }
+  }
+}
+
+/**
+ * gate=brief 内核：简报确认 / 返回修改（纯函数）。
+ * confirm：collect_brief / storyboard_draft / brief_confirmed -> brief_confirmed（重复确认停留原地，幂等）；
+ * reject：brief_confirmed / collect_brief -> collect_brief，确认状态清除。
+ */
+export function applyBriefGate(state: QuickVideoState, action: "confirm" | "reject"): void {
+  assertBriefGate(state, action);
+  if (action === "confirm") {
+    state.stage = "brief_confirmed";
+    state.brief!.confirmed = true;
+    state.brief!.confirmedAt = Date.now();
+  } else {
+    state.stage = "collect_brief";
+    state.brief!.confirmed = false;
+    state.brief!.confirmedAt = null;
+  }
+}
+
+/**
+ * gate=storyboard 预校验：暂无分镜 / 阶段不符时抛错，不改动状态。
+ * confirm 的分镜有效性校验、快照组装与最终参数卡片回显（涉及 DB）由 generate.ts 的
+ * applyStoryboardGate 执行，REST 与 Agent 工具共用同一份实现。
+ */
+export function assertStoryboardGate(state: QuickVideoState, action: "confirm" | "reject"): void {
+  if (!state.storyboard) throw new QuickVideoError("NO_STORYBOARD", "暂无分镜，无法操作", state.version);
+  if (action === "confirm") {
+    if (state.stage !== "storyboard_draft") {
+      throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${state.stage} 不允许确认分镜`, state.version);
+    }
+  } else {
+    if (state.stage !== "storyboard_confirmed") {
+      throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${state.stage} 不需要撤销分镜确认`, state.version);
+    }
+  }
+}
+
+/**
+ * gate=storyboard reject 内核：撤销确认，分镜回到草稿解锁编辑（纯函数）。
+ * 调用方：REST confirmStage 与 Agent 的 reject_storyboard 工具（mutateQuickVideoState 事务内）。
+ */
+export function applyStoryboardGateReject(state: QuickVideoState): void {
+  assertStoryboardGate(state, "reject");
+  state.stage = "storyboard_draft";
+  state.storyboard!.status = "draft";
+  state.storyboard!.confirmedAt = null;
+}
+
+// ---------------------------------------------------------------------------
+// 失败镜头重试目标解析（SIY-152：与前端「重试全部失败镜头」按钮同口径）
+// ---------------------------------------------------------------------------
+
+/** 失败镜头判定：分镜图或视频片段任一生成状态为 failed 即视为失败（与前端 isShotFailed 同口径） */
+export function isShotFailed(shot: Pick<QuickVideoShot, "imageState" | "videoState">): boolean {
+  return shot.imageState === "failed" || shot.videoState === "failed";
+}
+
+/** 重试阶段预校验：仅生成（generating）阶段允许重试；报错文案与 retryQuickVideoShots 权威校验一致 */
+export function assertRetryShotStage(state: QuickVideoState): void {
+  if (state.stage !== "generating") {
+    throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${state.stage} 不允许重试，仅生成阶段可重试失败镜头`, state.version);
+  }
+}
+
+/** 缺省重试目标：全部失败镜头（按播放顺序） */
+export function pickFailedShotIds(state: QuickVideoState): string[] {
+  return (state.storyboard?.shots ?? []).filter(isShotFailed).map((s) => s.id);
+}
+
+/**
+ * 重试目标解析（Agent retry_shot 工具前置校验）：
+ * - 阶段不符时抛错（文案与 retryQuickVideoShots 的权威校验一致）；
+ * - shotIds 缺省为空 = 全部失败镜头；无失败镜头时抛 NO_FAILED_SHOTS；
+ * - 显式传入的 shotIds 原样返回，存在性/运行中/已完成校验仍由 retryQuickVideoShots 权威执行。
+ */
+export function pickRetryShotIds(state: QuickVideoState, shotIds?: string[]): string[] {
+  assertRetryShotStage(state);
+  if (!shotIds || shotIds.length === 0) {
+    const failed = pickFailedShotIds(state);
+    if (!failed.length) {
+      throw new QuickVideoError("NO_FAILED_SHOTS", "当前没有失败镜头，无需重试", state.version);
+    }
+    return failed;
+  }
+  return shotIds;
 }
 
 // ---------------------------------------------------------------------------

@@ -15,9 +15,21 @@ import {
   echoFinalParamsCard,
   SHOT_CONTINUITY_TYPES,
   ShotContinuityType,
+  applyBriefGate,
+  assertBriefGate,
+  assertStoryboardGate,
+  pickRetryShotIds,
 } from "@/lib/quickVideo/contract";
 import { findShot, nextShotId, normalizeShotDuration, reindexShots } from "@/lib/quickVideo/shots";
-import { startQuickVideoGeneration, buildSnapshot, applySnapshotToState, assertVideoSupportsSingleImage, castAspectRatio } from "@/lib/quickVideo/generate";
+import {
+  applyStoryboardGate,
+  retryQuickVideoShots,
+  startQuickVideoGeneration,
+  buildSnapshot,
+  applySnapshotToState,
+  assertVideoSupportsSingleImage,
+  castAspectRatio,
+} from "@/lib/quickVideo/generate";
 import {
   createChatMedia,
   markChatMediaDone,
@@ -31,8 +43,9 @@ import {
 /**
  * QuickVideoAgent 受限工具层。
  * Agent 对工作台状态的唯一写入口：全部走 mutateQuickVideoState（服务端 zod 契约校验 + 阶段白名单 + 事务 + 幂等键）。
- * 工具只暴露受控的入参，且不提供任何确认门/导出能力——分镜确认与最终参数确认由
- * generate_shots 在用户聊天明确要求生成时自动通过（SIY-151），导出确认仍是用户专属操作。
+ * 简报/分镜确认门可由 Agent 按用户聊天指令代为推进（confirm_brief / reject_brief / confirm_storyboard /
+ * reject_storyboard，SIY-152），复用 REST confirmStage 的同一份门内核，报错文案与按钮 toast 同语义；
+ * 生成启动由 generate_shots 在用户聊天明确要求时自动通过确认门（SIY-151），导出确认仍是用户专属操作。
  */
 
 interface ToolConfig {
@@ -578,6 +591,164 @@ export default (toolConfig: ToolConfig) => {
       },
     }),
 
+    // ---------------------------------------------------------------------------
+    // 确认类工具（SIY-152）：聊天确认 = 点按钮确认。
+    // 统一模式：先读状态（无副作用）→ 幂等键预检 → 阶段前置校验（复用 lib 门内核，
+    // 拦截文案与按钮 toast 同语义）→ 以当前 state.version 为 expectedVersion、
+    // tool:<toolName>:<toolCallId> 为幂等键，在事务内执行与 REST confirmStage 相同的内核。
+    // ---------------------------------------------------------------------------
+
+    confirm_brief: tool({
+      description:
+        "确认简报（等同右侧面板「确认简报」按钮）：用户在聊天中明确说「确认简报」「简报没问题」等时调用。确认后简报进入已确认状态，随后即可提交分镜。不在可确认阶段（如已开始生成）时会被服务端拦截并返回原因。",
+      inputSchema: jsonSchema<Record<string, never>>({ type: "object", properties: {}, additionalProperties: false }),
+      execute: async (_input, options) => {
+        const { toolCallId } = options as { toolCallId: string };
+        const idempotencyKey = `tool:confirm_brief:${toolCallId}`;
+        return withThinking(msg, "正在确认简报...", async () => {
+          const current = await loadQuickVideoState(projectId);
+          if (!current) return "未找到工作台状态，请先创建 quick_video 项目。";
+          if (current.appliedKeys[idempotencyKey] != null) {
+            return "该次简报确认已应用过（幂等命中），未重复写入。";
+          }
+          if (!current.brief) {
+            return "当前还没有简报可确认：请先让我把你的创意整理成结构化简报（save_brief），确认内容后再确认简报。";
+          }
+          try {
+            assertBriefGate(current, "confirm");
+          } catch (err) {
+            if (err instanceof QuickVideoError && err.code === "STAGE_MISMATCH") {
+              return `现在不能确认简报：${err.message}。如需调整分镜或生成内容，直接告诉我即可。`;
+            }
+            throw err;
+          }
+          const { state, idempotentHit } = await mutateQuickVideoState(
+            projectId,
+            { expectedVersion: current.version, idempotencyKey, sessionId },
+            (s) => applyBriefGate(s, "confirm"),
+          );
+          if (idempotentHit) return "该次简报确认已应用过（幂等命中），未重复写入。";
+          const storyboardHint = state.storyboard
+            ? "当前已有一版分镜，如需继续打磨分镜，请让我基于最新简报重新提交一版分镜。"
+            : "接下来我会根据简报与目标时长设计分镜，你也可以直接告诉我想调整的内容。";
+          return `好的，已为您确认简报（状态版本 ${state.version}）。${storyboardHint}`;
+        }).catch((err) => `确认简报失败：${describeError(err)}`);
+      },
+    }),
+
+    reject_brief: tool({
+      description:
+        "简报返回修改（等同右侧简报「返回修改」按钮）：用户在简报已确认后说「返回修改」「简报要改」等时调用，简报退回未确认状态。仅在简报收集/简报已确认阶段可用；分镜打磨阶段想改简报请直接修改简报内容（save_brief），不要调用本工具。",
+      inputSchema: jsonSchema<Record<string, never>>({ type: "object", properties: {}, additionalProperties: false }),
+      execute: async (_input, options) => {
+        const { toolCallId } = options as { toolCallId: string };
+        const idempotencyKey = `tool:reject_brief:${toolCallId}`;
+        return withThinking(msg, "正在退回简报...", async () => {
+          const current = await loadQuickVideoState(projectId);
+          if (!current) return "未找到工作台状态，请先创建 quick_video 项目。";
+          if (current.appliedKeys[idempotencyKey] != null) {
+            return "该次简报退回已应用过（幂等命中），未重复写入。";
+          }
+          if (!current.brief) {
+            return "当前还没有简报，无需退回：请直接告诉我你的创意，我来整理成简报。";
+          }
+          try {
+            assertBriefGate(current, "reject");
+          } catch (err) {
+            if (err instanceof QuickVideoError && err.code === "STAGE_MISMATCH") {
+              return `现在不能退回简报：${err.message}。你可以直接告诉我要改的简报内容，我会更新并请你重新确认。`;
+            }
+            throw err;
+          }
+          const { state, idempotentHit } = await mutateQuickVideoState(
+            projectId,
+            { expectedVersion: current.version, idempotencyKey, sessionId },
+            (s) => applyBriefGate(s, "reject"),
+          );
+          if (idempotentHit) return "该次简报退回已应用过（幂等命中），未重复写入。";
+          return `好的，简报已退回收集阶段，确认状态已清除（状态版本 ${state.version}）。请告诉我要调整简报的哪些内容，我来更新后请你重新确认。`;
+        }).catch((err) => `退回简报失败：${describeError(err)}`);
+      },
+    }),
+
+    confirm_storyboard: tool({
+      description:
+        "确认分镜（等同右侧面板「确认分镜」按钮）：用户在聊天中明确说「确认分镜」「分镜就这样定」等时调用。服务端校验镜头数量与总时长，通过后锁定分镜、冻结生成参数快照，并在聊天流自动回显最终参数确认卡片。仅分镜草稿阶段可用。",
+      inputSchema: jsonSchema<Record<string, never>>({ type: "object", properties: {}, additionalProperties: false }),
+      execute: async (_input, options) => {
+        const { toolCallId } = options as { toolCallId: string };
+        const idempotencyKey = `tool:confirm_storyboard:${toolCallId}`;
+        return withThinking(msg, "正在确认分镜...", async () => {
+          const current = await loadQuickVideoState(projectId);
+          if (!current) return "未找到工作台状态，请先创建 quick_video 项目。";
+          if (current.appliedKeys[idempotencyKey] != null) {
+            return "该次分镜确认已应用过（幂等命中），未重复写入。";
+          }
+          if (!current.storyboard) {
+            return "当前还没有分镜可确认：请先让我提交一版完整分镜（propose_storyboard）。";
+          }
+          try {
+            assertStoryboardGate(current, "confirm");
+          } catch (err) {
+            if (err instanceof QuickVideoError && err.code === "STAGE_MISMATCH") {
+              return `现在不能确认分镜：${err.message}。分镜只能草稿状态确认；若已确认后想调整，请说「返回修改」，我来撤销确认。`;
+            }
+            throw err;
+          }
+          // 预校验分镜有效性，把可修复的原因直接给到 Agent（权威校验在事务内同款内核再做一次）
+          const errors = validateStoryboard(current.targetDuration, current.storyboard.shots);
+          if (errors.length) {
+            return `分镜还未达到确认条件：${errors.join("；")}。请让我先调整分镜（镜头数量或每镜时长），调整好后再确认。`;
+          }
+          const { state, idempotentHit } = await mutateQuickVideoState(
+            projectId,
+            { expectedVersion: current.version, idempotencyKey, sessionId },
+            (s) => applyStoryboardGate(projectId, s, "confirm"),
+          );
+          if (idempotentHit) return "该次分镜确认已应用过（幂等命中），未重复写入。";
+          const shots = state.storyboard!.shots;
+          const total = shots.reduce((sum, s) => sum + s.duration, 0);
+          return `好的，分镜 v${state.storyboard!.version} 已为您确认（${shots.length} 个镜头，总时长 ${total} 秒，状态版本 ${state.version}）。系统已在聊天流回显最终生成参数确认卡片：时长、画风、分镜数量确认无误后回复「开始生成」，我就启动逐镜头生成管道；想调整分镜就说「返回修改」。`;
+        }).catch((err) => `确认分镜失败：${describeError(err)}`);
+      },
+    }),
+
+    reject_storyboard: tool({
+      description:
+        "撤销分镜确认/分镜返回修改（等同最终参数卡片「返回修改」按钮）：用户在分镜已确认后说「返回修改」「撤销分镜确认」等时调用，分镜回到草稿状态解锁编辑。仅分镜已确认阶段可用。",
+      inputSchema: jsonSchema<Record<string, never>>({ type: "object", properties: {}, additionalProperties: false }),
+      execute: async (_input, options) => {
+        const { toolCallId } = options as { toolCallId: string };
+        const idempotencyKey = `tool:reject_storyboard:${toolCallId}`;
+        return withThinking(msg, "正在撤销分镜确认...", async () => {
+          const current = await loadQuickVideoState(projectId);
+          if (!current) return "未找到工作台状态，请先创建 quick_video 项目。";
+          if (current.appliedKeys[idempotencyKey] != null) {
+            return "该次撤销分镜确认已应用过（幂等命中），未重复写入。";
+          }
+          if (!current.storyboard) {
+            return "当前还没有分镜，无需撤销确认：请先让我提交一版完整分镜（propose_storyboard）。";
+          }
+          try {
+            assertStoryboardGate(current, "reject");
+          } catch (err) {
+            if (err instanceof QuickVideoError && err.code === "STAGE_MISMATCH") {
+              const hint = current.stage === "storyboard_draft" ? "分镜还是草稿，可直接告诉我要调整的镜头内容。" : "";
+              return `现在不需要撤销分镜确认：${err.message}。${hint}`;
+            }
+            throw err;
+          }
+          const { state, idempotentHit } = await mutateQuickVideoState(
+            projectId,
+            { expectedVersion: current.version, idempotencyKey, sessionId },
+            (s) => applyStoryboardGate(projectId, s, "reject"),
+          );
+          if (idempotentHit) return "该次撤销分镜确认已应用过（幂等命中），未重复写入。";
+          return `好的，已撤销分镜确认，分镜回到草稿状态（状态版本 ${state.version}）。请告诉我要调整哪些镜头，我来修改；调整好后说「确认分镜」即可重新锁定。`;
+        }).catch((err) => `撤销分镜确认失败：${describeError(err)}`);
+      },
+    }),
+
     get_generation_status: tool({
       description: "查询各镜头图片/视频生成状态（用于向用户汇报生成进度或定位失败镜头）。",
       inputSchema: jsonSchema<Record<string, never>>({ type: "object", properties: {}, additionalProperties: false }),
@@ -596,6 +767,72 @@ export default (toolConfig: ToolConfig) => {
           null,
           2,
         );
+      },
+    }),
+
+    retry_shot: tool({
+      description:
+        "重试生成失败的镜头（等同右侧面板「重试该镜头 / 重试全部失败镜头」按钮）：仅生成（generating）阶段可用。用户说「重试镜头2」时传 [\"shot-2\"]（「镜头N」对应 shot-N）；说「重试全部失败镜头」时不传 shotIds，缺省重置全部失败镜头。已完成的镜头不会被重置。",
+      inputSchema: jsonSchema<{ shotIds?: string[] }>(
+        z
+          .object({
+            shotIds: z
+              .array(z.string().min(1).max(40))
+              .min(1)
+              .max(12)
+              .optional()
+              .describe("要重试的镜头 ID 列表（如 [\"shot-2\"]，用户说的「镜头2」对应 \"shot-2\"）；不传时重试全部失败镜头"),
+          })
+          .toJSONSchema(),
+      ),
+      execute: async (input, options) => {
+        const { toolCallId } = options as { toolCallId: string };
+        const idempotencyKey = `tool:retry_shot:${toolCallId}`;
+        return withThinking(msg, "正在重试失败镜头...", async () => {
+          const current = await loadQuickVideoState(projectId);
+          if (!current) return "未找到工作台状态，请先创建 quick_video 项目。";
+          if (current.appliedKeys[idempotencyKey] != null) {
+            return "该次重试请求已应用过（幂等命中），未重复发起；可调用 get_generation_status 查询进度后向用户汇报。";
+          }
+          try {
+            // 前置解析重试目标（阶段白名单 + 缺省全部失败镜头），权威校验与任务重建在 retryQuickVideoShots 内
+            const shotIds = pickRetryShotIds(current, input.shotIds);
+            // 复用 REST /quickVideo/retryShot 的同一内核；与按钮同口径，不校验 expectedVersion
+            // （生成链路会并发回写镜头状态，重试是显式新动作，幂等由 toolCallId 键去重重放）
+            const result = await retryQuickVideoShots(projectId, userId, shotIds, sessionId, idempotencyKey);
+            if (result.idempotentHit) {
+              return "该次重试请求已应用过（幂等命中），未重复发起；可调用 get_generation_status 查询进度后向用户汇报。";
+            }
+            return `已为 ${result.retried.length} 个镜头重新发起生成（运行 ${result.runId}）：${result.retried.join("、")}。已完成的镜头不受影响，可调用 get_generation_status 跟踪进度并向用户汇报。`;
+          } catch (err) {
+            if (err instanceof QuickVideoError) {
+              if (err.code === "NO_FAILED_SHOTS") {
+                return `当前没有失败镜头，无需重试。${current.stage === "generating" ? "生成仍在进行中，可调用 get_generation_status 查询进度后向用户汇报。" : ""}`;
+              }
+              if (err.code === "STAGE_MISMATCH") {
+                const hint = ["storyboard_draft", "storyboard_confirmed"].includes(current.stage)
+                  ? "分镜尚未开始生成；用户想生成时回复「开始生成」即可启动管道。"
+                  : ["ready_to_assemble", "completed"].includes(current.stage)
+                    ? "全部镜头已生成完毕，无需重试；请提醒用户在右侧预览面板查看并导出 MP4。"
+                    : "进入生成阶段后才能重试失败镜头。";
+                return `现在不能重试：${err.message}。${hint}`;
+              }
+              if (err.code === "GENERATION_RUNNING") {
+                return `整批镜头正在生成中，暂不能单独重试失败镜头：${err.message}。我会用 get_generation_status 跟踪进度，整批结束后再重试失败镜头。`;
+              }
+              if (err.code === "SHOT_RUNNING") {
+                return `${err.message}。等该镜头出结果后再看是否需要重试。`;
+              }
+              if (err.code === "SHOT_ALREADY_DONE") {
+                return `用户想重试的镜头其实已生成完成，无需重试：${err.message}。可调用 get_generation_status 确认各镜头状态后向用户说明。`;
+              }
+              if (err.code === "MATERIALS_NOT_CONFIRMED") {
+                return `最终生成参数尚未确认，不能重试：${err.message}`;
+              }
+            }
+            throw err;
+          }
+        }).catch((err) => `重试镜头失败：${describeError(err)}`);
       },
     }),
 

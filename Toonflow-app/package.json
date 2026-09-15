@@ -36,7 +36,8 @@
     "test:aibotplatform": "tsx tests/aibotplatform.test.ts",
     "test:quickvideo-session": "tsx scripts/quickvideo-session-unit.ts",
     "test:quickvideo-media": "tsx scripts/quickvideo-media-unit.ts",
-    "test:quickvideo-placeholder": "tsx scripts/quickvideo-placeholder-unit.ts"
+    "test:quickvideo-placeholder": "tsx scripts/quickvideo-placeholder-unit.ts",
+    "test:quickvideo-confirm-gate": "tsx scripts/quickvideo-confirm-gate-unit.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.35",

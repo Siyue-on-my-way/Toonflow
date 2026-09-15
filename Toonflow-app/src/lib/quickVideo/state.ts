@@ -14,21 +14,15 @@ import {
   QUICK_VIDEO_STAGES,
   QuickVideoStage,
   QuickVideoState,
+  assertExpectedVersion,
   canTransitionStage,
   quickVideoStateSchema,
   recordIdempotencyKey,
 } from "./contract";
 
-export class QuickVideoError extends Error {
-  public code: string;
-  public currentVersion?: number;
-
-  constructor(code: string, message: string, currentVersion?: number) {
-    super(message);
-    this.code = code;
-    this.currentVersion = currentVersion;
-  }
-}
+// QuickVideoError 定义在 contract（纯模块），这里转出保持既有 import 路径兼容
+export { QuickVideoError } from "./contract";
+import { QuickVideoError } from "./contract";
 
 function parseState(row: { data?: string | null }): QuickVideoState {
   let raw: any = {};
@@ -98,14 +92,8 @@ export async function mutateQuickVideoState(
       return { state: current, idempotentHit: true };
     }
 
-    // 乐观锁校验
-    if (opts.expectedVersion != null && opts.expectedVersion !== current.version) {
-      throw new QuickVideoError(
-        "VERSION_CONFLICT",
-        `状态版本冲突：服务端当前版本 ${current.version}，请求基于版本 ${opts.expectedVersion}，请刷新后重试`,
-        current.version,
-      );
-    }
+    // 乐观锁校验（判定收敛到 contract.assertExpectedVersion，REST 与 Agent 工具同口径）
+    assertExpectedVersion(current.version, opts.expectedVersion);
 
     const state: QuickVideoState = JSON.parse(JSON.stringify(current));
 
