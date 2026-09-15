@@ -68,6 +68,8 @@ class MessageBuilder {
   private messageRole: "assistant" | "user" | "system";
   private messageName?: string;
   private messageDatetime: string;
+  /** 消息级展示层元数据：随 complete 的 message:update 一并下发，前端合并进消息 ext */
+  private messageExt: Record<string, any> | null = null;
 
   constructor(socket: Socket, messageId: string, role: "assistant" | "user" | "system", name?: string, datetime?: string) {
     this.socket = socket;
@@ -91,6 +93,18 @@ class MessageBuilder {
 
   get datetime() {
     return this.messageDatetime;
+  }
+
+  /**
+   * 附加消息级展示层元数据（多次调用按 key 合并）：用于快创 UI 动作协议（ext.actions，SIY-153）
+   * 这类纯展示附属信息；结构合法性由调用方契约层负责，这里只透传。随 complete 一次性下发。
+   */
+  mergeExt(patch: Record<string, any>) {
+    this.messageExt = { ...(this.messageExt ?? {}), ...patch };
+  }
+
+  getExt(): Record<string, any> | null {
+    return this.messageExt;
   }
 
   // 更新消息状态
@@ -293,11 +307,12 @@ class MessageBuilder {
     return new ReasoningBuilder(this.socket, this.messageId, contentId);
   }
 
-  // 完成消息
+  // 完成消息（附带收集到的消息级展示层元数据，如 ext.actions，前端按白名单处理）
   complete() {
     this.socket.emit("message:update", {
       id: this.messageId,
       status: "complete" as ChatMessageStatus,
+      ...(this.messageExt ? { ext: this.messageExt } : {}),
     });
   }
 

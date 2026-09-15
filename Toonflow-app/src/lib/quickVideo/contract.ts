@@ -801,3 +801,91 @@ export function resolveSlotReferences(references: number[] | null | undefined, s
   }
   return mapping;
 }
+
+// ---------------------------------------------------------------------------
+// 聊天驱动 UI 动作协议（SIY-153）：助手消息 ext.actions 携带白名单动作，前端执行器派发
+// ---------------------------------------------------------------------------
+
+/**
+ * 右侧面板 key（前端镜像：Toonflow-web/src/types/quickVideo.ts 的 QUICK_VIDEO_PANELS）。
+ * 动作元数据只是消息的展示层附属信息，不写入 o_agentWorkData 状态机，也不改变任何确认门与阶段流转。
+ */
+export const QUICK_VIDEO_PANELS = ["brief", "storyboard", "assets", "preview"] as const;
+export type QuickVideoPanel = (typeof QUICK_VIDEO_PANELS)[number];
+
+/** 白名单动作类型：白名单之外的动作元数据一律忽略（前端 console.warn，不报错、不中断聊天流） */
+export const QUICK_VIDEO_UI_ACTION_TYPES = ["switch_panel", "open_export_confirm", "focus_shot"] as const;
+export type QuickVideoUiActionType = (typeof QUICK_VIDEO_UI_ACTION_TYPES)[number];
+
+/** 单条助手消息最多附带的动作数（含多次工具调用累计，超出部分被拒绝） */
+export const QUICK_VIDEO_UI_ACTIONS_MAX = 3;
+
+/** 动作元数据：switch_panel 需 panel；focus_shot 需 shotId（如 shot-2）；open_export_confirm 无附加参数 */
+export interface QuickVideoUiAction {
+  type: QuickVideoUiActionType;
+  panel?: QuickVideoPanel;
+  shotId?: string;
+}
+
+/** open_export_confirm 仅在这两个阶段放行（前端执行器同样守卫，服务端校验只为给模型可读反馈） */
+export function canOpenExportConfirmStage(stage: QuickVideoStage | null | undefined): boolean {
+  return stage === "ready_to_assemble" || stage === "completed";
+}
+
+function quickVideoUiActionKey(action: QuickVideoUiAction): string {
+  return `${action.type}|${action.panel ?? ""}|${action.shotId ?? ""}`;
+}
+
+/**
+ * 规范化/校验动作元数据（白名单外与畸形数据一律拒绝，绝不抛错）：
+ * - 非数组整体拒绝；每个动作必须是对象且 type 在白名单内；
+ * - switch_panel 必须带合法 panel；focus_shot 必须带非空 shotId（≤40 字符）；
+ * - 未知字段剔除，按 type|panel|shotId 去重，超出 QUICK_VIDEO_UI_ACTIONS_MAX 截断。
+ * 返回 accepted（可直接随消息下发/持久化）与 rejected（可读原因，供日志与模型反馈）。
+ */
+export function normalizeQuickVideoUiActions(raw: unknown): { accepted: QuickVideoUiAction[]; rejected: string[] } {
+  const rejected: string[] = [];
+  if (!Array.isArray(raw)) {
+    return { accepted: [], rejected: [Array.isArray(raw) ? "" : "actions 必须是数组"].filter(Boolean) };
+  }
+  const accepted: QuickVideoUiAction[] = [];
+  const seen = new Set<string>();
+  for (const [i, item] of raw.entries()) {
+    const label = `actions[${i}]`;
+    if (typeof item !== "object" || item === null || Array.isArray(item)) {
+      rejected.push(`${label} 不是对象`);
+      continue;
+    }
+    const record = item as Record<string, unknown>;
+    const type = record.type;
+    if (typeof type !== "string" || !(QUICK_VIDEO_UI_ACTION_TYPES as readonly string[]).includes(type)) {
+      rejected.push(`${label}.type「${String(type)}」不在白名单（${QUICK_VIDEO_UI_ACTION_TYPES.join("/")}）`);
+      continue;
+    }
+    const action: QuickVideoUiAction = { type: type as QuickVideoUiActionType };
+    if (action.type === "switch_panel") {
+      const panel = record.panel;
+      if (typeof panel !== "string" || !(QUICK_VIDEO_PANELS as readonly string[]).includes(panel)) {
+        rejected.push(`${label}.panel「${String(panel)}」不是合法面板（${QUICK_VIDEO_PANELS.join("/")}）`);
+        continue;
+      }
+      action.panel = panel as QuickVideoPanel;
+    } else if (action.type === "focus_shot") {
+      const shotId = record.shotId;
+      if (typeof shotId !== "string" || !shotId.trim() || shotId.length > 40) {
+        rejected.push(`${label}.shotId 缺失或非法（需 1-40 字符的镜头 ID，如 shot-2）`);
+        continue;
+      }
+      action.shotId = shotId.trim();
+    }
+    const key = quickVideoUiActionKey(action);
+    if (seen.has(key)) continue;
+    if (accepted.length >= QUICK_VIDEO_UI_ACTIONS_MAX) {
+      rejected.push(`${label} 超出单条消息动作上限（${QUICK_VIDEO_UI_ACTIONS_MAX}）`);
+      continue;
+    }
+    seen.add(key);
+    accepted.push(action);
+  }
+  return { accepted, rejected };
+}

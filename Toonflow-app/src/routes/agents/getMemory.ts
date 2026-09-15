@@ -4,7 +4,7 @@ import { z } from "zod";
 import { success, error } from "@/lib/responseFormat";
 import { validateFields } from "@/middleware/middleware";
 import { getOwnedSession } from "@/lib/quickVideo/session";
-import { buildSessionIsolationKey } from "@/lib/quickVideo/contract";
+import { buildSessionIsolationKey, normalizeQuickVideoUiActions, QuickVideoUiAction } from "@/lib/quickVideo/contract";
 import { QuickVideoError } from "@/lib/quickVideo/state";
 import { getAssetBoard } from "@/lib/quickVideo/media";
 const router = express.Router();
@@ -13,6 +13,19 @@ function normalizeRole(role?: string | null): "user" | "assistant" | null {
   if (role === "user") return "user";
   if (role?.startsWith("assistant")) return "assistant";
   return null;
+}
+
+/**
+ * 解析消息展示层元数据里的 UI 动作（SIY-153）：memories.ext 存 JSON 数组，
+ * 白名单外/畸形数据静默忽略（normalize 返回空数组即不附带），历史回放动作由前端按消息 id 去重。
+ */
+function parseMessageUiActions(row: { role?: string | null; ext?: string | null }): QuickVideoUiAction[] {
+  if (!row.ext || !normalizeRole(row.role)) return [];
+  try {
+    return normalizeQuickVideoUiActions(JSON.parse(row.ext)).accepted;
+  } catch {
+    return [];
+  }
 }
 
 export default router.post(
@@ -55,13 +68,15 @@ export default router.post(
 
     if (limit) query.limit(limit);
 
-    const rows = await query.select("id", "role", "name", "content", "createTime");
+    const rows = await query.select("id", "role", "name", "content", "ext", "createTime");
 
     const history = rows
       .reverse()
       .map((row) => {
         const role = normalizeRole(row.role);
         if (!role || !row.content?.trim()) return null;
+        // UI 动作元数据（SIY-153）随历史一起回放：前端只登记消息 id，不重复执行
+        const actions = parseMessageUiActions(row);
         return {
           id: row.id,
           role,
@@ -69,6 +84,7 @@ export default router.post(
           status: "complete",
           datetime: new Date(row.createTime).toISOString(),
           content: [{ type: "markdown", status: "complete", data: row.content }],
+          ...(actions.length ? { ext: { actions } } : {}),
           createTime: row.createTime,
         };
       })

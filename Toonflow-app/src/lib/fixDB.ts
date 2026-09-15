@@ -504,6 +504,9 @@ export default async (knex: Knex): Promise<void> => {
   // initDB 只在表不存在时创建：这里额外用 addColumn 兜底早期试验性质的 o_quickVideoSession
   // 表（缺 status/title 列）能被补齐，而不是让下面的补建默认会话静默失败到底。
   await addColumn("o_agentWorkData", "sessionId", "integer");
+  // 单视频快创（SIY-153）：memories.ext 保存助手消息附带的结构化 UI 动作元数据 JSON，
+  // 聊天历史回放时由 getMemory 解析回消息 ext；存量库按同一路径补齐可空列即可。
+  await addColumn("memories", "ext", "text");
   await addColumn("o_quickVideoSession", "status", "string");
   await addColumn("o_quickVideoSession", "title", "string");
   // 会话标题智能生成（SIY-128 follow-up）：序号、发言计数、生成状态与时间戳

@@ -87,7 +87,7 @@ class Memory {
     return result;
   }
 
-  async add(role: string = "user", content: string, options?: { name?: string; createTime?: number }) {
+  async add(role: string = "user", content: string, options?: { name?: string; createTime?: number; ext?: string }) {
     const { messagesPerSummary } = await this.getConfigData({ messagesPerSummary: DEFAULTS.messagesPerSummary });
     const id = uuidv4();
     const embedding = await getEmbedding(content);
@@ -100,6 +100,8 @@ class Memory {
       role,
       name: options?.name,
       content,
+      // 消息展示层元数据 JSON（如快创 UI 动作 ext.actions，SIY-153）；不参与向量检索与摘要
+      ext: options?.ext ?? null,
       embedding: JSON.stringify(embedding),
       relatedMessageIds: null,
       summarized: 0,

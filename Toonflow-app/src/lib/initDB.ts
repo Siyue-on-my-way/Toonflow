@@ -1154,6 +1154,7 @@ export default async (knex: Knex, forceInit: boolean = false): Promise<void> => 
         table.text("role"); // 'user' | 'assistant'
         table.text("name");
         table.text("content").notNullable();
+        table.text("ext"); // 消息展示层元数据 JSON（如快创 UI 动作 ext.actions，SIY-153）
         table.text("embedding"); // 向量嵌入 JSON
         table.text("relatedMessageIds"); // summary关联的message id列表 JSON
         table.integer("summarized").defaultTo(0); // message是否已被总结 0/1
