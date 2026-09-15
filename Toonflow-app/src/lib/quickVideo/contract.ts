@@ -201,6 +201,10 @@ export const quickVideoShotSchema = z.object({
   dialogue: z.string().max(500).default("").describe("台词/旁白（用作字幕，可为空）"),
   camera: z.string().max(200).default("").describe("景别/运镜（如 全景、缓慢推进）"),
   assetRefs: z.array(shotAssetRefSchema).max(10).default([]).describe("该镜头引用的资产列表"),
+  /** 文生图/首帧视觉描述词（分镜表作为 Prompt 策划板输出，聊天生图/管道生图优先使用） */
+  imagePrompt: z.string().max(2000).default("").describe("文生图/首帧提示词（主体、构图、风格、光影的完整视觉描述）"),
+  /** 视频动作/运镜描述词（聊天生视频/管道生视频优先使用） */
+  videoPrompt: z.string().max(2000).default("").describe("视频提示词（画面动作、运镜、动态变化的完整描述）"),
   continuity: z
     .enum(SHOT_CONTINUITY_TYPES)
     .default("last_frame")
@@ -260,6 +264,8 @@ export const snapshotShotSchema = z.object({
   dialogue: z.string().max(500).default(""),
   camera: z.string().max(200).default(""),
   assetRefs: z.array(shotAssetRefSchema).max(10).default([]),
+  imagePrompt: z.string().max(2000).default(""),
+  videoPrompt: z.string().max(2000).default(""),
   continuity: z.enum(SHOT_CONTINUITY_TYPES).default("last_frame"),
   /** 冻结的首帧引用（含 filePath，生成引擎直接读取）；无人工首帧时为 null，回退用分镜图 imageRef */
   firstFrame: snapshotFirstFrameSchema.nullable().default(null),
@@ -619,4 +625,42 @@ export function resolveVideoPosterUrl(
   imageUrl: string | null | undefined,
 ): string | null {
   return firstFrameUrl ?? imageUrl ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// 聊天"文本 + 图片占位符"多模态语法（SIY-151）
+// ---------------------------------------------------------------------------
+
+/** 单轮聊天占位符编号上限（与附件托盘容量一致，位序 1-4） */
+export const IMAGE_PLACEHOLDER_MAX = 4;
+
+/** 匹配 ##图1## ~ ##图99##（容许首尾空格）；占位符编号是附件托盘的位序（1 开始） */
+export const IMAGE_PLACEHOLDER_RE = /##\s*图\s*(\d{1,2})\s*##/g;
+
+/**
+ * 从聊天文本中解析图片占位符编号（去重、升序、截断到上限）。
+ * 返回空数组表示本轮消息没有占位符（纯文本生成）。
+ */
+export function parseImagePlaceholderSlots(text: string | null | undefined): number[] {
+  if (!text) return [];
+  const slots = new Set<number>();
+  for (const match of String(text).matchAll(IMAGE_PLACEHOLDER_RE)) {
+    const slot = Number(match[1]);
+    if (Number.isInteger(slot) && slot >= 1 && slot <= 99) slots.add(slot);
+  }
+  return Array.from(slots).sort((a, b) => a - b).slice(0, IMAGE_PLACEHOLDER_MAX);
+}
+
+/**
+ * 建立"占位符编号 -> mediaId"映射：##图N## 对应附件托盘第 N 张图（references 的第 N-1 项）。
+ * 超出托盘容量的编号没有对应媒体，直接丢弃——由调用方决定如何提示用户。
+ */
+export function resolveSlotReferences(references: number[] | null | undefined, slots: number[]): Record<number, number> {
+  const mapping: Record<number, number> = {};
+  const refs = (references ?? []).slice(0, IMAGE_PLACEHOLDER_MAX);
+  for (const slot of slots) {
+    if (slot < 1 || slot > refs.length) continue;
+    mapping[slot] = refs[slot - 1];
+  }
+  return mapping;
 }

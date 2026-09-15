@@ -1783,8 +1783,21 @@
         "pastedImage": "Pasted image",
         "refPasted": "{count} media reference(s) added",
         "stillUploading": "Attachments are still uploading, please wait",
-        "failedBlock": "Some attachments failed to upload. Retry or remove them before sending"
-      }
+        "failedBlock": "Some attachments failed to upload. Retry or remove them before sending",
+        "slotLabel": "Fig {slot}"
+      },
+      "prompts": "Prompts",
+      "fillImagePrompt": "Fill image",
+      "fillVideoPrompt": "Fill video",
+      "copyPrompts": "Copy",
+      "promptEmpty": "(no prompt)",
+      "promptFilled": "Filled into the chat box, send mode switched to \"{mode}\"",
+      "promptsCopied": "Shot prompts copied",
+      "copyFailed": "Copy failed, please select and copy manually",
+      "multiShotFill": "Fill all shots",
+      "multiShotFilled": "Filled with \"Shot N:\" syntax; attach reference images (use ##图1## placeholders) before sending",
+      "imagePromptLabel": "Image prompt",
+      "videoPromptLabel": "Video prompt"
     }
   },
   "login": {

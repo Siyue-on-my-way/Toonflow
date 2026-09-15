@@ -121,6 +121,8 @@
               class="attachItem"
               :class="{ failed: p.status === 'failed' }">
               <div class="attachThumb">
+                <!-- 占位符编号（SIY-151）：托盘位序即 ##图N## 中的 N -->
+                <t-tag size="small" theme="primary" shape="round" class="attachSlotBadge">{{ $t("workbench.quickVideo.attach.slotLabel", { slot: i + 1 }) }}</t-tag>
                 <img v-if="p.previewUrl" :src="p.previewUrl" alt="" />
                 <div v-else class="attachLoading"><t-loading size="small" :text="$t('workbench.quickVideo.attach.uploading')" /></div>
                 <t-tag v-if="p.status === 'failed'" theme="danger" size="small" class="attachState">{{ $t("workbench.quickVideo.attach.failed") }}</t-tag>
@@ -312,7 +314,7 @@
               <t-empty v-else :title="$t('workbench.quickVideo.noBrief')" />
             </div>
 
-            <!-- 分镜表卡片 -->
+            <!-- 分镜表卡片（SIY-151 瘦身为 Prompt 策划板：生成与确认动作全部在聊天窗完成） -->
             <div v-if="activePanel === 'storyboard'" class="card">
               <div class="cardHeader">
                 <span>
@@ -324,19 +326,12 @@
                 <div class="actions">
                   <t-tag v-if="totalDuration" shape="round">{{ totalDuration }}s{{ state?.targetDuration ? ` / ${state.targetDuration}s` : '' }}</t-tag>
                   <t-button
-                    v-if="state?.stage === 'storyboard_draft'"
+                    v-if="state?.storyboard?.shots?.length"
                     size="small"
                     theme="primary"
-                    :disabled="!state?.storyboard"
-                    @click="confirmGate('storyboard', 'confirm')">
-                    {{ $t("workbench.quickVideo.confirmStoryboard") }}
-                  </t-button>
-                  <t-button
-                    v-if="state?.stage === 'storyboard_confirmed'"
-                    size="small"
                     variant="outline"
-                    @click="confirmGate('storyboard', 'reject')">
-                    {{ $t("workbench.quickVideo.unconfirmStoryboard") }}
+                    @click="fillMultiShotPrompt">
+                    {{ $t("workbench.quickVideo.multiShotFill") }}
                   </t-button>
                 </div>
               </div>
@@ -400,58 +395,44 @@
                       </template>
                     </div>
                   </template>
-                  <template #preview="{ row }">
-                    <ShotPreviewCell
-                      :shot="row"
-                      :urls="mediaUrls[row.id]"
-                      :urls-pending="mediaUrlsLoading"
-                      :can-retry="state?.stage === 'generating'"
-                      :retrying="retryingShots.includes(row.id)"
-                      :reload-tick="mediaReloadTick"
-                      :image-label="$t('workbench.quickVideo.image')"
-                      :video-label="$t('workbench.quickVideo.video')"
-                      :generating-text="$t('workbench.quickVideo.gen.generating')"
-                      :failed-text="$t('workbench.quickVideo.gen.failed')"
-                      :image-unavailable-text="$t('workbench.quickVideo.imagePreviewUnavailable')"
-                      :video-unavailable-text="$t('workbench.quickVideo.videoPreviewUnavailable')"
-                      :retry-text="$t('workbench.quickVideo.retryShot')"
-                      @open-image="openImagePreview"
-                      @open-video="(url: string) => openVideoPreview(url, row.id)"
-                      @retry="retryShots([row.id])"
-                      @refresh="refreshMediaUrls()" />
-                  </template>
-                  <template #genState="{ row }">
-                    <t-tooltip v-if="row.errorReason" :content="row.errorReason">
-                      <t-tag size="small" shape="round" :theme="genStateTheme(row.imageState)" style="margin-right: 4px">
-                        {{ $t("workbench.quickVideo.image") }}·{{ genStateLabel(row.imageState) }}
-                      </t-tag>
-                    </t-tooltip>
-                    <t-tag v-else size="small" shape="round" :theme="genStateTheme(row.imageState)" style="margin-right: 4px">
-                      {{ $t("workbench.quickVideo.image") }}·{{ genStateLabel(row.imageState) }}
-                    </t-tag>
-                    <t-tooltip v-if="row.errorReason" :content="row.errorReason">
-                      <t-tag size="small" shape="round" :theme="genStateTheme(row.videoState)">
-                        {{ $t("workbench.quickVideo.video") }}·{{ genStateLabel(row.videoState) }}
-                      </t-tag>
-                    </t-tooltip>
-                    <t-tag v-else size="small" shape="round" :theme="genStateTheme(row.videoState)">
-                      {{ $t("workbench.quickVideo.video") }}·{{ genStateLabel(row.videoState) }}
-                    </t-tag>
+                  <template #prompts="{ row }">
+                    <div class="promptCell">
+                      <t-tooltip :content="buildImageFillPrompt(row) || $t('workbench.quickVideo.promptEmpty')" :show-arrow="false">
+                        <div class="promptLine">
+                          <t-tag size="small" theme="primary" variant="light" shape="round" class="promptTag">{{ $t("workbench.quickVideo.image") }}</t-tag>
+                          <span class="promptText">{{ buildImageFillPrompt(row) || "-" }}</span>
+                        </div>
+                      </t-tooltip>
+                      <t-tooltip :content="buildVideoFillPrompt(row) || $t('workbench.quickVideo.promptEmpty')" :show-arrow="false">
+                        <div class="promptLine">
+                          <t-tag size="small" theme="warning" variant="light" shape="round" class="promptTag">{{ $t("workbench.quickVideo.video") }}</t-tag>
+                          <span class="promptText">{{ buildVideoFillPrompt(row) || "-" }}</span>
+                        </div>
+                      </t-tooltip>
+                    </div>
                   </template>
                   <template #op="{ row }">
-                    <t-button size="small" variant="text" :disabled="!canEditStoryboard" @click="openShotEdit(row)">
-                      <template #icon><i-edit size="14" /></template>
-                    </t-button>
-                    <t-popconfirm :content="$t('workbench.quickVideo.deleteShotConfirm')" @confirm="removeShot(row.id)">
-                      <t-button size="small" variant="text" theme="danger" :disabled="!canEditStoryboard">
-                        <template #icon><i-delete size="14" /></template>
+                    <div class="promptOps">
+                      <t-button size="small" variant="text" theme="primary" :disabled="!buildImageFillPrompt(row)" @click="fillChatPrompt(buildImageFillPrompt(row), 'image')">
+                        {{ $t("workbench.quickVideo.fillImagePrompt") }}
                       </t-button>
-                    </t-popconfirm>
-                    <t-tooltip v-if="isShotFailed(row) && state?.stage === 'generating'" :content="$t('workbench.quickVideo.retryShot')">
-                      <t-button size="small" variant="text" theme="warning" :loading="retryingShots.includes(row.id)" @click="retryShots([row.id])">
-                        <template #icon><i-refresh size="14" /></template>
+                      <t-button size="small" variant="text" theme="warning" :disabled="!buildVideoFillPrompt(row)" @click="fillChatPrompt(buildVideoFillPrompt(row), 'video')">
+                        {{ $t("workbench.quickVideo.fillVideoPrompt") }}
                       </t-button>
-                    </t-tooltip>
+                      <t-button size="small" variant="text" @click="copyShotPrompts(row)">
+                        {{ $t("workbench.quickVideo.copyPrompts") }}
+                      </t-button>
+                    </div>
+                    <div class="rowOps">
+                      <t-button size="small" variant="text" :disabled="!canEditStoryboard" @click="openShotEdit(row)">
+                        <template #icon><i-edit size="14" /></template>
+                      </t-button>
+                      <t-popconfirm :content="$t('workbench.quickVideo.deleteShotConfirm')" @confirm="removeShot(row.id)">
+                        <t-button size="small" variant="text" theme="danger" :disabled="!canEditStoryboard">
+                          <template #icon><i-delete size="14" /></template>
+                        </t-button>
+                      </t-popconfirm>
+                    </div>
                   </template>
                 </t-table>
                 <div class="storyboardFooter" v-if="canEditStoryboard">
@@ -743,6 +724,12 @@
           <t-form-item :label="$t('workbench.quickVideo.shotCamera')">
             <t-input v-model="shotEditData.camera" />
           </t-form-item>
+          <t-form-item :label="$t('workbench.quickVideo.imagePromptLabel')">
+            <t-textarea v-model="shotEditData.imagePrompt" :autosize="{ minRows: 2, maxRows: 5 }" :maxlength="2000" />
+          </t-form-item>
+          <t-form-item :label="$t('workbench.quickVideo.videoPromptLabel')">
+            <t-textarea v-model="shotEditData.videoPrompt" :autosize="{ minRows: 2, maxRows: 5 }" :maxlength="2000" />
+          </t-form-item>
           <t-form-item :label="$t('workbench.quickVideo.continuity')" v-if="shotEditIsAdd || shotEditIndex > 1">
             <t-select v-model="shotEditData.continuity" :options="continuitySelectOptions" />
           </t-form-item>
@@ -795,7 +782,7 @@
 import axios from "@/utils/axios";
 import projectStore from "@/stores/project";
 import quickVideoStore from "@/stores/quickVideo";
-import type { QuickVideoDuration, QuickVideoRatio, QuickVideoStage, QuickVideoShot, QuickVideoSession, QuickVideoFinalParamsCard, MediaRef, ChatMediaExt, QuickVideoShotMediaUrls } from "@/types/quickVideo";
+import type { QuickVideoDuration, QuickVideoRatio, QuickVideoStage, QuickVideoShot, QuickVideoSession, QuickVideoFinalParamsCard, MediaRef, ChatMediaExt, QuickVideoShotMediaUrls, ShotContinuityType } from "@/types/quickVideo";
 import modelSelect from "@/components/modelSelect.vue";
 import SessionList from "./components/SessionList.vue";
 import AssetBoard from "./components/AssetBoard.vue";
@@ -804,7 +791,7 @@ import ExportProgress from "./ExportProgress.vue";
 import { useTimelinePlayer } from "./timelinePlayer";
 import { estimateExportBytes, formatBytes, formatTime } from "./timelineCore";
 import { QUICK_VIDEO_SPLIT_CONSTRAINTS, quickVideoLayoutStorageKey, useQuickVideoSplitLayout } from "./splitLayout";
-import ShotPreviewCell from "./components/ShotPreviewCell.vue";
+import { buildImageFillPrompt, buildVideoFillPrompt, buildShotPromptCopyText, buildMultiShotPrompt } from "./shotPrompts";
 import { createBubbleMessageView } from "./chatMedia";
 import { readMediaRefsFromText } from "./chatPaste";
 
@@ -1269,23 +1256,53 @@ function assetTypeLabel(type: string) {
   return assetTypeLabels[type] ?? type;
 }
 
-const genStateLabels: Record<string, string> = {
-  pending: $t("workbench.quickVideo.gen.pending"),
-  generating: $t("workbench.quickVideo.gen.generating"),
-  done: $t("workbench.quickVideo.gen.done"),
-  failed: $t("workbench.quickVideo.gen.failed"),
-};
-function genStateLabel(s: string) {
-  return genStateLabels[s] ?? s;
-}
-function genStateTheme(s: string) {
-  if (s === "done") return "success" as const;
-  if (s === "failed") return "danger" as const;
-  if (s === "generating") return "warning" as const;
-  return "default" as const;
-}
 function isShotFailed(row: QuickVideoShot) {
   return row.imageState === "failed" || row.videoState === "failed";
+}
+
+// ===== 分镜表 Prompt 策划板：一键填入聊天窗 / 复制（SIY-151） =====
+
+/** 把提示词填入聊天输入框并自动切换发送模式（image/video），生成动作全部在聊天窗完成 */
+function fillChatPrompt(prompt: string, mode: "image" | "video") {
+  const text = prompt.trim();
+  if (!text) return;
+  inputValue.value = text;
+  activeModelType.value = mode;
+  window.$message.success($t("workbench.quickVideo.promptFilled", { mode: mode === "image" ? $t("components.modelSelect.type.image") : $t("components.modelSelect.type.video") }));
+}
+
+/** 把全部镜头整理成「镜头N：描述」多镜语法填入聊天窗，发送后由 Agent 拆解并启动生成管道 */
+function fillMultiShotPrompt() {
+  const shots = state.value?.storyboard?.shots ?? [];
+  if (!shots.length) return;
+  inputValue.value = buildMultiShotPrompt(shots);
+  activeModelType.value = "text";
+  window.$message.success($t("workbench.quickVideo.multiShotFilled"));
+}
+
+async function copyPlainText(text: string) {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function copyShotPrompts(shot: QuickVideoShot) {
+  const ok = await copyPlainText(buildShotPromptCopyText(shot));
+  window.$message.success(ok ? $t("workbench.quickVideo.promptsCopied") : $t("workbench.quickVideo.copyFailed"));
 }
 
 const totalDuration = computed(() => state.value?.storyboard?.shots.reduce((sum, s) => sum + s.duration, 0) ?? 0);
@@ -1458,10 +1475,9 @@ const shotColumns = [
   { colKey: "camera", title: $t("workbench.quickVideo.shotCamera"), width: 110, ellipsis: true },
   { colKey: "assetRefs", title: $t("workbench.quickVideo.shotAssets"), width: 140 },
   { colKey: "continuity", title: $t("workbench.quickVideo.continuity"), width: 140 },
+  { colKey: "prompts", title: $t("workbench.quickVideo.prompts"), width: 260 },
   { colKey: "firstFrame", title: $t("workbench.quickVideo.firstFrame"), width: 130 },
-  { colKey: "preview", title: $t("workbench.quickVideo.preview"), width: 168 },
-  { colKey: "genState", title: $t("workbench.quickVideo.genState"), width: 175 },
-  { colKey: "op", title: "", width: 110 },
+  { colKey: "op", title: "", width: 120 },
 ];
 
 const continuitySelectOptions = computed(() => [
@@ -1567,8 +1583,10 @@ const shotEditData = ref<{
   description: string;
   dialogue: string;
   camera: string;
+  imagePrompt: string;
+  videoPrompt: string;
   continuity?: ShotContinuityType;
-}>({ duration: 5, description: "", dialogue: "", camera: "", continuity: "last_frame" });
+}>({ duration: 5, description: "", dialogue: "", camera: "", imagePrompt: "", videoPrompt: "", continuity: "last_frame" });
 
 function openShotEdit(shot: QuickVideoShot) {
   shotEditIsAdd.value = false;
@@ -1579,6 +1597,8 @@ function openShotEdit(shot: QuickVideoShot) {
     description: shot.description,
     dialogue: shot.dialogue,
     camera: shot.camera,
+    imagePrompt: shot.imagePrompt ?? "",
+    videoPrompt: shot.videoPrompt ?? "",
     continuity: shot.continuity ?? "last_frame",
   };
   shotEditVisible.value = true;
@@ -1587,7 +1607,7 @@ function openShotEdit(shot: QuickVideoShot) {
 function openShotAdd() {
   shotEditIsAdd.value = true;
   shotEditIndex.value = (state.value?.storyboard?.shots.length ?? 0) + 1;
-  shotEditData.value = { duration: 5, description: "", dialogue: "", camera: "", continuity: "last_frame" };
+  shotEditData.value = { duration: 5, description: "", dialogue: "", camera: "", imagePrompt: "", videoPrompt: "", continuity: "last_frame" };
   shotEditVisible.value = true;
 }
 
@@ -2268,6 +2288,13 @@ function cancelExport() {
                 background-color: var(--td-error-color);
               }
             }
+            // 占位符编号徽标（SIY-151）：托盘位序即 ##图N## 中的 N
+            .attachSlotBadge {
+              position: absolute;
+              top: 2px;
+              left: 2px;
+              z-index: 2;
+            }
           }
           .attachMeta {
             display: flex;
@@ -2556,6 +2583,44 @@ function cancelExport() {
           display: flex;
           gap: 2px;
         }
+      }
+      // Prompt 策划板列（SIY-151）：双提示词紧凑展示 + 一键填入/复制操作
+      .promptCell {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+        .promptLine {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          min-width: 0;
+          .promptTag {
+            flex-shrink: 0;
+          }
+          .promptText {
+            font-size: 12px;
+            opacity: 0.85;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0;
+          }
+        }
+      }
+      .promptOps {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0 2px;
+        :deep(.t-button) {
+          padding: 0 6px;
+          font-size: 12px;
+        }
+      }
+      .rowOps {
+        display: flex;
+        gap: 2px;
+        margin-top: 2px;
       }
       .progressMeta {
         display: flex;

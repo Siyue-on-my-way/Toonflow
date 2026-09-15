@@ -1887,8 +1887,21 @@
         "pastedImage": "粘贴图片",
         "refPasted": "已添加 {count} 个媒体引用",
         "stillUploading": "附件仍在上传中，请稍候",
-        "failedBlock": "存在上传失败的附件，请重试或移除后再发送"
-      }
+        "failedBlock": "存在上传失败的附件，请重试或移除后再发送",
+        "slotLabel": "图{slot}"
+      },
+      "prompts": "提示词",
+      "fillImagePrompt": "填入生图",
+      "fillVideoPrompt": "填入生视频",
+      "copyPrompts": "复制",
+      "promptEmpty": "（未填写提示词）",
+      "promptFilled": "已填入聊天框，发送模式已切换为「{mode}」",
+      "promptsCopied": "该镜头提示词已复制",
+      "copyFailed": "复制失败，请手动选择文本复制",
+      "multiShotFill": "多镜填入",
+      "multiShotFilled": "已按「镜头N：」语法填入聊天框，可放入参考图（用 ##图1## 引用）后发送",
+      "imagePromptLabel": "生图提示词",
+      "videoPromptLabel": "生视频提示词"
     }
   },
   "login": {

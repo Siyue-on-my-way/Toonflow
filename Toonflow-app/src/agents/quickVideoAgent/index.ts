@@ -6,7 +6,7 @@ import ResTool from "@/socket/resTool";
 import * as fs from "fs";
 import path from "path";
 import { loadQuickVideoState } from "@/lib/quickVideo/state";
-import { shotCountBounds, QuickVideoChatMode } from "@/lib/quickVideo/contract";
+import { shotCountBounds, QuickVideoChatMode, resolveSlotReferences, parseImagePlaceholderSlots } from "@/lib/quickVideo/contract";
 import { isVisionTextModel, resolveMediaImageBase64 } from "@/lib/quickVideo/media";
 import { resolveAgentModelKey } from "@/utils/ai";
 
@@ -25,6 +25,10 @@ export interface AgentContext {
   videoModel?: string;
   /** 用户在聊天/白板选中的引用媒体 mediaId 列表（图生图参考，可选） */
   references?: number[];
+  /** 占位符编号 -> mediaId 映射（##图N## = 托盘第 N 张图），socket 层按用户消息解析（SIY-151） */
+  slotReferences?: Record<number, number>;
+  /** 用户本轮消息中出现的占位符编号（升序去重），供工具做确定性回退 */
+  placeholderSlots?: number[];
   userMessageTime?: number;
   abortSignal?: AbortSignal;
   resTool: ResTool;
@@ -96,6 +100,21 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
     referenceImages = dataUrls.map((image) => ({ type: "image" as const, image }));
   }
 
+  // SIY-151 占位符映射：##图N## 指附件托盘第 N 张图（references 的第 N-1 项）；
+  // 映射同步告知 Agent 与工具层，工具层在 Agent 未显式传引用时做确定性回退。
+  const placeholderSlots = parseImagePlaceholderSlots(text);
+  const slotReferences = resolveSlotReferences(ctx.references, placeholderSlots);
+  const slotNote = placeholderSlots.length
+    ? [
+        "",
+        "## 本轮图片占位符映射",
+        ...placeholderSlots.map((slot) =>
+          slotReferences[slot] != null ? `- ##图${slot}## -> mediaId ${slotReferences[slot]}（用户托盘中的第 ${slot} 张图片）` : `- ##图${slot}## -> 无对应图片（用户托盘只有 ${ctx.references?.length ?? 0} 张图，如需使用请提醒用户补图）`,
+        ),
+        "用户提到 ##图N## 时即指上述图片：生图用 referenceSlots=[N]、生视频用 referenceSlots=[N] 或 [N,M]（首尾帧）、绑定首帧用 slot=N。",
+      ].join("\n")
+    : "";
+
   const projectInfo = [
     "## 项目信息",
     `视频标题：${projectData?.name ?? "未知"}`,
@@ -105,16 +124,17 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
     state ? `配置版本：configVersion=${state.configVersion ?? 0}（状态版本 ${state.version}）` : "",
     state ? `当前阶段：${state.stage}` : "",
     state?.brief ? `简报确认状态：${state.brief.confirmed ? "已确认" : "未确认"}` : "简报：暂无",
-    state?.storyboard ? `分镜：v${state.storyboard.version}（${state.storyboard.status === "confirmed" ? "已确认" : "草稿"}，共 ${state.storyboard.shots.length} 镜）` : "分镜：暂无",
+    state?.storyboard ? `分镜：v${state.storyboard.version}（${state.storyboard.status === "confirmed" ? "已确认" : "草稿"}，共 ${state.storyboard.shots.length} 镜，每镜含 imagePrompt/videoPrompt 双提示词）` : "分镜：暂无",
     state?.storyboard?.status === "confirmed"
-      ? `最终生成参数确认：${state.generation?.materialsConfirmed ? "用户已确认，生成已启动或进行中" : "待确认（系统已在聊天回显确认卡片，仅含视频时长/整体画风/分镜数量/分镜摘要，支持点击卡片「确认生成」或聊天回复「确认」后调用 confirm_generation）"}`
+      ? `生成状态：${state.generation?.materialsConfirmed ? "生成已启动或进行中" : "分镜已确认，用户在聊天中明确要求生成时调用 generate_shots 一键启动生成管道"}`
       : "",
     state ? `允许镜头数量：${shotCountBounds(state.targetDuration).min}-${shotCountBounds(state.targetDuration).max} 个` : "",
     ctx.mode === "image"
-      ? `本轮用户在聊天框选择了「图片」生成模式，模型：${ctx.imageModel}。请调用 generate_image 工具按用户描述生成图片，不要只用文字描述画面；生成的图片会自动出现在聊天记录和资产白板中，不会自动绑定到任何镜头或自动确认分镜。`
+      ? `本轮用户在聊天框选择了「图片」生成模式，模型：${ctx.imageModel}。请调用 generate_image 工具按用户描述生成图片；用户消息带 ##图N## 占位符时传 referenceSlots 自动转为图生图，否则为纯文生图；不要只用文字描述画面。生成的图片会自动出现在聊天记录和资产白板中。`
       : ctx.mode === "video"
-        ? `本轮用户在聊天框选择了「视频」生成模式，模型：${ctx.videoModel}。请调用 generate_video 工具按用户描述生成图生视频；该工具必须有一张参考图作为首帧，没有参考图时工具会明确告知用户先在聊天记录或资产白板复制一张图片，不要凭空生成或改用其他方式生成；生成的视频会自动出现在聊天记录和资产白板中，不会自动绑定到任何镜头或自动确认分镜。`
+        ? `本轮用户在聊天框选择了「视频」生成模式，模型：${ctx.videoModel}。请调用 generate_video 工具：纯文字描述即文生视频（无需图片）；消息带 ##图N## 时传 referenceSlots=[N] 以该图为首帧；带 ##图1## ##图2## 时传 referenceSlots=[1,2] 生成首尾帧过渡视频（模型不支持时工具会自动退化为首帧模式）。生成的视频会自动出现在聊天记录和资产白板中。`
         : "",
+    slotNote,
     "",
     mem,
   ]
@@ -136,7 +156,16 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
     abortSignal,
     tools: {
       ...memory.getTools(),
-      ...useTools({ resTool: ctx.resTool, msg: ctx.msg, sessionId: ctx.sessionId, imageModel: ctx.imageModel, videoModel: ctx.videoModel, references: ctx.references }),
+      ...useTools({
+        resTool: ctx.resTool,
+        msg: ctx.msg,
+        sessionId: ctx.sessionId,
+        imageModel: ctx.imageModel,
+        videoModel: ctx.videoModel,
+        references: ctx.references,
+        slotReferences,
+        placeholderSlots,
+      }),
     },
     onFinish: async (completion) => {
       await mutateLastChatAt(Number(resTool.data.projectId), sessionId);

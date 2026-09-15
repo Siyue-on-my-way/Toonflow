@@ -96,6 +96,10 @@ export interface QuickVideoShot {
   description: string;
   dialogue: string;
   camera: string;
+  /** 文生图/首帧提示词（分镜表策划板输出，一键填入聊天窗生图） */
+  imagePrompt: string;
+  /** 视频动作/运镜提示词（一键填入聊天窗生视频） */
+  videoPrompt: string;
   assetRefs: ShotAssetRef[];
   continuity?: ShotContinuityType;
   imageState: ShotGenState;
@@ -154,6 +158,8 @@ export interface QuickVideoGenerationSnapshot {
     description: string;
     dialogue: string;
     camera: string;
+    imagePrompt?: string;
+    videoPrompt?: string;
     assetRefs: ShotAssetRef[];
     continuity?: ShotContinuityType;
     firstFrame: (ShotFirstFrame & { filePath: string }) | null;
@@ -222,7 +228,8 @@ export interface QuickVideoTimelineClipPlan {
 
 export interface QuickVideoTimelineTransition {
   afterShotId: string;
-  type: "crossfade";
+  /** crossfade=叠化转场；none=无缝顺承（时长为 0，不设透明度动画），与后端契约一致 */
+  type: "crossfade" | "none";
   duration: number;
 }
 

@@ -152,6 +152,48 @@ export async function imageModelSupportsReference(modelKey: string): Promise<boo
 }
 
 // ---------------------------------------------------------------------------
+// 视频模型输入模式能力查询（SIY-151 聊天多模态生成：纯文生视频 / 首帧 / 首尾帧）
+// ---------------------------------------------------------------------------
+
+/** 首尾帧过渡视频的输入模式（两图首尾帧；模型目录 mode 声明其一才启用） */
+export type VideoStartEndMode = "startEndRequired" | "endFrameOptional" | "startFrameOptional";
+
+/**
+ * 查询视频模型是否声明支持首尾帧过渡输入；未声明（目录缺失/未声明 mode/不支持）时返回 null，
+ * 调用方应退化为单图首帧或纯文本模式，禁止盲目尝试两图输入。
+ */
+export async function resolveVideoStartEndMode(modelKey: string): Promise<VideoStartEndMode | null> {
+  const split = splitModelKey(modelKey);
+  if (!split) return null;
+  const catalog = await getVendorModelCatalog(split.vendorId);
+  if (!catalog?.enabled) return null;
+  const hit = pickEnabledModel(catalog.models, catalog.enabledNames, split.modelName, "video");
+  if (!hit) return null;
+  const modes = Array.isArray(hit.mode) ? (hit.mode as unknown[]) : [];
+  if (modes.includes("startEndRequired")) return "startEndRequired";
+  if (modes.includes("endFrameOptional")) return "endFrameOptional";
+  if (modes.includes("startFrameOptional")) return "startFrameOptional";
+  return null;
+}
+
+/**
+ * 查询视频模型是否声明支持纯文本生视频（目录 mode 含 "text"）。
+ * 与"未声明则放行"的宽松约定一致：目录缺失/未声明 mode 时返回 true（放行尝试），
+ * 仅当目录明确声明了 mode 且不含 "text" 时返回 false（提前拦截，避免必然失败的供应商调用）。
+ */
+export async function videoModelSupportsTextToVideo(modelKey: string): Promise<boolean> {
+  const split = splitModelKey(modelKey);
+  if (!split) return true;
+  const catalog = await getVendorModelCatalog(split.vendorId);
+  if (!catalog?.enabled) return true;
+  const hit = pickEnabledModel(catalog.models, catalog.enabledNames, split.modelName, "video");
+  if (!hit) return true;
+  const modes = Array.isArray(hit.mode) ? (hit.mode as unknown[]) : [];
+  if (!modes.length) return true;
+  return modes.includes("text");
+}
+
+// ---------------------------------------------------------------------------
 // 媒体落库（生成中占位 -> 完成/失败回写）
 // ---------------------------------------------------------------------------
 

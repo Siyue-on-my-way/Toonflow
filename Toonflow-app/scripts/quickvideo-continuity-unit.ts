@@ -71,6 +71,8 @@ async function runTests() {
       dialogue: "历史台词",
       camera: "特写",
       assetRefs: [],
+      imagePrompt: "",
+      videoPrompt: "",
       imageState: "pending" as const,
       videoState: "pending" as const,
       imageRef: null,
@@ -91,6 +93,8 @@ async function runTests() {
       dialogue: "",
       camera: "",
       assetRefs: [],
+      imagePrompt: "",
+      videoPrompt: "",
       firstFrame: null,
     };
     const parsed = snapshotShotSchema.parse(legacySnapshotShot);
@@ -110,6 +114,8 @@ async function runTests() {
         dialogue: "",
         camera: "中景",
         assetRefs: [],
+        imagePrompt: "",
+        videoPrompt: "",
         continuity: "independent",
         imageState: "pending",
         videoState: "pending",
@@ -126,6 +132,8 @@ async function runTests() {
         dialogue: "",
         camera: "中景",
         assetRefs: [],
+        imagePrompt: "",
+        videoPrompt: "",
         continuity: "last_frame",
         imageState: "pending",
         videoState: "pending",
@@ -205,6 +213,8 @@ async function runTests() {
         { type: "role" as const, name: "李逍遥", desc: "身穿素白武僧服" },
         { type: "tool" as const, name: "七星宝剑", desc: "剑身泛着青光" },
       ],
+      imagePrompt: "",
+      videoPrompt: "",
       continuity: "independent" as const,
       firstFrame: null,
     };
@@ -216,6 +226,8 @@ async function runTests() {
       dialogue: "破！",
       camera: "特写",
       assetRefs: [],
+      imagePrompt: "",
+      videoPrompt: "",
       continuity: "assets_only" as const,
       firstFrame: null,
     };

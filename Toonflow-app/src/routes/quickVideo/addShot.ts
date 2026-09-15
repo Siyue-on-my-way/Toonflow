@@ -22,6 +22,8 @@ export default router.post(
       camera: z.string().max(200).optional().default(""),
       assetRefs: z.array(shotAssetRefSchema).max(10).optional().default([]),
       continuity: z.enum(SHOT_CONTINUITY_TYPES).optional().default("last_frame"),
+      imagePrompt: z.string().max(2000).optional().default(""),
+      videoPrompt: z.string().max(2000).optional().default(""),
     }),
   }),
   async (req, res) => {
@@ -41,6 +43,8 @@ export default router.post(
           camera: shot.camera ?? "",
           assetRefs: shot.assetRefs ?? [],
           continuity: shot.continuity ?? "last_frame",
+          imagePrompt: shot.imagePrompt ?? "",
+          videoPrompt: shot.videoPrompt ?? "",
           imageState: "pending",
           videoState: "pending",
           imageRef: null,

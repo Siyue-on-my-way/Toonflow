@@ -18,12 +18,21 @@ import {
 } from "@/lib/quickVideo/contract";
 import { findShot, nextShotId, normalizeShotDuration, reindexShots } from "@/lib/quickVideo/shots";
 import { startQuickVideoGeneration, buildSnapshot, applySnapshotToState, assertVideoSupportsSingleImage, castAspectRatio } from "@/lib/quickVideo/generate";
-import { createChatMedia, markChatMediaDone, markChatMediaFailed, resolveMediaImageBase64 } from "@/lib/quickVideo/media";
+import {
+  createChatMedia,
+  markChatMediaDone,
+  markChatMediaFailed,
+  resolveMediaImageBase64,
+  resolveMediaForFirstFrame,
+  resolveVideoStartEndMode,
+  videoModelSupportsTextToVideo,
+} from "@/lib/quickVideo/media";
 
 /**
  * QuickVideoAgent 受限工具层。
  * Agent 对工作台状态的唯一写入口：全部走 mutateQuickVideoState（服务端 zod 契约校验 + 阶段白名单 + 事务 + 幂等键）。
- * 工具只暴露受控的入参，且不提供任何确认门/导出能力——那是用户专属操作。
+ * 工具只暴露受控的入参，且不提供任何确认门/导出能力——分镜确认与最终参数确认由
+ * generate_shots 在用户聊天明确要求生成时自动通过（SIY-151），导出确认仍是用户专属操作。
  */
 
 interface ToolConfig {
@@ -36,6 +45,15 @@ interface ToolConfig {
   videoModel?: string;
   /** 用户选中的引用媒体 mediaId 列表（图生图/图生视频参考） */
   references?: number[];
+  /** 占位符编号 -> mediaId 映射（##图N## = 托盘第 N 张图），由 socket 层按用户消息解析（SIY-151） */
+  slotReferences?: Record<number, number>;
+  /** 用户本轮消息中出现的占位符编号（升序去重）；未指定引用时的确定性回退依据 */
+  placeholderSlots?: number[];
+}
+
+/** 按占位符编号解析引用媒体；编号无效（没有对应媒体）时返回 null */
+function resolveSlotMediaId(toolConfig: ToolConfig, slot: number): number | null {
+  return toolConfig.slotReferences?.[slot] ?? null;
 }
 
 /** 工具内统一错误转文本，避免 Agent 因异常中断 */
@@ -224,10 +242,10 @@ export default (toolConfig: ToolConfig) => {
 
     propose_storyboard: tool({
       description:
-        "提交一版完整分镜（替换式）：5-12 个镜头、每镜 5-15 秒、总时长贴近目标时长。前置条件：简报已存在且简报已确认（用户在确认门确认过）。提交后分镜为草稿，需用户在右侧面板确认。",
+        "提交一版完整分镜（替换式）：5-12 个镜头、每镜 5-15 秒、总时长贴近目标时长。前置条件：简报已存在且简报已确认（用户在确认门确认过）。每个镜头必须输出高质量的 imagePrompt（文生图/首帧视觉描述词）与 videoPrompt（视频动作/运镜描述词），它们是用户在分镜表一键填入聊天窗生成的直接依据。提交后分镜为草稿，用户可在右侧面板继续打磨。",
       inputSchema: jsonSchema<{
         summary: string;
-        shots: { duration: number; description: string; dialogue: string; camera: string; continuity?: "last_frame" | "assets_only" | "independent" }[];
+        shots: { duration: number; description: string; dialogue: string; camera: string; imagePrompt: string; videoPrompt: string; continuity?: "last_frame" | "assets_only" | "independent" }[];
       }>(
         z
           .object({
@@ -239,6 +257,8 @@ export default (toolConfig: ToolConfig) => {
                   description: z.string().min(1).max(2000).describe("画面描述（镜头内容、动作、氛围）"),
                   dialogue: z.string().max(500).describe("台词/旁白（用作字幕，可为空字符串）"),
                   camera: z.string().max(200).describe("景别/运镜（如 全景、缓慢推进）"),
+                  imagePrompt: z.string().min(1).max(2000).describe("文生图/首帧提示词：具体到主体外观、动作姿态、构图景别、环境氛围、光影与画风关键词的完整画面描述，可直接用于文生图"),
+                  videoPrompt: z.string().min(1).max(2000).describe("视频提示词：以该镜头画面为起点的动作与动态变化描述，包含主体动作、镜头运动（推拉摇移）、时长节奏，可直接用于图生视频"),
                   continuity: z
                     .enum(SHOT_CONTINUITY_TYPES)
                     .optional()
@@ -289,6 +309,8 @@ export default (toolConfig: ToolConfig) => {
                 description: shot.description,
                 dialogue: shot.dialogue ?? "",
                 camera: shot.camera ?? "",
+                imagePrompt: shot.imagePrompt ?? "",
+                videoPrompt: shot.videoPrompt ?? "",
                 assetRefs: [],
                 continuity: (shot as any).continuity ?? "last_frame",
                 imageState: "pending",
@@ -320,13 +342,15 @@ export default (toolConfig: ToolConfig) => {
     }),
 
     update_shot: tool({
-      description: "修改单个草稿镜头的字段（画面描述/台词/运镜/时长/资产/连续性策略）。仅分镜草稿状态可用；镜头 id 与顺序不可改。",
+      description: "修改单个草稿镜头的字段（画面描述/台词/运镜/时长/资产/连续性策略/生图与生视频提示词）。仅分镜草稿状态可用；镜头 id 与顺序不可改。",
       inputSchema: jsonSchema<{
         shotId: string;
         description?: string;
         dialogue?: string;
         camera?: string;
         duration?: number;
+        imagePrompt?: string;
+        videoPrompt?: string;
         continuity?: "last_frame" | "assets_only" | "independent";
       }>(
         z
@@ -336,6 +360,8 @@ export default (toolConfig: ToolConfig) => {
             dialogue: z.string().max(500).optional().describe("新的台词/旁白"),
             camera: z.string().max(200).optional().describe("新的景别/运镜"),
             duration: z.number().int().min(SHOT_DURATION_MIN).max(SHOT_DURATION_MAX).optional().describe("新的镜头时长（秒）"),
+            imagePrompt: z.string().max(2000).optional().describe("新的文生图/首帧提示词（具体视觉描述）"),
+            videoPrompt: z.string().max(2000).optional().describe("新的视频提示词（动作/运镜/动态描述）"),
             continuity: z
               .enum(SHOT_CONTINUITY_TYPES)
               .optional()
@@ -361,6 +387,8 @@ export default (toolConfig: ToolConfig) => {
               if (input.dialogue != null) shot.dialogue = input.dialogue;
               if (input.camera != null) shot.camera = input.camera;
               if (input.duration != null) shot.duration = normalizeShotDuration(input.duration);
+              if (input.imagePrompt != null) shot.imagePrompt = input.imagePrompt;
+              if (input.videoPrompt != null) shot.videoPrompt = input.videoPrompt;
               if (input.continuity != null) shot.continuity = input.continuity;
             },
           );
@@ -372,14 +400,16 @@ export default (toolConfig: ToolConfig) => {
     }),
 
     add_shot: tool({
-      description: "在分镜草稿末尾追加一个镜头。",
-      inputSchema: jsonSchema<{ duration: number; description: string; dialogue: string; camera: string; continuity?: "last_frame" | "assets_only" | "independent" }>(
+      description: "在分镜草稿末尾追加一个镜头（需给出 imagePrompt/videoPrompt 双提示词）。",
+      inputSchema: jsonSchema<{ duration: number; description: string; dialogue: string; camera: string; imagePrompt?: string; videoPrompt?: string; continuity?: "last_frame" | "assets_only" | "independent" }>(
         z
           .object({
             duration: z.number().int().min(SHOT_DURATION_MIN).max(SHOT_DURATION_MAX).describe(`镜头时长（秒）`),
             description: z.string().min(1).max(2000).describe("画面描述"),
             dialogue: z.string().max(500).describe("台词/旁白，可为空字符串"),
             camera: z.string().max(200).describe("景别/运镜"),
+            imagePrompt: z.string().max(2000).optional().describe("文生图/首帧提示词（具体视觉描述，建议填写）"),
+            videoPrompt: z.string().max(2000).optional().describe("视频提示词（动作/运镜/动态描述，建议填写）"),
             continuity: z
               .enum(SHOT_CONTINUITY_TYPES)
               .optional()
@@ -411,6 +441,8 @@ export default (toolConfig: ToolConfig) => {
                 description: input.description,
                 dialogue: input.dialogue ?? "",
                 camera: input.camera ?? "",
+                imagePrompt: input.imagePrompt ?? "",
+                videoPrompt: input.videoPrompt ?? "",
                 assetRefs: [],
                 continuity: input.continuity ?? "last_frame",
                 imageState: "pending",
@@ -496,6 +528,56 @@ export default (toolConfig: ToolConfig) => {
       },
     }),
 
+    bind_shot_first_frame: tool({
+      description:
+        "把一张图片绑定为某个草稿镜头的首帧（图生视频起点）。优先用占位符编号：用户说「镜头1：##图1##」时传 slot=1（服务端已把 ##图1## 映射到对应图片）；仅在用户给出明确 mediaId 时才用 mediaId 参数。仅分镜草稿状态可用。",
+      inputSchema: jsonSchema<{ shotId: string; slot?: number; mediaId?: number }>(
+        z
+          .object({
+            shotId: z.string().min(1).max(40).describe("镜头 ID（如 shot-1）"),
+            slot: z.number().int().min(1).max(4).optional().describe("占位符编号：##图N## 中的 N（推荐，服务端负责映射到真实媒体）"),
+            mediaId: z.number().int().positive().optional().describe("图片 mediaId（仅当用户消息中明确给出时使用，不要凭空编造）"),
+          })
+          .toJSONSchema(),
+      ),
+      execute: async (input, options) => {
+        const { toolCallId } = options as { toolCallId: string };
+        return withThinking(msg, `正在为镜头 ${input.shotId} 绑定首帧...`, async () => {
+          const mediaId = input.slot != null ? resolveSlotMediaId(toolConfig, input.slot) : (input.mediaId ?? null);
+          if (mediaId == null) {
+            const reason =
+              input.slot != null
+                ? `占位符 ##图${input.slot}## 没有对应的引用图片：请提醒用户先把图片粘贴/上传到聊天框附件托盘，或直接选中一张图片后再发送`
+                : "缺少首帧图片：请提醒用户在聊天框附件托盘放入图片（用 ##图1## 等占位符引用），或选中一张图片后发送";
+            throw new QuickVideoError("MEDIA_NOT_FOUND", reason);
+          }
+
+          const { state, idempotentHit } = await mutateQuickVideoState(
+            projectId,
+            { idempotencyKey: `tool:bind_first_frame:${toolCallId}`, sessionId },
+            async (s) => {
+              if (!s.storyboard || s.storyboard.status !== "draft") {
+                throw new QuickVideoError("STORYBOARD_LOCKED", "分镜不存在或已确认锁定，不允许绑定首帧", s.version);
+              }
+              if (s.stage !== "storyboard_draft") {
+                throw new QuickVideoError("STAGE_FORBIDDEN", `当前阶段 ${s.stage} 不允许绑定首帧`, s.version);
+              }
+              const shot = findShot(s, input.shotId);
+              const { assetId, imageId } = await resolveMediaForFirstFrame(projectId, mediaId);
+              shot.firstFrame = { mediaId, assetId, imageId, boundAt: Date.now() };
+              // 与 REST bindShotFirstFrame 一致：首帧变化后强制下一次生成重建快照
+              s.generation.snapshot = null;
+              s.generation.materialsConfirmed = false;
+              s.generation.materialsConfirmedAt = null;
+            },
+          );
+          return idempotentHit
+            ? "该次首帧绑定已应用过（幂等命中）。"
+            : `镜头 ${input.shotId} 首帧已绑定成功（mediaId ${mediaId}，状态版本 ${state.version}）。`;
+        }).catch((err) => `绑定首帧失败：${describeError(err)}`);
+      },
+    }),
+
     get_generation_status: tool({
       description: "查询各镜头图片/视频生成状态（用于向用户汇报生成进度或定位失败镜头）。",
       inputSchema: jsonSchema<Record<string, never>>({ type: "object", properties: {}, additionalProperties: false }),
@@ -519,132 +601,92 @@ export default (toolConfig: ToolConfig) => {
 
     generate_shots: tool({
       description:
-        "触发逐镜头生成（分镜图 + 5-15 秒视频片段）。前置条件由服务端校验：分镜已就绪且用户已通过最终生成参数确认（点击卡片「确认生成」或聊天回复「确认」调用 confirm_generation）；条件满足时启动/恢复生成（幂等）；生成中调用则返回当前进度。",
+        "一键启动分镜生成管道（自动通过分镜确认门与最终参数确认门）：逐镜头生成分镜图 + 5-15 秒视频片段，完成后系统自动装配时间线，用户在右侧预览面板查看成片。仅在用户聊天中明确要求生成/开始制作（如「开始生成」「按这个做」「生成全部镜头」）时调用；用户还在讨论修改方案时严禁调用。分镜草稿状态调用会自动确认当前分镜并冻结生成快照；生成中重复调用返回当前进度（幂等）。",
       inputSchema: jsonSchema<Record<string, never>>({ type: "object", properties: {}, additionalProperties: false }),
-      execute: async () => {
-        return withThinking(msg, "正在检查生成条件...", async () => {
+      execute: async (_input, options) => {
+        const { toolCallId } = options as { toolCallId: string };
+        return withThinking(msg, "正在启动生成管道...", async () => {
           const state = await loadQuickVideoState(projectId);
           if (!state) return "未找到工作台状态，请先创建 quick_video 项目";
 
+          if (state.stage === "ready_to_assemble" || state.stage === "completed") {
+            return "所有镜头已生成完毕，成片已在右侧预览面板就绪；如需成片请提醒用户在预览面板导出 MP4。";
+          }
+
           if (state.stage === "generating") {
             // 阶段已就绪但没有任何运行在跑（如服务重启后的遗留）：幂等重启
-            if (!state.generation?.materialsConfirmed) {
-              return "处于生成阶段但最终生成参数确认状态异常，请让用户重新确认分镜后再开始生成。";
-            }
             const { started, alreadyRunning, runId } = await startQuickVideoGeneration(projectId, userId, sessionId);
             if (started) {
-              return `生成已重新启动（运行 ${runId}）。请提醒用户右侧面板会实时展示各镜头进度；失败镜头可单独重试。`;
+              return `检测到上次生成中断，已重新启动生成（运行 ${runId}）。右侧面板会实时展示各镜头进度；失败镜头可单独重试。`;
             }
             if (alreadyRunning) {
-              return `生成正在进行中（运行 ${runId}），无需重复启动。请提醒用户在右侧面板查看镜头级进度。`;
+              return `生成正在进行中（运行 ${runId}），无需重复启动。可调用 get_generation_status 查询镜头级进度后向用户汇报。`;
             }
           }
 
-          if (state.stage === "storyboard_confirmed") {
-            if (!state.generation?.materialsConfirmed) {
-              return "分镜已就绪，最终生成参数确认卡片已在聊天中回显（含视频时长、整体画风、分镜数量与分镜摘要）。请提醒用户点击卡片上的「确认生成」按钮或在聊天中回复「确认」，确认后系统会自动开始逐镜头生成。";
+          if (state.stage === "storyboard_draft" || state.stage === "storyboard_confirmed") {
+            if (!state.storyboard) return "当前没有分镜：请先用 propose_storyboard 提交一版分镜，再启动生成。";
+
+            let shouldStart = false;
+            await mutateQuickVideoState(
+              projectId,
+              { idempotencyKey: `tool:generate_shots:${toolCallId}`, sessionId },
+              async (s) => {
+                if (!s.storyboard) throw new QuickVideoError("NO_STORYBOARD", "暂无分镜", s.version);
+
+                // 分镜草稿 -> 自动通过分镜确认门（用户在聊天中的生成请求即确认意向）
+                if (s.storyboard.status === "draft") {
+                  if (s.stage !== "storyboard_draft") {
+                    throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${s.stage} 不允许确认分镜`, s.version);
+                  }
+                  const errors = validateStoryboard(s.targetDuration, s.storyboard.shots);
+                  if (errors.length) throw new QuickVideoError("STORYBOARD_INVALID", errors.join("；"), s.version);
+                  s.stage = "storyboard_confirmed";
+                  s.storyboard.status = "confirmed";
+                  s.storyboard.confirmedAt = Date.now();
+                }
+
+                if (s.stage !== "storyboard_confirmed" && s.stage !== "generating") {
+                  throw new QuickVideoError("STAGE_MISMATCH", `当前阶段 ${s.stage} 无法启动生成`, s.version);
+                }
+                // 最终参数确认门：聊天生成请求视为已确认（快照缺失或版本变化时现场重建）
+                const needResolve = !s.generation?.snapshot || s.generation.snapshot.storyboardVersion !== s.storyboard.version;
+                if (needResolve) {
+                  const { materials, snapshotShots } = await buildSnapshot(projectId, s);
+                  applySnapshotToState(s, s.storyboard.version, snapshotShots, materials);
+                }
+                if (!s.generation.snapshot) {
+                  throw new QuickVideoError("SNAPSHOT_FAILED", "生成参数快照组装失败，无法开始生成", s.version);
+                }
+                s.generation.materialsConfirmed = true;
+                s.generation.materialsConfirmedAt = Date.now();
+                s.generation.startedAt = Date.now();
+                s.generation.finishedAt = null;
+                s.stage = "generating";
+                shouldStart = true;
+              },
+            );
+
+            if (shouldStart) {
+              try {
+                const start = await startQuickVideoGeneration(projectId, userId, sessionId);
+                if (start.started) {
+                  return `生成管道已启动（运行 ${start.runId}），系统将按分镜顺序逐镜头生成分镜图与视频片段。右侧预览面板会实时展示进度，全部完成后自动装配时间线供预览与导出。`;
+                }
+                if (start.alreadyRunning) {
+                  return `生成正在进行中（运行 ${start.runId}），无需重复启动。请用 get_generation_status 查询进度并向用户汇报。`;
+                }
+              } catch (err: any) {
+                console.error(`[quickVideo] 项目 ${projectId} Agent 启动生成管道失败:`, u.error(err as Error).message);
+                return `生成已确认但启动失败：${describeError(err)}。请提醒用户稍后在聊天中重新发送「开始生成」即可幂等重启。`;
+              }
             }
-            const { started, alreadyRunning, runId } = await startQuickVideoGeneration(projectId, userId, sessionId);
-            if (started) return `生成已启动（运行 ${runId}），系统将逐镜头生成分镜图和视频片段。`;
-            if (alreadyRunning) return `生成已在进行中（运行 ${runId}）。`;
+
+            return `生成确认已通过（状态版本 ${state.version}）。系统已进入生成阶段，可调用 get_generation_status 查询各镜头进度。`;
           }
 
-          if (state.stage === "ready_to_assemble") {
-            return "所有镜头已生成完毕，可以进入装配/导出环节。";
-          }
-
-          return `当前阶段 ${state.stage} 还不能开始生成：需先打磨并确认分镜，再通过最终生成参数确认。`;
+          return `当前阶段 ${state.stage} 还不能开始生成：请先保存简报并提交分镜（propose_storyboard），再启动生成管道。`;
         }).catch((err) => `启动生成失败：${describeError(err)}`);
-      },
-    }),
-
-    request_generation_confirm: tool({
-      description:
-        "在分镜就绪、准备生成前，在聊天流中回显当前视频生成参数卡片（时长、画风、分镜概览）。用户可以在卡片上点击「确认生成」/「返回修改」，或直接在聊天中回复「确认」。",
-      inputSchema: jsonSchema<Record<string, never>>({ type: "object", properties: {}, additionalProperties: false }),
-      execute: async (_input, options) => {
-        const { toolCallId } = options as { toolCallId: string };
-        return withThinking(msg, "正在回显最终生成参数卡片...", async () => {
-          const { state, idempotentHit } = await mutateQuickVideoState(
-            projectId,
-            { idempotencyKey: `tool:request_confirm:${toolCallId}`, sessionId },
-            async (s) => {
-              if (!s.storyboard) throw new QuickVideoError("NO_STORYBOARD", "暂无分镜，无法发起生成确认", s.version);
-              const { materials, snapshotShots } = await buildSnapshot(projectId, s);
-              applySnapshotToState(s, s.storyboard.version, snapshotShots, materials);
-              echoFinalParamsCard(s);
-            },
-          );
-
-          if (idempotentHit) return "最终参数确认卡片已回显过（幂等命中）。";
-
-          const latestCard = state.generation?.finalParamsCards?.slice(-1)[0];
-          const durText = latestCard?.durationText || (latestCard?.targetDuration ? `${latestCard.targetDuration}s` : "自适应");
-          const styleText = latestCard?.artStyleText || latestCard?.artStyle || "自由画风";
-          return `已在聊天流中回显最终参数确认卡片：时长「${durText}」，画风「${styleText}」，分镜共 ${latestCard?.shotCount ?? 0} 镜。请向用户复述要点，并提醒用户点击卡片上的「确认生成」或直接回复「确认」即可开始制作视频；若需调整可点击「返回修改」或输入修改意见。`;
-        }).catch((err) => `回显确认卡片失败：${describeError(err)}`);
-      },
-    }),
-
-    confirm_generation: tool({
-      description:
-        "确认生成并启动逐镜头视频制作（仅在分镜已就绪且用户在聊天中明确回复「确认」、「确认生成」、「开始生成」、「好的生成吧」等肯定意向后调用）。本工具会通过参数确认门，冻结生成快照并真正启动逐镜头生成。注意：若用户尚未确认或要求修改，严禁调用本工具。",
-      inputSchema: jsonSchema<{ configVersion?: number }>(
-        z
-          .object({
-            configVersion: z.number().int().min(0).optional().describe("当前配置版本号（可选）"),
-          })
-          .toJSONSchema(),
-      ),
-      execute: async (_input, options) => {
-        const { toolCallId } = options as { toolCallId: string };
-        return withThinking(msg, "正在校验并启动生成...", async () => {
-          let shouldStart = false;
-          const { state, idempotentHit } = await mutateQuickVideoState(
-            projectId,
-            { idempotencyKey: `tool:confirm_generation:${toolCallId}`, sessionId },
-            async (s) => {
-              if (!s.storyboard || s.storyboard.status !== "confirmed") {
-                throw new QuickVideoError("STORYBOARD_NOT_CONFIRMED", "分镜尚未确认，无法开始生成；请先确认分镜", s.version);
-              }
-              if (s.stage !== "storyboard_confirmed" && s.stage !== "generating") {
-                throw new QuickVideoError("STAGE_MISMATCH", `当前处于 ${s.stage} 阶段，无法确认生成`, s.version);
-              }
-              const needResolve = !s.generation?.snapshot || s.generation.snapshot.storyboardVersion !== s.storyboard.version;
-              if (needResolve) {
-                const { materials, snapshotShots } = await buildSnapshot(projectId, s);
-                applySnapshotToState(s, s.storyboard.version, snapshotShots, materials);
-              }
-              if (!s.generation.snapshot) {
-                throw new QuickVideoError("SNAPSHOT_FAILED", "生成参数快照组装失败，无法开始生成", s.version);
-              }
-              s.generation.materialsConfirmed = true;
-              s.generation.materialsConfirmedAt = Date.now();
-              s.generation.startedAt = Date.now();
-              s.generation.finishedAt = null;
-              s.stage = "generating";
-              shouldStart = true;
-            },
-          );
-
-          if (idempotentHit) return "生成已启动过（幂等命中），无需重复启动。";
-
-          if (shouldStart) {
-            try {
-              const start = await startQuickVideoGeneration(projectId, userId, sessionId);
-              if (start.started) {
-                return `生成已正式启动（运行 ${start.runId}）。系统正在逐镜头生成分镜图与视频片段，右侧面板将实时展示进度。全部镜头完成后将自动装配时间线。`;
-              }
-              if (start.alreadyRunning) {
-                return `生成正在进行中（运行 ${start.runId}），无需重复启动。请在右侧面板查看镜头生成进度。`;
-              }
-            } catch (err: any) {
-              console.error(`[quickVideo] 项目 ${projectId} Agent 确认后启动生成失败:`, u.error(err as Error).message);
-            }
-          }
-
-          return `生成确认已通过（状态版本 ${state.version}）。系统已进入生成阶段，可在右侧面板查看各镜头进度。`;
-        }).catch((err) => `确认生成失败：${describeError(err)}`);
       },
     }),
   };
@@ -655,17 +697,22 @@ export default (toolConfig: ToolConfig) => {
     const imageModel = toolConfig.imageModel;
     tools.generate_image = tool({
       description:
-        "在当前聊天会话中生成一张图片（文生图，可选引用图作为图生图参考）。生成成功会自动出现在聊天记录和资产白板中，" +
-        "但不会绑定到任何镜头、不会修改分镜、不会代替用户确认任何确认门——绑定镜头首帧是用户在右侧分镜表的专属操作。",
-      inputSchema: jsonSchema<{ prompt: string; referenceMediaIds?: number[] }>(
+        "在当前聊天会话中生成一张图片（默认文生图；用户消息带 ##图N## 占位符或明确指定引用图时自动转为图生图/垫图）。生成成功会自动出现在聊天记录和资产白板中，" +
+        "但不会绑定到任何镜头、不会修改分镜——绑定镜头首帧请用 bind_shot_first_frame 工具。",
+      inputSchema: jsonSchema<{ prompt: string; referenceMediaIds?: number[]; referenceSlots?: number[] }>(
         z
           .object({
-            prompt: z.string().min(1).max(2000).describe("图片生成提示词（画面描述，尽量具体：主体、构图、风格、光影）"),
+            prompt: z.string().min(1).max(2000).describe("图片生成提示词（画面描述，尽量具体：主体、构图、风格、光影）；请剔除 ##图N## 占位符本身，不要把它写进提示词"),
             referenceMediaIds: z
               .array(z.number().int().positive())
               .max(4)
               .optional()
               .describe("引用媒体的 mediaId 列表（图生图参考），只能是用户在本轮聊天中明确选中的引用，不要凭空编造 id"),
+            referenceSlots: z
+              .array(z.number().int().min(1).max(4))
+              .max(4)
+              .optional()
+              .describe("占位符编号列表（如 [1] 表示 ##图1##）；用户消息中提到 ##图N## 时优先传编号"),
           })
           .toJSONSchema(),
       ),
@@ -691,7 +738,12 @@ export default (toolConfig: ToolConfig) => {
             return "该次图片生成请求正在处理中（幂等命中），请稍候查看聊天记录或资产白板。";
           }
 
-          const referenceIds = (input.referenceMediaIds ?? toolConfig.references ?? []).slice(0, 4);
+          // 参考图解析优先级：显式 mediaId > 显式占位符编号 > 用户消息占位符（确定性回退）；
+          // 全部落空时保持纯文生图。单张参考图失效只跳过该图，不阻断本次生成。
+          const slotSource = input.referenceSlots?.length ? input.referenceSlots : (toolConfig.placeholderSlots ?? []);
+          const slotIds = slotSource.map((slot) => resolveSlotMediaId(toolConfig, slot)).filter((id): id is number => id != null);
+          const mediaIds = input.referenceMediaIds?.length ? input.referenceMediaIds : slotIds;
+          const referenceIds = mediaIds.slice(0, 4);
           const referenceList: { type: "image"; base64: string }[] = [];
           for (const refId of referenceIds) {
             try {
@@ -700,6 +752,7 @@ export default (toolConfig: ToolConfig) => {
               // 单张参考图失效不阻断本次生成，退化为纯文本提示词
             }
           }
+          const droppedRefs = referenceIds.length - referenceList.length;
 
           try {
             const imageCls = u.Ai.Image(imageModel as `${string}:${string}`, userId);
@@ -707,7 +760,7 @@ export default (toolConfig: ToolConfig) => {
               { prompt: input.prompt, referenceList, size: "1K", aspectRatio },
               {
                 taskClass: "快创聊天生图",
-                describe: `聊天生图：${input.prompt.slice(0, 100)}`,
+                describe: `聊天生图${referenceList.length ? "（图生图）" : ""}：${input.prompt.slice(0, 100)}`,
                 relatedObjects: JSON.stringify({ projectId, sessionId, mediaId: media.id }),
                 projectId,
               },
@@ -721,7 +774,8 @@ export default (toolConfig: ToolConfig) => {
               { name: input.prompt.slice(0, 60), url },
               { mediaId: media.id, assetId: media.assetId, imageId: media.imageId, kind: "image", model: imageModel, promptSummary: input.prompt.slice(0, 200), state: "done", source: "chat" },
             );
-            return `图片已生成并加入聊天记录与资产白板（mediaId ${media.id}）。提醒用户：如需用作某个镜头的首帧，请在右侧分镜表对应镜头点击"设为首帧"手动绑定，我不会自动绑定。`;
+            const modeText = referenceList.length ? `已按${referenceList.length}张参考图做图生图${droppedRefs ? `（${droppedRefs}张参考图失效已跳过）` : ""}` : "纯文生图";
+            return `图片已生成并加入聊天记录与资产白板（mediaId ${media.id}，${modeText}）。提醒用户：如需用作某个镜头的首帧，可以在聊天中告诉我「把这张图设为镜头N首帧」，或在右侧分镜表手动绑定。`;
           } catch (err) {
             const reason = describeError(err);
             await markChatMediaFailed(media.id, reason);
@@ -732,24 +786,27 @@ export default (toolConfig: ToolConfig) => {
     });
   }
 
-  // 仅当本轮 socket 已校验通过 videoModel 时才对 Agent 暴露该工具（SIY-134）：mode=text/image 的
-  // 对话轮次不应该、也不能触发视频生成。
+  // 仅当本轮 socket 已校验通过 videoModel 时才对 Agent 暴露该工具（SIY-134；SIY-151 放开纯文生视频）。
   if (toolConfig.videoModel) {
     const videoModel = toolConfig.videoModel;
     tools.generate_video = tool({
       description:
-        "在当前聊天会话中生成一段图生视频（必须提供一张参考图作为首帧输入，不支持纯文字生视频）。生成成功会自动出现在聊天记录和资产白板中，" +
-        "但不会绑定到任何镜头、不会修改分镜、不会代替用户确认任何确认门——绑定镜头首帧是用户在右侧分镜表的专属操作。",
-      inputSchema: jsonSchema<{ prompt: string; referenceMediaId?: number; duration?: number }>(
+        "在当前聊天会话中生成一段视频（支持纯文生视频；带 ##图1## 时以该图为首帧；带 ##图1## ##图2## 时生成首尾帧过渡视频，模型不支持时自动退化为首帧模式）。生成成功会自动出现在聊天记录和资产白板中，" +
+        "但不会绑定到任何镜头、不会修改分镜——绑定镜头首帧请用 bind_shot_first_frame 工具。",
+      inputSchema: jsonSchema<{ prompt: string; referenceSlots?: number[]; referenceMediaIds?: number[]; duration?: number }>(
         z
           .object({
-            prompt: z.string().min(1).max(2000).describe("视频生成提示词（画面内容、动作、运镜、氛围，尽量具体）"),
-            referenceMediaId: z
-              .number()
-              .int()
-              .positive()
+            prompt: z.string().min(1).max(2000).describe("视频生成提示词（画面内容、动作、运镜、氛围，尽量具体）；请剔除 ##图N## 占位符本身，不要把它写进提示词"),
+            referenceSlots: z
+              .array(z.number().int().min(1).max(4))
+              .max(2)
               .optional()
-              .describe("作为首帧的参考图 mediaId，只能是用户在本轮聊天中明确选中/复制的图片，不要凭空编造 id；未提供时使用用户当前选中的引用"),
+              .describe("占位符编号列表（按顺序）：1 个表示首帧参考图，2 个表示首尾帧过渡视频；用户消息中提到 ##图N## 时优先传编号"),
+            referenceMediaIds: z
+              .array(z.number().int().positive())
+              .max(2)
+              .optional()
+              .describe("参考图 mediaId 列表（第 1 个为首帧，第 2 个为尾帧），只能是用户明确选中的引用，不要凭空编造 id"),
             duration: z
               .number()
               .int()
@@ -763,15 +820,20 @@ export default (toolConfig: ToolConfig) => {
       execute: async (input, options) => {
         const { toolCallId } = options as { toolCallId: string };
         return withThinking(msg, "正在生成视频...", async () => {
-          const referenceId = input.referenceMediaId ?? toolConfig.references?.[0];
-          if (!referenceId) {
-            return "生视频需要先提供一张参考图作为首帧：请提醒用户在聊天记录或资产白板中复制一张图片作为引用后再发送生视频请求，我不会凭空生成视频。";
-          }
+          // 参考图解析优先级：显式 mediaId > 显式占位符编号 > 用户消息占位符（确定性回退）
+          const slotSource = input.referenceSlots?.length ? input.referenceSlots : (toolConfig.placeholderSlots ?? []);
+          const slotIds = slotSource.map((slot) => resolveSlotMediaId(toolConfig, slot)).filter((id): id is number => id != null);
+          const referenceIds = (input.referenceMediaIds?.length ? input.referenceMediaIds : slotIds).slice(0, 2);
 
-          try {
-            await assertVideoSupportsSingleImage(videoModel, false);
-          } catch (err) {
-            return `视频生成失败：${describeError(err)}`;
+          // 纯文生视频守门：目录明确声明不支持 text 模式时提前拦截，避免必然失败的供应商调用
+          if (!referenceIds.length) {
+            try {
+              if (!(await videoModelSupportsTextToVideo(videoModel))) {
+                return `视频生成失败：所选视频模型「${videoModel.split(":").pop()}」不支持纯文字生视频。请提醒用户改在聊天框附带一张图片（用 ##图1## 引用）作为首帧，或更换视频模型后重试。`;
+              }
+            } catch (err) {
+              return `视频生成失败：${describeError(err)}`;
+            }
           }
 
           const project = await u.db("o_project").where("id", projectId).select("videoRatio").first();
@@ -794,13 +856,37 @@ export default (toolConfig: ToolConfig) => {
             return "该次视频生成请求正在处理中（幂等命中），请稍候查看聊天记录或资产白板。";
           }
 
-          let imageBase64: string;
-          try {
-            imageBase64 = await resolveMediaImageBase64(projectId, referenceId);
-          } catch (err) {
-            const reason = describeError(err);
-            await markChatMediaFailed(media.id, reason);
-            return `视频生成失败：参考图无效（${reason}）。请提醒用户重新选择一张已生成完成的图片作为参考后再试，不要凭空重试。`;
+          // 解析参考图为 Base64；单张失效只降级（首尾帧 -> 首帧 -> 纯文本），不直接失败
+          const imageBase64List: string[] = [];
+          for (const refId of referenceIds) {
+            try {
+              imageBase64List.push(await resolveMediaImageBase64(projectId, refId));
+            } catch (err) {
+              await markChatMediaFailed(media.id, `参考图 ${refId} 无效：${describeError(err)}`);
+              return `视频生成失败：参考图无效（${describeError(err)}）。请提醒用户重新选择一张已生成完成的图片作为参考后再试。`;
+            }
+          }
+
+          // 输入模式决策：0 图=纯文本；1 图=首帧；2 图=首尾帧（目录未声明支持时退化为首帧）
+          let mode: ("text" | "singleImage" | "startEndRequired" | "endFrameOptional" | "startFrameOptional")[] = ["text"];
+          let degradedNote = "";
+          if (imageBase64List.length === 1) {
+            try {
+              await assertVideoSupportsSingleImage(videoModel, false);
+              mode = ["singleImage"];
+            } catch (err) {
+              await markChatMediaFailed(media.id, describeError(err));
+              return `视频生成失败：${describeError(err)}`;
+            }
+          } else if (imageBase64List.length >= 2) {
+            const startEndMode = await resolveVideoStartEndMode(videoModel);
+            if (startEndMode) {
+              mode = [startEndMode];
+            } else {
+              mode = ["singleImage"];
+              imageBase64List.length = 1;
+              degradedNote = "（该视频模型未声明支持首尾帧过渡，已自动退化为仅用首帧）";
+            }
           }
 
           try {
@@ -808,8 +894,8 @@ export default (toolConfig: ToolConfig) => {
             await videoAi.run(
               {
                 prompt: input.prompt,
-                referenceList: [{ type: "image", base64: imageBase64 }],
-                mode: ["singleImage"],
+                referenceList: imageBase64List.map((base64) => ({ type: "image" as const, base64 })),
+                mode: mode as any,
                 duration,
                 aspectRatio,
                 resolution: "720p",
@@ -830,7 +916,8 @@ export default (toolConfig: ToolConfig) => {
               { name: input.prompt.slice(0, 60), url },
               { mediaId: media.id, assetId: media.assetId, videoId: media.videoId, kind: "video", model: videoModel, promptSummary: input.prompt.slice(0, 200), state: "done", source: "chat" },
             );
-            return `视频已生成并加入聊天记录与资产白板（mediaId ${media.id}）。提醒用户：如需用作某个镜头的首帧，请在右侧分镜表对应镜头点击"设为首帧"手动绑定（仅图片可作首帧），我不会自动绑定。`;
+            const modeText = imageBase64List.length >= 2 ? "首尾帧过渡" : imageBase64List.length === 1 ? "以参考图为首帧" : "纯文生视频";
+            return `视频已生成并加入聊天记录与资产白板（mediaId ${media.id}，${modeText}）${degradedNote}。提醒用户：如需把视频/图片用于某个镜头，可以在聊天中告诉我，或在右侧分镜表手动绑定。`;
           } catch (err) {
             const reason = describeError(err);
             await markChatMediaFailed(media.id, reason);

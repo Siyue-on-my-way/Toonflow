@@ -10,7 +10,7 @@ const router = express.Router();
 
 /**
  * 用户编辑单个镜头（仅草稿状态允许）。
- * patch 走白名单字段（description/dialogue/camera/duration/assetRefs/continuity），
+ * patch 走白名单字段（description/dialogue/camera/duration/assetRefs/continuity/imagePrompt/videoPrompt），
  * 镜头 id / index / 生成状态不允许通过本接口修改。
  */
 export default router.post(
@@ -27,6 +27,8 @@ export default router.post(
       duration: z.number().int().min(5).max(15).optional(),
       assetRefs: z.array(shotAssetRefSchema).max(10).optional(),
       continuity: z.enum(SHOT_CONTINUITY_TYPES).optional(),
+      imagePrompt: z.string().max(2000).optional(),
+      videoPrompt: z.string().max(2000).optional(),
     }),
   }),
   async (req, res) => {
@@ -41,6 +43,8 @@ export default router.post(
         if (patch.duration != null) shot.duration = normalizeShotDuration(patch.duration);
         if (patch.assetRefs != null) shot.assetRefs = patch.assetRefs;
         if (patch.continuity != null) shot.continuity = patch.continuity;
+        if (patch.imagePrompt != null) shot.imagePrompt = patch.imagePrompt;
+        if (patch.videoPrompt != null) shot.videoPrompt = patch.videoPrompt;
       });
       res.status(200).send(success({ state: result.state, idempotentHit: result.idempotentHit }));
     } catch (err: any) {

@@ -62,6 +62,8 @@ function agentProposeStoryboard(projectId: number, shotsSpec: { duration: number
       dialogue: shot.dialogue ?? "",
       camera: "全景",
       assetRefs: [],
+      imagePrompt: "",
+      videoPrompt: "",
       continuity: "last_frame",
       imageState: "pending",
       videoState: "pending",

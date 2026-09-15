@@ -96,6 +96,8 @@ export async function buildSnapshot(projectId: number, state: QuickVideoState) {
       description: s.description,
       dialogue: s.dialogue,
       camera: s.camera,
+      imagePrompt: s.imagePrompt ?? "",
+      videoPrompt: s.videoPrompt ?? "",
       assetRefs: s.assetRefs,
       continuity: s.continuity ?? "last_frame",
       firstFrame: await resolveSnapshotFirstFrame(s),
@@ -784,12 +786,28 @@ function materialLabel(type: string): string {
   return type === "role" ? "角色" : type === "scene" ? "场景" : "道具";
 }
 
-/** 镜头分镜图提示词：画风 + 画面描述 + 运镜 + 引用资产描述 + 切镜主体特征自动补齐 */
+/** 镜头分镜图提示词：优先使用分镜表策划的 imagePrompt（SIY-151），未填写时按描述+运镜+资产自动组装 */
 function buildShotImagePrompt(
   snapshot: QuickVideoGenerationSnapshot,
   shot: QuickVideoSnapshotShot,
   prevShot?: QuickVideoSnapshotShot | null,
 ): string {
+  const planned = shot.imagePrompt?.trim();
+  if (planned) {
+    // 策划板提示词是用户/Agent 打磨过的直接依据：仅补充画风、比例与连续性特征词
+    let prompt = [
+      snapshot.artStyle ? `整体画面风格：${snapshot.artStyle}` : "",
+      `画面比例 ${snapshot.videoRatio}`,
+      planned,
+      "单幅完整画面，无文字、无水印、无分屏",
+    ]
+      .filter(Boolean)
+      .join("；");
+    if (shot.continuity === "assets_only" && prevShot) {
+      prompt = augmentPromptForCutContinuity(prompt, prevShot, shot);
+    }
+    return prompt;
+  }
   const parts = [
     snapshot.artStyle ? `整体画面风格：${snapshot.artStyle}` : "",
     `画面比例 ${snapshot.videoRatio}`,
@@ -807,17 +825,26 @@ function buildShotImagePrompt(
   return prompt;
 }
 
-/** 镜头视频提示词：以分镜图为首帧，按画面描述与时长运动 + 切镜连续性动作特征 */
+/** 镜头视频提示词：优先使用分镜表策划的 videoPrompt（SIY-151），未填写时按画面描述与时长运动组装 */
 function buildShotVideoPrompt(shot: QuickVideoSnapshotShot, prevShot?: QuickVideoSnapshotShot | null): string {
-  let prompt = [
-    `以参考图为首帧，生成 ${shot.duration} 秒的连续镜头`,
-    shot.description,
-    shot.camera ? `运镜：${shot.camera}` : "",
-    shot.dialogue ? `画面人物口型对齐台词：${shot.dialogue}` : "",
-    "动作自然连贯，保持人物与环境一致",
-  ]
-    .filter(Boolean)
-    .join("；");
+  const planned = shot.videoPrompt?.trim();
+  let prompt = planned
+    ? [
+        planned,
+        shot.dialogue ? `画面人物口型对齐台词：${shot.dialogue}` : "",
+        `镜头时长 ${shot.duration} 秒，动作自然连贯，保持人物与环境一致`,
+      ]
+        .filter(Boolean)
+        .join("；")
+    : [
+        `以参考图为首帧，生成 ${shot.duration} 秒的连续镜头`,
+        shot.description,
+        shot.camera ? `运镜：${shot.camera}` : "",
+        shot.dialogue ? `画面人物口型对齐台词：${shot.dialogue}` : "",
+        "动作自然连贯，保持人物与环境一致",
+      ]
+        .filter(Boolean)
+        .join("；");
   if (shot.continuity === "assets_only" && prevShot) {
     prompt = augmentPromptForCutContinuity(prompt, prevShot, shot);
   }
