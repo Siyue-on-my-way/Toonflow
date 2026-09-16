@@ -127,7 +127,10 @@
           <!-- 应用内剪贴板引用条（SIY-137 审核修复）：HTTP 非 localhost 环境系统剪贴板不可用，
                复制只写入应用内槽位，且系统剪贴板为空时浏览器不触发 paste 事件，导致 Ctrl+V 在聊天窗无响应；
              这里提供免系统剪贴板的显式入口：点击直接把引用放入待发送托盘 -->
-          <div class="internalClipBar" v-if="clipboardMediaRef" data-testid="quick-video-internal-clipboard">
+          <div
+            class="internalClipBar"
+            v-if="clipboardMediaRef && !pendingAttachments.some((p) => p.mediaRef?.mediaId === clipboardMediaRef?.mediaId)"
+            data-testid="quick-video-internal-clipboard">
             <i-copy size="12" />
             <span class="internalClipText">{{ $t("workbench.quickVideo.internalClipboard.hint") }}</span>
             <t-button size="small" theme="primary" variant="text" data-testid="quick-video-internal-clipboard-paste" @click="pasteInternalClipboardRef">
@@ -1220,7 +1223,11 @@ async function copyMediaRef(ref: MediaRef) {
   } catch {
     // 系统剪贴板受限（权限/浏览器不支持）时静默降级为仅应用内部复制，不阻断流程
   }
-  window.$message.success(systemCopyOk ? $t("workbench.quickVideo.copiedBoth") : $t("workbench.quickVideo.copiedInternalOnly"));
+  // 复制即引用（SIY-137 审核反馈）：省去再点「粘贴引用」的一步，直接进待发送托盘
+  stagePendingRef(ref);
+  window.$message.success(
+    systemCopyOk ? $t("workbench.quickVideo.copiedBoth") : $t("workbench.quickVideo.copiedInternalOnly"),
+  );
 }
 
 /** 资产白板删除（SIY-137 审核反馈）：软删除白板条目并同步清理内部剪贴板/待发送引用 */

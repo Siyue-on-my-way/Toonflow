@@ -46,19 +46,25 @@ test("白板复制 → 聊天窗「粘贴引用」条 → 待发送托盘", asyn
   await expect(copyBtn).toBeVisible({ timeout: 30_000 });
   await copyBtn.click();
 
-  // 4. 修复点：聊天输入框上方出现「粘贴引用」条（data-testid 稳定断言）
-  const clipBar = page.locator('[data-testid="quick-video-internal-clipboard"]');
-  await expect(clipBar).toBeVisible({ timeout: 15_000 });
-  await captureScreenshot(page, testInfo, "10-internal-clipboard-bar.png");
+  // 4. 复制即引用（SIY-137 审核反馈二）：点击复制后引用直接进入待发送托盘，无需再点「粘贴引用」
+  await expect(page.locator(".attachTray .attachItem").first()).toBeVisible({ timeout: 15_000 });
+  // 引用已进托盘时，内部剪贴板条常态隐藏（避免冗余）
+  await expect(page.locator('[data-testid="quick-video-internal-clipboard"]')).toBeHidden({ timeout: 10_000 });
+  await captureScreenshot(page, testInfo, "10-ref-staged-in-tray.png");
 
-  // 5. 点击「粘贴引用」→ 引用进入待发送托盘（attachTray 出现条目）
+  // 5. 恢复路径：从托盘移除该引用后，内部剪贴板条重新出现，可一键「粘贴引用」找回
+  await page.locator('[data-testid="quick-video-attach-remove"]').first().click();
+  await expect(page.locator(".attachTray .attachItem")).toHaveCount(0, { timeout: 10_000 });
+  const clipBar = page.locator('[data-testid="quick-video-internal-clipboard"]');
+  await expect(clipBar).toBeVisible({ timeout: 10_000 });
   await page.locator('[data-testid="quick-video-internal-clipboard-paste"]').click();
   await expect(page.locator(".attachTray .attachItem").first()).toBeVisible({ timeout: 15_000 });
-  await captureScreenshot(page, testInfo, "11-ref-staged-in-tray.png");
+  await captureScreenshot(page, testInfo, "11-bar-recovery-paste.png");
 
   // 6. 清除入口：点击条上的 x 后引用条消失（托盘中的待发送引用保留）
+  await page.locator('[data-testid="quick-video-attach-remove"]').first().click();
   await page.locator(".internalClipDismiss").click();
   await expect(clipBar).toBeHidden({ timeout: 10_000 });
-  await expect(page.locator(".attachTray .attachItem").first()).toBeVisible({ timeout: 10_000 });
-  await captureScreenshot(page, testInfo, "12-bar-dismissed-tray-kept.png");
+  await expect(page.locator(".attachTray .attachItem")).toHaveCount(0, { timeout: 10_000 });
+  await captureScreenshot(page, testInfo, "12-bar-dismissed.png");
 });

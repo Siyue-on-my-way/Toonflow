@@ -1719,8 +1719,8 @@
       "pasteFirstFrame": "Paste",
       "firstFrameBound": "First frame bound",
       "noDraftShots": "No draft shots available to bind",
-      "copiedBoth": "Copied to the in-app clipboard and the system clipboard",
-      "copiedInternalOnly": "Copied to the in-app clipboard (system clipboard unavailable). Click \"Paste ref\" above the chat input to attach it, or paste it in the storyboard table",
+      "copiedBoth": "Image copied to the system clipboard and added to the chat attachment tray",
+      "copiedInternalOnly": "Added to the chat attachment tray (system clipboard unavailable). Type a message and send; it also works with \"Paste first frame\" in the storyboard",
       "stage": {
         "collectBrief": "Collecting brief",
         "briefConfirmed": "Brief confirmed",
