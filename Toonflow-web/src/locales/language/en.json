@@ -1808,7 +1808,11 @@
         "hint": "Reference waiting in the in-app clipboard",
         "paste": "Paste ref",
         "dismiss": "Clear"
-      }
+      },
+      "deleteAsset": "Delete",
+      "deleteAssetConfirm": "This removes the asset from the whiteboard (chat history is kept). Delete it?",
+      "assetDeleted": "Asset deleted",
+      "deleteAssetFailed": "Delete failed"
     }
   },
   "login": {

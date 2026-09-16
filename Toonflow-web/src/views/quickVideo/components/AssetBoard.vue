@@ -51,6 +51,14 @@
               <t-button size="small" variant="text" theme="danger">{{ failedText }}</t-button>
             </t-tooltip>
             <span v-else class="qvAssetGenerating">{{ generatingText }}</span>
+            <!-- 删除（SIY-137 审核反馈）：白板条目可移除；生成中禁用（服务端同样守门） -->
+            <t-popconfirm
+              v-if="item.state !== 'generating'"
+              :content="deleteConfirmText"
+              theme="danger"
+              @confirm="$emit('delete', item)">
+              <t-button size="small" variant="text" theme="danger" data-testid="qv-asset-delete">{{ deleteText }}</t-button>
+            </t-popconfirm>
           </div>
         </div>
       </div>
@@ -83,6 +91,8 @@ const props = defineProps<{
   setFirstFrameText: string;
   failedText: string;
   generatingText: string;
+  deleteText: string;
+  deleteConfirmText: string;
   expandText: string;
   collapseText: string;
 }>();
@@ -94,6 +104,7 @@ const emit = defineEmits<{
   zoom: [item: MediaRef];
   copy: [item: MediaRef];
   "set-first-frame": [item: MediaRef];
+  delete: [item: MediaRef];
 }>();
 
 const collapsed = ref(false);

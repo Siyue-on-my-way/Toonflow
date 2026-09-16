@@ -1912,7 +1912,11 @@
         "hint": "已复制引用在应用内剪贴板",
         "paste": "粘贴引用",
         "dismiss": "清除"
-      }
+      },
+      "deleteAsset": "删除",
+      "deleteAssetConfirm": "删除后该素材将从资产白板移除（聊天记录保留），确定删除？",
+      "assetDeleted": "素材已删除",
+      "deleteAssetFailed": "删除失败"
     }
   },
   "login": {

@@ -38,6 +38,8 @@ const baseProps = {
   generatingText: "生成中",
   expandText: "展开",
   collapseText: "收起",
+  deleteText: "删除",
+  deleteConfirmText: "确定删除？",
 };
 
 describe("AssetBoard.vue", () => {
@@ -108,5 +110,13 @@ describe("AssetBoard.vue", () => {
     // 第一个是刷新按钮（筛选 select 之后、收起按钮之前）
     await buttons[0]?.trigger("click");
     expect(wrapper.emitted("refresh")).toBeTruthy();
+  });
+
+  it("删除按钮：done/failed 素材提供删除入口，生成中的素材不提供（确认交互由 popconfirm 承载，E2E 覆盖）", () => {
+    const done = media({ mediaId: 61, kind: "image" });
+    const generating = media({ mediaId: 62, kind: "image", state: "generating" });
+    const wrapper = mount(AssetBoard, { props: { ...baseProps, items: [done, generating], total: 2 } });
+    expect(wrapper.find('[data-testid="qv-asset-cell-61"]').find('[data-testid="qv-asset-delete"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="qv-asset-cell-62"]').find('[data-testid="qv-asset-delete"]').exists()).toBe(false);
   });
 });

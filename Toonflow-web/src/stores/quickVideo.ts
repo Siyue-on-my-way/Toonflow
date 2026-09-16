@@ -471,6 +471,20 @@ function makeQuickVideoStore(projectId: string) {
      * 服务端校验 MIME/大小并以 SHA-256 幂等，返回稳定 MediaRef（含短期预览地址）；
      * 上传资产自动进入当前项目资产白板（o_quickVideoMedia source=upload）。
      */
+    /** 从资产白板删除素材（软删除，SIY-137 审核反馈）：白板不再展示；服务端守门生成中/已绑首帧的情况 */
+    async function deleteAsset(mediaId: number): Promise<{ ok: boolean; message?: string }> {
+      const response: any = await axios.post("/quickVideo/deleteAsset", {
+        projectId: Number(projectId),
+        mediaId,
+      });
+      if (response?.code !== 200) {
+        return { ok: false, message: response?.message ?? "删除失败" };
+      }
+      // 若内部剪贴板/待发送引用正持有该素材，一并清理，避免发送时引用已删除的媒体
+      if (clipboardMediaRef.value?.mediaId === mediaId) clipboardMediaRef.value = null;
+      return { ok: true };
+    }
+
     async function uploadChatMedia(input: { base64Data: string; mimeType: string; name?: string }): Promise<MediaRef> {
       const response: any = await axios.post("/quickVideo/uploadMedia", {
         projectId: Number(projectId),
@@ -518,7 +532,7 @@ function makeQuickVideoStore(projectId: string) {
       setModelPreference,
       clipboardMediaRef,
       getAssetBoard,
-      bindShotFirstFrame,
+      bindShotFirstFrame, deleteAsset,
       setUiActionRunner,
       resume,
       dispose,

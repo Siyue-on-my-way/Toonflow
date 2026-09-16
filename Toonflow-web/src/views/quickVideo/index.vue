@@ -283,12 +283,15 @@
             :generating-text="$t('workbench.quickVideo.gen.generating')"
             :expand-text="$t('workbench.quickVideo.expand')"
             :collapse-text="$t('workbench.quickVideo.collapse')"
+            :delete-text="$t('workbench.quickVideo.deleteAsset')"
+            :delete-confirm-text="$t('workbench.quickVideo.deleteAssetConfirm')"
             @refresh="loadAssetBoard"
             @page-change="handleAssetBoardPageChange"
             @filter-change="handleAssetBoardFilterChange"
             @zoom="openMediaPreview"
             @copy="copyMediaRef"
-            @set-first-frame="openFirstFramePicker" />
+            @set-first-frame="openFirstFramePicker"
+            @delete="deleteAssetBoardItem" />
           <div class="panelBody">
             <!-- 简报卡片 -->
             <div v-if="activePanel === 'brief'" class="card">
@@ -821,7 +824,7 @@ const { project } = storeToRefs(projectStore());
 const quickVideoStoreRef = quickVideoStore();
 const { connected, messages, status, workbench, state, loadingWorkbench, workbenchError, sessions, loadingSessions, currentSessionId, modelPreferences, isGenerating, clipboardMediaRef } =
   storeToRefs(quickVideoStoreRef);
-const { stopGenerate, getWorkbench, updateConfig, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference, getAssetBoard, bindShotFirstFrame, uploadChatMedia, setUiActionRunner } =
+const { stopGenerate, getWorkbench, updateConfig, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference, getAssetBoard, bindShotFirstFrame, deleteAsset, uploadChatMedia, setUiActionRunner } =
   quickVideoStoreRef;
 
 const activePanel = ref<QuickVideoPanel>("brief");
@@ -1207,6 +1210,18 @@ async function copyMediaRef(ref: MediaRef) {
     // 系统剪贴板受限（权限/浏览器不支持）时静默降级为仅应用内部复制，不阻断流程
   }
   window.$message.success(systemCopyOk ? $t("workbench.quickVideo.copiedBoth") : $t("workbench.quickVideo.copiedInternalOnly"));
+}
+
+/** 资产白板删除（SIY-137 审核反馈）：软删除白板条目并同步清理内部剪贴板/待发送引用 */
+async function deleteAssetBoardItem(item: MediaRef) {
+  const result = await deleteAsset(item.mediaId);
+  if (!result.ok) {
+    window.$message.warning(result.message ?? $t("workbench.quickVideo.deleteAssetFailed"));
+    return;
+  }
+  pendingAttachments.value = pendingAttachments.value.filter((p) => p.mediaRef?.mediaId !== item.mediaId);
+  window.$message.success($t("workbench.quickVideo.assetDeleted"));
+  await loadAssetBoard();
 }
 
 /** 应用内剪贴板 → 待发送托盘（免系统剪贴板的显式粘贴入口，SIY-137 审核修复） */
