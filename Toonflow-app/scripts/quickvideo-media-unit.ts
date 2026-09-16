@@ -30,6 +30,8 @@ import {
   pickEnabledModel,
   isVideoModelSupportingText,
   isVideoModelSupportingSingleImage,
+  collectDurationTiers,
+  snapDurationToTiers,
   type VendorModelEntry,
 } from "@/lib/quickVideo/modelValidation";
 
@@ -248,6 +250,33 @@ console.log("== 13. isVideoModelSupportingText / isVideoModelSupportingSingleIma
   assert(isVideoModelSupportingSingleImage(singleImageOnly), "mode 仅含 singleImage 时判定支持单图首帧");
   assert(isVideoModelSupportingSingleImage(noMode), "未声明 mode 默认放行");
   assert(!isVideoModelSupportingSingleImage(textOnly), "显式声明仅 text 模式排他时判定不支持单图首帧");
+}
+
+console.log("== 14. 时长档位自适应：collectDurationTiers / snapDurationToTiers（SIY-154 P2） ==");
+{
+  // Kling O1 目录声明：durationResolutionMap: [{ duration: [5, 10], resolution: ["default"] }]
+  const klingO1Map = [{ duration: [5, 10], resolution: ["default"] }];
+  const klingTiers = collectDurationTiers(klingO1Map);
+  assert(JSON.stringify(klingTiers) === "[5,10]", "Kling O1 目录声明的档位为 [5, 10]", JSON.stringify(klingTiers));
+  assert(snapDurationToTiers(7, klingTiers) === 5, "请求 7s 就近取整为 5s（|7-5|<|7-10|）");
+  assert(snapDurationToTiers(8, klingTiers) === 10, "请求 8s 就近取整为 10s（|8-10|<|8-5|）");
+  assert(snapDurationToTiers(5, klingTiers) === 5, "请求已是指定档位时原样返回");
+  assert(snapDurationToTiers(10, klingTiers) === 10, "请求 10s 原样返回");
+
+  // Seedance 目录声明含 -1（自适应哨兵值），不应参与取整
+  const seedanceMap = [{ duration: [-1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], resolution: ["480p"] }];
+  const seedanceTiers = collectDurationTiers(seedanceMap);
+  assert(!seedanceTiers.includes(-1) && seedanceTiers[0] === 4, "Seedance 档位去掉 -1 哨兵值后从 4 开始", JSON.stringify(seedanceTiers));
+  assert(snapDurationToTiers(7, seedanceTiers) === 7, "Seedance 支持逐秒档位，7s 原样直传");
+
+  // 多条 durationResolutionMap 合并去重
+  const multiMap = [{ duration: [10, 5] }, { duration: [5, 15] }];
+  assert(JSON.stringify(collectDurationTiers(multiMap)) === "[5,10,15]", "多条 map 合并去重并升序", JSON.stringify(collectDurationTiers(multiMap)));
+
+  // 无档位/空档位：返回 null，调用方按原时长直传（维持既有行为）
+  assert(snapDurationToTiers(7, []) === null, "空档位数组返回 null");
+  assert(snapDurationToTiers(7, undefined as unknown as number[]) === null, "档位为 undefined 时返回 null");
+  assert(JSON.stringify(collectDurationTiers([])) === "[]", "空 durationResolutionMap 得到空档位数组");
 }
 
 console.log(`\n结果：${passed} 通过，${failed} 失败`);

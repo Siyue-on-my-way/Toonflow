@@ -39,7 +39,8 @@
       "msg": {
         "fetchModelFailed": "モデルデータの取得に失敗しました:"
       },
-      "goSetting": "設定に移動してモデルを追加します"
+      "goSetting": "設定に移動してモデルを追加します",
+      "singleImageUnsupported": "このモデルは画像を先頭フレームとする画像からの動画生成に対応していません。対応モデルを選択してください"
     }
   },
   "settings": {

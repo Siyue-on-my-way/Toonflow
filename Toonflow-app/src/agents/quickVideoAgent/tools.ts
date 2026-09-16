@@ -38,6 +38,7 @@ import {
   assertVideoSupportsSingleImage,
   castAspectRatio,
 } from "@/lib/quickVideo/generate";
+import { snapDurationToTiers } from "@/lib/quickVideo/modelValidation";
 import {
   createChatMedia,
   markChatMediaDone,
@@ -47,6 +48,7 @@ import {
   resolveVideoStartEndMode,
   videoModelSupportsTextToVideo,
   resolveDefaultImageModel,
+  getVideoModelDefaultQuality,
 } from "@/lib/quickVideo/media";
 
 /**
@@ -65,6 +67,8 @@ interface ToolConfig {
   imageModel?: string;
   /** 服务端已校验过的视频模型 key；未提供时 generate_video 工具不对 Agent 暴露（SIY-134） */
   videoModel?: string;
+  /** 所选视频模型目录声明的时长档位（如 Kling O1 的 [5,10]）；用于 generate_video 参数说明与就近取整（SIY-154 P2） */
+  videoDurationOptions?: number[];
   /** 用户选中的引用媒体 mediaId 列表（图生图/图生视频参考） */
   references?: number[];
   /** 占位符编号 -> mediaId 映射（##图N## = 托盘第 N 张图），由 socket 层按用户消息解析（SIY-151） */
@@ -1123,6 +1127,12 @@ export default (toolConfig: ToolConfig) => {
   // 仅当本轮 socket 已校验通过 videoModel 时才对 Agent 暴露该工具（SIY-134；SIY-151 放开纯文生视频）。
   if (toolConfig.videoModel) {
     const videoModel = toolConfig.videoModel;
+    // 时长档位写进参数说明（SIY-154 P2）：让 LLM 首次就传模型声明支持的档位；
+    // 传入其他值时执行层仍会自动就近取整兜底。
+    const durationTiers = toolConfig.videoDurationOptions ?? [];
+    const durationDescribe = durationTiers.length
+      ? `视频时长（秒），${SHOT_DURATION_MIN}-${SHOT_DURATION_MAX}；当前视频模型「${videoModel.split(":").pop()}」仅支持：${durationTiers.join("、")} 秒，请直接传支持的档位，其他值会被自动就近取整`
+      : `视频时长（秒），${SHOT_DURATION_MIN}-${SHOT_DURATION_MAX}，未提供时默认 ${SHOT_DURATION_MIN} 秒`;
     tools.generate_video = tool({
       description:
         "在当前聊天会话中生成一段视频（支持纯文生视频；带 ##图1## 时以该图为首帧；带 ##图1## ##图2## 时生成首尾帧过渡视频，模型不支持时自动退化为首帧模式；所选模型不支持文生视频时，系统会自动生成一张概念首帧图并链式生成视频）。生成成功会自动出现在聊天记录和资产白板中，" +
@@ -1147,7 +1157,7 @@ export default (toolConfig: ToolConfig) => {
               .min(SHOT_DURATION_MIN)
               .max(SHOT_DURATION_MAX)
               .optional()
-              .describe(`视频时长（秒），${SHOT_DURATION_MIN}-${SHOT_DURATION_MAX}，未提供时默认 ${SHOT_DURATION_MIN} 秒`),
+              .describe(durationDescribe),
           })
           .toJSONSchema(),
       ),
@@ -1171,7 +1181,14 @@ export default (toolConfig: ToolConfig) => {
               // 双轨自适应轨道 2（SIY-149）：模型仅支持图生视频时，自动生成概念首帧图并链式生视频
               const project0 = await u.db("o_project").where("id", projectId).select("videoRatio").first();
               const aspectRatio0 = castAspectRatio((project0?.videoRatio || "16:9") as QuickVideoRatio);
-              const duration0 = input.duration ?? SHOT_DURATION_MIN;
+              // 时长就近取整（SIY-154 P2）：概念首帧链式生成的视频同样要按模型声明档位取整
+              const requestedDuration0 = input.duration ?? SHOT_DURATION_MIN;
+              const snappedDuration0 = snapDurationToTiers(requestedDuration0, durationTiers);
+              const duration0 = snappedDuration0 ?? requestedDuration0;
+              const durationNote0 =
+                snappedDuration0 != null && snappedDuration0 !== requestedDuration0
+                  ? `（原时长 ${requestedDuration0} 秒不受当前模型支持，已自动就近取整为 ${snappedDuration0} 秒）`
+                  : "";
 
               let effectiveImageModel = toolConfig.imageModel;
               if (!effectiveImageModel) {
@@ -1248,7 +1265,16 @@ export default (toolConfig: ToolConfig) => {
               try {
                 const videoAi0 = u.Ai.Video(videoModel as `${string}:${string}`, userId);
                 await videoAi0.run(
-                  { prompt: input.prompt, referenceList: [{ type: "image" as const, base64: conceptBase64 }], mode: ["singleImage"], duration: duration0, aspectRatio: aspectRatio0, resolution: "720p" },
+                  {
+                    prompt: input.prompt,
+                    referenceList: [{ type: "image" as const, base64: conceptBase64 }],
+                    mode: ["singleImage"],
+                    duration: duration0,
+                    aspectRatio: aspectRatio0,
+                    resolution: "720p",
+                    // 模型目录声明 qualityOptions 时自动补齐（SIY-154 P1，与主轨道同口径）
+                    quality: (await getVideoModelDefaultQuality(videoModel)) ?? undefined,
+                  },
                   {
                     taskClass: "快创聊天生视频",
                     describe: `聊天生视频：${input.prompt.slice(0, 100)}`,
@@ -1264,7 +1290,7 @@ export default (toolConfig: ToolConfig) => {
                   { name: input.prompt.slice(0, 60), url: videoUrl0 },
                   { mediaId: videoMedia0.id, assetId: videoMedia0.assetId, videoId: videoMedia0.videoId, kind: "video", model: videoModel, promptSummary: input.prompt.slice(0, 200), state: "done", source: "chat" },
                 );
-                return `视频已生成并加入聊天记录与资产白板（视频 mediaId ${videoMedia0.id}，概念首帧 mediaId ${imageMedia.id}）。概念首帧图已收录白板，支持一键设为分镜首帧；视频可在聊天流中直接播放与全屏预览。`;
+                return `视频已生成并加入聊天记录与资产白板（视频 mediaId ${videoMedia0.id}，概念首帧 mediaId ${imageMedia.id}）${durationNote0}。概念首帧图已收录白板，支持一键设为分镜首帧；视频可在聊天流中直接播放与全屏预览。`;
               } catch (err) {
                 const reason = describeError(err);
                 await markChatMediaFailed(videoMedia0.id, reason);
@@ -1275,7 +1301,15 @@ export default (toolConfig: ToolConfig) => {
 
           const project = await u.db("o_project").where("id", projectId).select("videoRatio").first();
           const aspectRatio = castAspectRatio((project?.videoRatio || "16:9") as QuickVideoRatio);
-          const duration = input.duration ?? SHOT_DURATION_MIN;
+          // 时长就近取整（SIY-154 P2）：LLM 传来的时长若不在模型声明档位内（如 Kling O1 的 7s），
+          // 自动映射到最近档位并在回复中说明，而不是把非法参数直接提交给供应商校验。
+          const requestedDuration = input.duration ?? SHOT_DURATION_MIN;
+          const snappedDuration = snapDurationToTiers(requestedDuration, durationTiers);
+          const duration = snappedDuration ?? requestedDuration;
+          const durationNote =
+            snappedDuration != null && snappedDuration !== requestedDuration
+              ? `（原时长 ${requestedDuration} 秒不受当前模型支持，已自动就近取整为 ${snappedDuration} 秒）`
+              : "";
 
           const { media, idempotentHit } = await createChatMedia({
             projectId,
@@ -1336,6 +1370,9 @@ export default (toolConfig: ToolConfig) => {
                 duration,
                 aspectRatio,
                 resolution: "720p",
+                // 模型目录声明 qualityOptions 时自动补齐（如 Kling O1 的 std），避免供应商侧
+                // mode 必填字段校验失败（SIY-154 P1）
+                quality: (await getVideoModelDefaultQuality(videoModel)) ?? undefined,
               },
               {
                 taskClass: "快创聊天生视频",
@@ -1354,7 +1391,7 @@ export default (toolConfig: ToolConfig) => {
               { mediaId: media.id, assetId: media.assetId, videoId: media.videoId, kind: "video", model: videoModel, promptSummary: input.prompt.slice(0, 200), state: "done", source: "chat" },
             );
             const modeText = imageBase64List.length >= 2 ? "首尾帧过渡" : imageBase64List.length === 1 ? "以参考图为首帧" : "纯文生视频";
-            return `视频已生成并加入聊天记录与资产白板（mediaId ${media.id}，${modeText}）${degradedNote}。提醒用户：如需把视频/图片用于某个镜头，可以在聊天中告诉我，或在右侧分镜表手动绑定。`;
+            return `视频已生成并加入聊天记录与资产白板（mediaId ${media.id}，${modeText}）${degradedNote}${durationNote}。提醒用户：如需把视频/图片用于某个镜头，可以在聊天中告诉我，或在右侧分镜表手动绑定。`;
           } catch (err) {
             const reason = describeError(err);
             await markChatMediaFailed(media.id, reason);

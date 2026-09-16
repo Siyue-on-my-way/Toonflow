@@ -198,6 +198,7 @@
                   class="modelValueSelect"
                   :type="activeModelType"
                   size="small"
+                  :require-single-image="activeModelType === 'video' && pendingAttachments.length > 0"
                   :disabled="status === 'pending' || status === 'streaming'" />
               </div>
             </template>

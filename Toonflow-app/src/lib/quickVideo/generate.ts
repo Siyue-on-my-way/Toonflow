@@ -31,8 +31,8 @@ import {
 } from "./contract";
 import { QuickVideoError, loadQuickVideoState, mutateQuickVideoState } from "./state";
 import { recordEvent, qvLog } from "./metrics";
-import { CHAT_MEDIA_ASSET_TYPE, getVendorModelCatalog, findFirstAvailableModel } from "./media";
-import { isVideoModelSupportingSingleImage } from "./modelValidation";
+import { CHAT_MEDIA_ASSET_TYPE, getVendorModelCatalog, findFirstAvailableModel, getVideoModelDurationOptions, getVideoModelDefaultQuality } from "./media";
+import { isVideoModelSupportingSingleImage, snapDurationToTiers } from "./modelValidation";
 import {
   extractVideoLastFrameBuffer,
   saveLastFrameToAssetBoard,
@@ -679,6 +679,13 @@ async function runShotPipeline(projectId: number, userId: number, shotId: string
     const baseImagePath = shotContent.firstFrame?.filePath ?? imageRef;
     await assertVideoSupportsSingleImage(ctx.videoModel, !!shotContent.firstFrame);
     const imageBase64 = await u.oss.getImageBase64(baseImagePath!);
+    // 模型声明能力适配（SIY-154 P1/P2）：镜头时长按模型声明档位就近取整（如 Kling O1 仅支持
+    // 5/10 秒）；模型目录声明 qualityOptions 时自动补齐生成质量（供应商侧 mode 必填字段）。
+    const [durationTiers, modelQuality] = await Promise.all([
+      getVideoModelDurationOptions(ctx.videoModel),
+      getVideoModelDefaultQuality(ctx.videoModel),
+    ]);
+    const shotDuration = snapDurationToTiers(shotContent.duration, durationTiers ?? []) ?? shotContent.duration;
     const videoAi = u.Ai.Video(ctx.videoModel as `${string}:${string}`, ctx.userId);
     await withTimeout(
       videoAi.run(
@@ -686,13 +693,14 @@ async function runShotPipeline(projectId: number, userId: number, shotId: string
           prompt: buildShotVideoPrompt(shotContent, prevShot),
           referenceList: [{ type: "image", base64: imageBase64 }],
           mode: ["singleImage"],
-          duration: shotContent.duration,
+          duration: shotDuration,
           aspectRatio: castAspectRatio(ctx.snapshot.videoRatio),
           resolution: "720p",
+          quality: modelQuality ?? undefined,
         },
         {
           taskClass: "快创镜头视频",
-          describe: `镜头${shotContent.index} 视频片段生成（${shotContent.duration} 秒）`,
+          describe: `镜头${shotContent.index} 视频片段生成（${shotDuration} 秒）`,
           relatedObjects: JSON.stringify({ projectId, shotId, runId: ctx.runId }),
           projectId,
         },
@@ -704,7 +712,7 @@ async function runShotPipeline(projectId: number, userId: number, shotId: string
     await videoAi.save(videoRef);
     await updateShotState(projectId, shotId, { videoState: "done", videoRef, errorReason: null });
     recordEvent("generationShotDone");
-    qvLog("shot_done", { projectId, shotId, duration: shotContent.duration });
+    qvLog("shot_done", { projectId, shotId, duration: shotDuration });
 
     // 预抽尾帧：若后序镜头为顺承镜头，立即抽帧存入资产白板并预注入首帧
     const nextShot = snapshot.shots.find((s) => s.index === shotContent.index + 1);

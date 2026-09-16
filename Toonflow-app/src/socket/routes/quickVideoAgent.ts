@@ -6,7 +6,7 @@ import ResTool from "@/socket/resTool";
 import { getOwnedSession, bumpUserMessageCountAndMaybeClaimTitle } from "@/lib/quickVideo/session";
 import { buildSessionIsolationKey, QuickVideoChatMode } from "@/lib/quickVideo/contract";
 import { generateSessionTitle } from "@/lib/quickVideo/title";
-import { validateImageModelKey, validateVideoModelKey } from "@/lib/quickVideo/media";
+import { validateImageModelKey, validateVideoModelKey, getVideoModelDurationOptions } from "@/lib/quickVideo/media";
 import { QuickVideoError } from "@/lib/quickVideo/state";
 
 async function verifyToken(rawToken: string): Promise<{ id: number; name: string; role: string } | null> {
@@ -81,6 +81,7 @@ export default (nsp: Namespace) => {
       // 校验失败直接报错并结束本轮，不进入 Agent（Agent 拿到的 imageModel/videoModel 视为已受信）。
       let validatedImageModel: string | undefined;
       let validatedVideoModel: string | undefined;
+      let validatedVideoDurationOptions: number[] | undefined;
       if (mode === "image") {
         try {
           if (!data.imageModel) throw new QuickVideoError("IMAGE_MODEL_INVALID", "请先在模型选择框中选择一个图片模型");
@@ -95,6 +96,9 @@ export default (nsp: Namespace) => {
           if (!data.videoModel) throw new QuickVideoError("VIDEO_MODEL_INVALID", "请先在模型选择框中选择一个视频模型");
           await validateVideoModelKey(data.videoModel);
           validatedVideoModel = data.videoModel;
+          // 模型声明时长档位（如 Kling O1 的 5/10 秒）：随上下文传给 generate_video 工具，
+          // 写入参数说明并对 LLM 传入的其他值就近取整（SIY-154 P2）
+          validatedVideoDurationOptions = (await getVideoModelDurationOptions(data.videoModel)) ?? undefined;
         } catch (err) {
           msg.error(err instanceof QuickVideoError ? err.message : u.error(err as Error).message);
           return;
@@ -119,6 +123,7 @@ export default (nsp: Namespace) => {
         mode,
         imageModel: validatedImageModel,
         videoModel: validatedVideoModel,
+        videoDurationOptions: validatedVideoDurationOptions,
         references: Array.isArray(data.references) ? data.references.filter((n) => Number.isInteger(n)).slice(0, 4) : undefined,
         userMessageTime: new Date(msg.datetime).getTime() - 1,
         abortSignal: currentController.signal,

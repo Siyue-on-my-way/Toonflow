@@ -23,6 +23,8 @@ export interface AgentContext {
   imageModel?: string;
   /** mode=video 时服务端已校验过的视频模型 key（vendorId:modelName），未校验通过则不会传入（SIY-134） */
   videoModel?: string;
+  /** 所选视频模型目录声明的时长档位（如 Kling O1 的 [5,10]），供 generate_video 参数说明与就近取整（SIY-154 P2） */
+  videoDurationOptions?: number[];
   /** 用户在聊天/白板选中的引用媒体 mediaId 列表（图生图参考，可选） */
   references?: number[];
   /** 占位符编号 -> mediaId 映射（##图N## = 托盘第 N 张图），socket 层按用户消息解析（SIY-151） */
@@ -162,6 +164,7 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
         sessionId: ctx.sessionId,
         imageModel: ctx.imageModel,
         videoModel: ctx.videoModel,
+        videoDurationOptions: ctx.videoDurationOptions,
         references: ctx.references,
         slotReferences,
         placeholderSlots,

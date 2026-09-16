@@ -39,7 +39,8 @@
       "msg": {
         "fetchModelFailed": "Failed to fetch model data:"
       },
-      "goSetting": "Go to settings and add a model"
+      "goSetting": "Go to settings and add a model",
+      "singleImageUnsupported": "This model does not support image-to-video with a first frame; choose a model that accepts a start image"
     }
   },
   "settings": {

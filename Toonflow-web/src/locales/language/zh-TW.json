@@ -39,7 +39,8 @@
       "msg": {
         "fetchModelFailed": "取得模型資料失敗:"
       },
-      "goSetting": "去設定中加入模型"
+      "goSetting": "去設定中加入模型",
+      "singleImageUnsupported": "該模型不支援以圖片為首幀的圖生視頻，請選擇支援首幀輸入的模型"
     },
     "update": {
       "title": "發現新版本",

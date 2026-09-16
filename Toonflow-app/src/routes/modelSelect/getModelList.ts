@@ -43,16 +43,22 @@ export default router.post(
           type === "all"
             ? models.filter((item: { type: string }) => item.type !== "video")
             : models.filter((item: { type: string }) => item.type === type);
-        return filtered.map((item: { name: string; modelName: string; type: string; configured?: boolean; available?: boolean; disabledReason?: string }) => ({
-          id: data.id,
-          label: item.name,
-          value: item.modelName,
-          type: item.type,
-          name: vendorData.name,
-          configured: item.configured,
-          available: item.available,
-          disabledReason: item.disabledReason,
-        }));
+        return filtered.map(
+          (item: { name: string; modelName: string; type: string; mode?: unknown; configured?: boolean; available?: boolean; disabledReason?: string }) => ({
+            id: data.id,
+            label: item.name,
+            value: item.modelName,
+            type: item.type,
+            // 扁平化的输入模式声明（如 singleImage/text），供前端做图生视频等场景的模型选择引导（SIY-154 P3）
+            modes: Array.isArray(item.mode)
+              ? item.mode.flatMap((m: unknown) => (typeof m === "string" ? [m] : []))
+              : [],
+            name: vendorData.name,
+            configured: item.configured,
+            available: item.available,
+            disabledReason: item.disabledReason,
+          }),
+        );
       }),
     );
     res.status(200).send(success(result.flat()));

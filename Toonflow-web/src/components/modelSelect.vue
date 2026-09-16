@@ -7,14 +7,14 @@
     :placeholder="props.placeholder ?? $t('components.modelSelect.placeholder')"
     @change="onChange"
     @popup-visible-change="onPopupVisibleChange">
-    <t-option-group v-for="(list, index) in optionsData" :key="index" :label="list.group">
+    <t-option-group v-for="(list, index) in displayedGroups" :key="index" :label="list.group">
       <t-option
         v-for="item in list.children"
         :key="item.id"
         :value="`${item.id}:${item.value}`"
         :label="item.label"
-        :disabled="item.disabled"
-        :title="item.disabledReason">
+        :disabled="optionState(item).disabled"
+        :title="optionState(item).reason">
         <div class="optionItem">
           <div class="optionMain">
             <t-avatar
@@ -51,6 +51,10 @@ interface VendorChild {
   value: string;
   vendorId: string;
   type: string;
+  /** 原始类型（text/image/video），与本地化展示用的 type 分开保留，供场景化引导判断 */
+  rawType: string;
+  /** 模型目录声明的输入模式（扁平化，如 singleImage/text），供图生视频场景引导（SIY-154 P3） */
+  modes: string[];
   disabled?: boolean;
   disabledReason?: string;
 }
@@ -87,6 +91,11 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  /** 图生视频场景引导：置灰不支持单图/首帧输入的视频模型，并把支持的模型排到前面（SIY-154 P3） */
+  requireSingleImage: {
+    type: Boolean,
+    default: false,
+  },
 });
 const emit = defineEmits<{
   change: [value: string, data?: any];
@@ -105,6 +114,26 @@ async function onChange(value: any, { option }: any) {
   }
 }
 const optionsData = ref<VendorOption[]>([]);
+
+/** 单个选项的置灰状态：后端 available=false，或 requireSingleImage 引导下不支持首帧输入的视频模型 */
+function optionState(item: VendorChild): { disabled: boolean; reason?: string } {
+  if (item.disabled) return { disabled: true, reason: item.disabledReason };
+  if (props.requireSingleImage && item.rawType === "video" && !item.modes.includes("singleImage")) {
+    return { disabled: true, reason: $t("components.modelSelect.singleImageUnsupported") };
+  }
+  return { disabled: false };
+}
+
+/** requireSingleImage 引导开启时，组内把支持首帧输入的视频模型排到前面（稳定排序） */
+const displayedGroups = computed<VendorOption[]>(() => {
+  if (!props.requireSingleImage) return optionsData.value;
+  return optionsData.value.map((group) => {
+    const supporting = group.children.filter((item) => !(item.rawType === "video" && !item.modes.includes("singleImage")));
+    const rest = group.children.filter((item) => item.rawType === "video" && !item.modes.includes("singleImage"));
+    return { ...group, children: [...supporting, ...rest] };
+  });
+});
+
 onMounted(() => {
   handleModelChange();
 });
@@ -140,6 +169,8 @@ function handleModelChange() {
           value: item.value,
           vendorId: item.vendorId,
           type: titleMap[item.type as "image" | "text" | "video"],
+          rawType: item.type,
+          modes: Array.isArray(item.modes) ? item.modes.filter((m: unknown) => typeof m === "string") : [],
           disabled: item.available === false,
           disabledReason: item.disabledReason,
         });

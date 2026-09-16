@@ -20,7 +20,7 @@ import {
   QuickVideoMediaState,
 } from "./contract";
 import { QuickVideoError } from "./state";
-import { pickEnabledModel, isVideoModelSupportingText, type VendorModelEntry } from "./modelValidation";
+import { pickEnabledModel, isVideoModelSupportingText, collectDurationTiers, type VendorModelEntry } from "./modelValidation";
 
 /** o_assets.type 取值：聊天/白板生成的媒体资产，与专业模式 role/scene/tool 资产分开，不参与素材匹配 */
 export const CHAT_MEDIA_ASSET_TYPE = "chat_media";
@@ -231,6 +231,46 @@ export async function videoModelSupportsTextToVideo(modelKey: string): Promise<b
   const modes = Array.isArray(hit.mode) ? (hit.mode as unknown[]) : [];
   if (!modes.length) return true;
   return modes.includes("text");
+}
+
+// ---------------------------------------------------------------------------
+// 模型声明能力查询：时长档位 / 生成质量默认值（SIY-154 P1/P2）
+// ---------------------------------------------------------------------------
+
+/**
+ * 查询视频模型目录声明支持的时长档位（如 Kling O1 的 5/10 秒），供聊天/逐镜头生成链路
+ * 把请求时长就近取整到模型实际支持的值。-1（自适应哨兵）不参与取整；
+ * 目录缺失、模型未启用或未声明 durationResolutionMap 时返回 null（调用方按原时长直传）。
+ */
+export async function getVideoModelDurationOptions(modelKey: string): Promise<number[] | null> {
+  const split = splitModelKey(modelKey);
+  if (!split) return null;
+  const catalog = await getVendorModelCatalog(split.vendorId);
+  if (!catalog?.enabled) return null;
+  const hit = pickEnabledModel(catalog.models, catalog.enabledNames, split.modelName, "video");
+  if (!hit) return null;
+  const map = hit.durationResolutionMap;
+  if (!Array.isArray(map)) return null;
+  const tiers = collectDurationTiers(map as { duration: number[] }[]);
+  return tiers.length ? tiers : null;
+}
+
+/**
+ * 查询视频模型目录声明的生成质量默认值（qualityOptions 首项，如 Kling O1 的 std）。
+ * 快创聊天/逐镜头生成链路没有质量选择 UI，调用供应商前用它自动补齐 VideoConfig.quality，
+ * 避免模型额外的必填参数（供应商侧 mode 字段）校验失败。
+ */
+export async function getVideoModelDefaultQuality(modelKey: string): Promise<"std" | "pro" | null> {
+  const split = splitModelKey(modelKey);
+  if (!split) return null;
+  const catalog = await getVendorModelCatalog(split.vendorId);
+  if (!catalog?.enabled) return null;
+  const hit = pickEnabledModel(catalog.models, catalog.enabledNames, split.modelName, "video");
+  if (!hit) return null;
+  const options = hit.qualityOptions;
+  if (!Array.isArray(options) || options.length === 0) return null;
+  const first = options[0];
+  return first === "std" || first === "pro" ? first : null;
 }
 
 // ---------------------------------------------------------------------------

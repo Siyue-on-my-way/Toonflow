@@ -48,3 +48,30 @@ export function isVideoModelSupportingSingleImage(model: VendorModelEntry | null
   return modes.includes("singleImage");
 }
 
+/**
+ * 纯函数：从模型目录的 durationResolutionMap 提取全部声明的时长档位。
+ * -1 是部分模型（如 Seedance）的「自适应时长」哨兵值，不参与就近取整；
+ * 结果去重并升序，供 snapDurationToTiers 与 generate_video 工具参数说明使用（SIY-154 P2）。
+ */
+export function collectDurationTiers(durationResolutionMap: { duration: number[] }[]): number[] {
+  const tiers = new Set<number>();
+  for (const entry of durationResolutionMap ?? []) {
+    for (const d of entry?.duration ?? []) {
+      if (typeof d === "number" && Number.isFinite(d) && d > 0) tiers.add(d);
+    }
+  }
+  return Array.from(tiers).sort((a, b) => a - b);
+}
+
+/**
+ * 纯函数：把请求时长就近映射到声明档位（7s -> 5s/10s），距离相同取较小档位；
+ * 没有声明档位（空数组）时返回 null，调用方按原时长直传（维持既有行为）。
+ */
+export function snapDurationToTiers(duration: number, tiers: number[]): number | null {
+  if (!Array.isArray(tiers) || tiers.length === 0) return null;
+  let best = tiers[0];
+  for (const tier of tiers) {
+    if (Math.abs(tier - duration) < Math.abs(best - duration)) best = tier;
+  }
+  return best;
+}

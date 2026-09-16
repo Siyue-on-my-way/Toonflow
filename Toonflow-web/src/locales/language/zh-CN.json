@@ -39,7 +39,8 @@
       "msg": {
         "fetchModelFailed": "获取模型数据失败:"
       },
-      "goSetting": "去设置中添加模型"
+      "goSetting": "去设置中添加模型",
+      "singleImageUnsupported": "该模型不支持以图片为首帧的图生视频，请选择支持首帧输入的模型"
     },
     "storyboardImageCheck": {
       "camera": "镜头",

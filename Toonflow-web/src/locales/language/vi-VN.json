@@ -38,7 +38,8 @@
       },
       "msg": {
         "fetchModelFailed": "Lấy dữ liệu mô hình thất bại:"
-      }
+      },
+      "singleImageUnsupported": "Mô hình này không hỗ trợ tạo video từ ảnh (khung hình đầu); hãy chọn mô hình hỗ trợ đầu vào ảnh"
     }
   },
   "settings": {

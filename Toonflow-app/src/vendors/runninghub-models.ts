@@ -411,7 +411,9 @@ export const RUNNINGHUB_MODEL_SPECS: RunningHubModelSpec[] = [
       { target: "prompt", from: "prompt", minLength: 5, maxLength: 2000 },
       { target: "aspectRatio", from: "aspectRatio", required: true, allowed: ["1:1", "9:16", "16:9"] },
       { target: "duration", from: "duration", required: true, allowed: ["5", "10"], cast: "string" },
-      { target: "mode", from: "quality", required: true, allowed: ["std", "pro"] },
+      // 供应商侧的 mode（标准/高清）由内部 quality 映射：快创聊天/逐镜头链路没有质量选择 UI，
+      // 未传时兜底 std（与专业模式 generateVideo 的默认值一致），不再作为必填拦截（SIY-154 P1）
+      { target: "mode", from: "quality", default: "std", allowed: ["std", "pro"] },
     ],
     imageInput: {
       mode: "namedSlots",
