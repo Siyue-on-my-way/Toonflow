@@ -1813,7 +1813,8 @@
       "deleteAsset": "Delete",
       "deleteAssetConfirm": "This removes the asset from the whiteboard (chat history is kept). Delete it?",
       "assetDeleted": "Asset deleted",
-      "deleteAssetFailed": "Delete failed"
+      "deleteAssetFailed": "Delete failed",
+      "shotTextOnlyHint": "Storyboard confirmed: only text fields (description/dialogue/camera/prompts) can be edited. Generated media is unaffected; changes apply on next generation or re-assembly."
     }
   },
   "login": {

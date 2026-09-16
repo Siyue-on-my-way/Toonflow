@@ -380,7 +380,7 @@ export default (toolConfig: ToolConfig) => {
     }),
 
     update_shot: tool({
-      description: "修改单个草稿镜头的字段（画面描述/台词/运镜/时长/资产/连续性策略/生图与生视频提示词）。仅分镜草稿状态可用；镜头 id 与顺序不可改。",
+      description: "修改单个镜头的字段（画面描述/台词/运镜/时长/资产/连续性策略/生图与生视频提示词）。文本字段（描述/台词/运镜/双提示词）在分镜已确认乃至装配/成片阶段也可随时按用户要求修改（不影响已生成的图片/视频，下次生成按新分镜执行）；时长/连续性/资产仅分镜草稿阶段可改。镜头 id 与顺序不可改。",
       inputSchema: jsonSchema<{
         shotId: string;
         description?: string;
@@ -414,11 +414,25 @@ export default (toolConfig: ToolConfig) => {
             projectId,
             { idempotencyKey: `tool:update_shot:${toolCallId}`, sessionId },
             (s) => {
-              if (!s.storyboard || s.storyboard.status !== "draft") {
-                throw new QuickVideoError("STORYBOARD_LOCKED", "分镜不存在或已确认锁定，不允许修改镜头", s.version);
+              if (!s.storyboard) {
+                throw new QuickVideoError("NO_STORYBOARD", "暂无分镜，请先用 propose_storyboard 提交一版分镜", s.version);
               }
-              if (s.stage !== "storyboard_draft") {
-                throw new QuickVideoError("STAGE_FORBIDDEN", `当前阶段 ${s.stage} 不允许修改镜头`, s.version);
+              const textKeys = ["description", "dialogue", "camera", "imagePrompt", "videoPrompt"];
+              const providedKeys = Object.keys(input).filter((k) => (input as Record<string, unknown>)[k] !== undefined);
+              const isTextOnly = providedKeys.length > 0 && providedKeys.every((k) => textKeys.includes(k));
+              if (!isTextOnly) {
+                // 结构性修改（时长/连续性）：仍仅限草稿阶段
+                if (s.storyboard.status !== "draft") {
+                  throw new QuickVideoError("STORYBOARD_LOCKED", "分镜已确认锁定，时长/连续性修改请先撤销分镜确认", s.version);
+                }
+                if (s.stage !== "storyboard_draft") {
+                  throw new QuickVideoError("STAGE_FORBIDDEN", `当前阶段 ${s.stage} 不允许修改镜头`, s.version);
+                }
+              } else if (!["storyboard_draft", "storyboard_confirmed", "ready_to_assemble", "completed"].includes(s.stage)) {
+                throw new QuickVideoError("STAGE_FORBIDDEN", `当前阶段 ${s.stage} 不允许修改镜头文本（生成进行中，请等整批结束后再改）`, s.version);
+              } else if (s.stage !== "storyboard_draft") {
+                // 已确认后的文本修改：递增分镜版本，旧的最终参数确认卡片自动置灰
+                s.storyboard.version += 1;
               }
               const shot = findShot(s, input.shotId);
               if (input.description != null) shot.description = input.description;

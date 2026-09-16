@@ -1917,7 +1917,8 @@
       "deleteAsset": "删除",
       "deleteAssetConfirm": "删除后该素材将从资产白板移除（聊天记录保留），确定删除？",
       "assetDeleted": "素材已删除",
-      "deleteAssetFailed": "删除失败"
+      "deleteAssetFailed": "删除失败",
+      "shotTextOnlyHint": "分镜已确认：当前仅可修改描述/台词/运镜/提示词等文本，已生成的视频不受影响；重新生成或重新装配时生效。"
     }
   },
   "login": {

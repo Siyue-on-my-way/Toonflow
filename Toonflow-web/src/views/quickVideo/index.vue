@@ -1682,9 +1682,23 @@ async function saveShotEdit() {
     expectedVersion: state.value.version,
     idempotencyKey: newIdemKey(),
   };
-  const ok = shotEditIsAdd.value
-    ? await callQuickVideoApi("/quickVideo/addShot", { ...base, shot: { ...shotEditData.value } })
-    : await callQuickVideoApi("/quickVideo/updateShot", { ...base, shotId: shotEditId.value, patch: { ...shotEditData.value } });
+  if (shotEditIsAdd.value) {
+    const ok = await callQuickVideoApi("/quickVideo/addShot", { ...base, shot: { ...shotEditData.value } });
+    if (ok) shotEditVisible.value = false;
+    return;
+  }
+  // 非草稿阶段仅允许文本字段（描述/台词/运镜/双提示词）：时长/连续性不下发，避免被服务端结构性门槛拒绝
+  const textOnly = !canEditStoryboard.value;
+  const patch = textOnly
+    ? {
+        description: shotEditData.value.description,
+        dialogue: shotEditData.value.dialogue,
+        camera: shotEditData.value.camera,
+        imagePrompt: shotEditData.value.imagePrompt,
+        videoPrompt: shotEditData.value.videoPrompt,
+      }
+    : { ...shotEditData.value };
+  const ok = await callQuickVideoApi("/quickVideo/updateShot", { ...base, shotId: shotEditId.value, patch });
   if (ok) shotEditVisible.value = false;
 }
 
@@ -2400,6 +2414,14 @@ onBeforeUnmount(() => {
           color: var(--td-text-color-primary);
           cursor: pointer;
         }
+      }
+      .shotTextOnlyHint {
+        margin-bottom: 10px;
+        padding: 8px 10px;
+        border-radius: 6px;
+        background: var(--td-brand-color-light);
+        color: var(--td-brand-color);
+        font-size: 12px;
       }
       .attachTray {
         display: flex;

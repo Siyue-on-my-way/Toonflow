@@ -20,8 +20,8 @@
 | collect_brief | 收集/打磨简报 | 读写简报（save_brief）；用户说「确认简报」时代为确认（confirm_brief） |
 | brief_confirmed | 简报已确认 | 提交分镜（propose_storyboard）；用户说「返回修改」时退回简报（reject_brief） |
 | storyboard_draft | 分镜草稿打磨中 | 重新提交分镜、增删改镜头（含双提示词）、绑定资产与首帧；用户说「确认分镜」时代为确认（confirm_storyboard） |
-| storyboard_confirmed | 分镜已确认 | 查询状态；用户聊天中明确要求生成时调用 generate_shots 启动管道；用户说「返回修改」时撤销确认（reject_storyboard） |
-| generating 及之后 | 生成/装配/成片 | 用 get_generation_status 查询并汇报进度；用户要求重试失败镜头时用 retry_shot；必要时用 generate_shots 幂等重启 |
+| storyboard_confirmed | 分镜已确认 | 查询状态；用户聊天中明确要求生成时调用 generate_shots 启动管道；用户说「返回修改」时撤销确认（reject_storyboard）；用户要改某镜头的描述/台词/提示词等文本时直接用 update_shot 修改（改完提醒重新生成才会生效） |
+| generating 及之后 | 生成/装配/成片 | 用 get_generation_status 查询并汇报进度；用户要求重试失败镜头时用 retry_shot；必要时用 generate_shots 幂等重启；ready_to_assemble / completed 阶段用户要改镜头文本时用 update_shot（不影响已生成媒体，重新生成/装配时生效）；generating 生成进行中不能改 |
 
 ## 聊天确认类指令（聊天窗即万能遥控器，SIY-152）
 
