@@ -113,6 +113,19 @@
               </div>
             </div>
           </t-chat-list>
+          <!-- 应用内剪贴板引用条（SIY-137 审核修复）：HTTP 非 localhost 环境系统剪贴板不可用，
+               复制只写入应用内槽位，且系统剪贴板为空时浏览器不触发 paste 事件，导致 Ctrl+V 在聊天窗无响应；
+             这里提供免系统剪贴板的显式入口：点击直接把引用放入待发送托盘 -->
+          <div class="internalClipBar" v-if="clipboardMediaRef" data-testid="quick-video-internal-clipboard">
+            <i-copy size="12" />
+            <span class="internalClipText">{{ $t("workbench.quickVideo.internalClipboard.hint") }}</span>
+            <t-button size="small" theme="primary" variant="text" data-testid="quick-video-internal-clipboard-paste" @click="pasteInternalClipboardRef">
+              {{ $t("workbench.quickVideo.internalClipboard.paste") }}
+            </t-button>
+            <button class="internalClipDismiss" type="button" :title="$t('workbench.quickVideo.internalClipboard.dismiss')" @click="clipboardMediaRef = null">
+              <i-close size="10" />
+            </button>
+          </div>
           <!-- 待发送附件托盘（SIY-144）：粘贴/截图上传的缩略图、上传中状态、失败重试与单个移除 -->
           <div class="attachTray" v-if="pendingAttachments.length">
             <div
@@ -1194,6 +1207,14 @@ async function copyMediaRef(ref: MediaRef) {
     // 系统剪贴板受限（权限/浏览器不支持）时静默降级为仅应用内部复制，不阻断流程
   }
   window.$message.success(systemCopyOk ? $t("workbench.quickVideo.copiedBoth") : $t("workbench.quickVideo.copiedInternalOnly"));
+}
+
+/** 应用内剪贴板 → 待发送托盘（免系统剪贴板的显式粘贴入口，SIY-137 审核修复） */
+function pasteInternalClipboardRef() {
+  const ref = clipboardMediaRef.value;
+  if (!ref) return;
+  stagePendingRef(ref);
+  window.$message.success($t("workbench.quickVideo.attach.refPasted", { count: 1 }));
 }
 
 const firstFramePickerVisible = ref(false);
@@ -2317,6 +2338,36 @@ onBeforeUnmount(() => {
         padding-bottom: 8px;
       }
       // 待发送附件托盘（SIY-144）
+      .internalClipBar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0 8px 6px;
+        padding: 4px 8px;
+        border: 1px dashed var(--td-brand-color);
+        border-radius: 8px;
+        color: var(--td-text-color-secondary);
+        .internalClipText {
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-size: 12px;
+        }
+        .internalClipDismiss {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 18px;
+          height: 18px;
+          border: 0;
+          border-radius: 50%;
+          background: var(--td-bg-color-component);
+          color: var(--td-text-color-primary);
+          cursor: pointer;
+        }
+      }
       .attachTray {
         display: flex;
         gap: 8px;

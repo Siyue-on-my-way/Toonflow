@@ -1720,7 +1720,7 @@
       "firstFrameBound": "First frame bound",
       "noDraftShots": "No draft shots available to bind",
       "copiedBoth": "Copied to the in-app clipboard and the system clipboard",
-      "copiedInternalOnly": "Copied to the in-app clipboard (system clipboard unavailable; you can still paste it in the storyboard table)",
+      "copiedInternalOnly": "Copied to the in-app clipboard (system clipboard unavailable). Click \"Paste ref\" above the chat input to attach it, or paste it in the storyboard table",
       "stage": {
         "collectBrief": "Collecting brief",
         "briefConfirmed": "Brief confirmed",
@@ -1803,6 +1803,11 @@
         "switchedPanel": "Switched to \"{panel}\"",
         "exportConfirmOpened": "Export confirmation opened, please confirm to start exporting",
         "focusedShot": "Focused on shot {index}"
+      },
+      "internalClipboard": {
+        "hint": "Reference waiting in the in-app clipboard",
+        "paste": "Paste ref",
+        "dismiss": "Clear"
       }
     }
   },
