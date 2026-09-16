@@ -1124,6 +1124,43 @@ function handleSend(text: string) {
     videoModel: mode === "video" ? modelPreferences.value.video : undefined,
     references: referenceIds.length ? referenceIds.slice(0, 4) : undefined,
   });
+
+  // 本轮引用的媒体随用户消息回显（SIY-137 审核反馈）：聊天记录里直接可见引用了哪张图/视频，
+  // 以媒体卡片块并入用户消息（mediaCardsOf 统一渲染，历史恢复走 getMemory 的同构块）
+  const staged = pendingAttachments.value.filter((p) => p.mediaRef);
+  const clipRef = clipboardMediaRef.value && !referenceIds.includes(clipboardMediaRef.value.mediaId) ? clipboardMediaRef.value : null;
+  const refItems = [
+    ...staged.map((p) => ({ ref: p.mediaRef!, name: p.name, previewUrl: p.previewUrl })),
+    ...(clipRef ? [{ ref: clipRef, name: clipRef.promptSummary || "引用媒体", previewUrl: clipRef.url ?? undefined }] : []),
+  ];
+  if (refItems.length) {
+    const userMsg = [...messages.value].reverse().find((m) => m.role === "user");
+    if (userMsg && Array.isArray(userMsg.content)) {
+      const seen = new Set(userMsg.content.map((c: any) => c.ext?.mediaId).filter(Boolean));
+      for (const item of refItems) {
+        if (seen.has(item.ref.mediaId)) continue;
+        seen.add(item.ref.mediaId);
+        // 媒体块结构对齐 mediaCardsOf 的读取约定（TDesign UserMessage 的 content 类型收窄为 text/attachment，此处按运行时约定扩展）
+        (userMsg.content as any[]).push({
+          type: item.ref.kind,
+          status: "complete",
+          data: { name: item.name || undefined, url: item.previewUrl ?? item.ref.url ?? undefined },
+          ext: {
+            mediaId: item.ref.mediaId,
+            assetId: item.ref.assetId,
+            imageId: item.ref.imageId,
+            videoId: item.ref.videoId ?? null,
+            kind: item.ref.kind,
+            model: item.ref.model ?? "",
+            promptSummary: item.ref.promptSummary ?? null,
+            state: "done",
+            source: item.ref.source ?? "chat",
+          },
+        });
+      }
+    }
+  }
+
   clearPendingAttachments();
   inputValue.value = "";
 }

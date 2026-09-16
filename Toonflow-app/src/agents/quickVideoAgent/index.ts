@@ -63,7 +63,7 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
   const { isolationKey, sessionId, text, textModel, userMessageTime, abortSignal, resTool, userId } = ctx;
   const memory = new Memory("quickVideoAgent", isolationKey, userId);
   // 引用媒体仅以稳定 mediaId 记入记忆正文（不含 Base64/私有 Key/签名 URL）
-  const refNote = ctx.references?.length ? `\n[本轮附带图片引用 mediaId: ${ctx.references.slice(0, 4).join(", ")}]` : "";
+  const refNote = ctx.references?.length ? `\n[本轮附带媒体引用 mediaId: ${ctx.references.slice(0, 4).join(", ")}]` : "";
   await memory.add("user", `${text}${refNote}`, { createTime: userMessageTime });
 
   const skill = path.join(u.getPath("skills"), "quick_video_agent.md");

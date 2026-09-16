@@ -6,7 +6,7 @@ import { validateFields } from "@/middleware/middleware";
 import { getOwnedSession } from "@/lib/quickVideo/session";
 import { buildSessionIsolationKey, normalizeQuickVideoUiActions, QuickVideoUiAction } from "@/lib/quickVideo/contract";
 import { QuickVideoError } from "@/lib/quickVideo/state";
-import { getAssetBoard } from "@/lib/quickVideo/media";
+import { getAssetBoard, toMediaRef } from "@/lib/quickVideo/media";
 const router = express.Router();
 
 function normalizeRole(role?: string | null): "user" | "assistant" | null {
@@ -70,23 +70,46 @@ export default router.post(
 
     const rows = await query.select("id", "role", "name", "content", "ext", "createTime");
 
+    // 用户消息中的引用注记（SIY-137 审核反馈）：聊天时随消息引用的媒体以
+    // `[本轮附带(图片|媒体)引用 mediaId: 1, 2]` 追加在记忆正文尾部；
+    // 历史回放时剥离该注记并还原为媒体卡片块，让用户能看到自己引用了哪些图。
+    const REF_NOTE_RE = /\n?\[本轮附(?:带)?(?:图片|媒体)引用 mediaId: ([0-9,\s]+)\]/g;
+    const refMediaIdsByMessage = new Map<number, number[]>();
+
     const history = rows
       .reverse()
       .map((row) => {
         const role = normalizeRole(row.role);
         if (!role || !row.content?.trim()) return null;
+        let text = row.content;
+        let refIds: number[] | null = null;
+        if (agentType === "quickVideoAgent" && role === "user") {
+          const matches = [...text.matchAll(REF_NOTE_RE)];
+          if (matches.length) {
+            refIds = matches
+              .flatMap((m) => m[1].split(",").map((x: string) => Number(x.trim())))
+              .filter((n) => Number.isInteger(n) && n > 0);
+            text = text.replace(REF_NOTE_RE, "").trim();
+          }
+        }
         // UI 动作元数据（SIY-153）随历史一起回放：前端只登记消息 id，不重复执行
         const actions = parseMessageUiActions(row);
-        return {
+        if (refIds?.length && !text) return null; // 纯引用无文本的消息不产空气泡（媒体块在下方合并时补挂）
+        const message: any = {
           id: row.id,
           role,
           name: row.name ?? (agentType === "quickVideoAgent" && role === "assistant" ? "快创助手" : undefined),
           status: "complete",
           datetime: new Date(row.createTime).toISOString(),
-          content: [{ type: "markdown", status: "complete", data: row.content }],
+          content: [{ type: "markdown", status: "complete", data: text }],
           ...(actions.length ? { ext: { actions } } : {}),
           createTime: row.createTime,
         };
+        if (refIds?.length) {
+          message.refMediaIds = refIds;
+          refMediaIdsByMessage.set(row.id, refIds);
+        }
+        return message;
       })
       .filter((message): message is NonNullable<typeof message> => message !== null);
 
@@ -127,6 +150,46 @@ export default router.post(
       }));
 
       const merged = [...history, ...mediaMessages].sort((a, b) => a.createTime - b.createTime);
+
+      // 把用户消息的引用还原为媒体卡片块（与聊天生成的媒体块同构，前端 mediaCardsOf 统一渲染）。
+      // 直接按 mediaId 查项目内素材：白板查询带 sessionId 过滤，会遗漏无会话归属的上传素材。
+      if (refMediaIdsByMessage.size) {
+        const allRefIds = [...new Set([...refMediaIdsByMessage.values()].flat())];
+        const refRows = (await u
+          .db("o_quickVideoMedia")
+          .where("projectId", projectId)
+          .whereIn("id", allRefIds)
+          .whereNull("deletedAt")) as { id: number }[];
+        const refById = new Map<number, Awaited<ReturnType<typeof toMediaRef>>>();
+        for (const row of refRows) refById.set(row.id, await toMediaRef(row as any));
+        for (const message of merged as any[]) {
+          const ids: number[] | undefined = message.refMediaIds;
+          if (!ids?.length) continue;
+          for (const id of ids) {
+            const ref = refById.get(id);
+            if (!ref || ref.state !== "done") continue; // 已删除/生成中的引用不回显
+            message.content.push({
+              type: ref.kind,
+              status: "complete",
+              data: { name: ref.promptSummary ?? undefined, url: ref.url ?? undefined },
+              ext: {
+                mediaId: ref.mediaId,
+                assetId: ref.assetId,
+                imageId: ref.imageId,
+                videoId: ref.videoId,
+                kind: ref.kind,
+                model: ref.model,
+                promptSummary: ref.promptSummary,
+                state: ref.state,
+                source: ref.source,
+                errorReason: ref.errorReason,
+              },
+            });
+          }
+          delete message.refMediaIds;
+        }
+      }
+
       return res.status(200).send(success(merged));
     }
 
