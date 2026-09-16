@@ -46,6 +46,7 @@ import {
   resolveMediaForFirstFrame,
   resolveVideoStartEndMode,
   videoModelSupportsTextToVideo,
+  resolveDefaultImageModel,
 } from "@/lib/quickVideo/media";
 
 /**
@@ -1110,7 +1111,7 @@ export default (toolConfig: ToolConfig) => {
     const videoModel = toolConfig.videoModel;
     tools.generate_video = tool({
       description:
-        "在当前聊天会话中生成一段视频（支持纯文生视频；带 ##图1## 时以该图为首帧；带 ##图1## ##图2## 时生成首尾帧过渡视频，模型不支持时自动退化为首帧模式）。生成成功会自动出现在聊天记录和资产白板中，" +
+        "在当前聊天会话中生成一段视频（支持纯文生视频；带 ##图1## 时以该图为首帧；带 ##图1## ##图2## 时生成首尾帧过渡视频，模型不支持时自动退化为首帧模式；所选模型不支持文生视频时，系统会自动生成一张概念首帧图并链式生成视频）。生成成功会自动出现在聊天记录和资产白板中，" +
         "但不会绑定到任何镜头、不会修改分镜——绑定镜头首帧请用 bind_shot_first_frame 工具。",
       inputSchema: jsonSchema<{ prompt: string; referenceSlots?: number[]; referenceMediaIds?: number[]; duration?: number }>(
         z
@@ -1146,12 +1147,115 @@ export default (toolConfig: ToolConfig) => {
 
           // 纯文生视频守门：目录明确声明不支持 text 模式时提前拦截，避免必然失败的供应商调用
           if (!referenceIds.length) {
+            let supportsText = true;
             try {
-              if (!(await videoModelSupportsTextToVideo(videoModel))) {
-                return `视频生成失败：所选视频模型「${videoModel.split(":").pop()}」不支持纯文字生视频。请提醒用户改在聊天框附带一张图片（用 ##图1## 引用）作为首帧，或更换视频模型后重试。`;
-              }
+              supportsText = await videoModelSupportsTextToVideo(videoModel);
             } catch (err) {
               return `视频生成失败：${describeError(err)}`;
+            }
+            if (!supportsText) {
+              // 双轨自适应轨道 2（SIY-149）：模型仅支持图生视频时，自动生成概念首帧图并链式生视频
+              const project0 = await u.db("o_project").where("id", projectId).select("videoRatio").first();
+              const aspectRatio0 = castAspectRatio((project0?.videoRatio || "16:9") as QuickVideoRatio);
+              const duration0 = input.duration ?? SHOT_DURATION_MIN;
+
+              let effectiveImageModel = toolConfig.imageModel;
+              if (!effectiveImageModel) {
+                effectiveImageModel = await resolveDefaultImageModel(projectId, sessionId);
+              }
+              if (!effectiveImageModel) {
+                return "所选视频模型仅支持图生视频（单图首帧），系统尝试自动生成概念首帧图，但未找到可用的图片模型，请在设置中配置或启用图片模型。";
+              }
+
+              const { media: imageMedia, idempotentHit: imageIdempotentHit } = await createChatMedia({
+                projectId,
+                sessionId,
+                messageId: msg.id,
+                kind: "image",
+                model: effectiveImageModel,
+                prompt: input.prompt,
+                source: "chat",
+                idempotencyKey: `tool:generate_video:first_frame:${toolCallId}`,
+              });
+              const { media: videoMedia0, idempotentHit: videoIdempotentHit } = await createChatMedia({
+                projectId,
+                sessionId,
+                messageId: msg.id,
+                kind: "video",
+                model: videoModel,
+                prompt: input.prompt,
+                source: "chat",
+                idempotencyKey: `tool:generate_video:${toolCallId}`,
+              });
+              if (videoIdempotentHit && videoMedia0.state === "done") {
+                return "该次视频生成请求已处理过（幂等命中），视频已在聊天记录和资产白板中。";
+              }
+
+              // 生成概念首帧图
+              let conceptBase64: string;
+              if (imageIdempotentHit && imageMedia.state === "done" && imageMedia.imageId) {
+                try {
+                  conceptBase64 = await resolveMediaImageBase64(projectId, imageMedia.id);
+                } catch (err) {
+                  const reason = describeError(err);
+                  await markChatMediaFailed(videoMedia0.id, `首帧概念图读取失败: ${reason}`);
+                  return `视频生成失败：首帧概念图读取失败（${reason}）。请重试或换一个描述。`;
+                }
+              } else {
+                try {
+                  const imageCls = u.Ai.Image(effectiveImageModel as `${string}:${string}`, userId);
+                  await imageCls.run(
+                    { prompt: input.prompt, referenceList: [], size: "1K", aspectRatio: aspectRatio0 },
+                    {
+                      taskClass: "快创聊天概念首帧",
+                      describe: `概念首帧：${input.prompt.slice(0, 100)}`,
+                      relatedObjects: JSON.stringify({ projectId, sessionId, mediaId: imageMedia.id }),
+                      projectId,
+                    },
+                  );
+                  const imageSavePath = `/${projectId}/quickVideo/chat-concept-${u.uuid().slice(0, 8)}.jpg`;
+                  await imageCls.save(imageSavePath);
+                  await markChatMediaDone(imageMedia.id, imageSavePath);
+                  const imageUrl = await u.oss.getFileUrl(imageSavePath);
+                  msg.image(
+                    { name: `[概念首帧] ${input.prompt.slice(0, 50)}`, url: imageUrl },
+                    { mediaId: imageMedia.id, assetId: imageMedia.assetId, imageId: imageMedia.imageId, kind: "image", model: effectiveImageModel, promptSummary: input.prompt.slice(0, 200), state: "done", source: "chat" },
+                  );
+                  conceptBase64 = await resolveMediaImageBase64(projectId, imageMedia.id);
+                } catch (err) {
+                  const reason = describeError(err);
+                  await markChatMediaFailed(imageMedia.id, reason);
+                  await markChatMediaFailed(videoMedia0.id, `概念首帧图生成失败: ${reason}`);
+                  return `视频生成失败：所选视频模型需要首帧参考图，系统尝试自动生成概念首帧图失败（${reason}）。可以请用户换一个描述或换一个模型后重试。`;
+                }
+              }
+
+              // 将概念首帧图作为参考图送入视频模型生成视频
+              try {
+                const videoAi0 = u.Ai.Video(videoModel as `${string}:${string}`, userId);
+                await videoAi0.run(
+                  { prompt: input.prompt, referenceList: [{ type: "image" as const, base64: conceptBase64 }], mode: ["singleImage"], duration: duration0, aspectRatio: aspectRatio0, resolution: "720p" },
+                  {
+                    taskClass: "快创聊天生视频",
+                    describe: `聊天生视频：${input.prompt.slice(0, 100)}`,
+                    relatedObjects: JSON.stringify({ projectId, sessionId, mediaId: videoMedia0.id }),
+                    projectId,
+                  },
+                );
+                const videoSavePath0 = `/${projectId}/quickVideo/chat-${u.uuid().slice(0, 8)}.mp4`;
+                await videoAi0.save(videoSavePath0);
+                await markChatMediaDone(videoMedia0.id, videoSavePath0);
+                const videoUrl0 = await u.oss.getFileUrl(videoSavePath0);
+                msg.video(
+                  { name: input.prompt.slice(0, 60), url: videoUrl0 },
+                  { mediaId: videoMedia0.id, assetId: videoMedia0.assetId, videoId: videoMedia0.videoId, kind: "video", model: videoModel, promptSummary: input.prompt.slice(0, 200), state: "done", source: "chat" },
+                );
+                return `视频已生成并加入聊天记录与资产白板（视频 mediaId ${videoMedia0.id}，概念首帧 mediaId ${imageMedia.id}）。概念首帧图已收录白板，支持一键设为分镜首帧；视频可在聊天流中直接播放与全屏预览。`;
+              } catch (err) {
+                const reason = describeError(err);
+                await markChatMediaFailed(videoMedia0.id, reason);
+                return `视频生成失败：${reason}（概念首帧图已生成并保存在资产白板中，mediaId ${imageMedia.id}）。可以请用户换一个描述或换一个视频模型后重试。`;
+              }
             }
           }
 

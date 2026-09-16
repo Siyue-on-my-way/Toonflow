@@ -403,3 +403,31 @@ describe("quickVideo store — 渐进式参数配置与自适应时长（SIY-148
     expect(store.state?.artStyle).toBe("");
   });
 });
+
+describe("quickVideo store — 纯文本一句话直接生视频与双轨模型传递（SIY-149）", () => {
+  it("chat：纯文本发送视频生成请求时，带上 mode=video 及对应模型，无需引用媒体", () => {
+    setupProject();
+    const store = useQuickVideoStore();
+    const emitSpy = vi.fn();
+    (store as any).connected = true;
+    (store.socket as any) = { emit: emitSpy, connected: true };
+
+    store.chat("阳光下盛开的向日葵微风拂过", undefined, undefined, {
+      mode: "video",
+      videoModel: "kling:kling-v1",
+      imageModel: "flux:flux-pro",
+    });
+
+    expect(emitSpy).toHaveBeenCalledWith(
+      "chat",
+      expect.objectContaining({
+        content: "阳光下盛开的向日葵微风拂过",
+        mode: "video",
+        videoModel: "kling:kling-v1",
+        imageModel: "flux:flux-pro",
+      }),
+    );
+    expect(emitSpy.mock.calls[0][1].references).toBeUndefined();
+  });
+});
+

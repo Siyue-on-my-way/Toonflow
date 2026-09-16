@@ -132,7 +132,7 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
     ctx.mode === "image"
       ? `本轮用户在聊天框选择了「图片」生成模式，模型：${ctx.imageModel}。请调用 generate_image 工具按用户描述生成图片；用户消息带 ##图N## 占位符时传 referenceSlots 自动转为图生图，否则为纯文生图；不要只用文字描述画面。生成的图片会自动出现在聊天记录和资产白板中。`
       : ctx.mode === "video"
-        ? `本轮用户在聊天框选择了「视频」生成模式，模型：${ctx.videoModel}。请调用 generate_video 工具：纯文字描述即文生视频（无需图片）；消息带 ##图N## 时传 referenceSlots=[N] 以该图为首帧；带 ##图1## ##图2## 时传 referenceSlots=[1,2] 生成首尾帧过渡视频（模型不支持时工具会自动退化为首帧模式）。生成的视频会自动出现在聊天记录和资产白板中。`
+        ? `本轮用户在聊天框选择了「视频」生成模式，模型：${ctx.videoModel}。请调用 generate_video 工具：纯文字描述即文生视频（无需图片）；消息带 ##图N## 时传 referenceSlots=[N] 以该图为首帧；带 ##图1## ##图2## 时传 referenceSlots=[1,2] 生成首尾帧过渡视频（模型不支持时工具会自动退化为首帧模式）；所选模型不支持文生视频时，工具会自动生成一张概念首帧图并链式生视频。生成的视频（和概念图）会自动出现在聊天记录和资产白板中，不会自动绑定镜头。`
         : "",
     slotNote,
     "",

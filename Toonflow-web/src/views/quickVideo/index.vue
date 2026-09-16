@@ -57,9 +57,17 @@
                 allowContentSegmentCustom></t-chat-message>
               <div v-if="mediaCardsOf(message).length" class="qvChatMediaRow">
                 <div v-for="card in mediaCardsOf(message)" :key="card.key" class="qvChatMediaCard">
-                  <div class="qvChatMediaThumb" @click="card.ext.state === 'done' && openMediaPreview(toMediaRefFromCard(card))">
+                  <div
+                    class="qvChatMediaThumb"
+                    :class="{ clickable: card.ext.state === 'done' }"
+                    @click="card.ext.state === 'done' && openMediaPreview(toMediaRefFromCard(card))">
                     <t-image v-if="card.ext.state === 'done' && card.ext.kind === 'image' && card.url" :src="card.url" fit="cover" :style="{ width: '100%', height: '100%', cursor: 'pointer' }" />
-                    <video v-else-if="card.ext.state === 'done' && card.ext.kind === 'video' && card.url" :src="card.url" muted class="qvChatMediaVideo" />
+                    <template v-else-if="card.ext.state === 'done' && card.ext.kind === 'video' && card.url">
+                      <video :src="card.url" muted class="qvChatMediaVideo" />
+                      <div class="qvChatMediaPlayOverlay">
+                        <i-play-circle size="24" />
+                      </div>
+                    </template>
                     <div v-else-if="card.ext.state === 'generating'" class="qvChatMediaPlaceholder"><t-loading size="small" :loading="true" /></div>
                     <div v-else class="qvChatMediaPlaceholder failed"><i-close-circle size="18" /></div>
                   </div>
@@ -67,6 +75,9 @@
                     <t-button size="small" variant="text" @click="copyMediaRef(toMediaRefFromCard(card))">{{ $t("workbench.quickVideo.copy") }}</t-button>
                     <t-button v-if="card.ext.kind === 'image'" size="small" variant="text" theme="primary" @click="openFirstFramePicker(toMediaRefFromCard(card))">
                       {{ $t("workbench.quickVideo.setFirstFrame") }}
+                    </t-button>
+                    <t-button v-else-if="card.ext.kind === 'video'" size="small" variant="text" theme="primary" @click="openMediaPreview(toMediaRefFromCard(card))">
+                      {{ $t("workbench.quickVideo.playVideo") }}
                     </t-button>
                   </div>
                   <div class="qvChatMediaOps" v-else-if="card.ext.state === 'failed'">
@@ -1103,7 +1114,7 @@ function handleSend(text: string) {
   }
   quickVideoStoreRef.chat(text, undefined, modelPreferences.value.text || undefined, {
     mode,
-    imageModel: mode === "image" ? modelPreferences.value.image : undefined,
+    imageModel: mode === "image" ? modelPreferences.value.image : (mode === "video" ? modelPreferences.value.image || undefined : undefined),
     videoModel: mode === "video" ? modelPreferences.value.video : undefined,
     references: referenceIds.length ? referenceIds.slice(0, 4) : undefined,
   });
@@ -2506,6 +2517,7 @@ onBeforeUnmount(() => {
         flex-direction: column;
         gap: 3px;
         .qvChatMediaThumb {
+          position: relative;
           width: 96px;
           height: 96px;
           border-radius: 8px;
@@ -2514,10 +2526,28 @@ onBeforeUnmount(() => {
           display: flex;
           align-items: center;
           justify-content: center;
+          &.clickable {
+            cursor: pointer;
+          }
           .qvChatMediaVideo {
             width: 100%;
             height: 100%;
             object-fit: cover;
+          }
+          .qvChatMediaPlayOverlay {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.95);
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 50%;
+            pointer-events: none;
+            transition: transform 0.2s ease, background 0.2s ease;
+          }
+          &:hover .qvChatMediaPlayOverlay {
+            background: rgba(0, 0, 0, 0.6);
+            transform: scale(1.1);
           }
         }
         .qvChatMediaPlaceholder {
