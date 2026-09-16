@@ -462,7 +462,7 @@
                       </t-button>
                     </div>
                     <div class="rowOps">
-                      <t-button size="small" variant="text" :disabled="!canEditStoryboard" @click="openShotEdit(row)">
+                      <t-button size="small" variant="text" :disabled="!canEditShotText" @click="openShotEdit(row)">
                         <template #icon><i-edit size="14" /></template>
                       </t-button>
                       <t-popconfirm :content="$t('workbench.quickVideo.deleteShotConfirm')" @confirm="removeShot(row.id)">
@@ -750,8 +750,11 @@
       @confirm="saveShotEdit">
       <div class="editForm">
         <t-form label-align="top">
+          <div v-if="!canEditStoryboard && shotEditVisible && !shotEditIsAdd" class="shotTextOnlyHint">
+            {{ $t("workbench.quickVideo.shotTextOnlyHint") }}
+          </div>
           <t-form-item :label="$t('workbench.quickVideo.shotDuration')">
-            <t-input-number v-model="shotEditData.duration" :min="5" :max="15" :step="1" style="width: 160px" />
+            <t-input-number v-model="shotEditData.duration" :min="5" :max="15" :step="1" style="width: 160px" :disabled="!canEditStoryboard && !shotEditIsAdd" />
           </t-form-item>
           <t-form-item :label="$t('workbench.quickVideo.shotDescription')">
             <t-textarea v-model="shotEditData.description" :autosize="{ minRows: 3, maxRows: 6 }" />
@@ -769,7 +772,7 @@
             <t-textarea v-model="shotEditData.videoPrompt" :autosize="{ minRows: 2, maxRows: 5 }" :maxlength="2000" />
           </t-form-item>
           <t-form-item :label="$t('workbench.quickVideo.continuity')" v-if="shotEditIsAdd || shotEditIndex > 1">
-            <t-select v-model="shotEditData.continuity" :options="continuitySelectOptions" />
+            <t-select v-model="shotEditData.continuity" :options="continuitySelectOptions" :disabled="!canEditStoryboard && !shotEditIsAdd" />
           </t-form-item>
         </t-form>
       </div>
@@ -1370,6 +1373,13 @@ const totalDuration = computed(() => state.value?.storyboard?.shots.reduce((sum,
 
 const canEditBrief = computed(() => ["collect_brief", "brief_confirmed", "storyboard_draft"].includes(state.value?.stage ?? ""));
 const canEditStoryboard = computed(() => state.value?.stage === "storyboard_draft" && state.value?.storyboard?.status === "draft");
+/** 镜头文本编辑（SIY-137 审核反馈）：描述/台词/运镜/双提示词在已确认乃至装配/成片阶段也可随时修改；生成进行中不可改 */
+const canEditShotText = computed(() => {
+  const st = state.value;
+  if (!st?.storyboard) return false;
+  if (canEditStoryboard.value) return true;
+  return st.storyboard.status === "confirmed" && ["storyboard_confirmed", "ready_to_assemble", "completed"].includes(st.stage);
+});
 /** 首帧选择器可选目标：仅草稿阶段的镜头允许粘贴/替换首帧 */
 const draftShots = computed(() => (canEditStoryboard.value ? state.value?.storyboard?.shots ?? [] : []));
 
