@@ -803,6 +803,125 @@ export function resolveSlotReferences(references: number[] | null | undefined, s
 }
 
 // ---------------------------------------------------------------------------
+// 引用图使用意图与三级解析（方案A，SIY-158：引用图是系统事实，必须确定性进入生成管道）
+// ---------------------------------------------------------------------------
+
+/** 用户对"本轮附带引用图"的使用意图 */
+export type ChatReferenceIntent = "imageConditioned" | "textOnly" | "uncertain";
+
+/**
+ * 显式以图为条件的指代（图生视频/图生图/垫图/作为首帧等）：命中即视为用户要求
+ * "用这张图生成"，工具层据此对本轮附件做确定性兜底。
+ * 刻意不含泛化的「画面里」等无主语表达（纯文生提示词高频出现，避免误伤）；
+ * 「动起来/让…」在有引用图的视频消息里几乎总是指让图动，故保留。
+ */
+const IMAGE_CONDITIONED_INTENT_RE =
+  /(这|该|此|那)\s*(张|幅|个)?\s*(图|图片|画面|照片)|图生视频|图生图|垫图|以图|作为首帧|设为首帧|设成首帧|做首帧|当首帧|首帧|参考图|按(照)?(这|该)?图|根据(这|该)?图|用(这|该|我)?(张|个)?图|让(图|图片|画面|照片|它)|(图|图片|照片)里|(图|图片|画面|照片)(动起来|变成视频|生成视频)|动起来|照着图|上传的图|发的图|选中的图|托盘(里)?的图/;
+
+/** 显式拒绝使用引用图的动词 + 短间隔 + 图名词（容许「忽略我上传的图片」这类修饰语） */
+const TEXT_ONLY_REJECT_RE =
+  /(不(要|用|需|使)(要|用)?|忽略|无视|跳过|别(用|管|理)|不参考|不考虑)[^，。；！？!?]{0,5}(图|图片|画面|照片)/;
+
+/** 纯文生/纯文字生成的明确表述 */
+const TEXT_ONLY_PHRASE_RE = /(纯|直接|仅)?文生(视频|图片?)|纯文字(生成|生视频|生图)/;
+
+/** 对纯文生的否定表达（如「不是纯文生视频」），分类前剥除以免否定语义被文生词表误命中 */
+const NEGATED_TEXT_ONLY_RE = /(不是|并非|非|不要|别|不想)\s*(纯|直接|仅)?文生(视频|图片?)/g;
+
+/** 聊天占位符 token（##图N##）——它本身就是一次图片指代，分类时视作名词「图」 */
+const PLACEHOLDER_TOKEN_RE = /##\s*图\s*\d+\s*##/g;
+
+/**
+ * 判定用户消息对"本轮附带引用图"的使用意图（纯函数，方案A 反静默守门的判定输入）。
+ * - imageConditioned：明确以图为条件生成（工具层兜底使用引用图）；
+ * - textOnly：明确要求不使用图片（保持纯文生/纯文图）；
+ * - uncertain：无法判定（视频工具将显式询问一次，不静默代选）。
+ * 先判 textOnly 再判 imageConditioned：「不要用这张图」这类否定表达优先于「这张图」命中；
+ * 占位符 token 视作名词「图」参与判定（写 ##图3## 但托盘越界时仍算以图为条件）。
+ * 词表是粗粒度安全网，细粒度语义交给 LLM（上下文"引用事实"层）处理。
+ */
+export function classifyChatReferenceIntent(text: string | null | undefined): ChatReferenceIntent {
+  const raw = String(text ?? "").trim();
+  if (!raw) return "uncertain";
+  const t = raw.replace(NEGATED_TEXT_ONLY_RE, "").replace(PLACEHOLDER_TOKEN_RE, "图");
+  if (TEXT_ONLY_PHRASE_RE.test(t) || TEXT_ONLY_REJECT_RE.test(t)) return "textOnly";
+  if (IMAGE_CONDITIONED_INTENT_RE.test(t)) return "imageConditioned";
+  return "uncertain";
+}
+
+/** 聊天生成参考图解析结果（generate_video / generate_image 共用） */
+export interface ChatReferenceResolution {
+  /** 最终生效的参考图 mediaId（已去重并按上限截断） */
+  ids: number[];
+  /** 参考图来源：explicit=LLM 显式传参 / placeholder=消息占位符 / turnAttachment=本轮附件兜底 / none=未使用 */
+  source: "explicit" | "placeholder" | "turnAttachment" | "none";
+  /** 反静默守门：本轮有引用图、前两级为空且意图不明——调用方必须显式向用户确认，禁止静默退化 */
+  needsConfirmation: boolean;
+  /** 本轮附带的引用媒体（供守门询问与审计日志使用） */
+  turnReferences: number[];
+  /** 意图判定结果 */
+  intent: ChatReferenceIntent;
+}
+
+/**
+ * 聊天生成参考图三级解析（方案A 第2层，SIY-158）：
+ * 1. LLM 显式参数（referenceMediaIds 优先于 referenceSlots 映射）；
+ * 2. 用户消息文本中的 ##图N## 占位符映射（确定性回退）；
+ * 3. 本轮附件（references）确定性兜底——仅当用户意图明确以图为条件时生效；
+ *    前两级为空、本轮有引用图而意图不明时置 needsConfirmation=true，由调用方显式询问，
+ *    禁止静默退化为纯文生视频/纯文生图。
+ */
+export function resolveChatReferences(opts: {
+  explicitIds?: number[];
+  explicitSlots?: number[];
+  /** 占位符编号 -> mediaId 映射（socket 层按附件托盘位序解析） */
+  slotMap: Record<number, number>;
+  /** 用户本轮消息文本中出现的占位符编号（第 2 级解析输入） */
+  messageSlots?: number[];
+  /** 用户本轮消息原文（意图判定输入） */
+  userText?: string;
+  /** 用户本轮附带的引用媒体（附件托盘 mediaId 列表） */
+  turnReferences?: number[];
+  /** 参考图上限：视频 2（首尾帧），图片 4 */
+  max: number;
+}): ChatReferenceResolution {
+  const turnReferences = (opts.turnReferences ?? []).filter((n) => Number.isInteger(n) && n > 0);
+  const intent = classifyChatReferenceIntent(opts.userText);
+  const cap = (ids: number[]) =>
+    Array.from(new Set(ids.filter((n) => Number.isInteger(n) && n > 0))).slice(0, opts.max);
+  const base = { turnReferences, intent };
+
+  // 第 1 级：LLM 显式参数（mediaIds 优先于 slots 映射）
+  if (opts.explicitIds?.length) {
+    return { ids: cap(opts.explicitIds), source: "explicit", needsConfirmation: false, ...base };
+  }
+  const explicitSlotIds = (opts.explicitSlots ?? [])
+    .map((slot) => opts.slotMap[slot] ?? null)
+    .filter((n): n is number => n != null);
+  if (explicitSlotIds.length) {
+    return { ids: cap(explicitSlotIds), source: "explicit", needsConfirmation: false, ...base };
+  }
+  // 第 2 级：用户消息占位符（无对应媒体时逐个丢弃）
+  const messageSlotIds = (opts.messageSlots ?? [])
+    .map((slot) => opts.slotMap[slot] ?? null)
+    .filter((n): n is number => n != null);
+  if (messageSlotIds.length) {
+    return { ids: cap(messageSlotIds), source: "placeholder", needsConfirmation: false, ...base };
+  }
+  // 第 3 级：本轮附件确定性兜底（意图明确以图为条件时生效；意图不明时守门询问）
+  if (turnReferences.length) {
+    if (intent === "textOnly") {
+      return { ids: [], source: "none", needsConfirmation: false, ...base };
+    }
+    if (intent === "imageConditioned") {
+      return { ids: cap(turnReferences), source: "turnAttachment", needsConfirmation: false, ...base };
+    }
+    return { ids: [], source: "none", needsConfirmation: true, ...base };
+  }
+  return { ids: [], source: "none", needsConfirmation: false, ...base };
+}
+
+// ---------------------------------------------------------------------------
 // 聊天驱动 UI 动作协议（SIY-153）：助手消息 ext.actions 携带白名单动作，前端执行器派发
 // ---------------------------------------------------------------------------
 

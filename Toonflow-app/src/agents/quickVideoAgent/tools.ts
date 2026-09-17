@@ -27,6 +27,7 @@ import {
   QUICK_VIDEO_UI_ACTIONS_MAX,
   canOpenExportConfirmStage,
   normalizeQuickVideoUiActions,
+  resolveChatReferences,
 } from "@/lib/quickVideo/contract";
 import { findShot, nextShotId, normalizeShotDuration, reindexShots } from "@/lib/quickVideo/shots";
 import {
@@ -75,11 +76,26 @@ interface ToolConfig {
   slotReferences?: Record<number, number>;
   /** 用户本轮消息中出现的占位符编号（升序去重）；未指定引用时的确定性回退依据 */
   placeholderSlots?: number[];
+  /** 用户本轮消息原文：引用图三级解析的意图判定输入（方案A，SIY-158） */
+  userText?: string;
 }
 
 /** 按占位符编号解析引用媒体；编号无效（没有对应媒体）时返回 null */
 function resolveSlotMediaId(toolConfig: ToolConfig, slot: number): number | null {
   return toolConfig.slotReferences?.[slot] ?? null;
+}
+
+/**
+ * 供应商请求参数审计日志（方案A 第4层，SIY-158）：留痕 generate_video 实际传给供应商的关键参数，
+ * Base64 参考图以张数代替（不刷日志）。与工具入参日志（工具层首行）共同补齐
+ * "LLM 传了什么 -> 系统解析出什么 -> 供应商收到什么"的证据链（SIY-137 事故 A1 假设验证依据）。
+ */
+function logVideoVendorRequest(model: string, input: { prompt: string; mode: string[]; duration: number; aspectRatio: string; resolution: string; quality?: string; referenceCount: number }) {
+  console.log(
+    `[quickVideo][generate_video] 供应商请求 model=${model} mode=[${input.mode.join(",")}] duration=${input.duration} ` +
+      `aspectRatio=${input.aspectRatio} resolution=${input.resolution} quality=${input.quality ?? "-"} ` +
+      `参考图=${input.referenceCount}张 prompt="${input.prompt.slice(0, 80)}${input.prompt.length > 80 ? "…" : ""}"`,
+  );
 }
 
 /** 工具内统一错误转文本，避免 Agent 因异常中断 */
@@ -1076,12 +1092,24 @@ export default (toolConfig: ToolConfig) => {
             return "该次图片生成请求正在处理中（幂等命中），请稍候查看聊天记录或资产白板。";
           }
 
-          // 参考图解析优先级：显式 mediaId > 显式占位符编号 > 用户消息占位符（确定性回退）；
-          // 全部落空时保持纯文生图。单张参考图失效只跳过该图，不阻断本次生成。
-          const slotSource = input.referenceSlots?.length ? input.referenceSlots : (toolConfig.placeholderSlots ?? []);
-          const slotIds = slotSource.map((slot) => resolveSlotMediaId(toolConfig, slot)).filter((id): id is number => id != null);
-          const mediaIds = input.referenceMediaIds?.length ? input.referenceMediaIds : slotIds;
-          const referenceIds = mediaIds.slice(0, 4);
+          // 参考图三级解析（方案A，SIY-158）：LLM 显式参数 > 消息占位符 > 本轮附件兜底
+          // （图片模式仅在意图明确以图为条件时兜底，不设反静默守门）。单张参考图失效只跳过该图，不阻断本次生成。
+          const resolution = resolveChatReferences({
+            explicitIds: input.referenceMediaIds,
+            explicitSlots: input.referenceSlots,
+            slotMap: toolConfig.slotReferences ?? {},
+            messageSlots: toolConfig.placeholderSlots ?? [],
+            userText: toolConfig.userText,
+            turnReferences: toolConfig.references,
+            max: 4,
+          });
+          const referenceIds = resolution.ids;
+          console.log(
+            `[quickVideo][generate_image] project=${projectId} session=${sessionId} call=${toolCallId} model=${imageModel} ` +
+              `入参mediaIds=[${(input.referenceMediaIds ?? []).join(",")}] 入参slots=[${(input.referenceSlots ?? []).join(",")}] ` +
+              `消息占位符=[${(toolConfig.placeholderSlots ?? []).join(",")}] 本轮附件=[${resolution.turnReferences.join(",")}] ` +
+              `意图=${resolution.intent} 来源=${resolution.source} 最终参考图=[${referenceIds.join(",")}]`,
+          );
           const referenceList: { type: "image"; base64: string }[] = [];
           for (const refId of referenceIds) {
             try {
@@ -1112,7 +1140,8 @@ export default (toolConfig: ToolConfig) => {
               { name: input.prompt.slice(0, 60), url },
               { mediaId: media.id, assetId: media.assetId, imageId: media.imageId, kind: "image", model: imageModel, promptSummary: input.prompt.slice(0, 200), state: "done", source: "chat" },
             );
-            const modeText = referenceList.length ? `已按${referenceList.length}张参考图做图生图${droppedRefs ? `（${droppedRefs}张参考图失效已跳过）` : ""}` : "纯文生图";
+            const refSourceNote = resolution.source === "turnAttachment" ? "（已自动使用你本轮附带的图片）" : "";
+            const modeText = referenceList.length ? `已按${referenceList.length}张参考图做图生图${refSourceNote}${droppedRefs ? `（${droppedRefs}张参考图失效已跳过）` : ""}` : "纯文生图";
             return `图片已生成并加入聊天记录与资产白板（mediaId ${media.id}，${modeText}）。提醒用户：如需用作某个镜头的首帧，可以在聊天中告诉我「把这张图设为镜头N首帧」，或在右侧分镜表手动绑定。`;
           } catch (err) {
             const reason = describeError(err);
@@ -1135,8 +1164,10 @@ export default (toolConfig: ToolConfig) => {
       : `视频时长（秒），${SHOT_DURATION_MIN}-${SHOT_DURATION_MAX}，未提供时默认 ${SHOT_DURATION_MIN} 秒`;
     tools.generate_video = tool({
       description:
-        "在当前聊天会话中生成一段视频（支持纯文生视频；带 ##图1## 时以该图为首帧；带 ##图1## ##图2## 时生成首尾帧过渡视频，模型不支持时自动退化为首帧模式；所选模型不支持文生视频时，系统会自动生成一张概念首帧图并链式生成视频）。生成成功会自动出现在聊天记录和资产白板中，" +
-        "但不会绑定到任何镜头、不会修改分镜——绑定镜头首帧请用 bind_shot_first_frame 工具。",
+        "在当前聊天会话中生成一段视频（支持纯文生视频；带 ##图1## 时以该图为首帧；带 ##图1## ##图2## 时生成首尾帧过渡视频，模型不支持时自动退化为首帧模式；所选模型不支持文生视频时，系统会自动生成一张概念首帧图并链式生成视频）。" +
+        "参考图解析顺序：你显式传的 referenceMediaIds/referenceSlots > 用户消息占位符 > 本轮附带图片（用户意图明确以图生成时系统自动兜底）。" +
+        "用户意图是以图生视频/作为首帧时你必须显式传 referenceMediaIds（见项目信息「本轮引用事实」），不要依赖兜底；用户明确要纯文生视频时不传引用。" +
+        "生成成功会自动出现在聊天记录和资产白板中，但不会绑定到任何镜头、不会修改分镜——绑定镜头首帧请用 bind_shot_first_frame 工具。",
       inputSchema: jsonSchema<{ prompt: string; referenceSlots?: number[]; referenceMediaIds?: number[]; duration?: number }>(
         z
           .object({
@@ -1164,10 +1195,36 @@ export default (toolConfig: ToolConfig) => {
       execute: async (input, options) => {
         const { toolCallId } = options as { toolCallId: string };
         return withThinking(msg, "正在生成视频...", async () => {
-          // 参考图解析优先级：显式 mediaId > 显式占位符编号 > 用户消息占位符（确定性回退）
-          const slotSource = input.referenceSlots?.length ? input.referenceSlots : (toolConfig.placeholderSlots ?? []);
-          const slotIds = slotSource.map((slot) => resolveSlotMediaId(toolConfig, slot)).filter((id): id is number => id != null);
-          const referenceIds = (input.referenceMediaIds?.length ? input.referenceMediaIds : slotIds).slice(0, 2);
+          // 参考图三级解析（方案A 第2层，SIY-158）：LLM 显式参数 > 消息占位符 > 本轮附件兜底。
+          // SIY-137 事故根因：前两级都为空时系统静默退化为纯文生视频——现在第 3 级在意图明确
+          // 时自动使用本轮引用图；意图不明时走反静默守门显式询问，绝不不声不响丢图。
+          const resolution = resolveChatReferences({
+            explicitIds: input.referenceMediaIds,
+            explicitSlots: input.referenceSlots,
+            slotMap: toolConfig.slotReferences ?? {},
+            messageSlots: toolConfig.placeholderSlots ?? [],
+            userText: toolConfig.userText,
+            turnReferences: toolConfig.references,
+            max: 2,
+          });
+          const referenceIds = resolution.ids;
+
+          // 可审计（方案A 第4层）：留痕工具实际收到的引用与最终解析结果（A1 假设验证依据）
+          console.log(
+            `[quickVideo][generate_video] project=${projectId} session=${sessionId} call=${toolCallId} model=${videoModel} ` +
+              `入参mediaIds=[${(input.referenceMediaIds ?? []).join(",")}] 入参slots=[${(input.referenceSlots ?? []).join(",")}] ` +
+              `消息占位符=[${(toolConfig.placeholderSlots ?? []).join(",")}] 本轮附件=[${resolution.turnReferences.join(",")}] ` +
+              `意图=${resolution.intent} 来源=${resolution.source} 最终参考图=[${referenceIds.join(",")}] 时长=${input.duration ?? "缺省"}`,
+          );
+
+          // 反静默守门（方案A 第3层）：本轮有引用图、前两级为空且意图不明——
+          // 禁止静默走纯文生视频，显式询问一次；本轮不创建任何生成记录、不产生费用。
+          if (resolution.needsConfirmation) {
+            return (
+              `需要先和你确认：你这条消息附带了图片（mediaId ${resolution.turnReferences.join("、")}），但没有说明要不要用它来生成视频。` +
+              "回复「用这张图」我会以它为首帧做图生视频；回复「不用图」我会按文字描述纯文生视频。本轮尚未开始生成，不会产生费用。"
+            );
+          }
 
           // 纯文生视频守门：目录明确声明不支持 text 模式时提前拦截，避免必然失败的供应商调用
           if (!referenceIds.length) {
@@ -1264,6 +1321,15 @@ export default (toolConfig: ToolConfig) => {
               // 将概念首帧图作为参考图送入视频模型生成视频
               try {
                 const videoAi0 = u.Ai.Video(videoModel as `${string}:${string}`, userId);
+                logVideoVendorRequest(videoModel, {
+                  prompt: input.prompt,
+                  mode: ["singleImage"],
+                  duration: duration0,
+                  aspectRatio: aspectRatio0,
+                  resolution: "720p",
+                  quality: (await getVideoModelDefaultQuality(videoModel)) ?? undefined,
+                  referenceCount: 1,
+                });
                 await videoAi0.run(
                   {
                     prompt: input.prompt,
@@ -1362,6 +1428,15 @@ export default (toolConfig: ToolConfig) => {
 
           try {
             const videoAi = u.Ai.Video(videoModel as `${string}:${string}`, userId);
+            logVideoVendorRequest(videoModel, {
+              prompt: input.prompt,
+              mode: mode as string[],
+              duration,
+              aspectRatio,
+              resolution: "720p",
+              quality: (await getVideoModelDefaultQuality(videoModel)) ?? undefined,
+              referenceCount: imageBase64List.length,
+            });
             await videoAi.run(
               {
                 prompt: input.prompt,
@@ -1390,7 +1465,9 @@ export default (toolConfig: ToolConfig) => {
               { name: input.prompt.slice(0, 60), url },
               { mediaId: media.id, assetId: media.assetId, videoId: media.videoId, kind: "video", model: videoModel, promptSummary: input.prompt.slice(0, 200), state: "done", source: "chat" },
             );
-            const modeText = imageBase64List.length >= 2 ? "首尾帧过渡" : imageBase64List.length === 1 ? "以参考图为首帧" : "纯文生视频";
+            // 兜底来源要向用户显式披露（方案A：确定性但不隐性），避免"图被用了但用户不知道"
+            const refSourceNote = resolution.source === "turnAttachment" ? "（已自动使用你本轮附带的图片）" : "";
+            const modeText = imageBase64List.length >= 2 ? "首尾帧过渡" : imageBase64List.length === 1 ? `以参考图为首帧${refSourceNote}` : "纯文生视频";
             return `视频已生成并加入聊天记录与资产白板（mediaId ${media.id}，${modeText}）${degradedNote}${durationNote}。提醒用户：如需把视频/图片用于某个镜头，可以在聊天中告诉我，或在右侧分镜表手动绑定。`;
           } catch (err) {
             const reason = describeError(err);

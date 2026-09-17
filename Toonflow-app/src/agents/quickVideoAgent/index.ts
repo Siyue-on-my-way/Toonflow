@@ -117,6 +117,20 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
       ].join("\n")
     : "";
 
+  // 方案A 第1层（SIY-158）：本轮引用图是系统确定性事实，必须作为事实写进上下文并压实使用义务。
+  // 此前引用只以记忆注记 [本轮附带媒体引用 mediaId: N] 存在，而工具规则又要求"不得编造 id"，
+  // LLM 在用户未写占位符时会按规则什么都不传——参考图被静默丢弃退化为纯文生视频（SIY-137 事故）。
+  const referenceNote =
+    (ctx.mode === "image" || ctx.mode === "video") && ctx.references?.length
+      ? [
+          "",
+          "## 本轮引用事实（系统事实，非推测）",
+          `用户本轮已附带 ${ctx.references.length} 张图片，mediaId=[${ctx.references.slice(0, 4).join(", ")}]，已随消息上传完成、真实存在，可直接作为 referenceMediaIds 传参。`,
+          "使用义务：用户意图是以图为条件生成——如「这张图/该图/这张照片/图生视频/作为首帧/让图动起来/图生图/垫图」等指代——时，必须显式传 referenceMediaIds=上述 mediaId（或 referenceSlots 编号），不得因为消息里没写 ##图N## 占位符就不传。",
+          "例外：用户明确说「不用图/纯文生视频/纯文生图」时不传引用；意图拿不准时先向用户确认一句再生成，不要自作主张。",
+        ].join("\n")
+      : "";
+
   const projectInfo = [
     "## 项目信息",
     `视频标题：${projectData?.name ?? "未知"}`,
@@ -132,11 +146,12 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
       : "",
     state ? `允许镜头数量：${shotCountBounds(state.targetDuration).min}-${shotCountBounds(state.targetDuration).max} 个` : "",
     ctx.mode === "image"
-      ? `本轮用户在聊天框选择了「图片」生成模式，模型：${ctx.imageModel}。请调用 generate_image 工具按用户描述生成图片；用户消息带 ##图N## 占位符时传 referenceSlots 自动转为图生图，否则为纯文生图；不要只用文字描述画面。生成的图片会自动出现在聊天记录和资产白板中。`
+      ? `本轮用户在聊天框选择了「图片」生成模式，模型：${ctx.imageModel}。请调用 generate_image 工具按用户描述生成图片；用户消息带 ##图N## 占位符时传 referenceSlots 自动转为图生图；仅附带图片而未写占位符时，按「本轮引用事实」传 referenceMediaIds；用户未提及图片时为纯文生图。不要只用文字描述画面。生成的图片会自动出现在聊天记录和资产白板中。`
       : ctx.mode === "video"
-        ? `本轮用户在聊天框选择了「视频」生成模式，模型：${ctx.videoModel}。请调用 generate_video 工具：纯文字描述即文生视频（无需图片）；消息带 ##图N## 时传 referenceSlots=[N] 以该图为首帧；带 ##图1## ##图2## 时传 referenceSlots=[1,2] 生成首尾帧过渡视频（模型不支持时工具会自动退化为首帧模式）；所选模型不支持文生视频时，工具会自动生成一张概念首帧图并链式生视频。生成的视频（和概念图）会自动出现在聊天记录和资产白板中，不会自动绑定镜头。`
+        ? `本轮用户在聊天框选择了「视频」生成模式，模型：${ctx.videoModel}。请调用 generate_video 工具：纯文字描述即文生视频（无需图片）；消息带 ##图N## 时传 referenceSlots=[N] 以该图为首帧；带 ##图1## ##图2## 时传 referenceSlots=[1,2] 生成首尾帧过渡视频（模型不支持时工具会自动退化为首帧模式）；仅附带图片而未写占位符、且用户意图是以图生视频时，必须按「本轮引用事实」传 referenceMediaIds；所选模型不支持文生视频时，工具会自动生成一张概念首帧图并链式生视频。生成的视频（和概念图）会自动出现在聊天记录和资产白板中，不会自动绑定镜头。`
         : "",
     slotNote,
+    referenceNote,
     "",
     mem,
   ]
@@ -168,6 +183,7 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
         references: ctx.references,
         slotReferences,
         placeholderSlots,
+        userText: text,
       }),
     },
     onFinish: async (completion) => {
