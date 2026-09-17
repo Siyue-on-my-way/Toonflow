@@ -1,7 +1,7 @@
 <template>
   <div
     class="audioUploadBox"
-    :class="{ hasFile: !!modelValue }"
+    :class="{ hasFile: !!modelValue, disabled }"
     @click="trigger"
     @dragover.prevent
     @drop.prevent="handleDrop"
@@ -25,6 +25,8 @@
 const props = defineProps<{
   modelValue: File | null;
   label?: string;
+  /** 禁用上传（如 seedance 的音频参考必须搭配图片/视频时，未传视觉素材前置为禁用态，SIY-159） */
+  disabled?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -35,6 +37,7 @@ const emit = defineEmits<{
 const inputRef = ref<HTMLInputElement | null>(null);
 
 function trigger() {
+  if (props.disabled) return;
   inputRef.value?.click();
 }
 
@@ -45,6 +48,7 @@ function handleChange(e: Event) {
 }
 
 function handleDrop(e: DragEvent) {
+  if (props.disabled) return;
   const file = e.dataTransfer?.files?.[0] ?? null;
   if (file?.type.startsWith("audio/")) emit("update:modelValue", file);
 }
@@ -78,6 +82,15 @@ function clear() {
 
   &.hasFile {
     border-color: var(--td-success-color);
+  }
+
+  &.disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+
+    &:hover {
+      border-color: var(--td-component-border);
+    }
   }
 
   .boxText {

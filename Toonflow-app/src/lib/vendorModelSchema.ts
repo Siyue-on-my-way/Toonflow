@@ -46,6 +46,16 @@ export const vendorModelSchema = z.discriminatedUnion("type", [
         resolution: z.array(z.string()),
       }),
     ),
+    // SIY-159：时长连续区间标记（minimax fl2va 5-15 滑条）
+    durationContinuous: z.boolean().optional(),
+    // SIY-159：提示词必填标记（seedance 必填，kling O1/minimax 可选）
+    promptRequired: z.boolean().optional(),
+    // SIY-159：分辨率警示说明（seedance 超分档位等），随 modelDetail 渲染
+    resolutionNote: z.string().optional(),
+    // SIY-159：高级参数开关声明，前端按声明渲染折叠区，禁止按模型名特判
+    controls: z.array(z.enum(["generateAudio", "returnLastFrame", "seed", "realPersonMode"])).optional(),
+    // SIY-159：提示词支持 @Image N / @Video N 槽位引用（seedance）
+    promptSlotReferences: z.boolean().optional(),
     aspectRatioOptions: z
       .array(
         z.object({

@@ -45,9 +45,25 @@ export interface VideoModel {
   associationSkills?: string;
   audio: "always" | "optional" | false | true;
   durationResolutionMap: { duration: number[]; resolution: string[] }[];
+  /** 时长是否为连续区间（durationResolutionMap[].duration 取 [min, max]），如 minimax fl2va 的 5-15 秒滑条；缺省视为离散档位 */
+  durationContinuous?: boolean;
   aspectRatioOptions?: VideoAspectRatioOption[];
   qualityOptions?: ("std" | "pro")[];
   promptLengthRange?: [number, number];
+  /** 提示词是否必填；缺省时仅纯文生视频模式必填（seedance 文档要求必填，kling O1/minimax 可选） */
+  promptRequired?: boolean;
+  /** 分辨率旁的警示说明（如"1080p 以上为超分输出"），随 modelDetail 下发渲染 */
+  resolutionNote?: string;
+  /**
+   * 高级参数开关（元数据驱动渲染，前端按声明出现，禁止按模型名特判）：
+   * - generateAudio：是否生成视频音频（seedance）
+   * - returnLastFrame：是否返回视频尾帧（seedance）
+   * - seed：随机种子（seedance，-1 表示随机）
+   * - realPersonMode：真人素材资产化（seedance，待产品确认前不声明、UI 不出）
+   */
+  controls?: ("generateAudio" | "returnLastFrame" | "seed" | "realPersonMode")[];
+  /** 提示词支持 @Image N / @Video N 槽位引用（seedance），前端据此渲染引用 chip 与一致性校验 */
+  promptSlotReferences?: boolean;
 }
 
 export interface TTSModel {
@@ -92,6 +108,8 @@ export interface VideoConfig {
   generateAudio?: boolean;
   seed?: number;
   returnLastFrame?: boolean;
+  /** 真人素材资产化（seedance）：仅类型占位，UI/DSL 是否放开待产品确认（SIY-159）。 */
+  realPersonMode?: boolean;
   mode: VideoMode[];
   quality?: "std" | "pro";
 }

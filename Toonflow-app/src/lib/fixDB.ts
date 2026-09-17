@@ -307,6 +307,65 @@ export default async (knex: Knex): Promise<void> => {
     });
   }
 
+  // SIY-159：RunningHub 七模型能力元数据补全（对照 docs/runninghub-api 逐格核对 + 真实 Key 端点实测）。
+  // 设置页/生产入口都从 o_vendorConfig.models 快照读取，代码侧元数据必须幂等 upsert 进数据库目录：
+  // 目录中缺失则补入，已存在则用代码声明覆盖（代码即目录，元数据随代码版本化，不用运行时可变配置）。
+  const SIY159_RUNNINGHUB_MODELS = [
+    "rhart-image-n-g31-flash",
+    "rhart-image-g-2",
+    "rhart-video/minimax-h3-oss/fl2va",
+    "seedance-2.0-fast",
+    "seedance-2.0-mini",
+    "kling-video-o1/image-to-video",
+    "rhart-image-n-pro/edit",
+  ];
+  const siy159RunninghubRow = await u.db("o_vendorConfig").where("id", "runninghub").first();
+  if (siy159RunninghubRow) {
+    let siy159Catalog: any[] = [];
+    try {
+      const parsed = JSON.parse(siy159RunninghubRow.models || "[]");
+      if (Array.isArray(parsed)) siy159Catalog = parsed;
+    } catch {}
+    let siy159Enabled: string[] = [];
+    try {
+      const parsed = JSON.parse(siy159RunninghubRow.enabledModels || "[]");
+      if (Array.isArray(parsed)) siy159Enabled = parsed.filter((name): name is string => typeof name === "string");
+    } catch {}
+
+    let catalogChanged = false;
+    for (const modelName of SIY159_RUNNINGHUB_MODELS) {
+      const codeModel =
+        runninghubVendor.models.find((model) => model.modelName === modelName) ??
+        (modelName === NANO_BANANA_PRO_VENDOR_MODEL.modelName
+          ? NANO_BANANA_PRO_VENDOR_MODEL
+          : modelName === KLING_O1_VENDOR_MODEL.modelName
+            ? KLING_O1_VENDOR_MODEL
+            : undefined);
+      if (!codeModel) continue;
+      const index = siy159Catalog.findIndex((model: any) => model?.modelName === modelName);
+      if (index < 0) {
+        siy159Catalog.push(codeModel);
+        catalogChanged = true;
+      } else {
+        const merged = { ...siy159Catalog[index], ...codeModel };
+        if (JSON.stringify(siy159Catalog[index]) !== JSON.stringify(merged)) {
+          siy159Catalog[index] = merged;
+          catalogChanged = true;
+        }
+      }
+      if (!siy159Enabled.includes(modelName)) {
+        siy159Enabled.push(modelName);
+        catalogChanged = true;
+      }
+    }
+    if (catalogChanged) {
+      await u.db("o_vendorConfig").where("id", "runninghub").update({
+        models: JSON.stringify(siy159Catalog),
+        enabledModels: JSON.stringify(siy159Enabled),
+      });
+    }
+  }
+
   await addColumn("o_user", "role", "string");
   await db("o_user").where("id", 1).whereNull("role").update({ role: "admin" });
   await db("o_user").whereNot("id", 1).whereNull("role").update({ role: "member" });

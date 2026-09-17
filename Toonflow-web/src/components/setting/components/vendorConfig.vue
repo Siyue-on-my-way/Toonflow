@@ -266,7 +266,7 @@
       v-model:modelVisible="videoTestVisible"
       :vendorId="currentVendor!.id"
       :modelName="testingModel.modelName"
-      :rawModes="(testingModel as any).mode || []" />
+      :modelDetail="testingModel" />
 
     <!-- 添加供应商弹窗 -->
     <t-dialog

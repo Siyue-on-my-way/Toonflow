@@ -31,6 +31,10 @@ export interface RunningHubFieldSpec {
   minLength?: number;
   /** 字符串最大长度；仅在字段实际传入时校验 */
   maxLength?: number;
+  /** 数值最小值；仅在字段实际传入时校验（如 minimax duration 5-15、seedance seed -1~2147483647） */
+  minValue?: number;
+  /** 数值最大值；仅在字段实际传入时校验 */
+  maxValue?: number;
 }
 
 export interface RunningHubNamedSlotsImageInput {
@@ -185,6 +189,12 @@ export function buildRunningHubRequestBody(
     if (field.allowed && !field.allowed.some((item) => item === value)) {
       throw new Error(`参数「${field.target}」仅支持：${field.allowed.map(String).join("、")}`);
     }
+    if (field.minValue !== undefined && typeof value === "number" && value < field.minValue) {
+      throw new Error(`参数「${field.target}」不能小于 ${field.minValue}`);
+    }
+    if (field.maxValue !== undefined && typeof value === "number" && value > field.maxValue) {
+      throw new Error(`参数「${field.target}」不能大于 ${field.maxValue}`);
+    }
     if (typeof value === "string") {
       if (field.minLength !== undefined && value.length < field.minLength) {
         throw new Error(`参数「${field.target}」至少需要 ${field.minLength} 个字符`);
@@ -243,6 +253,12 @@ export function buildRunningHubRequestBody(
     if (field.allowed && !field.allowed.some((item) => item === value)) {
       throw new Error(`参数「${field.target}」仅支持：${field.allowed.map(String).join("、")}`);
     }
+    if (field.minValue !== undefined && typeof value === "number" && value < field.minValue) {
+      throw new Error(`参数「${field.target}」不能小于 ${field.minValue}`);
+    }
+    if (field.maxValue !== undefined && typeof value === "number" && value > field.maxValue) {
+      throw new Error(`参数「${field.target}」不能大于 ${field.maxValue}`);
+    }
     body[field.target] = value;
   }
 
@@ -257,19 +273,26 @@ export const RUNNINGHUB_MODEL_SPECS: RunningHubModelSpec[] = [
   // ================
   {
     modelName: "rhart-image-n-g31-flash",
-    endpoint: "rhart-image-n-g31-flash/image-to-image",
+    // 真实 Key 实测（SIY-159）：text-to-image 与 image-to-image 两个端点都存在，文档只记载了前者。
+    // 纯文生走 text-to-image；带参考图时由 imageRequest 切到 image-to-image（参考图必填，与实测 1007 报错一致）。
+    endpoint: "rhart-image-n-g31-flash/text-to-image",
+    imageEndpoint: "rhart-image-n-g31-flash/image-to-image",
     type: "image",
     fields: [
-      { target: "prompt", from: "prompt" },
-      { target: "aspectRatio", from: "aspectRatio" },
-      { target: "resolution", from: "size", enumMap: { "1K": "1k", "2K": "2k", "4K": "4k" } },
+      { target: "prompt", from: "prompt", required: true },
+      {
+        target: "aspectRatio",
+        from: "aspectRatio",
+        allowed: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "5:4", "4:5", "21:9", "1:4", "4:1", "1:8", "8:1"],
+      },
+      { target: "resolution", from: "size", required: true, enumMap: { "1K": "1k", "2K": "2k", "4K": "4k" }, allowed: ["1k", "2k", "4k"] },
     ],
     imageInput: {
       mode: "array",
       arrayField: "imageUrls",
       max: 10,
-      required: 1,
-      requiredError: "图生图模式需要提供参考图片",
+      // 仅在带参考图（image-to-image endpoint）时校验；imageRequest 已保证无图时不会切 endpoint
+      required: 0,
     },
   },
   {
@@ -373,7 +396,7 @@ export const RUNNINGHUB_MODEL_SPECS: RunningHubModelSpec[] = [
           "21:9": "21:9 (Ultrawide)",
         },
       },
-      { target: "duration", from: "duration", cast: "float" },
+      { target: "duration", from: "duration", cast: "float", minValue: 5, maxValue: 15 },
     ],
     imageInput: { mode: "namedSlots", slots: ["firstFrameUrl", "lastFrameUrl"] },
     // H3 单端点智能适配输入模态：帧缺失时会静默退回文生视频，因此必填帧要在请求发出前拦截。
@@ -441,7 +464,7 @@ export const RUNNINGHUB_MODEL_SPECS: RunningHubModelSpec[] = [
       { target: "audioUrls", from: "audioUrls" },
       { target: "generateAudio", from: "generateAudio", cast: "bool" },
       { target: "returnLastFrame", from: "returnLastFrame", cast: "bool" },
-      { target: "seed", from: "seed", cast: "int" },
+      { target: "seed", from: "seed", cast: "int", minValue: -1, maxValue: 2147483647 },
     ],
     allowedAspectRatios: ["adaptive", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9"],
     allowedResolutions: ["480p", "720p", "1080p", "2k", "4k"],
@@ -463,7 +486,7 @@ export const RUNNINGHUB_MODEL_SPECS: RunningHubModelSpec[] = [
       { target: "audioUrls", from: "audioUrls" },
       { target: "generateAudio", from: "generateAudio", cast: "bool" },
       { target: "returnLastFrame", from: "returnLastFrame", cast: "bool" },
-      { target: "seed", from: "seed", cast: "int" },
+      { target: "seed", from: "seed", cast: "int", minValue: -1, maxValue: 2147483647 },
     ],
     allowedAspectRatios: ["adaptive", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9"],
     allowedResolutions: ["480p", "720p", "1080p", "2k", "4k"],
@@ -485,6 +508,8 @@ export const NANO_BANANA_PRO_VENDOR_MODEL: ImageModel = {
   mode: ["singleImage", "multiReference"],
   minReferenceImages: 1,
   maxReferenceImages: 10,
+  // 文档：resolution 必填，枚举 1k/2k/4k（主打 4K + 画面内多语言文字）
+  resolutionOptions: ["1K", "2K", "4K"],
   aspectRatioOptions: [
     { value: "auto", label: "自适应" },
     { value: "1:1", label: "1:1" },

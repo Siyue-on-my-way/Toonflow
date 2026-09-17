@@ -342,6 +342,10 @@ interface VideoConfig {
   audio?: boolean;
   mode: VideoMode[];
   quality?: "std" | "pro";
+  /** 模型高级开关（seedance 等），由测试面板/生成入口透传，供应商 DSL 按声明构造请求（SIY-159） */
+  generateAudio?: boolean;
+  seed?: number;
+  returnLastFrame?: boolean;
 }
 
 class AiVideo {

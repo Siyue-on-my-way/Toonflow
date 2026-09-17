@@ -16,7 +16,7 @@ import { zipImage, zipImageResolution, mergeImages, urlToBase64, pollTask, logge
 
 /**
  * Toonflow AI供应商模板 - RunningHub
- * @version 1.0
+ * @version 1.1 SIY-159 七模型能力元数据补全（对照 docs/runninghub-api 逐格核对）
  */
 
 // ================
@@ -25,7 +25,7 @@ import { zipImage, zipImageResolution, mergeImages, urlToBase64, pollTask, logge
 
 export const vendor: VendorConfig = {
   id: "runninghub",
-  version: "1.0",
+  version: "1.1",
   author: "Toonflow",
   name: "RunningHub",
   description: "## RunningHub AI 模型服务接入\n支持 RunningHub 的图生图、文生视频等模型。",
@@ -36,10 +36,16 @@ export const vendor: VendorConfig = {
   inputValues: { apiKey: "", baseUrl: "https://www.runninghub.ai/openapi/v2" },
   models: [
     {
-      name: "Nano Banana 2 图生图 (rhart-image-n-g31-flash)",
+      // 真实 Key 实测（SIY-159）：text-to-image 与 image-to-image 两个端点都存在，
+      // 文档只记载了 text-to-image；带参考图时由 DSL 的 imageEndpoint 切到 image-to-image。
+      name: "Nano Banana 2 (rhart-image-n-g31-flash)",
       modelName: "rhart-image-n-g31-flash",
       type: "image",
-      mode: ["singleImage", "multiReference"],
+      mode: ["text", "singleImage", "multiReference"],
+      aspectRatioOptions: [
+        "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "5:4", "4:5", "21:9", "1:4", "4:1", "1:8", "8:1",
+      ].map((ratio) => ({ value: ratio, label: ratio })),
+      resolutionOptions: ["1K", "2K", "4K"],
     },
     {
       name: "GPT Image (文生图/图生图)",
@@ -89,7 +95,11 @@ export const vendor: VendorConfig = {
       // 这些是模型的物理能力，不能在设置页被普通用户预先裁剪。
       mode: ["singleImage", "startEndRequired", "endFrameOptional", "startFrameOptional", "text"],
       audio: "always",
+      // 文档：duration 为 Float 连续区间 5-15，前端渲染为滑条（SIY-159）
+      durationContinuous: true,
       durationResolutionMap: [{ duration: [5, 15], resolution: ["768p"] }],
+      // 文档：提示词可选，0-20000 字
+      promptLengthRange: [0, 20000],
       aspectRatioOptions: [
         { value: "1:1", label: "1:1 (Square)" },
         { value: "2:3", label: "2:3 (Portrait Photo)" },
@@ -116,6 +126,23 @@ export const vendor: VendorConfig = {
       mode: ["text", ["imageReference:9"], ["videoReference:3"], ["imageReference:9", "videoReference:3", "audioReference:3"]],
       audio: "optional",
       durationResolutionMap: [{ duration: [-1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], resolution: ["480p", "720p", "1080p", "2k", "4k"] }],
+      aspectRatioOptions: [
+        { value: "adaptive", label: "自适应" },
+        { value: "16:9", label: "16:9" },
+        { value: "4:3", label: "4:3" },
+        { value: "1:1", label: "1:1" },
+        { value: "3:4", label: "3:4" },
+        { value: "9:16", label: "9:16" },
+        { value: "21:9", label: "21:9" },
+      ],
+      // 文档：480p/720p 为原生输出，1080p/2k/4k 为 720p 原生后超分放大
+      resolutionNote: "480p/720p 为模型原生输出；1080p/2k/4k 基于 720p 原生生成后超分放大，耗时与稳定性会有所下降。",
+      // 文档：提示词必填，1-20480 字；支持 @Image N / @Video N 槽位引用
+      promptRequired: true,
+      promptLengthRange: [1, 20480],
+      promptSlotReferences: true,
+      // realPersonMode/conversionSlots 为真人素材资产化能力，对动漫短剧主场景价值存疑，待产品确认后再声明（SIY-159 风险节）
+      controls: ["generateAudio", "returnLastFrame", "seed"],
     },
     {
       name: "多模态视频 (Seedance 2.0 Mini)",
@@ -124,6 +151,22 @@ export const vendor: VendorConfig = {
       mode: ["text", ["imageReference:9"], ["videoReference:3"], ["imageReference:9", "videoReference:3", "audioReference:3"]],
       audio: "optional",
       durationResolutionMap: [{ duration: [-1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], resolution: ["480p", "720p", "1080p", "2k", "4k"] }],
+      aspectRatioOptions: [
+        { value: "adaptive", label: "自适应" },
+        { value: "16:9", label: "16:9" },
+        { value: "4:3", label: "4:3" },
+        { value: "1:1", label: "1:1" },
+        { value: "3:4", label: "3:4" },
+        { value: "9:16", label: "9:16" },
+        { value: "21:9", label: "21:9" },
+      ],
+      // 文档：Mini 原生仅 480p/720p；1080p/2k/4k 先以 720p 生成，再超分补帧输出
+      resolutionNote: "Mini 原生仅支持 480p/720p；1080p/2k/4k 会先以 720p 生成，再通过超分补帧输出，画质稳定性弱于 Standard 档。",
+      // 文档：提示词必填，1-20480 字；支持 @Image N / @Video N 槽位引用
+      promptRequired: true,
+      promptLengthRange: [1, 20480],
+      promptSlotReferences: true,
+      controls: ["generateAudio", "returnLastFrame", "seed"],
     },
     KLING_O1_VENDOR_MODEL,
   ],
@@ -192,10 +235,26 @@ export function createVendorAPI(inputValues: Record<string, string>, hooks: { on
   const extractRawBase64 = (base64Str: string): string => {
     return base64Str.replace(/^data:image\/\w+;base64,/, "");
   };
-  
+
+  // 请求体审计摘要（SIY-158 方案A 第4层）：base64 参考图/超长字段只留长度指纹，
+  // 保留 firstFrameUrl/lastFrameUrl/imageUrls 等关键引用字段是否真实填入的证据（A1 验证依据）。
+  const summarizeRequestBody = (data: any): string => {
+    try {
+      return JSON.stringify(data, (_key, value) => {
+        if (typeof value === "string" && value.length > 240) {
+          return `${value.slice(0, 120)}…<len=${value.length}>`;
+        }
+        return value;
+      });
+    } catch {
+      return "<unserializable>";
+    }
+  };
+
   const submitTask = async (endpoint: string, data: any) => {
     const url = `${getBaseUrl()}/${endpoint}`;
     logger(`[RunningHub] 提交任务: ${url}`);
+    logger(`[RunningHub] 请求参数: ${summarizeRequestBody(data)}`);
     const response = await axios.post(url, data, { headers: getHeaders() });
     
     if (response.data && response.data.taskId) {
@@ -314,7 +373,7 @@ export function createVendorAPI(inputValues: Record<string, string>, hooks: { on
   };
   
   const checkForUpdates = async (): Promise<{ hasUpdate: boolean; latestVersion: string; notice: string }> => {
-    return { hasUpdate: false, latestVersion: "1.0", notice: "初始版本" };
+    return { hasUpdate: false, latestVersion: "1.1", notice: "SIY-159：RunningHub 七模型能力元数据补全（对照 API 文档逐格核对 + 真实 Key 端点实测）" };
   };
   
   const updateVendor = async (): Promise<string> => {
