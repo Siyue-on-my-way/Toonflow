@@ -183,6 +183,60 @@ export interface QuickVideoFinalParamsCard {
   artStyleText?: string;
 }
 
+// ---------------------------------------------------------------------------
+// 聊天模型参数确认卡（与后端 src/lib/quickVideo/contract.ts 保持一致，SIY-161）
+// ---------------------------------------------------------------------------
+
+export type VideoParamFieldType = "select" | "slider" | "switch" | "number";
+
+/** 参数来源：llm=LLM 预填 / user=用户修改 / system=系统默认 / preference=会话偏好记忆 */
+export type VideoParamSource = "llm" | "user" | "system" | "preference";
+
+export interface VideoParamFieldOption {
+  value: string | number;
+  label: string;
+  /** 守门可视化：置灰不可选（如无引用图时的首帧模式） */
+  disabled?: boolean;
+  /** 置灰/警示说明 */
+  hint?: string;
+  /** 有引用图时纯文生模式的降权展示（可选但需显式选择） */
+  deemphasized?: boolean;
+}
+
+export interface VideoParamField {
+  key: string;
+  label: string;
+  type: VideoParamFieldType;
+  value: string | number | boolean | null;
+  options?: VideoParamFieldOption[];
+  min?: number;
+  max?: number;
+  step?: number;
+  required?: boolean;
+  /** true 时渲染进高级折叠区 */
+  advanced: boolean;
+  source: VideoParamSource;
+  /** 档位说明（resolutionNote/durationAutoNote/costNote 等） */
+  note?: string;
+}
+
+/** 聊天模型参数确认卡（request_video_params 回显；状态由前端按状态机最新数据判定） */
+export interface QuickVideoVideoParamsCard {
+  cardId: string;
+  modelKey: string;
+  modelName: string;
+  sessionId: number;
+  status: "pending" | "confirmed";
+  createdAt: number;
+  confirmedAt: number | null;
+  prompt: string;
+  promptSource: VideoParamSource;
+  referenceMediaIds: number[];
+  fields: VideoParamField[];
+}
+
+export type VideoParamsCardConfirmEdits = Record<string, string | number | boolean>;
+
 export interface QuickVideoGeneration {
   snapshot: QuickVideoGenerationSnapshot | null;
   /** 最终生成参数确认状态（字段名沿用旧版，仅作内部标识） */
@@ -190,6 +244,8 @@ export interface QuickVideoGeneration {
   materialsConfirmedAt: number | null;
   /** 最终生成参数确认卡片（最新在末尾） */
   finalParamsCards: QuickVideoFinalParamsCard[];
+  /** 聊天模型参数确认卡（最新在末尾，SIY-161） */
+  videoParamsCards?: QuickVideoVideoParamsCard[];
   runId: string | null;
   startedAt: number | null;
   finishedAt: number | null;

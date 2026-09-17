@@ -64,6 +64,10 @@ export interface VideoModel {
   controls?: ("generateAudio" | "returnLastFrame" | "seed" | "realPersonMode")[];
   /** 提示词支持 @Image N / @Video N 槽位引用（seedance），前端据此渲染引用 chip 与一致性校验 */
   promptSlotReferences?: boolean;
+  /** 离散时长 -1「自动」档的说明（SIY-161：官方文档未说明实际输出规则的按实标注，不脑补） */
+  durationAutoNote?: string;
+  /** 档位成本说明（std/pro、480p-4k 价格差异；价格数据未提供前留空，由产品补充后随元数据下发） */
+  costNote?: string;
 }
 
 export interface TTSModel {

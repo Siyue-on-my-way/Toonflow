@@ -1815,7 +1815,21 @@
       "deleteAssetConfirm": "This removes the asset from the whiteboard (chat history is kept). Delete it?",
       "assetDeleted": "Asset deleted",
       "deleteAssetFailed": "Delete failed",
-      "shotTextOnlyHint": "Storyboard confirmed: only text fields (description/dialogue/camera/prompts) can be edited. Generated media is unaffected; changes apply on next generation or re-assembly."
+      "shotTextOnlyHint": "Storyboard confirmed: only text fields (description/dialogue/camera/prompts) can be edited. Generated media is unaffected; changes apply on next generation or re-assembly.",
+      "videoParams": {
+        "title": "Video Generation Params",
+        "prompt": "Prompt",
+        "refNote": "{count} reference image(s) attached this turn; used per the selected input mode",
+        "remember": "Remember these params and stop asking",
+        "confirm": "Confirm & Generate",
+        "pendingTag": "Pending",
+        "confirmedTag": "Confirmed",
+        "staleTag": "Outdated",
+        "staleHint": "A newer params card exists; this one is outdated",
+        "confirmed": "Params confirmed, generating video",
+        "confirmFailed": "Failed to confirm params",
+        "notConnected": "Chat is not connected, please retry"
+      }
     }
   },
   "login": {

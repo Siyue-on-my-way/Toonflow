@@ -16,15 +16,26 @@ function normalizeRole(role?: string | null): "user" | "assistant" | null {
 }
 
 /**
- * 解析消息展示层元数据里的 UI 动作（SIY-153）：memories.ext 存 JSON 数组，
+ * 解析消息展示层元数据（SIY-153 actions + SIY-161 videoParamsCard）：
+ * memories.ext 存 JSON——旧格式是 actions 数组，新格式是 { actions?, videoParamsCard? } 对象；
  * 白名单外/畸形数据静默忽略（normalize 返回空数组即不附带），历史回放动作由前端按消息 id 去重。
  */
-function parseMessageUiActions(row: { role?: string | null; ext?: string | null }): QuickVideoUiAction[] {
-  if (!row.ext || !normalizeRole(row.role)) return [];
+function parseMessageExt(row: { role?: string | null; ext?: string | null }): { actions: QuickVideoUiAction[]; videoParamsCard: Record<string, unknown> | null } {
+  if (!row.ext || !normalizeRole(row.role)) return { actions: [], videoParamsCard: null };
   try {
-    return normalizeQuickVideoUiActions(JSON.parse(row.ext)).accepted;
+    const parsed = JSON.parse(row.ext);
+    if (Array.isArray(parsed)) return { actions: normalizeQuickVideoUiActions(parsed).accepted, videoParamsCard: null };
+    if (parsed && typeof parsed === "object") {
+      const actions = Array.isArray(parsed.actions) ? normalizeQuickVideoUiActions(parsed.actions).accepted : [];
+      // 确认卡只透传定义（字段/来源/冻结引用），状态（active/confirmed/stale）由前端按状态机最新数据判定
+      const card = parsed.videoParamsCard && typeof parsed.videoParamsCard === "object" && !Array.isArray(parsed.videoParamsCard)
+        ? (parsed.videoParamsCard as Record<string, unknown>)
+        : null;
+      return { actions, videoParamsCard: card };
+    }
+    return { actions: [], videoParamsCard: null };
   } catch {
-    return [];
+    return { actions: [], videoParamsCard: null };
   }
 }
 
@@ -92,8 +103,10 @@ export default router.post(
             text = text.replace(REF_NOTE_RE, "").trim();
           }
         }
-        // UI 动作元数据（SIY-153）随历史一起回放：前端只登记消息 id，不重复执行
-        const actions = parseMessageUiActions(row);
+        // UI 动作元数据（SIY-153）与参数确认卡（SIY-161）随历史一起回放：动作只登记消息 id，
+        // 确认卡的实时状态由前端按 workbench 状态机数据判定
+        const ext = parseMessageExt(row);
+        const hasExt = ext.actions.length > 0 || ext.videoParamsCard != null;
         if (refIds?.length && !text) return null; // 纯引用无文本的消息不产空气泡（媒体块在下方合并时补挂）
         const message: any = {
           id: row.id,
@@ -102,7 +115,14 @@ export default router.post(
           status: "complete",
           datetime: new Date(row.createTime).toISOString(),
           content: [{ type: "markdown", status: "complete", data: text }],
-          ...(actions.length ? { ext: { actions } } : {}),
+          ...(hasExt
+            ? {
+                ext: {
+                  ...(ext.actions.length ? { actions: ext.actions } : {}),
+                  ...(ext.videoParamsCard ? { videoParamsCard: ext.videoParamsCard } : {}),
+                },
+              }
+            : {}),
           createTime: row.createTime,
         };
         if (refIds?.length) {

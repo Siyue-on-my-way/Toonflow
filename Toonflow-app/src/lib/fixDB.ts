@@ -574,6 +574,8 @@ export default async (knex: Knex): Promise<void> => {
   await addColumn("o_quickVideoSession", "titleStatus", "string");
   await addColumn("o_quickVideoSession", "titleGeneratedAt", "bigInteger");
   await addColumn("o_quickVideoSession", "titleGenerationClaimedAt", "bigInteger");
+  // 会话级视频参数偏好（SIY-161）：确认过的生成参数按会话记忆（JSON），支持下次预填与「不再询问」快捷选项
+  await addColumn("o_quickVideoSession", "videoParams", "text");
   // 矫正因软件异常退出导致的状态不一致问题：标题生成中途被打断的会话，退回失败态，
   // 保留已有默认/旧标题，不自动重试（与下方各表的"生成中->生成失败"矫正是同一套约定）。
   await db("o_quickVideoSession").where("titleStatus", "running").update({ titleStatus: "failed" });

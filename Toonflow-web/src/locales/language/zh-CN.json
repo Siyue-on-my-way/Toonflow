@@ -1937,7 +1937,21 @@
       "deleteAssetConfirm": "删除后该素材将从资产白板移除（聊天记录保留），确定删除？",
       "assetDeleted": "素材已删除",
       "deleteAssetFailed": "删除失败",
-      "shotTextOnlyHint": "分镜已确认：当前仅可修改描述/台词/运镜/提示词等文本，已生成的视频不受影响；重新生成或重新装配时生效。"
+      "shotTextOnlyHint": "分镜已确认：当前仅可修改描述/台词/运镜/提示词等文本，已生成的视频不受影响；重新生成或重新装配时生效。",
+      "videoParams": {
+        "title": "视频生成参数确认",
+        "prompt": "生成提示词",
+        "refNote": "已冻结本轮附带的 {count} 张图片作为参考，生成时按所选输入模式使用",
+        "remember": "记住本次参数，之后不再询问",
+        "confirm": "确认生成",
+        "pendingTag": "待确认",
+        "confirmedTag": "已确认",
+        "staleTag": "已失效",
+        "staleHint": "已有更新的参数卡，此卡片已失效",
+        "confirmed": "参数已确认，开始生成视频",
+        "confirmFailed": "参数确认失败",
+        "notConnected": "聊天连接未建立，请稍后重试"
+      }
     }
   },
   "login": {

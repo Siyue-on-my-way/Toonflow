@@ -1388,6 +1388,22 @@
       "referenceImage": "Hình ảnh tham khảo",
       "generatePrompt": "Tạo các từ nhắc nhở",
       "generateVideo": "Tạo video"
+    },
+    "quickVideo": {
+      "videoParams": {
+        "title": "Xác nhận tham số tạo video",
+        "prompt": "Prompt",
+        "refNote": "Đã đính kèm {count} ảnh tham chiếu trong lượt này, dùng theo chế độ đã chọn",
+        "remember": "Ghi nhớ tham số này và không hỏi lại",
+        "confirm": "Xác nhận và tạo",
+        "pendingTag": "Chờ xác nhận",
+        "confirmedTag": "Đã xác nhận",
+        "staleTag": "Hết hạn",
+        "staleHint": "Đã có thẻ tham số mới hơn, thẻ này hết hiệu lực",
+        "confirmed": "Đã xác nhận tham số, bắt đầu tạo video",
+        "confirmFailed": "Xác nhận tham số thất bại",
+        "notConnected": "Chat chưa kết nối, vui lòng thử lại"
+      }
     }
   },
   "login": {

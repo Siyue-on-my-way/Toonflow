@@ -326,6 +326,108 @@ export type QuickVideoFinalParamsCard = z.infer<typeof finalParamsCardSchema>;
 /** 聊天流内保留的最终参数确认卡片数量上限（超出后淘汰最早的卡片） */
 export const FINAL_PARAMS_CARDS_MAX = 5;
 
+// ---------------------------------------------------------------------------
+// 聊天模型参数确认卡（SIY-161）：元数据投影 + LLM 预填 + 用户授权
+// ---------------------------------------------------------------------------
+
+/** 卡片字段渲染类型：select=枚举下拉 / slider=连续区间滑条 / switch=开关 / number=整数输入 */
+export const VIDEO_PARAM_FIELD_TYPES = ["select", "slider", "switch", "number"] as const;
+export type VideoParamFieldType = (typeof VIDEO_PARAM_FIELD_TYPES)[number];
+
+/**
+ * 参数来源标记（参数可追溯，禁止黑箱合并）：
+ * - llm=LLM 从聊天意图预填的初值 / user=用户在卡片上修改 / system=系统按元数据或项目默认兜底 /
+ * - preference=本会话上次确认的参数记忆
+ */
+export const VIDEO_PARAM_SOURCES = ["llm", "user", "system", "preference"] as const;
+export type VideoParamSource = (typeof VIDEO_PARAM_SOURCES)[number];
+
+/** 卡片单字段：value 为当前待确认值；options.disabled 的选项仍可见但不可选（守门规则可视化） */
+export const videoParamFieldSchema = z.object({
+  key: z.string().min(1).max(40).describe("参数键（mode/duration/aspectRatio/quality/resolution/generateAudio/returnLastFrame/seed/realPersonMode）"),
+  label: z.string().min(1).max(60),
+  type: z.enum(VIDEO_PARAM_FIELD_TYPES),
+  value: z.union([z.string().max(200), z.number(), z.boolean(), z.null()]).default(null),
+  options: z
+    .array(
+      z.object({
+        value: z.union([z.string().max(100), z.number()]),
+        label: z.string().min(1).max(80),
+        /** 守门可视化：true 时选项渲染为置灰不可选（如无引用图时的首帧模式） */
+        disabled: z.boolean().optional(),
+        /** 置灰/降权原因或警示（如「将不使用你附带的图片」） */
+        hint: z.string().max(200).optional(),
+        /** 有引用图时纯文生模式的降权展示（可选但仍需用户显式选择） */
+        deemphasized: z.boolean().optional(),
+      }),
+    )
+    .max(30)
+    .optional(),
+  min: z.number().optional(),
+  max: z.number().optional(),
+  step: z.number().optional(),
+  required: z.boolean().optional(),
+  /** true 时渲染进高级折叠区（seed/returnLastFrame 等），一级只保留 3-4 个核心项 */
+  advanced: z.boolean().default(false),
+  source: z.enum(VIDEO_PARAM_SOURCES),
+  /** 档位说明（resolutionNote/durationAutoNote/costNote 等），随字段展示 */
+  note: z.string().max(300).optional(),
+});
+export type VideoParamField = z.infer<typeof videoParamFieldSchema>;
+
+/** 卡片单字段值的合法取值（确认提交时的 edits 白名单校验用） */
+export const videoParamsCardEditsSchema = z.record(z.string().max(40), z.union([z.string().max(200), z.number(), z.boolean()]));
+
+/** 卡片确认后实际发给生成管道的参数（与 VideoConfig 关键字段对齐） */
+export const chatVideoParamsSchema = z.object({
+  mode: z.string().max(100).optional(),
+  duration: z.number().optional(),
+  aspectRatio: z.string().max(20).optional(),
+  quality: z.enum(["std", "pro"]).optional(),
+  resolution: z.string().max(20).optional(),
+  generateAudio: z.boolean().optional(),
+  returnLastFrame: z.boolean().optional(),
+  seed: z.number().int().min(-1).max(2147483647).optional(),
+  realPersonMode: z.boolean().optional(),
+});
+export type ChatVideoParams = z.infer<typeof chatVideoParamsSchema>;
+
+/**
+ * 聊天模型参数确认卡：由 request_video_params 工具按所选模型元数据组装，
+ * 用户在聊天流中逐项确认/修改后提交；确认后经服务端硬校验直达供应商调用。
+ * 与 finalParamsCards 同款生命周期：最新 pending 卡可操作，新卡使旧卡置灰，确认后落定。
+ */
+export const videoParamsCardSchema = z.object({
+  cardId: z.string().min(1).max(64).describe("卡片 ID（vpc-<时间戳>-<随机>），状态判定与前端渲染 key"),
+  modelKey: z.string().min(3).max(200).describe("所选视频模型 key（vendorId:modelName）"),
+  modelName: z.string().min(1).max(200).describe("模型名（不含 vendorId 前缀）"),
+  sessionId: z.number().int().positive().describe("发起会话"),
+  status: z.enum(["pending", "confirmed"]).default("pending"),
+  createdAt: z.number().int().min(1),
+  confirmedAt: z.number().int().min(1).nullable().default(null),
+  /** LLM 预填的提示词（用户可在卡片上修改） */
+  prompt: z.string().max(4000).default(""),
+  promptSource: z.enum(VIDEO_PARAM_SOURCES).default("llm"),
+  /** 卡片创建时冻结的参考图 mediaId（三级解析结果），确认生成时直接使用，不再二次解析 */
+  referenceMediaIds: z.array(z.number().int().positive()).max(2).default([]),
+  fields: z.array(videoParamFieldSchema).min(1).max(12).describe("按模型元数据投影的参数字段（含来源标记）"),
+});
+export type QuickVideoVideoParamsCard = z.infer<typeof videoParamsCardSchema>;
+
+/** 聊天流内保留的参数确认卡数量上限（超出后淘汰最早的卡片） */
+export const VIDEO_PARAMS_CARDS_MAX = 5;
+
+/** 会话级视频参数偏好（o_quickVideoSession.videoParams JSON） */
+export const videoParamsPreferenceSchema = z.object({
+  modelKey: z.string().min(3).max(200),
+  params: chatVideoParamsSchema,
+  prompt: z.string().max(4000).optional(),
+  /** true 时下次同模型生视频不再弹卡，直接按 params 生成（「不再询问」快捷选项） */
+  skipAsk: z.boolean().default(false),
+  updatedAt: z.number().int().min(1),
+});
+export type VideoParamsPreference = z.infer<typeof videoParamsPreferenceSchema>;
+
 /**
  * 组装一张最终生成参数确认卡片（回显时冻结四项展示字段，与实时分镜/配置解耦）。
  * 若时长或画风未设置，安全回退为自适应时长与自由画风文案。
@@ -453,6 +555,10 @@ export const quickVideoGenerationSchema = z.object({
   /** 最终生成参数确认卡片（分镜确认/参数变更时回显，最新在末尾；存量状态缺该字段时补空数组） */
   finalParamsCards: z
     .preprocess((v) => (Array.isArray(v) ? v.slice(-FINAL_PARAMS_CARDS_MAX) : []), z.array(finalParamsCardSchema))
+    .default([]),
+  /** 聊天模型参数确认卡（request_video_params 回显，最新在末尾；存量状态缺该字段时补空数组，SIY-161） */
+  videoParamsCards: z
+    .preprocess((v) => (Array.isArray(v) ? v.slice(-VIDEO_PARAMS_CARDS_MAX) : []), z.array(videoParamsCardSchema))
     .default([]),
   /** 最近一次生成运行 ID */
   runId: z.string().max(64).nullable().default(null),

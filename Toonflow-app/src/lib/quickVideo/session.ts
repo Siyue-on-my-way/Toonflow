@@ -9,7 +9,7 @@
 import { db as knexDb } from "@/utils/db";
 import u from "@/utils";
 import { QuickVideoError } from "./state";
-import { buildSessionIsolationKey, buildDefaultSessionTitle, TITLE_GENERATION_TRIGGER_COUNT } from "./contract";
+import { buildSessionIsolationKey, buildDefaultSessionTitle, TITLE_GENERATION_TRIGGER_COUNT, videoParamsPreferenceSchema, VideoParamsPreference } from "./contract";
 
 export type QuickVideoSessionTitleStatus = "idle" | "running" | "done" | "failed";
 
@@ -21,6 +21,8 @@ export interface QuickVideoSessionRow {
   textModel: string | null;
   imageModel: string | null;
   videoModel: string | null;
+  /** 会话级视频参数偏好 JSON（SIY-161；存量库由 fixDB 补列） */
+  videoParams: string | null;
   sequence: number | null;
   userMessageCount: number | null;
   titleStatus: QuickVideoSessionTitleStatus | null;
@@ -55,6 +57,7 @@ export async function createQuickVideoSession(projectId: number, opts: { title?:
     textModel: project?.textModel || null,
     imageModel: project?.imageModel || null,
     videoModel: project?.videoModel || null,
+    videoParams: null,
     sequence,
     userMessageCount: 0,
     titleStatus: "idle",
@@ -176,4 +179,29 @@ export async function saveSessionModels(
   await getOwnedSession(projectId, sessionId);
   await u.db("o_quickVideoSession").where({ id: sessionId }).update({ ...models, updateTime: Date.now() });
   return getOwnedSession(projectId, sessionId);
+}
+
+// ---------------------------------------------------------------------------
+// 会话级视频参数偏好（SIY-161：确认过的参数按会话记忆，下次预填；「不再询问」快捷选项）
+// ---------------------------------------------------------------------------
+
+/** 保存/覆盖会话的视频参数偏好（JSON 落 videoParams 列）；patch 为空时清除偏好 */
+export async function saveVideoParamsPreference(projectId: number, sessionId: number, preference: VideoParamsPreference | null): Promise<void> {
+  await getOwnedSession(projectId, sessionId);
+  await u
+    .db("o_quickVideoSession")
+    .where({ id: sessionId })
+    .update({ videoParams: preference ? JSON.stringify(preference) : null, updateTime: Date.now() });
+}
+
+/** 读取会话的视频参数偏好；JSON 损坏时静默视为无偏好（不阻断聊天主流程） */
+export async function getVideoParamsPreference(sessionId: number): Promise<VideoParamsPreference | null> {
+  const row = await u.db("o_quickVideoSession").where({ id: sessionId }).select("videoParams").first();
+  if (!row?.videoParams) return null;
+  try {
+    const parsed = videoParamsPreferenceSchema.safeParse(JSON.parse(row.videoParams));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
 }

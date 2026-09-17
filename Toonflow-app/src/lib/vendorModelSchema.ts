@@ -66,5 +66,8 @@ export const vendorModelSchema = z.discriminatedUnion("type", [
       .optional(),
     qualityOptions: z.array(z.enum(["std", "pro"])).min(1).optional(),
     promptLengthRange: z.tuple([z.number().int().min(0), z.number().int().min(1)]).optional(),
+    // SIY-161：-1「自动」时长档说明与档位成本说明（随 modelDetail 下发渲染；价格数据未提供前留空）
+    durationAutoNote: z.string().max(300).optional(),
+    costNote: z.string().max(300).optional(),
   }),
 ]);

@@ -1402,6 +1402,22 @@
       "referenceImage": "參考圖片",
       "generatePrompt": "產生提示詞",
       "generateVideo": "產生影片"
+    },
+    "quickVideo": {
+      "videoParams": {
+        "title": "影片生成參數確認",
+        "prompt": "生成提示詞",
+        "refNote": "已凍結本輪附帶的 {count} 張圖片作為參考，生成時按所選輸入模式使用",
+        "remember": "記住本次參數，之後不再詢問",
+        "confirm": "確認生成",
+        "pendingTag": "待確認",
+        "confirmedTag": "已確認",
+        "staleTag": "已失效",
+        "staleHint": "已有更新的參數卡，此卡片已失效",
+        "confirmed": "參數已確認，開始生成影片",
+        "confirmFailed": "參數確認失敗",
+        "notConnected": "聊天連線未建立，請稍後重試"
+      }
     }
   },
   "login": {

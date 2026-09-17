@@ -21,36 +21,9 @@
         {{ currentModeInfo.desc }}
       </div>
 
-      <!-- 参数面板：全部控件由 modelDetail 元数据投影生成，未声明的不出现 -->
-      <div class="paramSection" v-if="hasParamControls">
-        <div class="paramRow">
-          <t-form-item v-if="aspectRatioOptions.length" :label="$t('settings.vendor.test.aspectRatio')" class="paramItem">
-            <t-select v-model="aspectRatio" :disabled="loading">
-              <t-option v-for="option in aspectRatioOptions" :key="option.value" :value="option.value" :label="option.label" />
-            </t-select>
-          </t-form-item>
-          <t-form-item v-if="!durationContinuous && durationOptions.length > 1" :label="$t('settings.vendor.test.duration')" class="paramItem">
-            <t-select v-model="duration" :disabled="loading">
-              <t-option v-for="d in durationOptions" :key="d" :value="d" :label="durationLabel(d)" />
-            </t-select>
-          </t-form-item>
-          <t-form-item v-if="qualityOptions.length" :label="$t('settings.vendor.test.quality')" class="paramItem">
-            <t-select v-model="quality" :disabled="loading">
-              <t-option v-for="q in qualityOptions" :key="q" :value="q" :label="$t(`settings.vendor.test.quality_${q}`)" />
-            </t-select>
-          </t-form-item>
-        </div>
-        <!-- 时长连续区间（如 5-15 秒）：滑条 -->
-        <t-form-item v-if="durationContinuous" :label="$t('settings.vendor.test.duration')" class="sliderItem">
-          <t-slider v-model="duration" :min="durationRange.min" :max="durationRange.max" :step="0.5" :disabled="loading" :label="`${duration}s`" />
-        </t-form-item>
-        <t-form-item v-if="resolutionOptions.length" :label="$t('settings.vendor.test.resolution')" class="paramItem">
-          <t-select v-model="resolution" :disabled="loading">
-            <t-option v-for="r in resolutionOptions" :key="r" :value="r" :label="r" />
-          </t-select>
-        </t-form-item>
-        <t-alert v-if="modelDetail?.resolutionNote" class="noteAlert" theme="warning" :message="modelDetail.resolutionNote" />
-      </div>
+      <!-- 参数面板（SIY-161）：控件由共享投影组件 VideoParamFields 按元数据渲染，
+           与快创聊天参数确认卡共用同一投影，未声明的不出现 -->
+      <VideoParamFields v-if="paramFields.length" :fields="paramFields" :model-value="paramValues" :disabled="loading" @update="onParamUpdate" />
 
       <!-- 动态输入区 -->
       <div class="inputSection" v-if="selectedMode">
@@ -211,34 +184,6 @@
         </template>
       </div>
 
-      <!-- 高级参数折叠区：仅渲染元数据 controls 声明过的开关 -->
-      <t-collapse v-if="advancedControls.length" class="advancedCollapse">
-        <t-collapse-panel :value="'advanced'" :header="$t('settings.vendor.test.advancedParams')">
-          <div class="advancedGrid">
-            <t-form-item v-if="hasControl('generateAudio')" :label="$t('settings.vendor.test.generateAudio')">
-              <t-switch v-model="advanced.generateAudio" :disabled="loading" />
-            </t-form-item>
-            <t-form-item v-if="hasControl('returnLastFrame')" :label="$t('settings.vendor.test.returnLastFrame')">
-              <t-switch v-model="advanced.returnLastFrame" :disabled="loading" />
-            </t-form-item>
-            <t-form-item v-if="hasControl('realPersonMode')" :label="$t('settings.vendor.test.realPersonMode')">
-              <t-switch v-model="advanced.realPersonMode" :disabled="loading" />
-            </t-form-item>
-            <t-form-item v-if="hasControl('seed')" :label="$t('settings.vendor.test.seed')">
-              <t-input-number
-                v-model="advanced.seed"
-                :min="-1"
-                :max="2147483647"
-                :step="1"
-                theme="column"
-                :placeholder="$t('settings.vendor.test.seedPlaceholder')"
-                :disabled="loading"
-                style="width: 160px" />
-            </t-form-item>
-          </div>
-        </t-collapse-panel>
-      </t-collapse>
-
       <!-- 结果区 -->
       <div v-if="resultUrl" class="resultSection">
         <div class="resultLabel">{{ $t("settings.vendor.test.result") }}</div>
@@ -271,6 +216,8 @@ import axios from "@/utils/axios";
 import ImageUploadBox from "./ImageUploadBox.vue";
 import VideoUploadBox from "./VideoUploadBox.vue";
 import AudioUploadBox from "./AudioUploadBox.vue";
+import VideoParamFields from "@/components/VideoParamFields.vue";
+import type { VideoParamField } from "@/types/quickVideo";
 
 type VideoRawMode =
   | "singleImage"
@@ -393,106 +340,121 @@ const currentModeInfo = computed(() => parsedModes.value.find((m) => m.key === s
 const currentMultiRefs = computed<RefItem[]>(() => currentModeInfo.value?.refs ?? []);
 
 // ================
-// 参数面板元数据投影
+// 参数面板元数据投影（SIY-161：与快创聊天参数确认卡共用 VideoParamFields 渲染）
 // ================
 
-const aspectRatioOptions = computed<{ value: string; label: string }[]>(() => props.modelDetail?.aspectRatioOptions ?? []);
-const qualityOptions = computed<string[]>(() => props.modelDetail?.qualityOptions ?? []);
-const durationContinuous = computed(() => !!props.modelDetail?.durationContinuous);
-const durationGroups = computed<{ duration: number[]; resolution: string[] }[]>(() => props.modelDetail?.durationResolutionMap ?? []);
-
-/** 离散时长档位（跨组去重；-1 为"自动"档） */
-const durationOptions = computed<number[]>(() => {
-  if (durationContinuous.value) return [];
-  const seen = new Set<number>();
-  for (const group of durationGroups.value) for (const d of group.duration ?? []) seen.add(d);
-  return [...seen].sort((a, b) => a - b);
-});
-
-/** 连续时长区间（durationContinuous 时取第一组 [min, max]） */
-const durationRange = computed(() => {
-  const list = durationGroups.value[0]?.duration ?? [5, 15];
-  const nums = [...list].sort((a, b) => a - b);
-  return { min: nums[0] ?? 5, max: nums[nums.length - 1] ?? 15 };
-});
-
-/** 分辨率档位（跨组去重；"default" 是无分辨率参数模型的占位，不出控件） */
-const resolutionOptions = computed<string[]>(() => {
-  const seen = new Set<string>();
-  for (const group of durationGroups.value) for (const r of group.resolution ?? []) seen.add(r);
-  const list = [...seen];
-  return list.length === 1 && list[0] === "default" ? [] : list;
-});
-
-const hasParamControls = computed(
-  () => aspectRatioOptions.value.length > 0 || durationOptions.value.length > 0 || durationContinuous.value || resolutionOptions.value.length > 0 || qualityOptions.value.length > 0,
-);
-
-function durationLabel(d: number): string {
-  return d === -1 ? $t("settings.vendor.test.durationAuto") : `${d}s`;
-}
-
-const aspectRatio = ref("");
-const duration = ref<number>(5);
-const resolution = ref("");
-const quality = ref("");
-
-watch(
-  aspectRatioOptions,
-  (options) => {
-    if (!options.some((o) => o.value === aspectRatio.value)) {
-      // 常用默认 9:16，其次取首项
-      const preferred = options.find((o) => o.value === "9:16");
-      aspectRatio.value = preferred?.value ?? options[0]?.value ?? "";
-    }
-  },
-  { immediate: true },
-);
-watch(
-  durationOptions,
-  (options) => {
-    if (!options.includes(duration.value)) {
-      duration.value = options.includes(5) ? 5 : options[0] ?? 5;
-    }
-  },
-  { immediate: true },
-);
-watch(durationContinuous, (continuous) => {
-  if (continuous && (duration.value < durationRange.value.min || duration.value > durationRange.value.max)) {
-    duration.value = Math.min(15, Math.max(5, duration.value));
+/** 把 modelDetail 元数据投影成参数字段（不含输入模式——模式在上方单独选择） */
+const paramFields = computed<VideoParamField[]>(() => {
+  const detail = props.modelDetail ?? {};
+  const fields: VideoParamField[] = [];
+  const ratioOptions: { value: string; label: string }[] = detail.aspectRatioOptions ?? [];
+  if (ratioOptions.length) {
+    fields.push({
+      key: "aspectRatio",
+      label: $t("settings.vendor.test.aspectRatio"),
+      type: "select",
+      value: ratioOptions.some((o) => o.value === "9:16") ? "9:16" : ratioOptions[0].value,
+      options: ratioOptions.map((o) => ({ value: o.value, label: o.label })),
+      advanced: false,
+      source: "system",
+    });
   }
+
+  const continuous = !!detail.durationContinuous;
+  const groups: { duration: number[]; resolution: string[] }[] = detail.durationResolutionMap ?? [];
+  if (continuous) {
+    const nums = [...(groups[0]?.duration ?? [5, 15])].sort((a, b) => a - b);
+    fields.push({
+      key: "duration",
+      label: $t("settings.vendor.test.duration"),
+      type: "slider",
+      value: Math.min(15, Math.max(5, nums[0] ?? 5)),
+      min: nums[0] ?? 5,
+      max: nums[nums.length - 1] ?? 15,
+      step: 0.5,
+      advanced: false,
+      source: "system",
+    });
+  } else {
+    const seen = new Set<number>();
+    for (const group of groups) for (const d of group.duration ?? []) seen.add(d);
+    const tiers = [...seen].sort((a, b) => a - b);
+    if (tiers.length > 1) {
+      fields.push({
+        key: "duration",
+        label: $t("settings.vendor.test.duration"),
+        type: "select",
+        value: tiers.includes(5) ? 5 : tiers[0],
+        options: tiers.map((d) => ({ value: d, label: d === -1 ? $t("settings.vendor.test.durationAuto") : `${d}s` })),
+        advanced: false,
+        source: "system",
+      });
+    }
+  }
+
+  const qualityOptions: string[] = detail.qualityOptions ?? [];
+  if (qualityOptions.length) {
+    fields.push({
+      key: "quality",
+      label: $t("settings.vendor.test.quality"),
+      type: "select",
+      value: qualityOptions[0],
+      options: qualityOptions.map((q) => ({ value: q, label: $t(`settings.vendor.test.quality_${q}`) })),
+      advanced: false,
+      source: "system",
+    });
+  }
+
+  // 分辨率档位（跨组去重；"default" 占位与单一固定档不出控件）
+  const seenRes = new Set<string>();
+  for (const group of groups) for (const r of group.resolution ?? []) seenRes.add(r);
+  const resolutions = [...seenRes];
+  if (resolutions.length > 1) {
+    fields.push({
+      key: "resolution",
+      label: $t("settings.vendor.test.resolution"),
+      type: "select",
+      value: resolutions[0],
+      options: resolutions.map((r) => ({ value: r, label: r })),
+      advanced: false,
+      source: "system",
+      note: detail.resolutionNote,
+    });
+  }
+
+  // 高级开关（controls 元数据声明驱动）
+  const controls: string[] = detail.controls ?? [];
+  if (controls.includes("generateAudio")) {
+    fields.push({ key: "generateAudio", label: $t("settings.vendor.test.generateAudio"), type: "switch", value: false, advanced: false, source: "system" });
+  }
+  if (controls.includes("returnLastFrame")) {
+    fields.push({ key: "returnLastFrame", label: $t("settings.vendor.test.returnLastFrame"), type: "switch", value: false, advanced: true, source: "system" });
+  }
+  if (controls.includes("realPersonMode")) {
+    fields.push({ key: "realPersonMode", label: $t("settings.vendor.test.realPersonMode"), type: "switch", value: false, advanced: true, source: "system" });
+  }
+  if (controls.includes("seed")) {
+    fields.push({ key: "seed", label: $t("settings.vendor.test.seed"), type: "number", value: null, min: -1, max: 2147483647, step: 1, advanced: true, source: "system" });
+  }
+  return fields;
 });
+
+/** 受控参数值：key -> 当前值（用户修改经 onParamUpdate 回写） */
+const paramValues = ref<Record<string, string | number | boolean | null>>({});
+
 watch(
-  resolutionOptions,
-  (options) => {
-    if (!options.includes(resolution.value)) {
-      resolution.value = options[0] ?? "";
-    }
-  },
-  { immediate: true },
-);
-watch(
-  qualityOptions,
-  (options) => {
-    if (!options.includes(quality.value)) {
-      quality.value = options[0] ?? "";
-    }
+  paramFields,
+  (fields) => {
+    const next: Record<string, string | number | boolean | null> = {};
+    for (const field of fields) next[field.key] = field.value;
+    paramValues.value = next;
   },
   { immediate: true },
 );
 
-// ================
-// 高级参数（controls 元数据声明驱动）
-// ================
-
-const advancedControls = computed<string[]>(() => props.modelDetail?.controls ?? []);
-function hasControl(name: string): boolean {
-  return advancedControls.value.includes(name);
+function onParamUpdate(field: VideoParamField, value: string | number | boolean | null) {
+  paramValues.value = { ...paramValues.value, [field.key]: value };
 }
-const advanced = ref({ generateAudio: false, returnLastFrame: false, realPersonMode: false, seed: undefined as number | undefined });
-watch(advancedControls, () => {
-  advanced.value = { generateAudio: false, returnLastFrame: false, realPersonMode: false, seed: undefined };
-});
 
 // ================
 // 提示词与素材
@@ -640,14 +602,15 @@ async function handleTest() {
       videos: await encodeFiles(uploadedVideos.value.filter(Boolean) as File[]),
       audios: await encodeFiles(uploadedAudios.value.filter(Boolean) as File[]),
     };
-    if (aspectRatio.value) payload.aspectRatio = aspectRatio.value;
-    if (durationContinuous.value || durationOptions.value.length > 0) payload.duration = Number(duration.value);
-    if (resolutionOptions.value.length) payload.resolution = resolution.value;
-    if (qualityOptions.value.length && quality.value) payload.quality = quality.value;
-    if (hasControl("generateAudio")) payload.generateAudio = advanced.value.generateAudio;
-    if (hasControl("returnLastFrame")) payload.returnLastFrame = advanced.value.returnLastFrame;
-    if (hasControl("realPersonMode") && advanced.value.realPersonMode) payload.realPersonMode = true;
-    if (hasControl("seed") && advanced.value.seed !== undefined && advanced.value.seed !== null) payload.seed = advanced.value.seed;
+    // 参数透传（SIY-161）：直接取共享投影组件的受控值，未声明字段不会出现在 payload
+    if (paramValues.value.aspectRatio) payload.aspectRatio = paramValues.value.aspectRatio;
+    if (paramValues.value.duration !== undefined && paramValues.value.duration !== null) payload.duration = Number(paramValues.value.duration);
+    if (paramValues.value.resolution) payload.resolution = paramValues.value.resolution;
+    if (paramValues.value.quality) payload.quality = paramValues.value.quality;
+    if (paramValues.value.generateAudio !== undefined) payload.generateAudio = Boolean(paramValues.value.generateAudio);
+    if (paramValues.value.returnLastFrame !== undefined) payload.returnLastFrame = Boolean(paramValues.value.returnLastFrame);
+    if (paramValues.value.realPersonMode) payload.realPersonMode = true;
+    if (paramValues.value.seed !== undefined && paramValues.value.seed !== null) payload.seed = Number(paramValues.value.seed);
     const { data } = await axios.post("/setting/vendorConfig/modelTest/videoTest", payload, {
       timeout: 30 * 60 * 1000,
     });
@@ -698,27 +661,6 @@ function handleClose() {
     background: var(--td-bg-color-container-hover);
     padding: 6px 12px;
     border-radius: 6px;
-  }
-
-  .paramSection {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-
-    .paramRow {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-
-      .paramItem {
-        flex: 1;
-        min-width: 140px;
-      }
-    }
-
-    .noteAlert {
-      margin-top: 2px;
-    }
   }
 
   .inputSection {

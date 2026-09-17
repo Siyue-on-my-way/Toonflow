@@ -1397,6 +1397,22 @@
       "referenceImage": "参考写真",
       "generatePrompt": "プロンプト単語を生成する",
       "generateVideo": "ビデオの生成"
+    },
+    "quickVideo": {
+      "videoParams": {
+        "title": "動画生成パラメータの確認",
+        "prompt": "プロンプト",
+        "refNote": "本ターン添付の {count} 枚の画像を参考として凍結しました",
+        "remember": "このパラメータを記憶して今後確認しない",
+        "confirm": "確認して生成",
+        "pendingTag": "確認待ち",
+        "confirmedTag": "確認済み",
+        "staleTag": "無効",
+        "staleHint": "新しいパラメータカードがあるため、このカードは無効です",
+        "confirmed": "パラメータが確認され、動画の生成を開始しました",
+        "confirmFailed": "パラメータの確認に失敗しました",
+        "notConnected": "チャットが接続されていません。再試行してください"
+      }
     }
   },
   "login": {

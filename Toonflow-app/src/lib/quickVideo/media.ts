@@ -256,6 +256,19 @@ export async function getVideoModelDurationOptions(modelKey: string): Promise<nu
 }
 
 /**
+ * 查询视频模型的完整目录条目（含 mode/durationResolutionMap/controls 等全部元数据），
+ * 供聊天参数确认卡做元数据投影与硬校验（SIY-161）。
+ * 渠道未启用/模型不存在或未启用时返回 null，调用方据此拒绝出卡。
+ */
+export async function getVideoModelCatalogEntry(modelKey: string): Promise<VendorModelEntry | null> {
+  const split = splitModelKey(modelKey);
+  if (!split) return null;
+  const catalog = await getVendorModelCatalog(split.vendorId);
+  if (!catalog?.enabled) return null;
+  return pickEnabledModel(catalog.models, catalog.enabledNames, split.modelName, "video");
+}
+
+/**
  * 查询视频模型目录声明的生成质量默认值（qualityOptions 首项，如 Kling O1 的 std）。
  * 快创聊天/逐镜头生成链路没有质量选择 UI，调用供应商前用它自动补齐 VideoConfig.quality，
  * 避免模型额外的必填参数（供应商侧 mode 字段）校验失败。

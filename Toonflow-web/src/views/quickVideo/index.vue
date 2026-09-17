@@ -85,6 +85,14 @@
                   </div>
                 </div>
               </div>
+              <!-- 模型参数确认卡（SIY-161）：request_video_params 出卡，用户逐项授权后确认生成 -->
+              <VideoParamsChatCard
+                v-if="videoParamsCardOf(message)"
+                :card="videoParamsCardOf(message)!"
+                :status="videoParamsCardStatusOf(videoParamsCardOf(message)!)"
+                :submitting="submittingParamsCardId === videoParamsCardOf(message)!.cardId"
+                @confirm="onVideoParamsCardConfirm(message, $event)"
+              />
             </template>
             <!-- 最终生成参数确认卡片（分镜确认后聊天回显，仅含时长/画风/分镜数量/分镜摘要） -->
             <div v-if="finalParamsCardsView.length" class="qvFinalParamsList" data-testid="quick-video-final-params">
@@ -824,7 +832,8 @@
 import axios from "@/utils/axios";
 import projectStore from "@/stores/project";
 import quickVideoStore from "@/stores/quickVideo";
-import type { QuickVideoDuration, QuickVideoRatio, QuickVideoStage, QuickVideoShot, QuickVideoSession, QuickVideoFinalParamsCard, MediaRef, ChatMediaExt, QuickVideoShotMediaUrls, ShotContinuityType, QuickVideoPanel } from "@/types/quickVideo";
+import type { Socket } from "socket.io-client";
+import type { QuickVideoDuration, QuickVideoRatio, QuickVideoStage, QuickVideoShot, QuickVideoSession, QuickVideoFinalParamsCard, QuickVideoVideoParamsCard, VideoParamsCardConfirmEdits, MediaRef, ChatMediaExt, QuickVideoShotMediaUrls, ShotContinuityType, QuickVideoPanel } from "@/types/quickVideo";
 import modelSelect from "@/components/modelSelect.vue";
 import SessionList from "./components/SessionList.vue";
 import AssetBoard from "./components/AssetBoard.vue";
@@ -1850,6 +1859,59 @@ async function rejectModifyFinalParams() {
   } finally {
     confirmingFinalParams.value = false;
   }
+}
+
+// ===== 模型参数确认卡（SIY-161：request_video_params 出卡 + 用户授权确认） =====
+/** 消息携带的参数确认卡（实时 socket 与历史回放同构，均放在消息 ext 上） */
+function videoParamsCardOf(message: any): QuickVideoVideoParamsCard | null {
+  const card = message?.ext?.videoParamsCard;
+  if (!card || typeof card !== "object" || !card.cardId) return null;
+  return card as QuickVideoVideoParamsCard;
+}
+
+const videoParamsCards = computed(() => state.value?.generation?.videoParamsCards ?? []);
+
+/**
+ * 卡片实时状态：最新 pending 卡可操作（active）；确认过的落定（confirmed）；
+ * 被更新卡取代或状态机里已不存在的置灰（stale）——与 finalParamsCards 的失效判定同款。
+ */
+function videoParamsCardStatusOf(card: QuickVideoVideoParamsCard): "active" | "confirmed" | "stale" {
+  const cards = videoParamsCards.value;
+  const live = cards.find((c) => c.cardId === card.cardId);
+  if (!live) return "stale";
+  if (live.status === "confirmed") return "confirmed";
+  return cards[cards.length - 1]?.cardId === card.cardId ? "active" : "stale";
+}
+
+const submittingParamsCardId = ref<string | null>(null);
+
+/** 模板桥接：$event 由 VideoParamsChatCard 的 confirm emit 类型推导 */
+function onVideoParamsCardConfirm(message: unknown, payload: { edits: VideoParamsCardConfirmEdits; remember: boolean; prompt: string }) {
+  const card = videoParamsCardOf(message);
+  if (card) confirmVideoParamsCard(card, payload);
+}
+
+/** 确认生成：socket confirmVideoParams（带 ack）；生成进度与结果媒体由服务端推入聊天流 */
+function confirmVideoParamsCard(card: QuickVideoVideoParamsCard, payload: { edits: VideoParamsCardConfirmEdits; remember: boolean; prompt: string }) {
+  // Pinia store 返回的 socket 已解包：直接是 Socket 实例（未连接时为 null）
+  const socket = quickVideoStoreRef.socket as unknown as Socket | null;
+  if (!socket) {
+    window.$message.error($t("workbench.quickVideo.videoParams.notConnected"));
+    return;
+  }
+  submittingParamsCardId.value = card.cardId;
+  socket.emit(
+    "confirmVideoParams",
+    { cardId: card.cardId, edits: payload.edits, prompt: payload.prompt, remember: payload.remember },
+    (res: { ok: boolean; message?: string }) => {
+      submittingParamsCardId.value = null;
+      if (res?.ok) {
+        window.$message.success($t("workbench.quickVideo.videoParams.confirmed"));
+      } else {
+        window.$message.error(res?.message || $t("workbench.quickVideo.videoParams.confirmFailed"));
+      }
+    },
+  );
 }
 
 // ===== 生成进度与重试 =====

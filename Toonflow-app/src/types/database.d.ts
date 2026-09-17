@@ -172,6 +172,7 @@ export interface o_quickVideoSession {
   'updateTime'?: number | null;
   'userMessageCount'?: number | null;
   'videoModel'?: string | null;
+  'videoParams'?: string | null;
 }
 export interface o_script {
   'content'?: string | null;

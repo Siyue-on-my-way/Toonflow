@@ -148,7 +148,7 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
     ctx.mode === "image"
       ? `本轮用户在聊天框选择了「图片」生成模式，模型：${ctx.imageModel}。请调用 generate_image 工具按用户描述生成图片；用户消息带 ##图N## 占位符时传 referenceSlots 自动转为图生图；仅附带图片而未写占位符时，按「本轮引用事实」传 referenceMediaIds；用户未提及图片时为纯文生图。不要只用文字描述画面。生成的图片会自动出现在聊天记录和资产白板中。`
       : ctx.mode === "video"
-        ? `本轮用户在聊天框选择了「视频」生成模式，模型：${ctx.videoModel}。请调用 generate_video 工具：纯文字描述即文生视频（无需图片）；消息带 ##图N## 时传 referenceSlots=[N] 以该图为首帧；带 ##图1## ##图2## 时传 referenceSlots=[1,2] 生成首尾帧过渡视频（模型不支持时工具会自动退化为首帧模式）；仅附带图片而未写占位符、且用户意图是以图生视频时，必须按「本轮引用事实」传 referenceMediaIds；所选模型不支持文生视频时，工具会自动生成一张概念首帧图并链式生视频。生成的视频（和概念图）会自动出现在聊天记录和资产白板中，不会自动绑定镜头。`
+        ? `本轮用户在聊天框选择了「视频」生成模式，模型：${ctx.videoModel}。请调用 request_video_params 工具发起参数确认卡（把 prompt/引用/用户提到的时长作为预填值传入），用户在卡片上确认参数后系统才会生成；仅当该工具明确返回"没有可确认参数"时才改用 generate_video。纯文字描述即文生视频（无需图片）；消息带 ##图N## 时传 referenceSlots=[N] 以该图为首帧；带 ##图1## ##图2## 时传 referenceSlots=[1,2] 生成首尾帧过渡视频；仅附带图片而未写占位符、且用户意图是以图生视频时，必须按「本轮引用事实」传 referenceMediaIds。不要用文字描述画面来敷衍，也不要代替用户确认参数。`
         : "",
     slotNote,
     referenceNote,
@@ -188,13 +188,23 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
     },
     onFinish: async (completion) => {
       await mutateLastChatAt(Number(resTool.data.projectId), sessionId);
-      // UI 动作元数据（ext.actions，SIY-153）随记忆正文一起持久化：getMemory 还原历史时
-      // 会解析回消息 ext 供前端回放展示；回放动作由前端执行器按消息 id 去重，不会重复执行。
-      const uiActions = ctx.msg.getExt()?.actions;
+      // UI 动作元数据（ext.actions，SIY-153）与模型参数确认卡（ext.videoParamsCard，SIY-161）
+      // 随记忆正文一起持久化：getMemory 还原历史时解析回消息 ext 供前端回放展示；
+      // 回放动作由前端执行器按消息 id 去重，确认卡状态由前端按 workbench 状态机最新数据解析。
+      const ext = ctx.msg.getExt();
+      const uiActions = ext?.actions;
+      const videoParamsCard = ext?.videoParamsCard;
+      const extPayload: Record<string, unknown> | undefined =
+        (Array.isArray(uiActions) && uiActions.length) || videoParamsCard
+          ? {
+              ...(Array.isArray(uiActions) && uiActions.length ? { actions: uiActions } : {}),
+              ...(videoParamsCard ? { videoParamsCard } : {}),
+            }
+          : undefined;
       await memory.add(
         "assistant",
         removeAllXmlTags(completion.text),
-        Array.isArray(uiActions) && uiActions.length ? { ext: JSON.stringify(uiActions) } : undefined,
+        extPayload ? { ext: JSON.stringify(extPayload) } : undefined,
       );
     },
   });

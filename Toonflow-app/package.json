@@ -38,7 +38,8 @@
     "test:quickvideo-media": "tsx scripts/quickvideo-media-unit.ts",
     "test:quickvideo-placeholder": "tsx scripts/quickvideo-placeholder-unit.ts",
     "test:quickvideo-confirm-gate": "tsx scripts/quickvideo-confirm-gate-unit.ts",
-    "test:quickvideo-reference": "tsx scripts/quickvideo-reference-unit.ts"
+    "test:quickvideo-reference": "tsx scripts/quickvideo-reference-unit.ts",
+    "test:quickvideo-video-params": "tsx scripts/quickvideo-video-params-unit.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.35",

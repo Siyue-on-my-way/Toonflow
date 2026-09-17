@@ -137,6 +137,8 @@ export const vendor: VendorConfig = {
       ],
       // 文档：480p/720p 为原生输出，1080p/2k/4k 为 720p 原生后超分放大
       resolutionNote: "480p/720p 为模型原生输出；1080p/2k/4k 基于 720p 原生生成后超分放大，耗时与稳定性会有所下降。",
+      // 文档：duration 枚举含 -1 但未说明语义（SIY-161 按实标注，不脑补输出规则）
+      durationAutoNote: "「自动」档：由模型根据提示词与参考自行决定输出时长（官方文档未说明具体规则）。",
       // 文档：提示词必填，1-20480 字；支持 @Image N / @Video N 槽位引用
       promptRequired: true,
       promptLengthRange: [1, 20480],
@@ -162,6 +164,7 @@ export const vendor: VendorConfig = {
       ],
       // 文档：Mini 原生仅 480p/720p；1080p/2k/4k 先以 720p 生成，再超分补帧输出
       resolutionNote: "Mini 原生仅支持 480p/720p；1080p/2k/4k 会先以 720p 生成，再通过超分补帧输出，画质稳定性弱于 Standard 档。",
+      durationAutoNote: "「自动」档：由模型根据提示词与参考自行决定输出时长（官方文档未说明具体规则）。",
       // 文档：提示词必填，1-20480 字；支持 @Image N / @Video N 槽位引用
       promptRequired: true,
       promptLengthRange: [1, 20480],

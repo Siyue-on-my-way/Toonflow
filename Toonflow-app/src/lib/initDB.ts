@@ -1212,6 +1212,8 @@ export default async (knex: Knex, forceInit: boolean = false): Promise<void> => 
         table.string("textModel", 500);
         table.string("imageModel", 500);
         table.string("videoModel", 500);
+        // 会话级视频参数偏好 JSON（SIY-161：确认过的参数记忆，下次预填/「不再询问」）
+        table.text("videoParams");
         // 项目内递增序号（默认标题 "<项目名称>-session<序号>" 用），归档/删除不复用
         table.integer("sequence");
         // 用户消息轮次计数，达到 TITLE_GENERATION_TRIGGER_COUNT 时触发一次智能标题生成

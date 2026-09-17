@@ -5,7 +5,6 @@ import ResTool from "@/socket/resTool";
 import { loadQuickVideoState, mutateQuickVideoState, QuickVideoError } from "@/lib/quickVideo/state";
 import {
   QuickVideoShot,
-  QuickVideoRatio,
   QUICK_VIDEO_RATIOS,
   SHOT_DURATION_MAX,
   SHOT_DURATION_MIN,
@@ -28,6 +27,7 @@ import {
   canOpenExportConfirmStage,
   normalizeQuickVideoUiActions,
   resolveChatReferences,
+  VIDEO_PARAMS_CARDS_MAX,
 } from "@/lib/quickVideo/contract";
 import { findShot, nextShotId, normalizeShotDuration, reindexShots } from "@/lib/quickVideo/shots";
 import {
@@ -36,21 +36,24 @@ import {
   startQuickVideoGeneration,
   buildSnapshot,
   applySnapshotToState,
-  assertVideoSupportsSingleImage,
-  castAspectRatio,
 } from "@/lib/quickVideo/generate";
-import { snapDurationToTiers } from "@/lib/quickVideo/modelValidation";
 import {
   createChatMedia,
   markChatMediaDone,
   markChatMediaFailed,
   resolveMediaImageBase64,
   resolveMediaForFirstFrame,
-  resolveVideoStartEndMode,
   videoModelSupportsTextToVideo,
   resolveDefaultImageModel,
-  getVideoModelDefaultQuality,
+  getVideoModelCatalogEntry,
 } from "@/lib/quickVideo/media";
+import { runChatVideoGeneration, collectEntryDurationTiers } from "@/lib/quickVideo/chatVideoGen";
+import {
+  buildVideoParamsCard,
+  matchesResetAskPreference,
+  resolveSkipAskPreference,
+} from "@/lib/quickVideo/videoParamsCard";
+import { getVideoParamsPreference } from "@/lib/quickVideo/session";
 
 /**
  * QuickVideoAgent 受限工具层。
@@ -83,19 +86,6 @@ interface ToolConfig {
 /** 按占位符编号解析引用媒体；编号无效（没有对应媒体）时返回 null */
 function resolveSlotMediaId(toolConfig: ToolConfig, slot: number): number | null {
   return toolConfig.slotReferences?.[slot] ?? null;
-}
-
-/**
- * 供应商请求参数审计日志（方案A 第4层，SIY-158）：留痕 generate_video 实际传给供应商的关键参数，
- * Base64 参考图以张数代替（不刷日志）。与工具入参日志（工具层首行）共同补齐
- * "LLM 传了什么 -> 系统解析出什么 -> 供应商收到什么"的证据链（SIY-137 事故 A1 假设验证依据）。
- */
-function logVideoVendorRequest(model: string, input: { prompt: string; mode: string[]; duration: number; aspectRatio: string; resolution: string; quality?: string; referenceCount: number }) {
-  console.log(
-    `[quickVideo][generate_video] 供应商请求 model=${model} mode=[${input.mode.join(",")}] duration=${input.duration} ` +
-      `aspectRatio=${input.aspectRatio} resolution=${input.resolution} quality=${input.quality ?? "-"} ` +
-      `参考图=${input.referenceCount}张 prompt="${input.prompt.slice(0, 80)}${input.prompt.length > 80 ? "…" : ""}"`,
-  );
 }
 
 /** 工具内统一错误转文本，避免 Agent 因异常中断 */
@@ -1226,7 +1216,7 @@ export default (toolConfig: ToolConfig) => {
             );
           }
 
-          // 纯文生视频守门：目录明确声明不支持 text 模式时提前拦截，避免必然失败的供应商调用
+          // 纯文生视频守门：目录明确声明不支持 text 模式时，由共享内核走概念首帧链式生成
           if (!referenceIds.length) {
             let supportsText = true;
             try {
@@ -1234,247 +1224,170 @@ export default (toolConfig: ToolConfig) => {
             } catch (err) {
               return `视频生成失败：${describeError(err)}`;
             }
-            if (!supportsText) {
-              // 双轨自适应轨道 2（SIY-149）：模型仅支持图生视频时，自动生成概念首帧图并链式生视频
-              const project0 = await u.db("o_project").where("id", projectId).select("videoRatio").first();
-              const aspectRatio0 = castAspectRatio((project0?.videoRatio || "16:9") as QuickVideoRatio);
-              // 时长就近取整（SIY-154 P2）：概念首帧链式生成的视频同样要按模型声明档位取整
-              const requestedDuration0 = input.duration ?? SHOT_DURATION_MIN;
-              const snappedDuration0 = snapDurationToTiers(requestedDuration0, durationTiers);
-              const duration0 = snappedDuration0 ?? requestedDuration0;
-              const durationNote0 =
-                snappedDuration0 != null && snappedDuration0 !== requestedDuration0
-                  ? `（原时长 ${requestedDuration0} 秒不受当前模型支持，已自动就近取整为 ${snappedDuration0} 秒）`
-                  : "";
-
-              let effectiveImageModel = toolConfig.imageModel;
-              if (!effectiveImageModel) {
-                effectiveImageModel = await resolveDefaultImageModel(projectId, sessionId);
-              }
-              if (!effectiveImageModel) {
+            if (!supportsText && !toolConfig.imageModel) {
+              const resolved = await resolveDefaultImageModel(projectId, sessionId);
+              if (!resolved) {
                 return "所选视频模型仅支持图生视频（单图首帧），系统尝试自动生成概念首帧图，但未找到可用的图片模型，请在设置中配置或启用图片模型。";
               }
-
-              const { media: imageMedia, idempotentHit: imageIdempotentHit } = await createChatMedia({
-                projectId,
-                sessionId,
-                messageId: msg.id,
-                kind: "image",
-                model: effectiveImageModel,
-                prompt: input.prompt,
-                source: "chat",
-                idempotencyKey: `tool:generate_video:first_frame:${toolCallId}`,
-              });
-              const { media: videoMedia0, idempotentHit: videoIdempotentHit } = await createChatMedia({
-                projectId,
-                sessionId,
-                messageId: msg.id,
-                kind: "video",
-                model: videoModel,
-                prompt: input.prompt,
-                source: "chat",
-                idempotencyKey: `tool:generate_video:${toolCallId}`,
-              });
-              if (videoIdempotentHit && videoMedia0.state === "done") {
-                return "该次视频生成请求已处理过（幂等命中），视频已在聊天记录和资产白板中。";
-              }
-
-              // 生成概念首帧图
-              let conceptBase64: string;
-              if (imageIdempotentHit && imageMedia.state === "done" && imageMedia.imageId) {
-                try {
-                  conceptBase64 = await resolveMediaImageBase64(projectId, imageMedia.id);
-                } catch (err) {
-                  const reason = describeError(err);
-                  await markChatMediaFailed(videoMedia0.id, `首帧概念图读取失败: ${reason}`);
-                  return `视频生成失败：首帧概念图读取失败（${reason}）。请重试或换一个描述。`;
-                }
-              } else {
-                try {
-                  const imageCls = u.Ai.Image(effectiveImageModel as `${string}:${string}`, userId);
-                  await imageCls.run(
-                    { prompt: input.prompt, referenceList: [], size: "1K", aspectRatio: aspectRatio0 },
-                    {
-                      taskClass: "快创聊天概念首帧",
-                      describe: `概念首帧：${input.prompt.slice(0, 100)}`,
-                      relatedObjects: JSON.stringify({ projectId, sessionId, mediaId: imageMedia.id }),
-                      projectId,
-                    },
-                  );
-                  const imageSavePath = `/${projectId}/quickVideo/chat-concept-${u.uuid().slice(0, 8)}.jpg`;
-                  await imageCls.save(imageSavePath);
-                  await markChatMediaDone(imageMedia.id, imageSavePath);
-                  const imageUrl = await u.oss.getFileUrl(imageSavePath);
-                  msg.image(
-                    { name: `[概念首帧] ${input.prompt.slice(0, 50)}`, url: imageUrl },
-                    { mediaId: imageMedia.id, assetId: imageMedia.assetId, imageId: imageMedia.imageId, kind: "image", model: effectiveImageModel, promptSummary: input.prompt.slice(0, 200), state: "done", source: "chat" },
-                  );
-                  conceptBase64 = await resolveMediaImageBase64(projectId, imageMedia.id);
-                } catch (err) {
-                  const reason = describeError(err);
-                  await markChatMediaFailed(imageMedia.id, reason);
-                  await markChatMediaFailed(videoMedia0.id, `概念首帧图生成失败: ${reason}`);
-                  return `视频生成失败：所选视频模型需要首帧参考图，系统尝试自动生成概念首帧图失败（${reason}）。可以请用户换一个描述或换一个模型后重试。`;
-                }
-              }
-
-              // 将概念首帧图作为参考图送入视频模型生成视频
-              try {
-                const videoAi0 = u.Ai.Video(videoModel as `${string}:${string}`, userId);
-                logVideoVendorRequest(videoModel, {
-                  prompt: input.prompt,
-                  mode: ["singleImage"],
-                  duration: duration0,
-                  aspectRatio: aspectRatio0,
-                  resolution: "720p",
-                  quality: (await getVideoModelDefaultQuality(videoModel)) ?? undefined,
-                  referenceCount: 1,
-                });
-                await videoAi0.run(
-                  {
-                    prompt: input.prompt,
-                    referenceList: [{ type: "image" as const, base64: conceptBase64 }],
-                    mode: ["singleImage"],
-                    duration: duration0,
-                    aspectRatio: aspectRatio0,
-                    resolution: "720p",
-                    // 模型目录声明 qualityOptions 时自动补齐（SIY-154 P1，与主轨道同口径）
-                    quality: (await getVideoModelDefaultQuality(videoModel)) ?? undefined,
-                  },
-                  {
-                    taskClass: "快创聊天生视频",
-                    describe: `聊天生视频：${input.prompt.slice(0, 100)}`,
-                    relatedObjects: JSON.stringify({ projectId, sessionId, mediaId: videoMedia0.id }),
-                    projectId,
-                  },
-                );
-                const videoSavePath0 = `/${projectId}/quickVideo/chat-${u.uuid().slice(0, 8)}.mp4`;
-                await videoAi0.save(videoSavePath0);
-                await markChatMediaDone(videoMedia0.id, videoSavePath0);
-                const videoUrl0 = await u.oss.getFileUrl(videoSavePath0);
-                msg.video(
-                  { name: input.prompt.slice(0, 60), url: videoUrl0 },
-                  { mediaId: videoMedia0.id, assetId: videoMedia0.assetId, videoId: videoMedia0.videoId, kind: "video", model: videoModel, promptSummary: input.prompt.slice(0, 200), state: "done", source: "chat" },
-                );
-                return `视频已生成并加入聊天记录与资产白板（视频 mediaId ${videoMedia0.id}，概念首帧 mediaId ${imageMedia.id}）${durationNote0}。概念首帧图已收录白板，支持一键设为分镜首帧；视频可在聊天流中直接播放与全屏预览。`;
-              } catch (err) {
-                const reason = describeError(err);
-                await markChatMediaFailed(videoMedia0.id, reason);
-                return `视频生成失败：${reason}（概念首帧图已生成并保存在资产白板中，mediaId ${imageMedia.id}）。可以请用户换一个描述或换一个视频模型后重试。`;
-              }
             }
           }
 
-          const project = await u.db("o_project").where("id", projectId).select("videoRatio").first();
-          const aspectRatio = castAspectRatio((project?.videoRatio || "16:9") as QuickVideoRatio);
-          // 时长就近取整（SIY-154 P2）：LLM 传来的时长若不在模型声明档位内（如 Kling O1 的 7s），
-          // 自动映射到最近档位并在回复中说明，而不是把非法参数直接提交给供应商校验。
-          const requestedDuration = input.duration ?? SHOT_DURATION_MIN;
-          const snappedDuration = snapDurationToTiers(requestedDuration, durationTiers);
-          const duration = snappedDuration ?? requestedDuration;
-          const durationNote =
-            snappedDuration != null && snappedDuration !== requestedDuration
-              ? `（原时长 ${requestedDuration} 秒不受当前模型支持，已自动就近取整为 ${snappedDuration} 秒）`
-              : "";
-
-          const { media, idempotentHit } = await createChatMedia({
+          // 生成委托给共享内核（SIY-161）：媒体落库、模式决策、时长取整、供应商请求组装、
+          // 概念首帧链式生成与结果回显全部集中到 lib/quickVideo/chatVideoGen，三条入口共用同一实现。
+          const result = await runChatVideoGeneration({
             projectId,
+            userId,
             sessionId,
-            messageId: msg.id,
-            kind: "video",
-            model: videoModel,
-            prompt: input.prompt,
-            source: "chat",
+            msg,
             idempotencyKey: `tool:generate_video:${toolCallId}`,
+            videoModel,
+            imageModel: toolConfig.imageModel,
+            prompt: input.prompt,
+            referenceIds,
+            durationTiers,
+            params: { duration: input.duration },
+            source: "tool",
           });
-          if (idempotentHit) {
-            if (media.state === "done") return "该次视频生成请求已处理过（幂等命中），视频已在聊天记录和资产白板中。";
-            if (media.state === "failed") return `该次视频生成请求已处理过（幂等命中），生成失败：${media.errorReason ?? "未知原因"}`;
-            return "该次视频生成请求正在处理中（幂等命中），请稍候查看聊天记录或资产白板。";
-          }
+          if (!result.ok) return result.reason;
 
-          // 解析参考图为 Base64；单张失效只降级（首尾帧 -> 首帧 -> 纯文本），不直接失败
-          const imageBase64List: string[] = [];
-          for (const refId of referenceIds) {
-            try {
-              imageBase64List.push(await resolveMediaImageBase64(projectId, refId));
-            } catch (err) {
-              await markChatMediaFailed(media.id, `参考图 ${refId} 无效：${describeError(err)}`);
-              return `视频生成失败：参考图无效（${describeError(err)}）。请提醒用户重新选择一张已生成完成的图片作为参考后再试。`;
-            }
-          }
-
-          // 输入模式决策：0 图=纯文本；1 图=首帧；2 图=首尾帧（目录未声明支持时退化为首帧）
-          let mode: ("text" | "singleImage" | "startEndRequired" | "endFrameOptional" | "startFrameOptional")[] = ["text"];
-          let degradedNote = "";
-          if (imageBase64List.length === 1) {
-            try {
-              await assertVideoSupportsSingleImage(videoModel, false);
-              mode = ["singleImage"];
-            } catch (err) {
-              await markChatMediaFailed(media.id, describeError(err));
-              return `视频生成失败：${describeError(err)}`;
-            }
-          } else if (imageBase64List.length >= 2) {
-            const startEndMode = await resolveVideoStartEndMode(videoModel);
-            if (startEndMode) {
-              mode = [startEndMode];
-            } else {
-              mode = ["singleImage"];
-              imageBase64List.length = 1;
-              degradedNote = "（该视频模型未声明支持首尾帧过渡，已自动退化为仅用首帧）";
-            }
-          }
-
-          try {
-            const videoAi = u.Ai.Video(videoModel as `${string}:${string}`, userId);
-            logVideoVendorRequest(videoModel, {
-              prompt: input.prompt,
-              mode: mode as string[],
-              duration,
-              aspectRatio,
-              resolution: "720p",
-              quality: (await getVideoModelDefaultQuality(videoModel)) ?? undefined,
-              referenceCount: imageBase64List.length,
-            });
-            await videoAi.run(
-              {
-                prompt: input.prompt,
-                referenceList: imageBase64List.map((base64) => ({ type: "image" as const, base64 })),
-                mode: mode as any,
-                duration,
-                aspectRatio,
-                resolution: "720p",
-                // 模型目录声明 qualityOptions 时自动补齐（如 Kling O1 的 std），避免供应商侧
-                // mode 必填字段校验失败（SIY-154 P1）
-                quality: (await getVideoModelDefaultQuality(videoModel)) ?? undefined,
-              },
-              {
-                taskClass: "快创聊天生视频",
-                describe: `聊天生视频：${input.prompt.slice(0, 100)}`,
-                relatedObjects: JSON.stringify({ projectId, sessionId, mediaId: media.id }),
-                projectId,
-              },
-            );
-            const savePath = `/${projectId}/quickVideo/chat-${u.uuid().slice(0, 8)}.mp4`;
-            await videoAi.save(savePath);
-            await markChatMediaDone(media.id, savePath);
-
-            const url = await u.oss.getFileUrl(savePath);
-            msg.video(
-              { name: input.prompt.slice(0, 60), url },
-              { mediaId: media.id, assetId: media.assetId, videoId: media.videoId, kind: "video", model: videoModel, promptSummary: input.prompt.slice(0, 200), state: "done", source: "chat" },
-            );
-            // 兜底来源要向用户显式披露（方案A：确定性但不隐性），避免"图被用了但用户不知道"
-            const refSourceNote = resolution.source === "turnAttachment" ? "（已自动使用你本轮附带的图片）" : "";
-            const modeText = imageBase64List.length >= 2 ? "首尾帧过渡" : imageBase64List.length === 1 ? `以参考图为首帧${refSourceNote}` : "纯文生视频";
-            return `视频已生成并加入聊天记录与资产白板（mediaId ${media.id}，${modeText}）${degradedNote}${durationNote}。提醒用户：如需把视频/图片用于某个镜头，可以在聊天中告诉我，或在右侧分镜表手动绑定。`;
-          } catch (err) {
-            const reason = describeError(err);
-            await markChatMediaFailed(media.id, reason);
-            return `视频生成失败：${reason}。可以请用户换一个描述、换一张参考图或换一个视频模型后重新发送。`;
-          }
+          // 兜底来源要向用户显式披露（方案A：确定性但不隐性），避免"图被用了但用户不知道"
+          const refSourceNote = resolution.source === "turnAttachment" ? "（已自动使用你本轮附带的图片）" : "";
+          const modeText =
+            referenceIds.length >= 2 ? "首尾帧过渡" : referenceIds.length === 1 ? `以参考图为首帧${refSourceNote}` : "纯文生视频";
+          const conceptNote = result.conceptImageMediaId ? `概念首帧图 mediaId ${result.conceptImageMediaId} 已收录白板，支持一键设为分镜首帧。` : "";
+          const notesText = result.notes.length ? `${result.notes.join("")}。` : "";
+          return `视频已生成并加入聊天记录与资产白板（mediaId ${result.videoMediaId}，${modeText}）${notesText}${conceptNote}提醒用户：如需把视频/图片用于某个镜头，可以在聊天中告诉我，或在右侧分镜表手动绑定。`;
         }).catch((err) => `视频生成失败：${describeError(err)}`);
+      },
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // 聊天模型参数确认卡（SIY-161 方案C）：request_video_params 是聊天生视频的参数授权入口。
+  // LLM 只传意图与预填值（prompt/引用/时长倾向）；卡片字段由所选模型元数据投影生成，
+  // 用户在聊天流逐项确认/修改后提交，服务端按同一份元数据硬校验并直达供应商调用。
+  // ---------------------------------------------------------------------------
+  if (toolConfig.videoModel) {
+    const videoModel = toolConfig.videoModel;
+    tools.request_video_params = tool({
+      description:
+        "发起一次带参数确认卡的聊天视频生成（视频模式下的首选入口）：按所选视频模型的真实能力组装参数卡（输入模式/时长/比例/画质或分辨率/音频/高级开关），" +
+        "用户在聊天流中逐项授权后才生成。你只负责传意图预填值：prompt（必填）、referenceMediaIds/referenceSlots（用户意图以图生成时必传，见「本轮引用事实」）、" +
+        "durationHint（用户明确说了几秒时传）。用户说「沿用上次参数/直接生成」且此前确认过参数时，本工具会按上次确认的参数直接生成（不再弹卡）；" +
+        "用户说「重新询问参数」时传 forceAsk=true 恢复出卡。生成结果会自动出现在聊天记录和资产白板中，不会绑定镜头。",
+      inputSchema: jsonSchema<{
+        prompt: string;
+        referenceSlots?: number[];
+        referenceMediaIds?: number[];
+        durationHint?: number;
+        forceAsk?: boolean;
+      }>(
+        z
+          .object({
+            prompt: z.string().min(1).max(2000).describe("视频生成提示词（画面内容、动作、运镜、氛围，尽量具体）；请剔除 ##图N## 占位符本身，不要把它写进提示词"),
+            referenceSlots: z
+              .array(z.number().int().min(1).max(4))
+              .max(2)
+              .optional()
+              .describe("占位符编号列表（按顺序）：1 个表示首帧参考图，2 个表示首尾帧；用户消息中提到 ##图N## 时优先传编号"),
+            referenceMediaIds: z
+              .array(z.number().int().positive())
+              .max(2)
+              .optional()
+              .describe("参考图 mediaId 列表（第 1 个为首帧，第 2 个为尾帧），只能是用户明确选中的引用，不要凭空编造 id"),
+            durationHint: z.number().min(1).max(60).optional().describe("用户明确提到的时长（秒），仅作为参数卡初值；没提就不要传"),
+            forceAsk: z.boolean().optional().describe("用户要求恢复参数确认（不再沿用上次参数）时传 true"),
+          })
+          .toJSONSchema(),
+      ),
+      execute: async (input, options) => {
+        const { toolCallId } = options as { toolCallId: string };
+        return withThinking(msg, "正在准备视频参数确认卡...", async () => {
+          // 参考图三级解析（方案A，SIY-158）：LLM 显式参数 > 消息占位符 > 本轮附件兜底（含反静默守门）
+          const resolution = resolveChatReferences({
+            explicitIds: input.referenceMediaIds,
+            explicitSlots: input.referenceSlots,
+            slotMap: toolConfig.slotReferences ?? {},
+            messageSlots: toolConfig.placeholderSlots ?? [],
+            userText: toolConfig.userText,
+            turnReferences: toolConfig.references,
+            max: 2,
+          });
+          const referenceIds = resolution.ids;
+          console.log(
+            `[quickVideo][request_video_params] project=${projectId} session=${sessionId} call=${toolCallId} model=${videoModel} ` +
+              `入参mediaIds=[${(input.referenceMediaIds ?? []).join(",")}] 入参slots=[${(input.referenceSlots ?? []).join(",")}] ` +
+              `消息占位符=[${(toolConfig.placeholderSlots ?? []).join(",")}] 本轮附件=[${resolution.turnReferences.join(",")}] ` +
+              `意图=${resolution.intent} 来源=${resolution.source} 最终参考图=[${referenceIds.join(",")}] 时长倾向=${input.durationHint ?? "缺省"}`,
+          );
+
+          // 反静默守门：本轮有引用图、前两级为空且意图不明——显式询问一次，不创建任何记录
+          if (resolution.needsConfirmation) {
+            return (
+              `需要先和你确认：你这条消息附带了图片（mediaId ${resolution.turnReferences.join("、")}），但没有说明要不要用它来生成视频。` +
+              "回复「用这张图」我会以它为参考出卡生成；回复「不用图」我会按文字描述纯文生视频。本轮尚未开始生成，不会产生费用。"
+            );
+          }
+
+          const forceAsk = input.forceAsk === true || matchesResetAskPreference(toolConfig.userText);
+          const preference = await getVideoParamsPreference(sessionId);
+
+          // 「沿用上次参数，不再询问」（H4 兜底）：同模型已确认过 skipAsk 偏好且用户未要求重新询问时，
+          // 直接按偏好参数生成，服务端确定性判断，不经 LLM 转述
+          const skipAskPref = resolveSkipAskPreference(preference, videoModel, forceAsk);
+          if (skipAskPref) {
+            const entry = await getVideoModelCatalogEntry(videoModel);
+            if (!entry) return `视频生成失败：所选视频模型「${videoModel.split(":").pop()}」不可用，请重新选择模型。`;
+            const result = await runChatVideoGeneration({
+              projectId,
+              userId,
+              sessionId,
+              msg,
+              idempotencyKey: `tool:request_video_params:skip:${toolCallId}`,
+              videoModel,
+              imageModel: toolConfig.imageModel,
+              prompt: input.prompt,
+              referenceIds,
+              durationTiers: collectEntryDurationTiers(entry),
+              params: skipAskPref.params,
+              source: "preference",
+            });
+            if (!result.ok) return result.reason;
+            const modeText = referenceIds.length ? "带参考图" : "纯文生视频";
+            return `已按你上次确认的参数直接生成（${modeText}，未再弹出参数卡）：视频 mediaId ${result.videoMediaId}${result.notes.length ? `，${result.notes.join("；")}` : ""}。说「重新询问参数」可恢复每次出确认卡。`;
+          }
+
+          // 组装参数卡：元数据投影 + LLM 预填 + 会话偏好预填 + 项目默认，每个字段带来源标记
+          const entry = await getVideoModelCatalogEntry(videoModel);
+          if (!entry) return `视频生成失败：所选视频模型「${videoModel.split(":").pop()}」不可用，请重新选择模型。`;
+          const card = buildVideoParamsCard(entry, {
+            cardId: `vpc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            modelKey: videoModel,
+            modelName: videoModel.split(":").pop() ?? videoModel,
+            sessionId,
+            prompt: input.prompt,
+            referenceMediaIds: referenceIds,
+            durationHint: input.durationHint,
+            preference,
+            projectRatio: String((await u.db("o_project").where("id", projectId).select("videoRatio").first())?.videoRatio ?? "16:9"),
+          });
+          if (!card.fields.length || !card.fields.some((f) => f.key === "mode")) {
+            return "所选视频模型没有声明任何可确认的输入模式，请改用 generate_video 工具直接生成。";
+          }
+
+          await mutateQuickVideoState(
+            projectId,
+            { idempotencyKey: `tool:request_video_params:${toolCallId}`, sessionId },
+            (s) => {
+              s.generation.videoParamsCards = [...(s.generation.videoParamsCards ?? []), card].slice(-VIDEO_PARAMS_CARDS_MAX);
+            },
+          );
+
+          // 卡片随助手消息 ext 下发（前端在消息内渲染确认卡）；onFinish 会随记忆持久化供历史回放
+          msg.mergeExt({ videoParamsCard: card });
+          const refNote = referenceIds.length ? `已冻结你本轮附带的 ${referenceIds.length} 张图片作为参考（生成时按所选输入模式使用）` : "本轮无引用图片，纯文生视频模式为默认";
+          return `参数确认卡已按模型「${card.modelName}」的能力生成并展示在聊天流中（${refNote}）。请提醒用户：核对或修改卡上的参数后点「确认生成」即可开始；确认前不会调用供应商、不产生费用。不要代替用户确认。`;
+        }).catch((err) => `发起参数确认卡失败：${describeError(err)}`);
       },
     });
   }

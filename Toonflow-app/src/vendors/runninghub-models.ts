@@ -468,6 +468,10 @@ export const RUNNINGHUB_MODEL_SPECS: RunningHubModelSpec[] = [
     ],
     allowedAspectRatios: ["adaptive", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9"],
     allowedResolutions: ["480p", "720p", "1080p", "2k", "4k"],
+    // 文档：imageUrls 0-9 张、每张 30MB。multimodal 分支不走 imageInput 拼装，但
+    // uploadImages 标志决定参考图是否先经 RunningHub 上传换取下载 URL（base64 data URL
+    // 不能直接作为 imageUrls 传入，快创聊天参考图模式依赖此开关，SIY-161）。
+    imageInput: { mode: "array", arrayField: "imageUrls", max: 9, required: 0, maxImageBytes: 30 * 1024 * 1024, uploadImages: true },
     multimodalReferences: { maxImages: 9, maxVideos: 3, maxAudios: 3, requireVisual: true },
   },
   {
@@ -490,6 +494,10 @@ export const RUNNINGHUB_MODEL_SPECS: RunningHubModelSpec[] = [
     ],
     allowedAspectRatios: ["adaptive", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9"],
     allowedResolutions: ["480p", "720p", "1080p", "2k", "4k"],
+    // 文档：imageUrls 0-9 张、每张 30MB。multimodal 分支不走 imageInput 拼装，但
+    // uploadImages 标志决定参考图是否先经 RunningHub 上传换取下载 URL（base64 data URL
+    // 不能直接作为 imageUrls 传入，快创聊天参考图模式依赖此开关，SIY-161）。
+    imageInput: { mode: "array", arrayField: "imageUrls", max: 9, required: 0, maxImageBytes: 30 * 1024 * 1024, uploadImages: true },
     multimodalReferences: { maxImages: 9, maxVideos: 3, maxAudios: 3, requireVisual: true },
   },
 ];
