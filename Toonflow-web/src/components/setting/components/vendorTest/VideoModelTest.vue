@@ -64,7 +64,6 @@
                 :maxlength="promptLengthRange?.[1]"
                 :autosize="{ minRows: 2, maxRows: 4 }"
                 :disabled="loading" />
-              <div v-if="promptLengthRange" class="promptCounter">{{ promptCounterText }}</div>
             </div>
           </t-form-item>
         </template>
@@ -84,7 +83,6 @@
                 :maxlength="promptLengthRange?.[1]"
                 :autosize="{ minRows: 2, maxRows: 4 }"
                 :disabled="loading" />
-              <div v-if="promptLengthRange" class="promptCounter">{{ promptCounterText }}</div>
             </div>
           </t-form-item>
         </template>
@@ -107,7 +105,6 @@
                 :maxlength="promptLengthRange?.[1]"
                 :autosize="{ minRows: 2, maxRows: 4 }"
                 :disabled="loading" />
-              <div v-if="promptLengthRange" class="promptCounter">{{ promptCounterText }}</div>
             </div>
           </t-form-item>
         </template>
@@ -130,7 +127,6 @@
                 :maxlength="promptLengthRange?.[1]"
                 :autosize="{ minRows: 2, maxRows: 4 }"
                 :disabled="loading" />
-              <div v-if="promptLengthRange" class="promptCounter">{{ promptCounterText }}</div>
             </div>
           </t-form-item>
         </template>
@@ -153,7 +149,6 @@
                 :maxlength="promptLengthRange?.[1]"
                 :autosize="{ minRows: 2, maxRows: 4 }"
                 :disabled="loading" />
-              <div v-if="promptLengthRange" class="promptCounter">{{ promptCounterText }}</div>
             </div>
           </t-form-item>
         </template>
@@ -167,7 +162,6 @@
                 :maxlength="promptLengthRange?.[1]"
                 :autosize="{ minRows: 2, maxRows: 4 }"
                 :disabled="loading" />
-              <div v-if="promptLengthRange" class="promptCounter">{{ promptCounterText }}</div>
             </div>
           </t-form-item>
           <!-- @Image N / @Video N 槽位引用 chip：由 promptSlotReferences 元数据驱动 -->
@@ -520,13 +514,6 @@ function resetUploads() {
   uploadedAudios.value = Array(30).fill(null);
 }
 
-const promptCount = computed(() => prompt.value.length);
-const promptCounterText = computed(() => {
-  const range = promptLengthRange.value;
-  if (!range) return "";
-  return `${promptCount.value}/${range[1]}`;
-});
-
 const promptPlaceholder = computed(() =>
   promptRequired.value ? $t("settings.vendor.test.promptPlaceholder") : $t("settings.vendor.test.videoPromptPlaceholder"),
 );
@@ -742,12 +729,6 @@ function handleClose() {
     .promptArea {
       width: 100%;
 
-      .promptCounter {
-        margin-top: 2px;
-        text-align: right;
-        font-size: 12px;
-        color: var(--td-text-color-placeholder);
-      }
     }
 
     .frameRow {
