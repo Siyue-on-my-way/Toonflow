@@ -19,9 +19,6 @@
               <i-close size="16" />
             </button>
           </div>
-          <div class="chatSidebarProject" :title="workbench.project?.name || ''">
-            {{ workbench.project?.name || $t("workbench.quickVideo.sessions.defaultTitle") }}
-          </div>
           <div class="chatSidebarHint">{{ $t("workbench.quickVideo.chatSidebarHint") }}</div>
         </div>
 
@@ -252,7 +249,6 @@
         <div class="data modulePane" data-testid="quick-video-main-panel">
         <div class="panel" v-loading="loadingWorkbench && !state">
           <div class="panelHeader">
-            <div class="title">{{ workbench.project?.name }}</div>
             <div class="meta">
               <t-tag shape="round" theme="primary">{{ stageLabel(state?.stage) }}</t-tag>
               <t-tag shape="round">{{ $t("workbench.quickVideo.targetDuration") }}：{{ state?.targetDuration ? `${state.targetDuration}s` : $t("workbench.quickVideo.adaptiveDuration") }}</t-tag>
@@ -2392,15 +2388,6 @@ onBeforeUnmount(() => {
         background: var(--td-bg-color-secondarycontainer);
       }
     }
-    .chatSidebarProject {
-      margin-top: 8px;
-      overflow: hidden;
-      color: var(--td-text-color-primary);
-      font-size: 13px;
-      font-weight: 600;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
     .chatSidebarHint {
       margin-top: 5px;
       color: var(--td-text-color-secondary);
@@ -2787,10 +2774,6 @@ onBeforeUnmount(() => {
       justify-content: space-between;
       gap: 12px;
       padding: 6px 4px 12px;
-      .title {
-        font-size: 18px;
-        font-weight: 600;
-      }
       .meta {
         display: flex;
         align-items: center;
