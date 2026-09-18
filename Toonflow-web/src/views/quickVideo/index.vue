@@ -4,10 +4,6 @@
       <aside class="chatSidebar operate" aria-label="Quick Video conversation" data-testid="quick-video-chat-sidebar" :style="chatSidebarStyle">
         <div class="chatSidebarHeader">
           <div class="chatSidebarTitleRow">
-            <div class="chatSidebarTitle">
-              <i-chat class="chatSidebarIcon" size="18" />
-              <span>{{ $t("workbench.quickVideo.sessions.title") }}</span>
-            </div>
             <i-dot class="chatSidebarStatus" theme="outline" :fill="connected ? 'green' : 'red'" />
             <button
               v-if="isNarrow"
@@ -19,7 +15,6 @@
               <i-close size="16" />
             </button>
           </div>
-          <div class="chatSidebarHint">{{ $t("workbench.quickVideo.chatSidebarHint") }}</div>
         </div>
 
         <div class="box pr">
@@ -2356,16 +2351,7 @@ onBeforeUnmount(() => {
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-    }
-    .chatSidebarTitle {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      font-size: 14px;
-      font-weight: 650;
-    }
-    .chatSidebarIcon {
-      color: var(--td-brand-color);
+      min-height: 18px;
     }
     .chatSidebarStatus {
       flex-shrink: 0;
@@ -2387,12 +2373,6 @@ onBeforeUnmount(() => {
         color: var(--td-text-color-primary);
         background: var(--td-bg-color-secondarycontainer);
       }
-    }
-    .chatSidebarHint {
-      margin-top: 5px;
-      color: var(--td-text-color-secondary);
-      font-size: 12px;
-      line-height: 1.5;
     }
     .box {
       min-height: 0;
@@ -3132,9 +3112,6 @@ onBeforeUnmount(() => {
       transform: translateX(calc(-100% - 16px));
       transition: transform 0.22s ease;
       box-shadow: var(--td-shadow-2, 0 4px 16px rgba(0, 0, 0, 0.16));
-    }
-    .chatSidebarHint {
-      display: none;
     }
     &.drawerOpen .chatSidebar {
       transform: translateX(0);

@@ -1627,7 +1627,6 @@
         "defaultTitle": "Default session"
       },
       "welcomeMsg": "Hi! I'm your Quick Video assistant. Give me a one-line idea or paste a draft script, and I'll create a brief and a 15-60s storyboard for you.",
-      "chatSidebarHint": "Keep the conversation visible while you refine each output.",
       "openChat": "Open chat",
       "closeChat": "Collapse chat",
       "resizeChat": "Adjust chat panel width (arrow keys to nudge, Home/End for bounds)",
