@@ -204,6 +204,7 @@ import route200 from "./routes/task/getTaskApi";
 import route201 from "./routes/task/getTaskCategories";
 import route202 from "./routes/task/taskDetails";
 import route203 from "./routes/test/test";
+import route203b from "./routes/quickVideo/updateMediaParams";
 
 export default async (app: Express) => {
   app.use("/api/agents/clearMemory", route1);
@@ -340,6 +341,7 @@ export default async (app: Express) => {
   app.use("/api/quickVideo/updateModels", route132);
   app.use("/api/quickVideo/updateSession", route133);
   app.use("/api/quickVideo/updateShot", route134);
+  app.use("/api/quickVideo/updateMediaParams", route203b);
   app.use("/api/quickVideo/uploadMedia", route135);
   app.use("/api/register/register", route136);
   app.use("/api/script/addScript", route137);

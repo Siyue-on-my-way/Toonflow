@@ -73,6 +73,12 @@ interface ToolConfig {
   videoModel?: string;
   /** 所选视频模型目录声明的时长档位（如 Kling O1 的 [5,10]）；用于 generate_video 参数说明与就近取整（SIY-154 P2） */
   videoDurationOptions?: number[];
+  /** SIY-163：会话图片参数解析结果（Agent 入口已按模型目录声明就近降级），generate_image 使用 */
+  imageResolution?: string;
+  /** SIY-163：图片画面比例最终生效值；null/未提供时跟随项目比例（既有行为） */
+  imageAspectRatio?: string | null;
+  /** SIY-163：降级说明（可读），附加到工具回复文案 */
+  mediaParamNotes?: string[];
   /** 用户选中的引用媒体 mediaId 列表（图生图/图生视频参考） */
   references?: number[];
   /** 占位符编号 -> mediaId 映射（##图N## = 托盘第 N 张图），由 socket 层按用户消息解析（SIY-151） */
@@ -1064,7 +1070,11 @@ export default (toolConfig: ToolConfig) => {
         const { toolCallId } = options as { toolCallId: string };
         return withThinking(msg, "正在生成图片...", async () => {
           const project = await u.db("o_project").where("id", projectId).select("videoRatio").first();
-          const aspectRatio = (project?.videoRatio || "16:9") as `${number}:${number}`;
+          // 分辨率/比例来自会话图片参数解析（SIY-163：服务端已按模型目录声明就近降级）；
+          // 未解析到时维持既有默认（1K / 项目比例），目录未声明档位时行为与改动前一致。
+          const size = (toolConfig.imageResolution ?? "1K") as "1K" | "2K" | "4K";
+          const aspectRatio = ((toolConfig.imageAspectRatio || project?.videoRatio || "16:9") as `${number}:${number}`);
+          const mediaParamNote = toolConfig.mediaParamNotes?.length ? `（${toolConfig.mediaParamNotes.join("；")}）` : "";
 
           const { media, idempotentHit } = await createChatMedia({
             projectId,
@@ -1095,7 +1105,7 @@ export default (toolConfig: ToolConfig) => {
           });
           const referenceIds = resolution.ids;
           console.log(
-            `[quickVideo][generate_image] project=${projectId} session=${sessionId} call=${toolCallId} model=${imageModel} ` +
+            `[quickVideo][generate_image] project=${projectId} session=${sessionId} call=${toolCallId} model=${imageModel} 分辨率=${size} 比例=${aspectRatio} ` +
               `入参mediaIds=[${(input.referenceMediaIds ?? []).join(",")}] 入参slots=[${(input.referenceSlots ?? []).join(",")}] ` +
               `消息占位符=[${(toolConfig.placeholderSlots ?? []).join(",")}] 本轮附件=[${resolution.turnReferences.join(",")}] ` +
               `意图=${resolution.intent} 来源=${resolution.source} 最终参考图=[${referenceIds.join(",")}]`,
@@ -1113,7 +1123,7 @@ export default (toolConfig: ToolConfig) => {
           try {
             const imageCls = u.Ai.Image(imageModel as `${string}:${string}`, userId);
             await imageCls.run(
-              { prompt: input.prompt, referenceList, size: "1K", aspectRatio },
+              { prompt: input.prompt, referenceList, size, aspectRatio },
               {
                 taskClass: "快创聊天生图",
                 describe: `聊天生图${referenceList.length ? "（图生图）" : ""}：${input.prompt.slice(0, 100)}`,
@@ -1132,7 +1142,7 @@ export default (toolConfig: ToolConfig) => {
             );
             const refSourceNote = resolution.source === "turnAttachment" ? "（已自动使用你本轮附带的图片）" : "";
             const modeText = referenceList.length ? `已按${referenceList.length}张参考图做图生图${refSourceNote}${droppedRefs ? `（${droppedRefs}张参考图失效已跳过）` : ""}` : "纯文生图";
-            return `图片已生成并加入聊天记录与资产白板（mediaId ${media.id}，${modeText}）。提醒用户：如需用作某个镜头的首帧，可以在聊天中告诉我「把这张图设为镜头N首帧」，或在右侧分镜表手动绑定。`;
+            return `图片已生成并加入聊天记录与资产白板（mediaId ${media.id}，${modeText}，分辨率 ${size}）${mediaParamNote}。提醒用户：如需用作某个镜头的首帧，可以在聊天中告诉我「把这张图设为镜头N首帧」，或在右侧分镜表手动绑定。`;
           } catch (err) {
             const reason = describeError(err);
             await markChatMediaFailed(media.id, reason);

@@ -21,6 +21,8 @@ export interface QuickVideoSessionRow {
   textModel: string | null;
   imageModel: string | null;
   videoModel: string | null;
+  /** 会话级图片参数偏好 JSON（SIY-163 Confirm Card 均衡版；存量库由 fixDB 补列） */
+  imageParams: string | null;
   /** 会话级视频参数偏好 JSON（SIY-161；存量库由 fixDB 补列） */
   videoParams: string | null;
   sequence: number | null;
@@ -57,6 +59,7 @@ export async function createQuickVideoSession(projectId: number, opts: { title?:
     textModel: project?.textModel || null,
     imageModel: project?.imageModel || null,
     videoModel: project?.videoModel || null,
+    imageParams: null,
     videoParams: null,
     sequence,
     userMessageCount: 0,
@@ -204,4 +207,48 @@ export async function getVideoParamsPreference(sessionId: number): Promise<Video
   } catch {
     return null;
   }
+}
+
+// ---------------------------------------------------------------------------
+// 会话级图片参数偏好（SIY-163 Confirm Card 均衡版：能力参数放常驻控件，按会话记住。
+// 视频参数偏好由 SIY-161 的确认卡体系负责，本节只覆盖图片侧）
+// ---------------------------------------------------------------------------
+
+export interface QuickVideoImageParams {
+  /** 图片分辨率档位（1K/2K/4K）；缺省走既有默认 */
+  resolution?: string;
+  /** 画面比例模式：project=跟随项目（默认）；custom=使用 ratio 字段 */
+  ratioMode?: "project" | "custom";
+  /** ratioMode=custom 时的自定义比例（"w:h"） */
+  ratio?: string;
+}
+
+/** 宽松解析会话里保存的图片参数 JSON：非对象/未知字段一律剔除，绝不抛错（坏数据等价于未设置） */
+export function parseSessionImageParams(raw: string | null | undefined): QuickVideoImageParams {
+  const empty: QuickVideoImageParams = {};
+  if (!raw) return empty;
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return empty;
+    const out: QuickVideoImageParams = {};
+    if (typeof parsed.resolution === "string" && parsed.resolution) out.resolution = parsed.resolution;
+    if (parsed.ratioMode === "project" || parsed.ratioMode === "custom") out.ratioMode = parsed.ratioMode;
+    if (typeof parsed.ratio === "string" && parsed.ratio) out.ratio = parsed.ratio;
+    return out;
+  } catch {
+    return empty;
+  }
+}
+
+/**
+ * 保存会话级图片参数偏好（整体覆盖式：前端每次提交完整对象；preference 为 null 时清除）。
+ * 与模型偏好/视频参数偏好同约定：按 session 隔离保存，不写入 Agent 状态版本，
+ * 避免与分镜确认/生成中的乐观锁互相干扰；不镜像到项目——新会话从默认值起步。
+ */
+export async function saveSessionImageParams(projectId: number, sessionId: number, preference: QuickVideoImageParams | null): Promise<void> {
+  await getOwnedSession(projectId, sessionId);
+  await u
+    .db("o_quickVideoSession")
+    .where({ id: sessionId })
+    .update({ imageParams: preference ? JSON.stringify(preference) : null, updateTime: Date.now() });
 }

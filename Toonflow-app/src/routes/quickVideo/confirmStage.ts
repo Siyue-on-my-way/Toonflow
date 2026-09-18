@@ -7,7 +7,9 @@ import { QuickVideoError, mutateQuickVideoState } from "@/lib/quickVideo/state";
 import { applyBriefGate } from "@/lib/quickVideo/contract";
 import { applyStoryboardGate, buildSnapshot, applySnapshotToState, startQuickVideoGeneration } from "@/lib/quickVideo/generate";
 import { recordEvent, qvLog } from "@/lib/quickVideo/metrics";
-import { getOwnedSession } from "@/lib/quickVideo/session";
+import { getOwnedSession, parseSessionImageParams } from "@/lib/quickVideo/session";
+import { getImageModelParamOptions } from "@/lib/quickVideo/media";
+import { resolveImageResolution } from "@/lib/quickVideo/modelValidation";
 
 const router = express.Router();
 
@@ -43,11 +45,18 @@ export default router.post(
         durationSeconds: z.number().min(0),
       })
       .optional(),
+    /** gate=materials 时确认卡高级区的管道级参数授权（SIY-163）；缺省视为 inherit 跟随聊天设置 */
+    pipeline: z
+      .object({
+        imageResolution: z.enum(["inherit", "1K", "2K", "4K"]),
+      })
+      .optional(),
   }),
   async (req, res) => {
-    const { projectId, sessionId, expectedVersion, idempotencyKey, gate, action, exportInfo } = req.body;
+    const { projectId, sessionId, expectedVersion, idempotencyKey, gate, action, exportInfo, pipeline } = req.body;
+    let sessionRow: Awaited<ReturnType<typeof getOwnedSession>> | null = null;
     try {
-      await getOwnedSession(projectId, sessionId);
+      sessionRow = await getOwnedSession(projectId, sessionId);
     } catch (err) {
       if (err instanceof QuickVideoError) return res.status(200).send(error(err.message));
       throw err;
@@ -84,6 +93,17 @@ export default router.post(
             if (!state.generation.snapshot) {
               throw new QuickVideoError("MATERIALS_RESOLVE_FAILED", "生成参数组装失败，无法确认", state.version);
             }
+            // 管道级参数授权落定（SIY-163）：确认卡高级区只是"用户授权"，最终值仍按会话图片模型
+            // 的目录声明就近降级（服务端硬校验，防前端绕过）；inherit=跟随聊天常驻控件的会话偏好。
+            const requestedImageResolution = pipeline?.imageResolution === "inherit" || !pipeline ? null : pipeline.imageResolution;
+            const imagePrefs = parseSessionImageParams(sessionRow?.imageParams);
+            const declaredImageResolutions = sessionRow?.imageModel
+              ? (await getImageModelParamOptions(sessionRow.imageModel)).resolutionOptions
+              : null;
+            state.generation.snapshot.imageResolution = resolveImageResolution(
+              requestedImageResolution ?? imagePrefs.resolution ?? null,
+              declaredImageResolutions,
+            ).value;
             state.generation.materialsConfirmed = true;
             state.generation.materialsConfirmedAt = Date.now();
             state.generation.startedAt = Date.now();

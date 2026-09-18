@@ -165,12 +165,19 @@ export interface QuickVideoGenerationSnapshot {
     firstFrame: (ShotFirstFrame & { filePath: string }) | null;
   }[];
   materials: QuickVideoMaterialItem[];
+  /** 逐镜头图片分辨率档位（确认时落定；null=存量快照，生成回落 1K） */
+  imageResolution: "1K" | "2K" | "4K" | null;
 }
 
 /**
  * 最终生成参数确认卡片（分镜确认后在聊天流回显，仅展示四项）。
  * 参数（时长/画风/分镜内容）变更后服务端重新回显新卡片，旧卡片由前端标记为已失效。
  */
+/** 确认卡高级区的管道级参数授权（SIY-163；与后端 finalParamsPipelineSchema 保持一致） */
+export interface QuickVideoFinalParamsPipeline {
+  imageResolution: "inherit" | "1K" | "2K" | "4K";
+}
+
 export interface QuickVideoFinalParamsCard {
   cardId: string;
   storyboardVersion: number;
@@ -181,6 +188,8 @@ export interface QuickVideoFinalParamsCard {
   echoedAt: number;
   durationText?: string;
   artStyleText?: string;
+  /** 管道级参数（沿用上次设置）；旧卡片无该字段，前端隐藏高级区 */
+  pipeline?: QuickVideoFinalParamsPipeline;
 }
 
 // ---------------------------------------------------------------------------
@@ -382,6 +391,8 @@ export interface QuickVideoSession {
   textModel: string | null;
   imageModel: string | null;
   videoModel: string | null;
+  /** 会话级图片参数偏好 JSON 串（SIY-163），parseQuickVideoImageParams 解析 */
+  imageParams: string | null;
   sequence: number | null;
   userMessageCount: number | null;
   titleStatus: QuickVideoSessionTitleStatus | null;
@@ -411,4 +422,35 @@ export interface QuickVideoUiAction {
   type: QuickVideoUiActionType;
   panel?: QuickVideoPanel;
   shotId?: string;
+}
+
+// ---------------------------------------------------------------------------
+// 会话级图片参数偏好（与后端 src/lib/quickVideo/session.ts 保持一致，SIY-163。
+// 视频参数由 SIY-161 的 VideoParamsPreference 确认卡体系负责，此处只覆盖图片侧）
+// ---------------------------------------------------------------------------
+
+export interface QuickVideoImageParams {
+  /** 图片分辨率档位（1K/2K/4K）；缺省走既有默认 */
+  resolution?: string;
+  /** 画面比例模式：project=跟随项目（默认）；custom=使用 ratio 字段 */
+  ratioMode?: "project" | "custom";
+  /** ratioMode=custom 时的自定义比例（"w:h"） */
+  ratio?: string;
+}
+
+/** 宽松解析会话里保存的图片参数 JSON：非对象/未知字段一律剔除，绝不抛错（坏数据等价于未设置） */
+export function parseQuickVideoImageParams(raw: string | null | undefined): QuickVideoImageParams {
+  const empty: QuickVideoImageParams = {};
+  if (!raw) return empty;
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return empty;
+    const out: QuickVideoImageParams = {};
+    if (typeof parsed.resolution === "string" && parsed.resolution) out.resolution = parsed.resolution;
+    if (parsed.ratioMode === "project" || parsed.ratioMode === "custom") out.ratioMode = parsed.ratioMode;
+    if (typeof parsed.ratio === "string" && parsed.ratio) out.ratio = parsed.ratio;
+    return out;
+  } catch {
+    return empty;
+  }
 }

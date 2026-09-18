@@ -28,6 +28,7 @@ import {
   assertStoryboardGate,
   echoFinalParamsCard,
   validateStoryboard,
+  resolveSnapshotImageSize,
 } from "./contract";
 import { QuickVideoError, loadQuickVideoState, mutateQuickVideoState } from "./state";
 import { recordEvent, qvLog } from "./metrics";
@@ -142,6 +143,8 @@ export function applySnapshotToState(
     artStyle: s.artStyle,
     shots: snapshotShots,
     materials,
+    // 逐镜头图片分辨率在最终参数确认时落定（确认卡高级区/会话偏好，SIY-163）；确认前为 null
+    imageResolution: null,
   };
   s.generation.materialsConfirmed = false;
   s.generation.materialsConfirmedAt = null;
@@ -544,7 +547,8 @@ async function ensureMaterialImages(ctx: GenerationContext) {
           {
             prompt,
             referenceList: [],
-            size: "1K",
+            // 分辨率取确认卡高级区落定的快照值（SIY-163）；存量快照回落 1K
+            size: resolveSnapshotImageSize(ctx.snapshot),
             aspectRatio: castAspectRatio(ctx.snapshot.videoRatio),
           },
           {
@@ -640,7 +644,8 @@ async function runShotPipeline(projectId: number, userId: number, shotId: string
           {
             prompt: buildShotImagePrompt(ctx.snapshot, shotContent, prevShot),
             referenceList,
-            size: "1K",
+            // 分辨率取确认卡高级区落定的快照值（SIY-163）；存量快照回落 1K
+            size: resolveSnapshotImageSize(ctx.snapshot),
             aspectRatio: castAspectRatio(ctx.snapshot.videoRatio),
           },
           {

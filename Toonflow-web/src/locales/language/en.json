@@ -1659,6 +1659,12 @@
       "confirmStoryboard": "Confirm storyboard",
       "rejectConfirm": "Undo confirmation",
       "unconfirmStoryboard": "Unconfirm",
+      "mediaParams": {
+        "resolution": "Resolution",
+        "ratio": "Aspect ratio",
+        "followProject": "Follow project",
+        "moreRatios": "More ratios…"
+      },
       "finalParams": {
         "title": "Final Generation Params",
         "duration": "Video duration",
@@ -1674,7 +1680,10 @@
         "pendingTag": "Pending",
         "confirmedTag": "Confirmed",
         "staleTag": "Outdated",
-        "staleHint": "Parameters changed; this card is outdated. Please confirm the latest card."
+        "staleHint": "Parameters changed; this card is outdated. Please confirm the latest card.",
+        "advanced": "Advanced",
+        "pipelineImageResolution": "Shot image resolution",
+        "inherit": "Follow chat settings"
       },
       "noBrief": "No brief yet. Chat with the assistant on the left to create one.",
       "noStoryboard": "No storyboard yet. Confirm the brief and the assistant will generate one.",

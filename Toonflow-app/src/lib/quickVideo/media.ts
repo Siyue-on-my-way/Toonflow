@@ -20,7 +20,7 @@ import {
   QuickVideoMediaState,
 } from "./contract";
 import { QuickVideoError } from "./state";
-import { pickEnabledModel, isVideoModelSupportingText, collectDurationTiers, type VendorModelEntry } from "./modelValidation";
+import { pickEnabledModel, isVideoModelSupportingText, collectDurationTiers, resolveImageResolution, resolveImageRatio, type VendorModelEntry } from "./modelValidation";
 
 /** o_assets.type 取值：聊天/白板生成的媒体资产，与专业模式 role/scene/tool 资产分开，不参与素材匹配 */
 export const CHAT_MEDIA_ASSET_TYPE = "chat_media";
@@ -284,6 +284,101 @@ export async function getVideoModelDefaultQuality(modelKey: string): Promise<"st
   if (!Array.isArray(options) || options.length === 0) return null;
   const first = options[0];
   return first === "std" || first === "pro" ? first : null;
+}
+
+// ---------------------------------------------------------------------------
+// 模型声明能力查询：图片比例档位 / 分辨率档位（SIY-163 Confirm Card 均衡版）
+//
+// 图片模型目录条目（vendorModelSchema）声明 aspectRatioOptions（{value,label}[]）与
+// resolutionOptions（"1K"/"2K"/"4K"），专业模式图像生成入口已按其渲染参数控件；
+// 快创聊天/管道链路此前未消费——这里补齐只读查询。目录未声明时返回 null，
+// 调用方（resolveImageResolution/resolveImageRatio）回落既有默认行为，零变化。
+// 视频链路参数授权由 SIY-161 确认卡体系负责，本节不重复建设。
+// ---------------------------------------------------------------------------
+
+/** 查找目录中已启用的图片模型条目；key 格式非法 / 渠道未启用 / 模型不存在或未启用时返回 null */
+async function getImageModelCatalogEntry(modelKey: string): Promise<VendorModelEntry | null> {
+  const split = splitModelKey(modelKey);
+  if (!split) return null;
+  const catalog = await getVendorModelCatalog(split.vendorId);
+  if (!catalog?.enabled) return null;
+  return pickEnabledModel(catalog.models, catalog.enabledNames, split.modelName, "image");
+}
+
+/** 规范化目录条目里的 aspectRatioOptions（{value,label}[]）为纯 value 串数组；声明缺失/为空返回 null */
+function normalizeRatioOptions(entry: VendorModelEntry): string[] | null {
+  const raw = entry.aspectRatioOptions;
+  if (!Array.isArray(raw)) return null;
+  const values = raw
+    .map((item: unknown) => (item && typeof item === "object" ? (item as { value?: unknown }).value : item))
+    .filter((v): v is string => typeof v === "string" && !!v.trim());
+  return values.length ? values : null;
+}
+
+/** 规范化目录条目里的 resolutionOptions；声明缺失/为空返回 null */
+function normalizeResolutionOptions(entry: VendorModelEntry): string[] | null {
+  const raw = entry.resolutionOptions;
+  if (!Array.isArray(raw)) return null;
+  const values = raw.filter((v): v is string => typeof v === "string" && !!v.trim());
+  return values.length ? values : null;
+}
+
+/**
+ * 查询图片模型目录声明的比例档位与分辨率档位（快创聊天 chips 显隐 + 服务端硬校验数据源）。
+ * 目录缺失/模型未启用时返回两个 null——调用方按未声明处理（不显示控件、走既有默认）。
+ */
+export async function getImageModelParamOptions(modelKey: string): Promise<{ aspectRatioOptions: string[] | null; resolutionOptions: string[] | null }> {
+  const hit = await getImageModelCatalogEntry(modelKey);
+  if (!hit) return { aspectRatioOptions: null, resolutionOptions: null };
+  return { aspectRatioOptions: normalizeRatioOptions(hit), resolutionOptions: normalizeResolutionOptions(hit) };
+}
+
+/** 会话保存的图片参数偏好（session.ts 定义存储形状，这里只读取） */
+export interface ChatImageParamPref {
+  resolution?: string;
+  ratioMode?: "project" | "custom";
+  ratio?: string;
+}
+
+export interface ChatImageParamsResolved {
+  /** 图片分辨率最终生效档位（目录未声明时为既有默认 1K） */
+  imageResolution: string;
+  /** 图片比例最终生效值；null 表示跟随项目比例（由工具层读取项目配置） */
+  imageAspectRatio: string | null;
+  /** 降级说明（可读，附加到工具回复文案；默认值路径不产生说明） */
+  notes: string[];
+}
+
+/**
+ * 把会话保存的图片参数偏好解析为最终生成参数：按所选图片模型目录声明的档位做服务端硬校验，
+ * 声明外的值就近降级并生成可读说明；目录未声明时维持既有默认行为（1K / 项目比例）。
+ * 只在 Agent 入口调用一次，工具层与 LLM 都不经手数值——LLM 管语义，服务端管参数事实。
+ */
+export async function resolveChatImageParams(input: {
+  imageModel?: string;
+  imageParams: ChatImageParamPref;
+  projectRatio: string;
+}): Promise<ChatImageParamsResolved> {
+  const notes: string[] = [];
+  let imageResolution = "1K";
+  let imageAspectRatio: string | null = null;
+  if (input.imageModel) {
+    const { aspectRatioOptions, resolutionOptions } = await getImageModelParamOptions(input.imageModel);
+
+    const resolution = resolveImageResolution(input.imageParams.resolution, resolutionOptions);
+    imageResolution = resolution.value;
+    if (resolution.adjusted) {
+      notes.push(`图片分辨率 ${input.imageParams.resolution} 不受当前图片模型支持，已自动调整为 ${resolution.value}`);
+    }
+
+    const customRatio = input.imageParams.ratioMode === "custom" ? input.imageParams.ratio : null;
+    const ratio = resolveImageRatio(customRatio, input.projectRatio, aspectRatioOptions);
+    imageAspectRatio = ratio.value;
+    if (ratio.adjusted) {
+      notes.push(`画面比例 ${customRatio} 不在当前图片模型支持列表，已自动调整为 ${ratio.value}`);
+    }
+  }
+  return { imageResolution, imageAspectRatio, notes };
 }
 
 // ---------------------------------------------------------------------------

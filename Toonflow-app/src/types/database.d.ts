@@ -172,6 +172,8 @@ export interface o_quickVideoSession {
   'updateTime'?: number | null;
   'userMessageCount'?: number | null;
   'videoModel'?: string | null;
+  /** 会话级图片参数偏好 JSON（SIY-163）：{ resolution?, ratioMode?, ratio? } */
+  'imageParams'?: string | null;
   'videoParams'?: string | null;
 }
 export interface o_script {

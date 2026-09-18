@@ -25,6 +25,11 @@ import {
   QUICK_VIDEO_MEDIA_KINDS,
   QUICK_VIDEO_MEDIA_STATES,
   QUICK_VIDEO_MEDIA_SOURCES,
+  quickVideoStateSchema,
+  quickVideoGenerationSchema,
+  finalParamsCardSchema,
+  buildFinalParamsCard,
+  resolveSnapshotImageSize,
 } from "@/lib/quickVideo/contract";
 import {
   pickEnabledModel,
@@ -32,6 +37,11 @@ import {
   isVideoModelSupportingSingleImage,
   collectDurationTiers,
   snapDurationToTiers,
+  parseResolutionMagnitude,
+  snapResolutionToTiers,
+  snapRatioToTiers,
+  resolveImageResolution,
+  resolveImageRatio,
   type VendorModelEntry,
 } from "@/lib/quickVideo/modelValidation";
 
@@ -277,6 +287,69 @@ console.log("== 14. 时长档位自适应：collectDurationTiers / snapDurationT
   assert(snapDurationToTiers(7, []) === null, "空档位数组返回 null");
   assert(snapDurationToTiers(7, undefined as unknown as number[]) === null, "档位为 undefined 时返回 null");
   assert(JSON.stringify(collectDurationTiers([])) === "[]", "空 durationResolutionMap 得到空档位数组");
+}
+
+
+console.log("== S17. 能力参数就近降级 snap/resolve（SIY-163 服务端硬校验纯函数） ==");
+{
+  assert(parseResolutionMagnitude("1K") === 1000 && parseResolutionMagnitude("2K") === 2000 && parseResolutionMagnitude("4K") === 4000, "K 档位解析为千级量级");
+  assert(parseResolutionMagnitude("720p") === 720 && parseResolutionMagnitude("1080p") === 1080, "p 档位解析为行数量级");
+  assert(parseResolutionMagnitude("auto") === null && parseResolutionMagnitude("") === null, "无法解析返回 null");
+
+  assert(snapResolutionToTiers("2K", ["1K", "2K", "4K"]) === "2K", "声明内档位原样返回");
+  assert(snapResolutionToTiers("3K", ["1K", "2K", "4K"]) === "2K", "3K 就近降级到 2K");
+  assert(snapResolutionToTiers("8K", ["1K", "2K", "4K"]) === "4K", "8K 就近降级到 4K");
+  assert(snapResolutionToTiers("1080p", ["1K", "2K"]) === "1K", "跨单位量级比较：1080(数值) 距 1000 更近");
+  assert(snapResolutionToTiers("auto", ["1K", "2K"]) === null, "请求值不可解析返回 null");
+  assert(snapResolutionToTiers("2K", []) === null, "无声明档位返回 null");
+
+  assert(snapRatioToTiers("16:9", ["1:1", "9:16", "16:9", "21:9"]) === "16:9", "声明内比例原样返回");
+  assert(snapRatioToTiers("4:3", ["1:1", "16:9"]) === "1:1", "4:3(1.33) 就近到 1:1(1.0)");
+  assert(snapRatioToTiers("3:2", ["1:1", "16:9", "9:16"]) === "16:9", "3:2(1.5) 就近到 16:9(1.78) 而非 1:1");
+  assert(snapRatioToTiers("abc", ["1:1"]) === null, "形状非法返回 null");
+  assert(snapRatioToTiers("16:9", []) === null, "无声明档位返回 null");
+
+  assert(resolveImageResolution(null, null).value === "1K" && !resolveImageResolution(null, null).adjusted, "未声明 + 无选择 -> 默认 1K 不提示");
+  assert(resolveImageResolution("4K", null).value === "4K" && !resolveImageResolution("4K", null).adjusted, "未声明 + 合法选择 -> 原值直传");
+  assert(resolveImageResolution("8K", null).value === "1K" && !resolveImageResolution("8K", null).adjusted, "未声明 + 非法值 -> 回落 1K");
+  assert(resolveImageResolution("2K", ["1K", "4K"]).value === "1K" && resolveImageResolution("2K", ["1K", "4K"]).adjusted, "声明外 2K 就近降级到 1K 且标记 adjusted");
+  assert(resolveImageResolution(null, ["2K", "4K"]).value === "2K" && !resolveImageResolution(null, ["2K", "4K"]).adjusted, "默认 1K 不在声明内 -> 落到声明最小档，默认路径不提示");
+
+  assert(resolveImageRatio(null, "9:16", null).value === "9:16", "跟随项目 + 未声明 -> 项目比例");
+  assert(resolveImageRatio("1:1", "9:16", null).value === "1:1", "自选比例 + 未声明 -> 原值直传");
+  assert(resolveImageRatio("../../etc", "16:9", null).value === "16:9", "形状非法自选 -> 回落项目比例");
+  assert(resolveImageRatio("4:3", "16:9", ["16:9", "9:16", "1:1"]).value === "1:1" && resolveImageRatio("4:3", "16:9", ["16:9", "9:16", "1:1"]).adjusted, "声明外自选就近降级并标记");
+  assert(resolveImageRatio(null, "5:4", ["16:9", "9:16", "1:1"]).value === "1:1", "项目比例不在声明内 -> 默认路径静默就近降级");
+}
+
+console.log("== S18. 确认卡高级区与快照分辨率落定（SIY-163 pipeline 沿用上次设置） ==");
+{
+  const baseState = quickVideoStateSchema.parse({
+    version: 1,
+    stage: "storyboard_confirmed",
+    videoRatio: "16:9",
+    createIdempotencyKey: "idem-test-0001",
+    updateTime: 1,
+  });
+  assert(buildFinalParamsCard(baseState).pipeline?.imageResolution === "inherit", "无历史卡片时 pipeline 预填 inherit");
+  assert(resolveSnapshotImageSize(null) === "1K" && resolveSnapshotImageSize({ imageResolution: null }) === "1K", "存量快照回落既有默认 1K");
+  assert(resolveSnapshotImageSize({ imageResolution: "4K" }) === "4K", "快照落定值直传");
+
+  baseState.generation.finalParamsCards = [
+    finalParamsCardSchema.parse({
+      cardId: "card-test-1",
+      storyboardVersion: 1,
+      targetDuration: 30,
+      artStyle: "",
+      shotCount: 5,
+      summary: "",
+      echoedAt: 1,
+      pipeline: { imageResolution: "2K" },
+    }),
+  ];
+  const next = buildFinalParamsCard(baseState);
+  assert(next.pipeline?.imageResolution === "2K", "新卡片沿用上一张卡的管道参数（沿用上次设置）", JSON.stringify(next.pipeline));
+  assert(quickVideoGenerationSchema.parse({}).finalParamsCards.length === 0, "存量状态缺 finalParamsCards 时补空数组");
 }
 
 console.log(`\n结果：${passed} 通过，${failed} 失败`);

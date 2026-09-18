@@ -131,6 +131,20 @@ declare const exports: {
 // 供应商配置
 // ============================================================
 
+/** AtlasCloud Nano Banana 系列画幅档位（适配器以 aspect_ratio 直传供应商） */
+const ATLAS_NANO_RATIO_OPTIONS = [
+  { value: "1:1", label: "1:1 (Square)" },
+  { value: "2:3", label: "2:3 (Portrait)" },
+  { value: "3:2", label: "3:2 (Landscape)" },
+  { value: "3:4", label: "3:4 (Portrait Standard)" },
+  { value: "4:3", label: "4:3 (Standard)" },
+  { value: "4:5", label: "4:5 (Portrait Photo)" },
+  { value: "5:4", label: "5:4 (Photo)" },
+  { value: "9:16", label: "9:16 (Portrait Widescreen)" },
+  { value: "16:9", label: "16:9 (Widescreen)" },
+  { value: "21:9", label: "21:9 (Ultrawide)" },
+];
+
 const vendor: VendorConfig = {
   id: "atlascloud",
   version: "1.0",
@@ -154,8 +168,24 @@ const vendor: VendorConfig = {
     { name: "GLM 5.1", modelName: "zai-org/glm-5.1", type: "text", think: false },
     { name: "MiniMax M2.7", modelName: "minimaxai/minimax-m2.7", type: "text", think: false },
     { name: "GPT Image 2", modelName: "openai/gpt-image-2/text-to-image", type: "image", mode: ["text", "singleImage"] },
-    { name: "Nano Banana Pro", modelName: "google/nano-banana-pro/text-to-image", type: "image", mode: ["text", "singleImage", "multiReference"] },
-    { name: "Nano Banana 2", modelName: "google/nano-banana-2/text-to-image", type: "image", mode: ["text", "singleImage", "multiReference"] },
+    {
+      name: "Nano Banana Pro",
+      modelName: "google/nano-banana-pro/text-to-image",
+      type: "image",
+      mode: ["text", "singleImage", "multiReference"],
+      // 适配器向供应商传 aspect_ratio + resolution(1k/2k/4k)，按目录声明暴露给参数控件（SIY-163）
+      aspectRatioOptions: ATLAS_NANO_RATIO_OPTIONS,
+      resolutionOptions: ["1K", "2K", "4K"],
+    },
+    {
+      name: "Nano Banana 2",
+      modelName: "google/nano-banana-2/text-to-image",
+      type: "image",
+      mode: ["text", "singleImage", "multiReference"],
+      // 适配器向供应商传 aspect_ratio + resolution(1k/2k/4k)，按目录声明暴露给参数控件（SIY-163）
+      aspectRatioOptions: ATLAS_NANO_RATIO_OPTIONS,
+      resolutionOptions: ["1K", "2K", "4K"],
+    },
     { name: "Seedream v5", modelName: "bytedance/seedream-v5.0-lite/sequential", type: "image", mode: ["text"] },
     { name: "Qwen Image 2 Pro", modelName: "qwen/qwen-image-2.0-pro/text-to-image", type: "image", mode: ["text"] },
     {

@@ -9,10 +9,12 @@ import type {
   QuickVideoWorkbench,
   QuickVideoSession,
   QuickVideoSessionStatus,
+  QuickVideoImageParams,
   MediaRef,
   QuickVideoShotMediaUrls,
   QuickVideoUiAction,
 } from "@/types/quickVideo";
+import { parseQuickVideoImageParams } from "@/types/quickVideo";
 
 /**
  * 单视频快创工作台 store：
@@ -369,6 +371,37 @@ function makeQuickVideoStore(projectId: string) {
       }
     }
 
+    // ===== 会话图片参数偏好（SIY-163 Confirm Card 均衡版） =====
+    // 聊天输入框常驻参数控件（图片分辨率/比例）的当前值；服务端在生成时按模型目录声明
+    // 就近降级——前端只保存"用户授权"，不决定最终生效值。
+    const imageMediaParams = computed<QuickVideoImageParams>(() => parseQuickVideoImageParams(currentSession.value?.imageParams));
+
+    /**
+     * 保存当前会话的图片参数偏好（整体覆盖式；传 null 清除），乐观更新本地状态，失败时回滚。
+     * 与模型偏好同约定：按 session 隔离，不影响其他会话。
+     */
+    async function setImageMediaParams(preference: QuickVideoImageParams | null) {
+      const sessionId = currentSessionId.value;
+      const target = sessions.value.find((s) => s.id === sessionId);
+      if (!target) return;
+
+      const previous = target.imageParams;
+      target.imageParams = preference ? JSON.stringify(preference) : null;
+
+      try {
+        const response = await axios.post("/quickVideo/updateMediaParams", {
+          projectId: Number(projectId),
+          sessionId,
+          imageParams: preference ?? null,
+        });
+        const payload = response?.data ?? response;
+        if (payload && payload.code && payload.code !== 200) throw new Error(payload.message ?? "保存图片参数失败");
+      } catch (error) {
+        console.error("[quickVideo] 保存图片参数失败", error);
+        target.imageParams = previous;
+      }
+    }
+
     /** 更新快创项目基础配置，使用状态版本做乐观锁校验。 */
     async function updateConfig(
       patch: QuickVideoConfigPatch,
@@ -524,12 +557,14 @@ function makeQuickVideoStore(projectId: string) {
       loadingSessions,
       currentSessionId,
       currentSession,
+      imageMediaParams,
       modelPreferences,
       loadSessions,
       createSession,
       updateSession,
       switchSession,
       setModelPreference,
+      setImageMediaParams,
       clipboardMediaRef,
       getAssetBoard,
       bindShotFirstFrame, deleteAsset,

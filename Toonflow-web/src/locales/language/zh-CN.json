@@ -1781,6 +1781,12 @@
       "confirmStoryboard": "确认分镜",
       "rejectConfirm": "撤销确认",
       "unconfirmStoryboard": "撤销确认",
+      "mediaParams": {
+        "resolution": "分辨率",
+        "ratio": "画面比例",
+        "followProject": "跟随项目",
+        "moreRatios": "更多比例…"
+      },
       "finalParams": {
         "title": "最终生成参数确认",
         "duration": "视频时长",
@@ -1796,7 +1802,10 @@
         "pendingTag": "待确认",
         "confirmedTag": "已确认",
         "staleTag": "已失效",
-        "staleHint": "参数已变更，此卡片已失效，请按最新卡片重新确认"
+        "staleHint": "参数已变更，此卡片已失效，请按最新卡片重新确认",
+        "advanced": "高级参数",
+        "pipelineImageResolution": "镜头图片分辨率",
+        "inherit": "跟随聊天设置"
       },
       "noBrief": "暂无简报，请在左侧与快创助手沟通生成",
       "noStoryboard": "暂无分镜，确认简报后快创助手将生成分镜",

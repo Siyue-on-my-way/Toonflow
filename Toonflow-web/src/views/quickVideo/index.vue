@@ -112,6 +112,23 @@
                   <label>{{ $t("workbench.quickVideo.finalParams.summary") }}</label>
                   <span>{{ card.summary || $t("workbench.quickVideo.finalParams.noSummary") }}</span>
                 </div>
+                <!-- 高级参数（SIY-163）：默认折叠，展开才授权；沿用上次设置的预填值，确认时随卡片提交 -->
+                <div v-if="card.pipeline && card.active" class="qvFinalParamsAdvanced">
+                  <button class="qvAdvancedToggle" type="button" @click="showPipelineAdvanced = !showPipelineAdvanced">
+                    <span>{{ $t("workbench.quickVideo.finalParams.advanced") }}</span>
+                    <i-chevron-up v-if="showPipelineAdvanced" size="12" />
+                    <i-chevron-down v-else size="12" />
+                  </button>
+                  <label v-if="showPipelineAdvanced" class="qvAdvancedRow">
+                    <span>{{ $t("workbench.quickVideo.finalParams.pipelineImageResolution") }}</span>
+                    <t-select v-model="pipelineImageResolution" size="small" class="qvAdvancedSelect">
+                      <t-option value="inherit" :label="$t('workbench.quickVideo.finalParams.inherit')" />
+                      <t-option value="1K" label="1K" />
+                      <t-option value="2K" label="2K" />
+                      <t-option value="4K" label="4K" />
+                    </t-select>
+                  </label>
+                </div>
                 <div class="qvFinalParamsOps" v-if="card.active">
                   <t-button size="small" theme="primary" :loading="confirmingFinalParams" data-testid="quick-video-confirm-generate" @click="confirmFinalParams">
                     {{ $t("workbench.quickVideo.finalParams.confirmGenerate") }}
@@ -200,6 +217,28 @@
                   size="small"
                   :require-single-image="activeModelType === 'video' && pendingAttachments.length > 0"
                   :disabled="status === 'pending' || status === 'streaming'" />
+              </div>
+              <!-- 常驻图片参数控件（SIY-163）：能力参数随时可见可改，不打断对话；目录未声明档位时对应控件隐藏 -->
+              <div v-if="activeModelType === 'image'" class="mediaParamChips" @click.stop>
+                <label class="paramChipItem">
+                  <span class="paramChipLabel">{{ $t("workbench.quickVideo.mediaParams.resolution") }}</span>
+                  <t-select v-model="imageResolution" size="small" class="paramChip" :disabled="status === 'pending' || status === 'streaming'">
+                    <t-option v-for="r in imageResolutionOptions" :key="r" :value="r" :label="r" />
+                  </t-select>
+                </label>
+                <label v-if="declaredRatios.length" class="paramChipItem">
+                  <span class="paramChipLabel">{{ $t("workbench.quickVideo.mediaParams.ratio") }}</span>
+                  <t-select
+                    :model-value="imageRatioSelectValue"
+                    size="small"
+                    class="paramChip paramChipRatio"
+                    :disabled="status === 'pending' || status === 'streaming'"
+                    @change="(value: unknown) => handleImageRatioSelect(String(value))">
+                    <t-option value="project" :label="$t('workbench.quickVideo.mediaParams.followProject')" />
+                    <t-option v-for="r in ratioChoices" :key="r" :value="r" :label="r" />
+                    <t-option v-if="hasMoreRatios" value="__more__" :label="$t('workbench.quickVideo.mediaParams.moreRatios')" />
+                  </t-select>
+                </label>
               </div>
             </template>
             </t-chat-sender>
@@ -840,9 +879,9 @@ import { createUiActionExecutor } from "./uiActions";
 
 const { project } = storeToRefs(projectStore());
 const quickVideoStoreRef = quickVideoStore();
-const { connected, messages, status, workbench, state, loadingWorkbench, workbenchError, sessions, loadingSessions, currentSessionId, modelPreferences, isGenerating, clipboardMediaRef } =
+const { connected, messages, status, workbench, state, loadingWorkbench, workbenchError, sessions, loadingSessions, currentSessionId, modelPreferences, imageMediaParams, isGenerating, clipboardMediaRef } =
   storeToRefs(quickVideoStoreRef);
-const { stopGenerate, getWorkbench, updateConfig, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference, getAssetBoard, bindShotFirstFrame, deleteAsset, uploadChatMedia, setUiActionRunner } =
+const { stopGenerate, getWorkbench, updateConfig, getHistory, getMediaUrls, getTimeline, loadSessions, createSession, updateSession, switchSession, setModelPreference, setImageMediaParams, getAssetBoard, bindShotFirstFrame, deleteAsset, uploadChatMedia, setUiActionRunner } =
   quickVideoStoreRef;
 
 const activePanel = ref<QuickVideoPanel>("brief");
@@ -898,6 +937,79 @@ const activeModel = computed<string>({
     void setModelPreference(activeModelType.value, value || "");
   },
 });
+
+// ===== 聊天常驻图片参数控件（SIY-163 Confirm Card 均衡版） =====
+// 能力参数（分辨率/比例）放常驻控件而不是弹卡：随时可见可改、按会话记住，不打断对话。
+// 前端只保存"用户授权"到会话偏好；最终生效值由服务端按模型目录声明就近降级。
+// 模型目录未声明档位（aspectRatioOptions/resolutionOptions 缺失）时不显示对应控件，
+// 生成走既有默认（1K / 项目比例），行为与改动前一致。视频参数由 SIY-161 确认卡负责。
+const COMMON_RATIO_COUNT = 5;
+const IMAGE_RESOLUTION_TIERS = ["1K", "2K", "4K"];
+
+interface ActiveModelParamOptions {
+  aspectRatioOptions: { value: string; label: string }[] | null;
+  resolutionOptions: string[] | null;
+}
+const modelDetailCache = ref(new Map<string, ActiveModelParamOptions>());
+
+const activeModelParamOptions = computed<ActiveModelParamOptions | null>(
+  () => modelDetailCache.value.get(`${activeModelType.value}:${activeModel.value}`) ?? null,
+);
+
+watch(
+  () => [activeModelType.value, activeModel.value] as const,
+  async ([type, model]) => {
+    if (type !== "image" || !model) return;
+    const key = `${type}:${model}`;
+    if (modelDetailCache.value.has(key)) return;
+    try {
+      const response = await axios.post("/modelSelect/getModelDetail", { modelId: model });
+      const payload = (response?.data ?? response) as any;
+      const detail: ActiveModelParamOptions = {
+        aspectRatioOptions:
+          Array.isArray(payload?.aspectRatioOptions) && payload.aspectRatioOptions.length ? payload.aspectRatioOptions : null,
+        resolutionOptions:
+          Array.isArray(payload?.resolutionOptions) && payload.resolutionOptions.length ? payload.resolutionOptions : null,
+      };
+      modelDetailCache.value.set(key, detail);
+    } catch (error) {
+      console.error("[quickVideo] 获取模型参数档位失败", error);
+    }
+  },
+  { immediate: true },
+);
+
+const imageResolutionOptions = computed<string[]>(() => activeModelParamOptions.value?.resolutionOptions ?? IMAGE_RESOLUTION_TIERS);
+const imageResolution = computed<string>({
+  get: () => imageMediaParams.value.resolution ?? "1K",
+  set: (value) => {
+    void setImageMediaParams({ ...imageMediaParams.value, resolution: value });
+  },
+});
+
+const declaredRatios = computed<string[]>(() => (activeModelParamOptions.value?.aspectRatioOptions ?? []).map((o) => o.value));
+const showAllRatios = ref(false);
+const ratioChoices = computed<string[]>(() => {
+  const list = declaredRatios.value;
+  if (!list.length) return [];
+  return showAllRatios.value ? list : list.slice(0, COMMON_RATIO_COUNT);
+});
+const hasMoreRatios = computed(() => declaredRatios.value.length > COMMON_RATIO_COUNT && !showAllRatios.value);
+/** 比例选择框的显示值：custom 且有比例时显示该比例，否则显示"跟随项目" */
+const imageRatioSelectValue = computed<string>(() => (imageMediaParams.value.ratioMode === "custom" && imageMediaParams.value.ratio ? imageMediaParams.value.ratio : "project"));
+
+function handleImageRatioSelect(value: string) {
+  if (value === "project") {
+    showAllRatios.value = false;
+    void setImageMediaParams({ ...imageMediaParams.value, ratioMode: "project", ratio: undefined });
+    return;
+  }
+  if (value === "__more__") {
+    showAllRatios.value = true;
+    return;
+  }
+  void setImageMediaParams({ ...imageMediaParams.value, ratioMode: "custom", ratio: value });
+}
 
 async function handleSessionSelect(sessionId: number) {
   try {
@@ -1763,6 +1875,17 @@ async function removeShot(shotId: string) {
 // ===== 最终生成参数确认卡片（分镜确认后聊天回显；参数变更后旧卡片失效） =====
 const confirmingFinalParams = ref(false);
 const finalParamsCards = computed(() => state.value?.generation?.finalParamsCards ?? []);
+
+// 高级参数（SIY-163）：默认折叠；预填值随最新活动卡片（"沿用上次设置"）同步
+const showPipelineAdvanced = ref(false);
+const pipelineImageResolution = ref<"inherit" | "1K" | "2K" | "4K">("inherit");
+watch(
+  () => finalParamsCardsView.value.find((c) => c.active)?.pipeline?.imageResolution,
+  (value) => {
+    if (value) pipelineImageResolution.value = value;
+  },
+  { immediate: true },
+);
 const latestCardId = computed(() => finalParamsCards.value[finalParamsCards.value.length - 1]?.cardId ?? "");
 
 /** 卡片是否仍与当前实时参数一致（分镜版本/时长/画风/分镜数量/分镜摘要） */
@@ -1796,6 +1919,7 @@ const finalParamsCardsView = computed<FinalParamsCardView[]>(() => {
   if (!cards.some((c) => c.active) && state.value?.stage === "storyboard_confirmed" && !state.value?.generation?.materialsConfirmed && state.value.storyboard) {
     cards.push({
       cardId: "live",
+      pipeline: { imageResolution: "inherit" },
       storyboardVersion: state.value.storyboard.version,
       targetDuration: state.value.targetDuration,
       artStyle: state.value.artStyle,
@@ -1823,6 +1947,8 @@ async function confirmFinalParams() {
       idempotencyKey: newIdemKey(),
       gate: "materials",
       action: "confirm",
+      // 管道级参数授权（SIY-163）：服务端按会话图片模型目录声明就近降级后写入生成快照
+      pipeline: { imageResolution: pipelineImageResolution.value },
     });
     // 确认后无缝进入逐镜头生成：切到预览面板实时展示各镜头进度
     if (ok) activePanel.value = "preview";
@@ -2604,6 +2730,34 @@ onBeforeUnmount(() => {
           flex: 1;
         }
       }
+      /* 常驻图片参数控件（SIY-163）：模型选择器下方一行紧凑 chips，窄屏自动换行 */
+      .mediaParamChips {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 5px 8px;
+        width: 100%;
+        min-width: 0;
+        margin-top: 4px;
+        .paramChipItem {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          min-width: 0;
+        }
+        .paramChipLabel {
+          font-size: 11px;
+          color: var(--td-text-color-secondary);
+          white-space: nowrap;
+        }
+        .paramChip {
+          width: 76px;
+          flex-shrink: 0;
+        }
+        .paramChipRatio {
+          width: 118px;
+        }
+      }
       .dot {
         position: absolute;
         top: 10px;
@@ -2730,6 +2884,35 @@ onBeforeUnmount(() => {
         .qvFinalParamsStaleHint {
           font-size: 12px;
           opacity: 0.6;
+        }
+        /* 高级参数区（SIY-163）：默认折叠，展开才出现字段行 */
+        .qvFinalParamsAdvanced {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          margin-top: 8px;
+          .qvAdvancedToggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            align-self: flex-start;
+            padding: 0;
+            border: none;
+            background: none;
+            font-size: 12px;
+            color: var(--td-text-color-secondary);
+            cursor: pointer;
+          }
+          .qvAdvancedRow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            font-size: 12px;
+            .qvAdvancedSelect {
+              width: 132px;
+            }
+          }
         }
       }
     }

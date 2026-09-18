@@ -576,6 +576,71 @@ export default async (knex: Knex): Promise<void> => {
   await addColumn("o_quickVideoSession", "titleGenerationClaimedAt", "bigInteger");
   // 会话级视频参数偏好（SIY-161）：确认过的生成参数按会话记忆（JSON），支持下次预填与「不再询问」快捷选项
   await addColumn("o_quickVideoSession", "videoParams", "text");
+  // 会话级图片参数偏好（SIY-163 Confirm Card 均衡版）：聊天常驻控件保存的分辨率/比例 JSON
+  await addColumn("o_quickVideoSession", "imageParams", "text");
+
+  // SIY-163（Confirm Card 均衡版）：给快创常用的图片模型协议补齐比例/分辨率档位声明。
+  // 与上方 minimax-h3-oss 补齐同一约定：只填充缺失字段（管理员后维护的协议不动），
+  // 已声明过的模型零改动；目录未声明的模型前端不显示参数控件、服务端走既有默认值。
+  {
+    const NANO_RATIO_OPTIONS = [
+      { value: "1:1", label: "1:1 (Square)" },
+      { value: "2:3", label: "2:3 (Portrait)" },
+      { value: "3:2", label: "3:2 (Landscape)" },
+      { value: "3:4", label: "3:4 (Portrait Standard)" },
+      { value: "4:3", label: "4:3 (Standard)" },
+      { value: "4:5", label: "4:5 (Portrait Photo)" },
+      { value: "5:4", label: "5:4 (Photo)" },
+      { value: "9:16", label: "9:16 (Portrait Widescreen)" },
+      { value: "16:9", label: "16:9 (Widescreen)" },
+      { value: "21:9", label: "21:9 (Ultrawide)" },
+    ];
+    const GPT_IMAGE_RATIO_OPTIONS = [
+      { value: "1:1", label: "1:1 (Square)" },
+      { value: "3:2", label: "3:2 (Landscape)" },
+      { value: "2:3", label: "2:3 (Portrait)" },
+    ];
+    /** 渠道 -> (模型名 -> 需补齐的声明；resolutionOptions 缺省表示该模型无分辨率档位，不补) */
+    const imageParamSeeds: Record<string, Record<string, { aspectRatioOptions: { value: string; label: string }[]; resolutionOptions?: string[] }>> = {
+      "grsai": {
+        "gpt-image-2": { aspectRatioOptions: GPT_IMAGE_RATIO_OPTIONS },
+        "nano-banana-fast": { aspectRatioOptions: NANO_RATIO_OPTIONS, resolutionOptions: ["1K", "2K", "4K"] },
+        "nano-banana-2": { aspectRatioOptions: NANO_RATIO_OPTIONS, resolutionOptions: ["1K", "2K", "4K"] },
+        "nano-banana-pro": { aspectRatioOptions: NANO_RATIO_OPTIONS, resolutionOptions: ["1K", "2K", "4K"] },
+      },
+      "atlascloud": {
+        "google/nano-banana-pro/text-to-image": { aspectRatioOptions: NANO_RATIO_OPTIONS, resolutionOptions: ["1K", "2K", "4K"] },
+        "google/nano-banana-2/text-to-image": { aspectRatioOptions: NANO_RATIO_OPTIONS, resolutionOptions: ["1K", "2K", "4K"] },
+      },
+    };
+    for (const [vendorId, seeds] of Object.entries(imageParamSeeds)) {
+      const row = await db("o_vendorConfig").where("id", vendorId).first();
+      if (!row?.models) continue;
+      let models: any[] = [];
+      try {
+        const parsed = JSON.parse(row.models);
+        if (Array.isArray(parsed)) models = parsed;
+      } catch {}
+      let changed = false;
+      for (const model of models) {
+        if (model?.type !== "image") continue;
+        const seed = seeds[model.modelName];
+        if (!seed) continue;
+        if (!Array.isArray(model.aspectRatioOptions) || model.aspectRatioOptions.length === 0) {
+          model.aspectRatioOptions = seed.aspectRatioOptions;
+          changed = true;
+        }
+        if (seed.resolutionOptions && (!Array.isArray(model.resolutionOptions) || model.resolutionOptions.length === 0)) {
+          model.resolutionOptions = seed.resolutionOptions;
+          changed = true;
+        }
+      }
+      if (changed) {
+        await db("o_vendorConfig").where("id", vendorId).update({ models: JSON.stringify(models) });
+      }
+    }
+  }
+
   // 矫正因软件异常退出导致的状态不一致问题：标题生成中途被打断的会话，退回失败态，
   // 保留已有默认/旧标题，不自动重试（与下方各表的"生成中->生成失败"矫正是同一套约定）。
   await db("o_quickVideoSession").where("titleStatus", "running").update({ titleStatus: "failed" });

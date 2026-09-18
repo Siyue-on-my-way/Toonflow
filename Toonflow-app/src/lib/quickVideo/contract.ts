@@ -292,6 +292,8 @@ export type QuickVideoSnapshotShot = z.infer<typeof snapshotShotSchema>;
  * 生成快照：最终生成参数确认通过时冻结（分镜确认回显卡片时预先构建）。
  * 「不可歧义」：记录分镜版本、比例、画风、镜头内容与素材解析结果，生成引擎只读这里。
  * 注意：素材解析结果仅作为生成参考图来源（内部机制），不再要求用户单独确认素材或成本。
+ * SIY-163：imageResolution 为最终参数确认时落定的逐镜头图片分辨率档位（确认卡高级区
+ * 或聊天会话偏好解析结果）；null=存量快照/未落定，生成引擎回落既有默认 1K。
  */
 export const generationSnapshotSchema = z.object({
   storyboardVersion: z.number().int().min(1).describe("快照对应的分镜版本"),
@@ -300,6 +302,7 @@ export const generationSnapshotSchema = z.object({
   artStyle: z.string().max(500).default(""),
   shots: z.array(snapshotShotSchema).min(1).max(SHOT_COUNT_MAX),
   materials: z.array(materialItemSchema).max(30).default([]),
+  imageResolution: z.enum(["1K", "2K", "4K"]).nullable().default(null),
 });
 export type QuickVideoGenerationSnapshot = z.infer<typeof generationSnapshotSchema>;
 
@@ -309,7 +312,15 @@ export type QuickVideoGenerationSnapshot = z.infer<typeof generationSnapshotSche
  * 若时长或画风未设置，安全回退为自适应时长与自由画风文案。
  * 用户再修改画风、时长或分镜后，服务端重新回显新卡片；旧卡片由前端按
  * 「是否还有更新的卡片」标记为已失效（置灰并提示重新确认）。
+ * SIY-163：可选 pipeline 段承载"沿用上次设置"的管道级参数授权（确认卡高级区），
+ * 默认折叠、缺省 inherit=跟随聊天常驻控件的会话偏好；旧卡片无该字段按现状渲染。
  */
+export const finalParamsPipelineSchema = z.object({
+  /** 逐镜头生成管道的图片分辨率档位：inherit=跟随聊天设置；或具体 1K/2K/4K */
+  imageResolution: z.enum(["inherit", "1K", "2K", "4K"]).default("inherit"),
+});
+export type QuickVideoFinalParamsPipeline = z.infer<typeof finalParamsPipelineSchema>;
+
 export const finalParamsCardSchema = z.object({
   cardId: z.string().min(1).max(64).describe("卡片 ID（card-<时间戳>-<随机>），前端渲染 key 与最新卡判定"),
   storyboardVersion: z.number().int().min(1).describe("回显时的分镜版本"),
@@ -320,6 +331,7 @@ export const finalParamsCardSchema = z.object({
   echoedAt: z.number().int().min(1).describe("回显时间戳"),
   durationText: z.string().max(100).optional().describe("时长文案（未设置时自适应）"),
   artStyleText: z.string().max(500).optional().describe("画风文案（未设置时自由画风）"),
+  pipeline: finalParamsPipelineSchema.optional().describe("管道级参数授权（确认卡高级区，沿用上次设置）"),
 });
 export type QuickVideoFinalParamsCard = z.infer<typeof finalParamsCardSchema>;
 
@@ -435,6 +447,8 @@ export type VideoParamsPreference = z.infer<typeof videoParamsPreferenceSchema>;
 export function buildFinalParamsCard(state: QuickVideoState): QuickVideoFinalParamsCard {
   const durationText = state.targetDuration ? `${state.targetDuration}s` : "自适应";
   const artStyleText = state.artStyle?.trim() ? state.artStyle : "自由画风";
+  // SIY-163：pipeline 高级区预填"沿用上次设置"——沿用上一张卡片的管道参数授权（无则 inherit）
+  const lastPipeline = state.generation?.finalParamsCards?.slice(-1)[0]?.pipeline;
   return {
     cardId: `card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     storyboardVersion: state.storyboard?.version ?? 1,
@@ -445,7 +459,17 @@ export function buildFinalParamsCard(state: QuickVideoState): QuickVideoFinalPar
     shotCount: state.storyboard?.shots.length ?? 0,
     summary: state.storyboard?.summary ?? "",
     echoedAt: Date.now(),
+    pipeline: { imageResolution: lastPipeline?.imageResolution ?? "inherit" },
   };
+}
+
+/**
+ * 解析生成快照落定的逐镜头图片分辨率档位（SIY-163）：快照已落定用落定值，
+ * 存量快照（null/字段缺失）回落既有默认 1K——生成引擎不再硬编码。
+ */
+export function resolveSnapshotImageSize(snapshot: Pick<QuickVideoGenerationSnapshot, "imageResolution"> | null | undefined): "1K" | "2K" | "4K" {
+  const value = snapshot?.imageResolution;
+  return value === "2K" || value === "4K" ? value : "1K";
 }
 
 /**

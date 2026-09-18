@@ -140,6 +140,20 @@ declare const exports: {
 // 供应商配置
 // ============================================================
 
+/** Nano Banana 系列画幅档位（Gemini 图像模型声明档位）；1K/2K/4K 分辨率档位由各模型条目按适配器入参声明 */
+const NANO_BANANA_RATIO_OPTIONS = [
+  { value: "1:1", label: "1:1 (Square)" },
+  { value: "2:3", label: "2:3 (Portrait)" },
+  { value: "3:2", label: "3:2 (Landscape)" },
+  { value: "3:4", label: "3:4 (Portrait Standard)" },
+  { value: "4:3", label: "4:3 (Standard)" },
+  { value: "4:5", label: "4:5 (Portrait Photo)" },
+  { value: "5:4", label: "5:4 (Photo)" },
+  { value: "9:16", label: "9:16 (Portrait Widescreen)" },
+  { value: "16:9", label: "16:9 (Widescreen)" },
+  { value: "21:9", label: "21:9 (Ultrawide)" },
+];
+
 const vendor: VendorConfig = {
   id: "grsai",
   version: "2.2",
@@ -163,24 +177,37 @@ const vendor: VendorConfig = {
       modelName: "gpt-image-2",
       type: "image",
       mode: ["text", "singleImage", "multiReference"],
+      // gpt-image 走 OpenAI 画幅尺寸（1024x1024 / 1536x1024 / 1024x1536），适配器把比例写入 size；
+      // 不声明 resolutionOptions（该模型无 1K/2K/4K 档位），前端参数控件据此隐藏分辨率选择
+      aspectRatioOptions: [
+        { value: "1:1", label: "1:1 (Square)" },
+        { value: "3:2", label: "3:2 (Landscape)" },
+        { value: "2:3", label: "2:3 (Portrait)" },
+      ],
     },
     {
       name: "Nano Banana Fast",
       modelName: "nano-banana-fast",
       type: "image",
       mode: ["text", "singleImage", "multiReference"],
+      aspectRatioOptions: NANO_BANANA_RATIO_OPTIONS,
+      resolutionOptions: ["1K", "2K", "4K"],
     },
     {
       name: "Nano Banana 2",
       modelName: "nano-banana-2",
       type: "image",
       mode: ["text", "singleImage", "multiReference"],
+      aspectRatioOptions: NANO_BANANA_RATIO_OPTIONS,
+      resolutionOptions: ["1K", "2K", "4K"],
     },
     {
       name: "Nano Banana Pro",
       modelName: "nano-banana-pro",
       type: "image",
       mode: ["text", "singleImage", "multiReference"],
+      aspectRatioOptions: NANO_BANANA_RATIO_OPTIONS,
+      resolutionOptions: ["1K", "2K", "4K"],
     },
   ],
 };

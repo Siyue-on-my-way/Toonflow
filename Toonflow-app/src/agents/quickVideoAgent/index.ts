@@ -7,7 +7,8 @@ import * as fs from "fs";
 import path from "path";
 import { loadQuickVideoState } from "@/lib/quickVideo/state";
 import { shotCountBounds, QuickVideoChatMode, resolveSlotReferences, parseImagePlaceholderSlots } from "@/lib/quickVideo/contract";
-import { isVisionTextModel, resolveMediaImageBase64 } from "@/lib/quickVideo/media";
+import { isVisionTextModel, resolveMediaImageBase64, resolveChatImageParams, type ChatImageParamsResolved } from "@/lib/quickVideo/media";
+import { parseSessionImageParams } from "@/lib/quickVideo/session";
 import { resolveAgentModelKey } from "@/utils/ai";
 
 export interface AgentContext {
@@ -76,6 +77,17 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
   const projectData = await u.db("o_project").where("id", resTool.data.projectId).first();
   const sessionData = await u.db("o_quickVideoSession").where("id", sessionId).first();
   const state = await loadQuickVideoState(Number(resTool.data.projectId));
+  // SIY-163：解析本会话图片参数偏好（聊天输入框常驻控件保存），按所选图片模型目录声明就近降级。
+  // 只在此处解析一次：工具层与 LLM 都不经手数值——LLM 管语义，服务端管参数事实。
+  // 视频链路参数由 SIY-161 确认卡体系负责，此处不解析。
+  let imageMediaParams: ChatImageParamsResolved | undefined;
+  if (ctx.mode === "image") {
+    imageMediaParams = await resolveChatImageParams({
+      imageModel: ctx.imageModel,
+      imageParams: parseSessionImageParams(sessionData?.imageParams),
+      projectRatio: String(state?.videoRatio ?? projectData?.videoRatio ?? "16:9"),
+    });
+  }
   // 文本模型优先级：本轮显式传入 > 当前会话保存的偏好 > 项目历史默认值（兼容未迁移前的选择）
   const effectiveTextModel = textModel || (sessionData?.textModel as `${string}:${string}` | undefined) || (projectData?.textModel as `${string}:${string}` | undefined);
 
@@ -150,6 +162,9 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
       : ctx.mode === "video"
         ? `本轮用户在聊天框选择了「视频」生成模式，模型：${ctx.videoModel}。请调用 request_video_params 工具发起参数确认卡（把 prompt/引用/用户提到的时长作为预填值传入），用户在卡片上确认参数后系统才会生成；仅当该工具明确返回"没有可确认参数"时才改用 generate_video。纯文字描述即文生视频（无需图片）；消息带 ##图N## 时传 referenceSlots=[N] 以该图为首帧；带 ##图1## ##图2## 时传 referenceSlots=[1,2] 生成首尾帧过渡视频；仅附带图片而未写占位符、且用户意图是以图生视频时，必须按「本轮引用事实」传 referenceMediaIds。不要用文字描述画面来敷衍，也不要代替用户确认参数。`
         : "",
+    imageMediaParams && ctx.mode === "image"
+      ? `本轮图片生成参数（用户在输入框参数控件设置，服务端已按模型能力校验）：分辨率 ${imageMediaParams.imageResolution}；画面比例 ${imageMediaParams.imageAspectRatio ?? "跟随项目设置"}。${imageMediaParams.notes.length ? `降级说明（请向用户转述）：${imageMediaParams.notes.join("；")}` : ""}`
+      : "",
     slotNote,
     referenceNote,
     "",
@@ -180,6 +195,9 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
         imageModel: ctx.imageModel,
         videoModel: ctx.videoModel,
         videoDurationOptions: ctx.videoDurationOptions,
+        imageResolution: imageMediaParams?.imageResolution,
+        imageAspectRatio: imageMediaParams?.imageAspectRatio,
+        mediaParamNotes: imageMediaParams?.notes,
         references: ctx.references,
         slotReferences,
         placeholderSlots,

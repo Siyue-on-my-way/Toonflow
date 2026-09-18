@@ -1213,6 +1213,8 @@ export default async (knex: Knex, forceInit: boolean = false): Promise<void> => 
         table.string("imageModel", 500);
         table.string("videoModel", 500);
         // 会话级视频参数偏好 JSON（SIY-161：确认过的参数记忆，下次预填/「不再询问」）
+        // 会话级图片参数偏好 JSON（SIY-163）：聊天常驻控件保存的分辨率/比例，聊天生成链路读取
+        table.text("imageParams");
         table.text("videoParams");
         // 项目内递增序号（默认标题 "<项目名称>-session<序号>" 用），归档/删除不复用
         table.integer("sequence");
