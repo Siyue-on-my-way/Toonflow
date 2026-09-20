@@ -1787,6 +1787,28 @@
         "followProject": "跟随项目",
         "moreRatios": "更多比例…"
       },
+      "creationType": {
+        "agentMode": "智能 Agent",
+        "imageGen": "图片生成",
+        "videoGen": "视频生成",
+        "musicGenReserved": "音乐生成（即将支持）",
+        "audioGenReserved": "音频生成（即将支持）",
+        "digitalHumanReserved": "数字人（即将支持）",
+        "motionMimicReserved": "动作模仿（即将支持）"
+      },
+      "playmode": {
+        "auto": "智能判定",
+        "title": "玩法",
+        "textGen": "文生视频",
+        "firstFrame": "首帧图生视频",
+        "startEnd": "首尾帧",
+        "firstFrameOptional": "可选首帧 + 尾帧",
+        "firstFrameTailOptional": "首帧 + 可选尾帧",
+        "omniReference": "全能参考",
+        "ref_imageReference": "图×{count}",
+        "ref_videoReference": "视频×{count}",
+        "ref_audioReference": "音频×{count}"
+      },
       "finalParams": {
         "title": "最终生成参数确认",
         "duration": "视频时长",
@@ -1917,7 +1939,10 @@
         "refPasted": "已添加 {count} 个媒体引用",
         "stillUploading": "附件仍在上传中，请稍候",
         "failedBlock": "存在上传失败的附件，请重试或移除后再发送",
-        "slotLabel": "图{slot}"
+        "slotLabel": "图{slot}",
+        "badgeImage": "图",
+        "badgeVideo": "视频",
+        "badgeAudio": "音频"
       },
       "prompts": "提示词",
       "fillImagePrompt": "填入生图",

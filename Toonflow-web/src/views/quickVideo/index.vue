@@ -166,8 +166,8 @@
               class="attachItem"
               :class="{ failed: p.status === 'failed' }">
               <div class="attachThumb">
-                <!-- 占位符编号（SIY-151）：托盘位序即 ##图N## 中的 N -->
-                <t-tag size="small" theme="primary" shape="round" class="attachSlotBadge">{{ $t("workbench.quickVideo.attach.slotLabel", { slot: i + 1 }) }}</t-tag>
+                <!-- 槽位徽标（SIY-165 T4）：分类型计数（图N/视频N）；图片序号与 ##图N## 占位约定一致 -->
+                <t-tag size="small" theme="primary" shape="round" class="attachSlotBadge" :data-testid="'qv-attach-badge-' + (i + 1)">{{ attachBadges[i]?.label }}{{ attachBadges[i]?.n }}</t-tag>
                 <img v-if="p.previewUrl" :src="p.previewUrl" alt="" />
                 <div v-else class="attachLoading"><t-loading size="small" :text="$t('workbench.quickVideo.attach.uploading')" /></div>
                 <t-tag v-if="p.status === 'failed'" theme="danger" size="small" class="attachState">{{ $t("workbench.quickVideo.attach.failed") }}</t-tag>
@@ -201,15 +201,17 @@
               @stop="handleStop">
             <template #footer-prefix>
               <div class="modelPicker" @click.stop>
-                <t-select
-                  v-model="activeModelType"
-                  class="modelTypeSelect"
-                  size="small"
-                  :disabled="status === 'pending' || status === 'streaming'">
-                  <t-option value="text" :label="$t('components.modelSelect.type.text')" />
-                  <t-option value="image" :label="$t('components.modelSelect.type.image')" />
-                  <t-option value="video" :label="$t('components.modelSelect.type.video')" />
-                </t-select>
+                <!-- 创作类型（SIY-165 L1）：即梦式上拉菜单；「智能 Agent」= 原“文本”档（意图判定可自动生图生视频），显式选择锁定类型；音乐/音频/数字人/动作模仿为预留档位 -->
+                <t-dropdown
+                  trigger="click"
+                  :disabled="status === 'pending' || status === 'streaming'"
+                  :options="creationTypeMenuOptions"
+                  @click="(item: any) => handleCreationTypeSelect(String(item?.value ?? ''))">
+                  <t-button size="small" variant="outline" class="creationTypeTrigger" data-testid="qv-creation-type-trigger" :disabled="status === 'pending' || status === 'streaming'">
+                    {{ $t(creationTypeLabelKey) }}
+                    <template #suffix><i-chevron-down size="12" /></template>
+                  </t-button>
+                </t-dropdown>
                 <modelSelect
                   :key="activeModelType"
                   v-model="activeModel"
@@ -218,6 +220,18 @@
                   size="small"
                   :require-single-image="activeModelType === 'video' && pendingAttachments.length > 0"
                   :disabled="status === 'pending' || status === 'streaming'" />
+                <!-- 能力玩法（SIY-165 L3）：纯元数据驱动（vendor mode 声明），单能力模型不显示；选择随消息下发并锁定确认卡输入模式默认值 -->
+                <t-dropdown
+                  v-if="playmodeMenuOptions.length > 1"
+                  trigger="click"
+                  :disabled="status === 'pending' || status === 'streaming'"
+                  :options="playmodeMenuOptions"
+                  @click="(item: any) => handlePlaymodeSelect(String(item?.value ?? ''))">
+                  <t-button size="small" variant="text" class="playmodeTrigger" data-testid="qv-playmode-trigger" :disabled="status === 'pending' || status === 'streaming'">
+                    {{ activePlaymodeLabel }}
+                    <template #suffix><i-chevron-down size="12" /></template>
+                  </t-button>
+                </t-dropdown>
               </div>
               <!-- 常驻图片参数控件（SIY-163）：能力参数随时可见可改，不打断对话；目录未声明档位时对应控件隐藏 -->
               <div v-if="activeModelType === 'image'" class="mediaParamChips" @click.stop>
@@ -876,7 +890,16 @@ import { QUICK_VIDEO_SPLIT_CONSTRAINTS, quickVideoLayoutStorageKey, useQuickVide
 import { buildImageFillPrompt, buildVideoFillPrompt, buildShotPromptCopyText, buildMultiShotPrompt } from "./shotPrompts";
 import { createBubbleMessageView } from "./chatMedia";
 import { readMediaRefsFromText } from "./chatPaste";
-import { collectImageReferenceIds, isImageMediaRef } from "./mediaRefGuard";
+import { isImageMediaRef } from "./mediaRefGuard";
+import {
+  collectReferenceIdsByPlaymode,
+  parsePlaymodeOptions,
+  playmodeAllowsKind,
+  playmodeRawModeValue,
+  playmodeRefCap,
+  type PlaymodeOption,
+  type QuickVideoPlaymodeId,
+} from "./playmode";
 import { createUiActionExecutor } from "./uiActions";
 
 const { project } = storeToRefs(projectStore());
@@ -940,6 +963,110 @@ const activeModel = computed<string>({
   },
 });
 
+// ===== 创作类型 × 能力玩法（SIY-165） =====
+// L1 创作类型：即梦式上拉菜单；「智能 Agent」= 原“文本”档（Agent 意图判定，可自动生图/生视频），
+// 显式选择图片/视频 = 锁定类型。音乐/音频/数字人/动作模仿为预留档位（供应商端点接入后按同一协议点亮）。
+const creationTypeMenuOptions = computed(() => [
+  { value: "text", content: $t("workbench.quickVideo.creationType.agentMode"), active: activeModelType.value === "text" },
+  { value: "image", content: $t("workbench.quickVideo.creationType.imageGen"), active: activeModelType.value === "image" },
+  { value: "video", content: $t("workbench.quickVideo.creationType.videoGen"), active: activeModelType.value === "video" },
+  { value: "__reserved_music__", content: $t("workbench.quickVideo.creationType.musicGenReserved"), disabled: true },
+  { value: "__reserved_audio__", content: $t("workbench.quickVideo.creationType.audioGenReserved"), disabled: true },
+  { value: "__reserved_digital_human__", content: $t("workbench.quickVideo.creationType.digitalHumanReserved"), disabled: true },
+  { value: "__reserved_motion__", content: $t("workbench.quickVideo.creationType.motionMimicReserved"), disabled: true },
+]);
+const creationTypeLabelKey = computed(() =>
+  activeModelType.value === "image"
+    ? "workbench.quickVideo.creationType.imageGen"
+    : activeModelType.value === "video"
+      ? "workbench.quickVideo.creationType.videoGen"
+      : "workbench.quickVideo.creationType.agentMode",
+);
+function handleCreationTypeSelect(value: string) {
+  if (value !== "text" && value !== "image" && value !== "video") return; // 预留档位不可选
+  activeModelType.value = value;
+}
+
+// L3 能力玩法：纯元数据驱动（所选视频模型 vendor mode 声明）；仅视频类型出玩法，
+// 选项 ≤1 时菜单隐藏（auto 兜底恒可用）；选择按会话持久化到 localStorage。
+const activePlaymodeId = ref<QuickVideoPlaymodeId>("auto");
+const PLAYMODE_STORAGE_PREFIX = "quickVideo:playmode:";
+function playmodeStorageKey() {
+  return `${PLAYMODE_STORAGE_PREFIX}${project.value?.id}:${currentSessionId.value ?? "default"}`;
+}
+function persistPlaymode(id: QuickVideoPlaymodeId) {
+  try {
+    localStorage.setItem(playmodeStorageKey(), id);
+  } catch {
+    /* localStorage 不可用时静默降级为会话内记忆 */
+  }
+}
+function restorePlaymode() {
+  try {
+    const stored = localStorage.getItem(playmodeStorageKey());
+    if (stored) activePlaymodeId.value = stored as QuickVideoPlaymodeId;
+  } catch {
+    /* ignore */
+  }
+}
+watch(currentSessionId, () => restorePlaymode(), { immediate: true });
+
+const playmodeOptions = computed<PlaymodeOption[]>(() =>
+  activeModelType.value === "video" ? parsePlaymodeOptions(activeModelParamOptions.value?.modes ?? []) : [],
+);
+const effectivePlaymodeId = computed<QuickVideoPlaymodeId>(() => {
+  if (activeModelType.value !== "video") return "auto";
+  const id = activePlaymodeId.value;
+  if (id === "auto") return "auto";
+  return playmodeOptions.value.some((o) => o.id === id) ? id : "auto";
+});
+const activePlaymodeOption = computed<PlaymodeOption | null>(
+  () => playmodeOptions.value.find((o) => o.id === effectivePlaymodeId.value) ?? null,
+);
+const activePlaymodeLabel = computed(() => {
+  if (effectivePlaymodeId.value === "auto") return $t("workbench.quickVideo.playmode.auto");
+  return $t(`workbench.quickVideo.playmode.${activePlaymodeOption.value?.labelKey ?? "auto"}`);
+});
+const playmodeMenuOptions = computed(() => {
+  const omni = playmodeOptions.value.find((o) => o.id === "omniReference");
+  const summary = omni?.refs?.length
+    ? `（${omni.refs.map((r) => $t(`workbench.quickVideo.playmode.ref_${r.type}`, { count: r.count })).join(" ")}）`
+    : "";
+  return [
+    { value: "auto", content: $t("workbench.quickVideo.playmode.auto"), active: effectivePlaymodeId.value === "auto" },
+    ...playmodeOptions.value.map((o) => ({
+      value: o.id,
+      content: `${$t(`workbench.quickVideo.playmode.${o.labelKey}`)}${o.id === "omniReference" ? summary : ""}`,
+      active: effectivePlaymodeId.value === o.id,
+    })),
+  ];
+});
+function handlePlaymodeSelect(value: string) {
+  if (!["auto", ...playmodeOptions.value.map((o) => o.id)].includes(value as QuickVideoPlaymodeId)) return;
+  activePlaymodeId.value = value as QuickVideoPlaymodeId;
+  persistPlaymode(activePlaymodeId.value);
+}
+// 模型/目录变化后玩法失效时回落智能模式
+watch(playmodeOptions, (options) => {
+  if (activePlaymodeId.value !== "auto" && !options.some((o) => o.id === activePlaymodeId.value)) {
+    activePlaymodeId.value = "auto";
+  }
+});
+
+// 托盘槽位徽标（SIY-165 T4）：分类型计数（图N/视频N）；图片序号与 ##图N## 占位约定一致
+const attachBadges = computed(() => {
+  let image = 0;
+  let video = 0;
+  return pendingAttachments.value.map((p) => {
+    if (p.mediaRef?.kind === "video") {
+      video += 1;
+      return { label: $t("workbench.quickVideo.attach.badgeVideo"), n: video };
+    }
+    image += 1;
+    return { label: $t("workbench.quickVideo.attach.badgeImage"), n: image };
+  });
+});
+
 // ===== 聊天常驻图片参数控件（SIY-163 Confirm Card 均衡版） =====
 // 能力参数（分辨率/比例）放常驻控件而不是弹卡：随时可见可改、按会话记住，不打断对话。
 // 前端只保存"用户授权"到会话偏好；最终生效值由服务端按模型目录声明就近降级。
@@ -951,6 +1078,8 @@ const IMAGE_RESOLUTION_TIERS = ["1K", "2K", "4K"];
 interface ActiveModelParamOptions {
   aspectRatioOptions: { value: string; label: string }[] | null;
   resolutionOptions: string[] | null;
+  /** 原始输入模式声明（SIY-165 L3 玩法数据源：字符串模式与组合数组声明） */
+  modes: unknown[];
 }
 const modelDetailCache = ref(new Map<string, ActiveModelParamOptions>());
 
@@ -961,7 +1090,7 @@ const activeModelParamOptions = computed<ActiveModelParamOptions | null>(
 watch(
   () => [activeModelType.value, activeModel.value] as const,
   async ([type, model]) => {
-    if (type !== "image" || !model) return;
+    if ((type !== "image" && type !== "video") || !model) return;
     const key = `${type}:${model}`;
     if (modelDetailCache.value.has(key)) return;
     try {
@@ -972,6 +1101,7 @@ watch(
           Array.isArray(payload?.aspectRatioOptions) && payload.aspectRatioOptions.length ? payload.aspectRatioOptions : null,
         resolutionOptions:
           Array.isArray(payload?.resolutionOptions) && payload.resolutionOptions.length ? payload.resolutionOptions : null,
+        modes: Array.isArray(payload?.mode) ? payload.mode : [],
       };
       modelDetailCache.value.set(key, detail);
     } catch (error) {
@@ -1159,21 +1289,27 @@ function clearPendingAttachments() {
 
 /** 把稳定媒体引用放入待发送托盘（按 mediaId 去重），返回是否真正入托（被守门/去重/超限拒绝时为 false） */
 function stagePendingRef(ref: MediaRef): boolean {
-  // SIY-164 守门：暂无“视频生视频”能力，视频引用没有生成消费方，拒绝进入待发送托盘；
-  // 未来若启用视频生视频（如 Seedance 2.0 videoUrls），把该判定升级为按模型 videoReference 能力动态放行，
-  // 并区分托盘槽位徽标（图N / 视频N）。
-  if (!isImageMediaRef(ref)) {
+  // SIY-165 守门：素材类型随玩法动态判定——图片恒放行；视频/音频仅在「全能参考」玩法放行
+  // （SIY-164 备案的 videoReference 通道）；其余玩法维持仅图片。未知类型拒绝。
+  const kind = ref.kind === "image" || ref.kind === "video" ? ref.kind : null;
+  if (!kind || !playmodeAllowsKind(effectivePlaymodeId.value, kind)) {
     window.$message.warning($t("workbench.quickVideo.videoRefUnsupported"));
     return false;
   }
-  if (pendingAttachments.value.some((p) => p.mediaRef?.mediaId === ref.mediaId)) return false;
-  if (pendingAttachments.value.length >= pendingAttachmentLimit) {
-    window.$message.warning($t("workbench.quickVideo.attach.tooMany", { max: pendingAttachmentLimit }));
+  // 分类型上限（SIY-165）：按玩法声明校验（全能参考：图9/视频3/音频3）；声明缺失时沿用全局上限
+  const sameKindCount = pendingAttachments.value.filter(
+    (p) => (p.mediaRef?.kind ?? "image") === (ref.kind === "video" ? "video" : "image"),
+  ).length;
+  const kindCap = activePlaymodeOption.value ? playmodeRefCap(activePlaymodeOption.value, kind) : 0;
+  const globalCap = pendingAttachmentLimit;
+  if (sameKindCount >= (kindCap > 0 ? Math.min(kindCap, globalCap) : globalCap)) {
+    window.$message.warning($t("workbench.quickVideo.attach.tooMany", { max: globalCap }));
     return false;
   }
+  if (pendingAttachments.value.some((p) => p.mediaRef?.mediaId === ref.mediaId)) return false;
   pendingAttachments.value.push({
     localId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    name: ref.promptSummary || "图片引用",
+    name: ref.promptSummary || (ref.kind === "video" ? "视频引用" : "图片引用"),
     status: "ready",
     previewUrl: ref.url ?? undefined,
     mediaRef: ref,
@@ -1235,23 +1371,33 @@ function handleSend(text: string) {
     return;
   }
   // 应用内部剪贴板选中的引用媒体与粘贴上传的附件一并带上，供图生图/图生视频使用（SIY-134/SIY-144）；
-  // SIY-164 发送前兜底：只保留图片引用（首帧/参考图/图生图），历史遗留的已 stage 视频引用在此过滤并提示，
-  // 未来启用视频生视频时按模型 videoReference 能力动态放行。
-  const { referenceIds, droppedCount } = collectImageReferenceIds([...pendingAttachments.value.map((p) => p.mediaRef), clipboardMediaRef.value]);
-  if (droppedCount > 0) {
+  // SIY-165 发送前兜底：按玩法动态守门——图片恒放行；视频/音频仅在「全能参考」放行（分类型上限由托盘把守），
+  // 其余玩法维持 SIY-164 仅图片口径，被拦截的引用在此过滤并提示。
+  const collected = collectReferenceIdsByPlaymode([...pendingAttachments.value.map((p) => p.mediaRef), clipboardMediaRef.value], effectivePlaymodeId.value);
+  if (collected.droppedCount > 0) {
     window.$message.warning($t("workbench.quickVideo.videoRefUnsupported"));
   }
+  // 引用上限：全能参考放宽到 15（图9+视频3+音频3），其余玩法沿用 4
+  const referencesCap = effectivePlaymodeId.value === "omniReference" ? 15 : 4;
+  const referenceIds = collected.referenceIds.slice(0, referencesCap);
+  if (collected.referenceIds.length > referenceIds.length) {
+    window.$message.warning($t("workbench.quickVideo.attach.tooMany", { max: referencesCap }));
+  }
+  // 所选玩法随消息下发给后端：确认卡「输入模式」默认锁定为该玩法（仍可改），值为玩法 raw 声明（与确认卡 mode 字段同构）
+  const playmodeValue = activePlaymodeOption.value && effectivePlaymodeId.value !== "auto" ? playmodeRawModeValue(activePlaymodeOption.value) : undefined;
   quickVideoStoreRef.chat(text, undefined, modelPreferences.value.text || undefined, {
     mode,
     imageModel: mode === "image" ? modelPreferences.value.image : (mode === "video" ? modelPreferences.value.image || undefined : undefined),
     videoModel: mode === "video" ? modelPreferences.value.video : undefined,
-    references: referenceIds.length ? referenceIds.slice(0, 4) : undefined,
+    references: referenceIds.length ? referenceIds : undefined,
+    playmode: playmodeValue,
   });
 
   // 本轮引用的媒体随用户消息回显（SIY-137 审核反馈）：聊天记录里直接可见引用了哪张图/视频，
-  // 以媒体卡片块并入用户消息（mediaCardsOf 统一渲染，历史恢复走 getMemory 的同构块）
-  const staged = pendingAttachments.value.filter((p) => p.mediaRef && p.mediaRef.kind === "image");
-  const clipRef = clipboardMediaRef.value && clipboardMediaRef.value.kind === "image" && !referenceIds.includes(clipboardMediaRef.value.mediaId) ? clipboardMediaRef.value : null;
+  // 以媒体卡片块并入用户消息（mediaCardsOf 统一渲染，历史恢复走 getMemory 的同构块）；
+  // SIY-165：只回显真正随消息发出的引用（通过玩法守门且未超上限截断）
+  const staged = pendingAttachments.value.filter((p) => p.mediaRef && referenceIds.includes(p.mediaRef.mediaId));
+  const clipRef = clipboardMediaRef.value && referenceIds.includes(clipboardMediaRef.value.mediaId) ? clipboardMediaRef.value : null;
   const refItems = [
     ...staged.map((p) => ({ ref: p.mediaRef!, name: p.name, previewUrl: p.previewUrl })),
     ...(clipRef ? [{ ref: clipRef, name: clipRef.promptSummary || "引用媒体", previewUrl: clipRef.url ?? undefined }] : []),

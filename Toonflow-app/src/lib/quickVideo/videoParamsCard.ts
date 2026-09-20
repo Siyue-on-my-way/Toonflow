@@ -132,6 +132,8 @@ export interface BuildVideoParamsCardOptions {
   durationHint?: number;
   /** 本会话上次确认的参数（预填 + 来源标记 preference） */
   preference?: VideoParamsPreference | null;
+  /** SIY-165：用户在输入区显式选择的能力玩法 raw 声明（mode 字段值同构）；命中可选选项时锁定输入模式默认值（来源 user） */
+  playmodeHint?: string;
   /** 项目画面比例（系统兜底值） */
   projectRatio: string;
 }
@@ -168,17 +170,24 @@ export function buildVideoParamsCard(entry: VendorModelEntry, opts: BuildVideoPa
     }
     return { value: JSON.stringify(mode.raw), label: declaredModeLabel(mode) };
   });
-  // 默认模式：有引用图时选第一个图片模式（有图自动带图）；无引用图选文生视频；
+  // 默认模式优先级（SIY-165）：用户显式选择的玩法 > 会话偏好 > 自动推导（有引用图选第一个图片模式，无图选文生视频）；
   // 模型未声明文生视频（图输入专属）时保留其图输入模式，生成内核会自动走概念首帧链
   const defaultMode =
     declared.find((m) => refCount > 0 && declaredModeImageCount(m) > 0 && declaredModeImageCount(m) <= refCount) ??
     declared.find((m) => m.kind === "text") ??
     declared[0];
-  const modeValue = typeof prefParams.mode === "string" && modeOptions.some((o) => o.value === prefParams.mode && !o.disabled)
-    ? prefParams.mode
-    : defaultMode
-      ? JSON.stringify(defaultMode.raw)
-      : modeOptions[0]?.value ?? "";
+  // 玩法默认值只命中「可选」的选项：置灰守门（如无引用图时的首帧）仍然生效，此时回落自动推导
+  const playmodeHintValue =
+    typeof opts.playmodeHint === "string" && opts.playmodeHint && modeOptions.some((o) => o.value === opts.playmodeHint && !o.disabled)
+      ? opts.playmodeHint
+      : undefined;
+  const modeValue = playmodeHintValue
+    ? playmodeHintValue
+    : typeof prefParams.mode === "string" && modeOptions.some((o) => o.value === prefParams.mode && !o.disabled)
+      ? prefParams.mode
+      : defaultMode
+        ? JSON.stringify(defaultMode.raw)
+        : modeOptions[0]?.value ?? "";
   const conceptFrameNote = refCount === 0 && !hasTextMode ? "未附带图片：确认后系统将自动生成概念首帧图并以其为首帧生成" : undefined;
   fields.push({
     key: "mode",
@@ -188,7 +197,7 @@ export function buildVideoParamsCard(entry: VendorModelEntry, opts: BuildVideoPa
     options: modeOptions,
     required: true,
     advanced: false,
-    source: prefParams.mode != null && prefParams.mode === modeValue && pref ? "preference" : refCount > 0 ? "llm" : "system",
+    source: playmodeHintValue ? "user" : prefParams.mode != null && prefParams.mode === modeValue && pref ? "preference" : refCount > 0 ? "llm" : "system",
     note: conceptFrameNote ?? (refCount > 0 ? `已自动带上你本轮附带的 ${refCount} 张图片（可在下方预览）` : undefined),
   });
 

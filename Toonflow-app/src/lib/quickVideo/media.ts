@@ -678,3 +678,16 @@ export async function resolveMediaImageBase64(projectId: number, mediaId: number
   const { filePath } = await resolveReadyImageMedia(projectId, mediaId, "参考图");
   return u.oss.getImageBase64(filePath);
 }
+
+/** 按 id 批量查询媒体类型（SIY-165：引用按类型分流——图片进生成参考，视频/音频记录为声明意图） */
+export async function getMediaKindsByIds(projectId: number, mediaIds: number[]): Promise<Map<number, string>> {
+  const map = new Map<number, string>();
+  if (!mediaIds.length) return map;
+  const rows = (await u
+    .db("o_quickVideoMedia")
+    .where({ projectId })
+    .whereIn("id", mediaIds)
+    .select("id", "kind")) as Array<{ id: number; kind: string }>;
+  for (const row of rows) map.set(row.id, row.kind);
+  return map;
+}

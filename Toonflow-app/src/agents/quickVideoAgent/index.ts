@@ -28,6 +28,10 @@ export interface AgentContext {
   videoDurationOptions?: number[];
   /** 用户在聊天/白板选中的引用媒体 mediaId 列表（图生图参考，可选） */
   references?: number[];
+  /** SIY-165：用户在输入区显式选择的能力玩法 raw 声明（与确认卡 mode 字段值同构），request_video_params 据此锁定输入模式默认值 */
+  playmode?: string;
+  /** SIY-165：玩法声明下随消息发送的非图片引用（全能参考的视频/音频）；当前版本仅记录与告知，生成参数接线属下期 */
+  declaredMediaReferences?: { videoIds: number[]; audioIds: number[] };
   /** 占位符编号 -> mediaId 映射（##图N## = 托盘第 N 张图），socket 层按用户消息解析（SIY-151） */
   slotReferences?: Record<number, number>;
   /** 用户本轮消息中出现的占位符编号（升序去重），供工具做确定性回退 */
@@ -143,6 +147,17 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
         ].join("\n")
       : "";
 
+  // SIY-165：玩法声明下的视频/音频引用只记录不接入生成参数——如实告知 Agent，防止其编造「已使用视频」
+  const declaredMediaNote =
+    ctx.declaredMediaReferences && (ctx.declaredMediaReferences.videoIds.length || ctx.declaredMediaReferences.audioIds.length)
+      ? [
+          "",
+          "## 本轮非图片引用声明（重要，如实转达）",
+          `用户随消息声明了视频引用 mediaId=[${ctx.declaredMediaReferences.videoIds.join(", ") || "无"}]、音频引用 mediaId=[${ctx.declaredMediaReferences.audioIds.join(", ") || "无"}]。`,
+          "当前版本这些素材仅作为创作意图记录，尚未接入生成参数（videoUrls/audioUrls 接线在后续版本）；本轮生成实际可用的参考仍以上述图片 mediaId 为准。如用户明确期望视频被直接使用，请如实说明现状，不得声称已使用视频生成。",
+        ].join("\n")
+      : "";
+
   const projectInfo = [
     "## 项目信息",
     `视频标题：${projectData?.name ?? "未知"}`,
@@ -167,6 +182,7 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
       : "",
     slotNote,
     referenceNote,
+    declaredMediaNote,
     "",
     mem,
   ]
@@ -202,6 +218,7 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
         slotReferences,
         placeholderSlots,
         userText: text,
+        playmode: ctx.playmode,
       }),
     },
     onFinish: async (completion) => {

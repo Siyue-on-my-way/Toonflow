@@ -1665,6 +1665,28 @@
         "followProject": "Follow project",
         "moreRatios": "More ratios…"
       },
+      "creationType": {
+        "agentMode": "Smart Agent",
+        "imageGen": "Image generation",
+        "videoGen": "Video generation",
+        "musicGenReserved": "Music generation (coming soon)",
+        "audioGenReserved": "Audio generation (coming soon)",
+        "digitalHumanReserved": "Digital human (coming soon)",
+        "motionMimicReserved": "Motion mimic (coming soon)"
+      },
+      "playmode": {
+        "auto": "Smart",
+        "title": "Playmode",
+        "textGen": "Text to video",
+        "firstFrame": "First frame to video",
+        "startEnd": "Start & end frames",
+        "firstFrameOptional": "Optional first frame + tail",
+        "firstFrameTailOptional": "First frame + optional tail",
+        "omniReference": "Omni reference",
+        "ref_imageReference": "Img×{count}",
+        "ref_videoReference": "Video×{count}",
+        "ref_audioReference": "Audio×{count}"
+      },
       "finalParams": {
         "title": "Final Generation Params",
         "duration": "Video duration",
@@ -1795,7 +1817,10 @@
         "refPasted": "{count} media reference(s) added",
         "stillUploading": "Attachments are still uploading, please wait",
         "failedBlock": "Some attachments failed to upload. Retry or remove them before sending",
-        "slotLabel": "Fig {slot}"
+        "slotLabel": "Fig {slot}",
+        "badgeImage": "Img",
+        "badgeVideo": "Video",
+        "badgeAudio": "Audio"
       },
       "prompts": "Prompts",
       "fillImagePrompt": "Fill image",

@@ -87,6 +87,8 @@ interface ToolConfig {
   placeholderSlots?: number[];
   /** 用户本轮消息原文：引用图三级解析的意图判定输入（方案A，SIY-158） */
   userText?: string;
+  /** SIY-165：用户显式选择的能力玩法 raw 声明（确认卡 mode 字段值同构）；本轮出卡锁定输入模式默认值并跳过「沿用上次参数」 */
+  playmode?: string;
 }
 
 /** 按占位符编号解析引用媒体；编号无效（没有对应媒体）时返回 null */
@@ -1342,9 +1344,9 @@ export default (toolConfig: ToolConfig) => {
           const forceAsk = input.forceAsk === true || matchesResetAskPreference(toolConfig.userText);
           const preference = await getVideoParamsPreference(sessionId);
 
-          // 「沿用上次参数，不再询问」（H4 兜底）：同模型已确认过 skipAsk 偏好且用户未要求重新询问时，
-          // 直接按偏好参数生成，服务端确定性判断，不经 LLM 转述
-          const skipAskPref = resolveSkipAskPreference(preference, videoModel, forceAsk);
+          // SIY-165：用户本轮显式选择了能力玩法——出卡锁定输入模式默认值，不走「沿用上次参数」直生成，
+          // 否则用户的显式意图会被旧偏好静默覆盖
+          const skipAskPref = toolConfig.playmode ? null : resolveSkipAskPreference(preference, videoModel, forceAsk);
           if (skipAskPref) {
             const entry = await getVideoModelCatalogEntry(videoModel);
             if (!entry) return `视频生成失败：所选视频模型「${videoModel.split(":").pop()}」不可用，请重新选择模型。`;
@@ -1379,6 +1381,7 @@ export default (toolConfig: ToolConfig) => {
             referenceMediaIds: referenceIds,
             durationHint: input.durationHint,
             preference,
+            playmodeHint: toolConfig.playmode,
             projectRatio: String((await u.db("o_project").where("id", projectId).select("videoRatio").first())?.videoRatio ?? "16:9"),
           });
           if (!card.fields.length || !card.fields.some((f) => f.key === "mode")) {

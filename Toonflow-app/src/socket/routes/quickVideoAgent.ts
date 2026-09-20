@@ -12,7 +12,7 @@ import {
   saveVideoParamsPreference,
   getVideoParamsPreference,
 } from "@/lib/quickVideo/session";
-import { validateImageModelKey, validateVideoModelKey, getVideoModelDurationOptions, getVideoModelCatalogEntry } from "@/lib/quickVideo/media";
+import { validateImageModelKey, validateVideoModelKey, getVideoModelDurationOptions, getVideoModelCatalogEntry, getMediaKindsByIds } from "@/lib/quickVideo/media";
 import { runChatVideoGeneration, collectEntryDurationTiers } from "@/lib/quickVideo/chatVideoGen";
 import { applyVideoParamsEdits, cardFieldsToParams, validateVideoParamsAgainstCatalog } from "@/lib/quickVideo/videoParamsCard";
 
@@ -80,7 +80,7 @@ export default (nsp: Namespace) => {
       thinlLevel: 0,
     };
 
-    socket.on("chat", async (data: { content: string; textModel?: string; mode?: string; imageModel?: string; videoModel?: string; references?: number[] }) => {
+    socket.on("chat", async (data: { content: string; textModel?: string; mode?: string; imageModel?: string; videoModel?: string; references?: number[]; playmode?: string }) => {
       authed = await authReady;
       if (!authed) return;
       const { user, projectId, sessionId, isolationKey } = authed;
@@ -147,12 +147,30 @@ export default (nsp: Namespace) => {
         videoModel: validatedVideoModel,
         videoDurationOptions: validatedVideoDurationOptions,
         references: Array.isArray(data.references) ? data.references.filter((n) => Number.isInteger(n)).slice(0, 4) : undefined,
+        playmode: typeof data.playmode === "string" && data.playmode.length > 0 && data.playmode.length <= 200 ? data.playmode : undefined,
         userMessageTime: new Date(msg.datetime).getTime() - 1,
         abortSignal: currentController.signal,
         resTool,
         msg,
         thinkConfig,
       };
+      // SIY-165：玩法声明的非图片引用（如全能参考下的视频/音频）按类型分流——图片仍走 references
+      //（占位符 ##图N## 与既有生成链路语义不变），视频/音频记录为声明意图供 Agent 说明（生成参数接线属下期）。
+      if (ctx.references?.length) {
+        try {
+          const kinds = await getMediaKindsByIds(Number(resTool.data.projectId), ctx.references);
+          const imageRefs = ctx.references.filter((id) => kinds.get(id) === "image");
+          const videoRefs = ctx.references.filter((id) => kinds.get(id) === "video");
+          const audioRefs = ctx.references.filter((id) => kinds.get(id) === "audio");
+          if (imageRefs.length || videoRefs.length || audioRefs.length) {
+            ctx.references = imageRefs.length ? imageRefs : undefined;
+            if (videoRefs.length || audioRefs.length) ctx.declaredMediaReferences = { videoIds: videoRefs, audioIds: audioRefs };
+          }
+        } catch (err) {
+          // 类型查询失败不阻断主流程：保持原 references 语义，由既有生成链路的参考图校验兜底报错
+          u.error(err as Error);
+        }
+      }
 
       try {
         await agent.runQuickVideoAgent(ctx);

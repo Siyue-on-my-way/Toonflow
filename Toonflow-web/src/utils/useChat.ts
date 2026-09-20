@@ -96,7 +96,7 @@ export interface XmlTagOption {
 
 export interface ChatSocketEvents {
   // 发送事件
-  chat: { content: string; attachments?: any[]; textModel?: string; mode?: string; imageModel?: string; videoModel?: string; references?: number[] };
+  chat: { content: string; attachments?: any[]; textModel?: string; mode?: string; imageModel?: string; videoModel?: string; references?: number[]; playmode?: string };
   stop: { messageId: string };
   regenerate: { messageId: string };
 
@@ -723,7 +723,7 @@ export function useChat(options: UseChatOptions) {
     content: string,
     attachments?: any[],
     textModel?: string,
-    extra?: { mode?: string; imageModel?: string; videoModel?: string; references?: number[] },
+    extra?: { mode?: string; imageModel?: string; videoModel?: string; references?: number[]; playmode?: string },
   ) => {
     if (!content.trim() && !attachments?.length) return false;
 
@@ -753,6 +753,7 @@ export function useChat(options: UseChatOptions) {
       ...(extra?.imageModel ? { imageModel: extra.imageModel } : {}),
       ...(extra?.videoModel ? { videoModel: extra.videoModel } : {}),
       ...(extra?.references?.length ? { references: extra.references } : {}),
+      ...(extra?.playmode ? { playmode: extra.playmode } : {}),
     });
   };
 
