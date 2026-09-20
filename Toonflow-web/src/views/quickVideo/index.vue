@@ -64,7 +64,8 @@
                     <div v-else class="qvChatMediaPlaceholder failed"><i-close-circle size="18" /></div>
                   </div>
                   <div class="qvChatMediaOps" v-if="card.ext.state === 'done'">
-                    <t-button size="small" variant="text" @click="copyMediaRef(toMediaRefFromCard(card))">{{ $t("workbench.quickVideo.copy") }}</t-button>
+                    <!-- SIY-164：视频卡片只保留播放（平台暂无“视频生视频”，复制引用无消费方）；图片保留复制/设为首帧 -->
+                    <t-button v-if="card.ext.kind === 'image'" size="small" variant="text" @click="copyMediaRef(toMediaRefFromCard(card))">{{ $t("workbench.quickVideo.copy") }}</t-button>
                     <t-button v-if="card.ext.kind === 'image'" size="small" variant="text" theme="primary" @click="openFirstFramePicker(toMediaRefFromCard(card))">
                       {{ $t("workbench.quickVideo.setFirstFrame") }}
                     </t-button>
@@ -875,6 +876,7 @@ import { QUICK_VIDEO_SPLIT_CONSTRAINTS, quickVideoLayoutStorageKey, useQuickVide
 import { buildImageFillPrompt, buildVideoFillPrompt, buildShotPromptCopyText, buildMultiShotPrompt } from "./shotPrompts";
 import { createBubbleMessageView } from "./chatMedia";
 import { readMediaRefsFromText } from "./chatPaste";
+import { collectImageReferenceIds, isImageMediaRef } from "./mediaRefGuard";
 import { createUiActionExecutor } from "./uiActions";
 
 const { project } = storeToRefs(projectStore());
@@ -1155,12 +1157,19 @@ function clearPendingAttachments() {
   pendingAttachments.value = [];
 }
 
-/** 把稳定媒体引用放入待发送托盘（按 mediaId 去重） */
-function stagePendingRef(ref: MediaRef) {
-  if (pendingAttachments.value.some((p) => p.mediaRef?.mediaId === ref.mediaId)) return;
+/** 把稳定媒体引用放入待发送托盘（按 mediaId 去重），返回是否真正入托（被守门/去重/超限拒绝时为 false） */
+function stagePendingRef(ref: MediaRef): boolean {
+  // SIY-164 守门：暂无“视频生视频”能力，视频引用没有生成消费方，拒绝进入待发送托盘；
+  // 未来若启用视频生视频（如 Seedance 2.0 videoUrls），把该判定升级为按模型 videoReference 能力动态放行，
+  // 并区分托盘槽位徽标（图N / 视频N）。
+  if (!isImageMediaRef(ref)) {
+    window.$message.warning($t("workbench.quickVideo.videoRefUnsupported"));
+    return false;
+  }
+  if (pendingAttachments.value.some((p) => p.mediaRef?.mediaId === ref.mediaId)) return false;
   if (pendingAttachments.value.length >= pendingAttachmentLimit) {
     window.$message.warning($t("workbench.quickVideo.attach.tooMany", { max: pendingAttachmentLimit }));
-    return;
+    return false;
   }
   pendingAttachments.value.push({
     localId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -1169,6 +1178,7 @@ function stagePendingRef(ref: MediaRef) {
     previewUrl: ref.url ?? undefined,
     mediaRef: ref,
   });
+  return true;
 }
 
 // 输入框粘贴（SIY-144）：优先二进制图片（截图/本地图）→ 上传落库；
@@ -1191,15 +1201,17 @@ function onSenderPaste(e: ClipboardEvent) {
   const refsFromText = readMediaRefsFromText(text);
   if (refsFromText?.length) {
     e.preventDefault();
-    refsFromText.forEach(stagePendingRef);
-    window.$message.success($t("workbench.quickVideo.attach.refPasted", { count: refsFromText.length }));
+    // SIY-164：被守门拒绝（视频引用）或去重未入托的引用不计入成功提示，避免误导
+    const staged = refsFromText.filter((r) => stagePendingRef(r)).length;
+    if (staged > 0) window.$message.success($t("workbench.quickVideo.attach.refPasted", { count: staged }));
     return;
   }
 
   if (!text.trim() && clipboardMediaRef.value) {
     e.preventDefault();
-    stagePendingRef(clipboardMediaRef.value);
-    window.$message.success($t("workbench.quickVideo.attach.refPasted", { count: 1 }));
+    if (stagePendingRef(clipboardMediaRef.value)) {
+      window.$message.success($t("workbench.quickVideo.attach.refPasted", { count: 1 }));
+    }
   }
 }
 
@@ -1223,13 +1235,11 @@ function handleSend(text: string) {
     return;
   }
   // 应用内部剪贴板选中的引用媒体与粘贴上传的附件一并带上，供图生图/图生视频使用（SIY-134/SIY-144）；
-  // 切换文本模型不会新建或切换 session_id，socket 隔离键由服务端按当前会话固定。
-  const referenceIds: number[] = [];
-  for (const p of pendingAttachments.value) {
-    if (p.mediaRef && !referenceIds.includes(p.mediaRef.mediaId)) referenceIds.push(p.mediaRef.mediaId);
-  }
-  if (clipboardMediaRef.value && !referenceIds.includes(clipboardMediaRef.value.mediaId)) {
-    referenceIds.push(clipboardMediaRef.value.mediaId);
+  // SIY-164 发送前兜底：只保留图片引用（首帧/参考图/图生图），历史遗留的已 stage 视频引用在此过滤并提示，
+  // 未来启用视频生视频时按模型 videoReference 能力动态放行。
+  const { referenceIds, droppedCount } = collectImageReferenceIds([...pendingAttachments.value.map((p) => p.mediaRef), clipboardMediaRef.value]);
+  if (droppedCount > 0) {
+    window.$message.warning($t("workbench.quickVideo.videoRefUnsupported"));
   }
   quickVideoStoreRef.chat(text, undefined, modelPreferences.value.text || undefined, {
     mode,
@@ -1240,8 +1250,8 @@ function handleSend(text: string) {
 
   // 本轮引用的媒体随用户消息回显（SIY-137 审核反馈）：聊天记录里直接可见引用了哪张图/视频，
   // 以媒体卡片块并入用户消息（mediaCardsOf 统一渲染，历史恢复走 getMemory 的同构块）
-  const staged = pendingAttachments.value.filter((p) => p.mediaRef);
-  const clipRef = clipboardMediaRef.value && !referenceIds.includes(clipboardMediaRef.value.mediaId) ? clipboardMediaRef.value : null;
+  const staged = pendingAttachments.value.filter((p) => p.mediaRef && p.mediaRef.kind === "image");
+  const clipRef = clipboardMediaRef.value && clipboardMediaRef.value.kind === "image" && !referenceIds.includes(clipboardMediaRef.value.mediaId) ? clipboardMediaRef.value : null;
   const refItems = [
     ...staged.map((p) => ({ ref: p.mediaRef!, name: p.name, previewUrl: p.previewUrl })),
     ...(clipRef ? [{ ref: clipRef, name: clipRef.promptSummary || "引用媒体", previewUrl: clipRef.url ?? undefined }] : []),
@@ -1364,6 +1374,12 @@ function toMediaRefFromCard(card: ChatMediaCard): MediaRef {
 }
 
 async function copyMediaRef(ref: MediaRef) {
+  // SIY-164 守门：视频素材禁止复制为生成引用（暂无“视频生视频”能力，引用注定无效）；
+  // 未来若启用视频生视频，把该判定升级为按模型 videoReference 能力动态放行。
+  if (!isImageMediaRef(ref)) {
+    window.$message.warning($t("workbench.quickVideo.videoRefUnsupported"));
+    return;
+  }
   clipboardMediaRef.value = ref;
   let systemCopyOk = false;
   try {

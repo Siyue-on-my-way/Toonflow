@@ -1730,6 +1730,7 @@
       "noDraftShots": "No draft shots available to bind",
       "copiedBoth": "Image copied to the system clipboard and added to the chat attachment tray",
       "copiedInternalOnly": "Added to the chat attachment tray (system clipboard unavailable). Type a message and send; it also works with \"Paste first frame\" in the storyboard",
+      "videoRefUnsupported": "Videos can't be used as generation references yet; only images can be copied as references",
       "stage": {
         "collectBrief": "Collecting brief",
         "briefConfirmed": "Brief confirmed",

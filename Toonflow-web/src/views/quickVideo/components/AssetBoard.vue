@@ -44,7 +44,8 @@
           </div>
           <div class="qvAssetActions">
             <template v-if="item.state === 'done'">
-              <t-button size="small" variant="text" data-testid="qv-asset-copy" @click="$emit('copy', item)">{{ copyText }}</t-button>
+              <!-- SIY-164：复制仅对图片开放（复制后作为生成引用），视频无消费方不提供复制入口；点缩略图仍可放大播放 -->
+              <t-button v-if="item.kind === 'image'" size="small" variant="text" data-testid="qv-asset-copy" @click="$emit('copy', item)">{{ copyText }}</t-button>
               <t-button v-if="item.kind === 'image'" size="small" variant="text" theme="primary" data-testid="qv-asset-set-first-frame" @click="$emit('set-first-frame', item)">{{ setFirstFrameText }}</t-button>
             </template>
             <t-tooltip v-else-if="item.state === 'failed'" :content="item.errorReason || ''">

@@ -1852,6 +1852,7 @@
       "noDraftShots": "当前没有可绑定的草稿镜头",
       "copiedBoth": "图片已复制到系统剪贴板，并已放入聊天待发送附件",
       "copiedInternalOnly": "已放入聊天待发送附件（系统剪贴板不可用），输入文字发送即可；也可在分镜表「粘贴首帧」使用",
+      "videoRefUnsupported": "视频暂不支持作为生成引用，仅图片可复制引用",
       "stage": {
         "collectBrief": "收集简报",
         "briefConfirmed": "简报已确认",

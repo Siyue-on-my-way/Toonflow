@@ -66,12 +66,15 @@ describe("AssetBoard.vue", () => {
     expect(wrapper.emitted("set-first-frame")?.[0]).toEqual([item]);
   });
 
-  it("视频资产不提供设为首帧操作（首帧只能是图片）", () => {
+  it("视频资产不提供复制和设为首帧操作（无视频生视频能力，SIY-164），点缩略图仍可放大", async () => {
     const item = media({ mediaId: 43, kind: "video" });
     const wrapper = mount(AssetBoard, { props: { ...baseProps, items: [item], total: 1 } });
     const cell = wrapper.find('[data-testid="qv-asset-cell-43"]');
-    expect(cell.find('[data-testid="qv-asset-copy"]').exists()).toBe(true);
+    expect(cell.find('[data-testid="qv-asset-copy"]').exists()).toBe(false);
     expect(cell.find('[data-testid="qv-asset-set-first-frame"]').exists()).toBe(false);
+
+    await cell.find('[data-testid="qv-asset-zoom"]').trigger("click");
+    expect(wrapper.emitted("zoom")?.[0]).toEqual([item]);
   });
 
   it("生成中的资产不提供任何绑定/复制操作，只展示占位态", () => {
