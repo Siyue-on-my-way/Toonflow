@@ -1689,7 +1689,9 @@
         "ref_audioReference": "Audio×{count}",
         "refShort_imageReference": "Img{count}",
         "refShort_videoReference": "Vid{count}",
-        "refShort_audioReference": "Aud{count}"
+        "refShort_audioReference": "Aud{count}",
+        "enabledChip": "Enabled: {refs}",
+        "chipHint": "Click to close and return to Smart"
       },
       "finalParams": {
         "title": "Final Generation Params",

@@ -1811,7 +1811,9 @@
         "ref_audioReference": "音频×{count}",
         "refShort_imageReference": "图{count}",
         "refShort_videoReference": "视频{count}",
-        "refShort_audioReference": "音{count}"
+        "refShort_audioReference": "音{count}",
+        "enabledChip": "已放开：{refs}",
+        "chipHint": "点此关闭回到智能判定"
       },
       "finalParams": {
         "title": "最终生成参数确认",

@@ -229,11 +229,18 @@
                   :options="playmodeMenuOptions"
                   :popup-props="{ overlayInnerStyle: { width: 'max-content', maxWidth: '60vw' } }"
                   @click="(item: any) => handlePlaymodeSelect(String(item?.value ?? ''))">
-                  <t-button size="small" variant="text" class="playmodeTrigger" data-testid="qv-playmode-trigger" :title="activePlaymodeLabel" :disabled="status === 'pending' || status === 'streaming'">
+                  <t-button size="small" variant="text" class="playmodeTrigger" data-testid="qv-playmode-trigger" :title="activePlaymodeFullLabel" :disabled="status === 'pending' || status === 'streaming'">
                     {{ activePlaymodeLabel }}
                     <template #suffix><i-chevron-down size="12" /></template>
                   </t-button>
                 </t-dropdown>
+              </div>
+              <!-- 方案 C（选中态常驻）：全能参考玩法放开了非图片引用能力时，常驻 chip 提示当前已放开什么；点 × 回到智能判定 -->
+              <div v-if="omniEnabledChipText" class="playmodeChipRow" @click.stop>
+                <t-tag size="small" theme="warning" shape="round" closable class="playmodeChip" data-testid="qv-playmode-chip" @close="handlePlaymodeSelect('auto')">
+                  {{ omniEnabledChipText }}
+                  <span class="playmodeChipHint">{{ $t("workbench.quickVideo.playmode.chipHint") }}</span>
+                </t-tag>
               </div>
               <!-- 常驻图片参数控件（SIY-163）：能力参数随时可见可改，不打断对话；目录未声明档位时对应控件隐藏 -->
               <div v-if="activeModelType === 'image'" class="mediaParamChips" @click.stop>
@@ -893,8 +900,10 @@ import { QUICK_VIDEO_SPLIT_CONSTRAINTS, quickVideoLayoutStorageKey, useQuickVide
 import { buildImageFillPrompt, buildVideoFillPrompt, buildShotPromptCopyText, buildMultiShotPrompt } from "./shotPrompts";
 import { createBubbleMessageView } from "./chatMedia";
 import { readMediaRefsFromText } from "./chatPaste";
+import { h } from "vue";
 import {
   collectReferenceIdsByPlaymode,
+  isOmniReferenceId,
   parsePlaymodeOptions,
   playmodeAllowsKind,
   playmodeRawModeValue,
@@ -1025,24 +1034,36 @@ const effectivePlaymodeId = computed<QuickVideoPlaymodeId>(() => {
 const activePlaymodeOption = computed<PlaymodeOption | null>(
   () => playmodeOptions.value.find((o) => o.id === effectivePlaymodeId.value) ?? null,
 );
+// 触发按钮回归短名（方案 A）：完整能力摘要由菜单副行与常驻 chip 承载，按钮不再塞长文本（避免超宽挤压布局）
 const activePlaymodeLabel = computed(() => {
   if (effectivePlaymodeId.value === "auto") return $t("workbench.quickVideo.playmode.auto");
   const option = activePlaymodeOption.value;
   if (!option) return $t("workbench.quickVideo.playmode.auto");
-  const base = $t(`workbench.quickVideo.playmode.${option.labelKey}`);
-  // 组合玩法带紧凑摘要（图9·视频3·音频3）：同名组合模式（图9 / 视频3 / 全组合）在按钮上也可区分
-  const summary = option.refs?.length ? `(${option.refs.map((r) => $t(`workbench.quickVideo.playmode.refShort_${r.type}`, { count: r.count })).join("·")})` : "";
-  return `${base}${summary}`;
+  return $t(`workbench.quickVideo.playmode.${option.labelKey}`);
 });
+const activePlaymodeFullLabel = computed(() =>
+  effectivePlaymodeId.value === "auto" ? $t("workbench.quickVideo.playmode.auto") : activePlaymodeOption.value ? playmodeOptionFullLabel(activePlaymodeOption.value) : "",
+);
 const playmodeMenuOptions = computed(() => {
-  // 菜单项完整显示组合摘要（SIY-165 反馈：截断导致用户无法分辨所选能力），面板宽度由 popup-props 放开
+  // 方案 A（两行式菜单）：组合玩法项 = 名称主行 + 能力摘要副行（灰色小字），完整可见且面板不超宽；
+  // content 渲染函数绕开 TDesign item 自带的单行 ellipsis（上一轮面板加宽覆盖不到 item 级别）。
   return [
     { value: "auto", content: $t("workbench.quickVideo.playmode.auto"), active: effectivePlaymodeId.value === "auto" },
-    ...playmodeOptions.value.map((o) => ({
-      value: o.id,
-      content: playmodeOptionFullLabel(o),
-      active: effectivePlaymodeId.value === o.id,
-    })),
+    ...playmodeOptions.value.map((o) => {
+      const base = $t(`workbench.quickVideo.playmode.${o.labelKey}`);
+      const summary = o.refs?.length
+        ? o.refs.map((r) => $t(`workbench.quickVideo.playmode.ref_${r.type}`, { count: r.count })).join(" · ")
+        : "";
+      return {
+        value: o.id,
+        active: effectivePlaymodeId.value === o.id,
+        content: (h: any) =>
+          h("div", { class: "qvPlaymodeItem" }, [
+            h("div", { class: "qvPlaymodeItemName" }, base),
+            ...(summary ? [h("div", { class: "qvPlaymodeItemSub" }, summary)] : []),
+          ]),
+      };
+    }),
   ];
 });
 function playmodeOptionFullLabel(o: PlaymodeOption): string {
@@ -1051,6 +1072,17 @@ function playmodeOptionFullLabel(o: PlaymodeOption): string {
   const summary = o.refs.map((r) => $t(`workbench.quickVideo.playmode.ref_${r.type}`, { count: r.count })).join(" ");
   return `${base}（${summary}）`;
 }
+// 方案 C（选中态常驻）：组合玩法放开了非图片引用能力（视频/音频）时，参数行常驻 chip 显示，
+// 发送前随时可见当前放开了什么；点击 tag 关闭按钮即回到智能判定。
+const omniEnabledChipText = computed(() => {
+  const option = activePlaymodeOption.value;
+  if (!option || !isOmniReferenceId(effectivePlaymodeId.value)) return "";
+  const parts = (option.refs ?? [])
+    .filter((r) => r.type !== "imageReference")
+    .map((r) => $t(`workbench.quickVideo.playmode.ref_${r.type}`, { count: r.count }));
+  if (!parts.length) return "";
+  return $t("workbench.quickVideo.playmode.enabledChip", { refs: parts.join(" · ") });
+});
 function handlePlaymodeSelect(value: string) {
   if (!["auto", ...playmodeOptions.value.map((o) => o.id)].includes(value as QuickVideoPlaymodeId)) return;
   activePlaymodeId.value = value as QuickVideoPlaymodeId;
@@ -2930,6 +2962,43 @@ onBeforeUnmount(() => {
             text-overflow: ellipsis;
             white-space: nowrap;
           }
+        }
+      }
+      /* 方案 C：全能参考已放开能力的常驻 chip（点 × 回到智能判定） */
+      .playmodeChipRow {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-width: 0;
+        margin-top: 4px;
+        .playmodeChip {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          max-width: 100%;
+          .playmodeChipHint {
+            color: var(--td-text-color-secondary);
+            font-size: 11px;
+          }
+        }
+      }
+      /* 方案 A：玩法菜单两行式（全局渲染于 popup 挂载点，需非 scoped 覆盖）——名称主行 + 摘要副行 */
+      :global(.qvPlaymodeItem) {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 2px 0;
+        min-width: 180px;
+        .qvPlaymodeItemName {
+          font-size: 13px;
+          line-height: 18px;
+          white-space: nowrap;
+        }
+        .qvPlaymodeItemSub {
+          font-size: 11px;
+          line-height: 14px;
+          color: var(--td-text-color-secondary);
+          white-space: nowrap;
         }
       }
       /* 常驻图片参数控件（SIY-163）：模型选择器下方一行紧凑 chips，窄屏自动换行 */
