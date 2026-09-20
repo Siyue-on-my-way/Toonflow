@@ -422,6 +422,9 @@ export const videoParamsCardSchema = z.object({
   promptSource: z.enum(VIDEO_PARAM_SOURCES).default("llm"),
   /** 卡片创建时冻结的参考图 mediaId（三级解析结果），确认生成时直接使用，不再二次解析 */
   referenceMediaIds: z.array(z.number().int().positive()).max(2).default([]),
+  /** SIY-165 P2：卡片创建时冻结的非图片引用（全能参考玩法声明的视频/音频），确认生成时随图片一并传入生成内核 */
+  declaredVideoIds: z.array(z.number().int().positive()).max(3).default([]),
+  declaredAudioIds: z.array(z.number().int().positive()).max(3).default([]),
   fields: z.array(videoParamFieldSchema).min(1).max(12).describe("按模型元数据投影的参数字段（含来源标记）"),
 });
 export type QuickVideoVideoParamsCard = z.infer<typeof videoParamsCardSchema>;

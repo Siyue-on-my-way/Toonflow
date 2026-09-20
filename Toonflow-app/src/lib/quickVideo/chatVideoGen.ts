@@ -25,9 +25,11 @@ import {
   markChatMediaFailed,
   resolveDefaultImageModel,
   resolveMediaImageBase64,
+  resolveMediaVideoBase64,
   resolveVideoStartEndMode,
   videoModelSupportsTextToVideo,
 } from "./media";
+import { findMultiModeForRefs, declaredModeRefCap } from "./videoParamsCard";
 
 /** 生成内核对聊天消息发射器的最小接口（MessageBuilder 结构兼容） */
 export interface ChatVideoGenEmitter {
@@ -55,6 +57,10 @@ export interface RunChatVideoGenerationOptions {
   prompt: string;
   /** 已解析的参考图 mediaId（调用方完成三级解析与守门；内核不再二次解析） */
   referenceIds: number[];
+  /** SIY-165 P2：玩法声明的参考视频 mediaId（全能参考；确认卡冻结或工具层透传） */
+  videoReferenceIds?: number[];
+  /** SIY-165 P2：玩法声明的参考音频 mediaId（当前版本无音频媒体存储，仅透传计数说明） */
+  audioReferenceIds?: number[];
   /** 模型声明的时长档位（就近取整与说明用；空数组表示不做取整） */
   durationTiers: number[];
   /** 确认卡参数（时长/分辨率/比例/画质/音频/种子等）；缺省字段沿用既有默认行为 */
@@ -71,7 +77,7 @@ export type ChatVideoGenerationResult =
 function logVideoVendorRequest(
   source: string,
   model: string,
-  input: { prompt: string; mode: string[]; duration: number; aspectRatio: string; resolution: string; quality?: string; extra: Record<string, unknown>; referenceCount: number },
+  input: { prompt: string; mode: string[]; duration: number; aspectRatio: string; resolution: string; quality?: string; extra: Record<string, unknown>; referenceCount: number; videoRefCount?: number },
 ) {
   const extraText = Object.entries(input.extra)
     .filter(([, v]) => v !== undefined)
@@ -80,7 +86,7 @@ function logVideoVendorRequest(
   console.log(
     `[quickVideo][chatVideoGen:${source}] 供应商请求 model=${model} mode=[${input.mode.join(",")}] duration=${input.duration} ` +
       `aspectRatio=${input.aspectRatio} resolution=${input.resolution} quality=${input.quality ?? "-"}${extraText ? " " + extraText : ""} ` +
-      `参考图=${input.referenceCount}张 prompt="${input.prompt.slice(0, 80)}${input.prompt.length > 80 ? "…" : ""}"`,
+      `参考图=${input.referenceCount}张${input.videoRefCount ? ` 参考视频=${input.videoRefCount}段` : ""} prompt="${input.prompt.slice(0, 80)}${input.prompt.length > 80 ? "…" : ""}"`,
   );
 }
 
@@ -100,6 +106,8 @@ function firstMultiImageMode(entry: VendorModelEntry): string[] | null {
  */
 export async function runChatVideoGeneration(opts: RunChatVideoGenerationOptions): Promise<ChatVideoGenerationResult> {
   const { projectId, userId, sessionId, msg, idempotencyKey, videoModel, prompt, referenceIds, durationTiers } = opts;
+  const videoReferenceIds = opts.videoReferenceIds ?? [];
+  const audioReferenceIds = opts.audioReferenceIds ?? [];
   const params = opts.params ?? {};
   const source = opts.source ?? "tool";
 
@@ -143,9 +151,22 @@ export async function runChatVideoGeneration(opts: RunChatVideoGenerationOptions
     }
   }
 
-  // 纯文生请求但模型不支持 text 模式：走概念首帧链式生成（能力守门，避免必然失败的供应商调用）
+  // SIY-165 P2：解析玩法声明的参考视频（全能参考 videoUrls）；失效视为整体失败，与参考图同口径不静默丢素材
+  const videoBase64List: string[] = [];
+  for (const refId of videoReferenceIds) {
+    try {
+      videoBase64List.push(await resolveMediaVideoBase64(projectId, refId));
+    } catch (err) {
+      const reason = `参考视频 ${refId} 无效：${u.error(err as Error).message}`;
+      await markChatMediaFailed(media.id, reason);
+      return { ok: false, videoMediaId: media.id, reason: `视频生成失败：${reason}。请提醒用户重新选择有效的参考视频后再试。` };
+    }
+  }
+
+  // 纯文生请求但模型不支持 text 模式：走概念首帧链式生成（能力守门，避免必然失败的供应商调用）；
+  // 有参考视频/音频声明时不走概念首帧链——那会丢弃视频参考，模式决策在下方按多模态组合能力守门
   let conceptImageMediaId: number | undefined;
-  if (!imageBase64List.length) {
+  if (!imageBase64List.length && !videoBase64List.length && !audioReferenceIds.length) {
     let supportsText = true;
     try {
       supportsText = await videoModelSupportsTextToVideo(videoModel);
@@ -202,6 +223,24 @@ export async function runChatVideoGeneration(opts: RunChatVideoGenerationOptions
     }
   }
 
+  // SIY-165 P2：玩法声明了参考视频/音频——强制走能覆盖这些类型的多模态组合模式（能力守门，绝不静默丢素材）；
+  // 声明上限在此防御性截断（托盘已按 :N 把守，双保险），音频暂无媒体存储仅保留声明语义
+  if (videoBase64List.length || audioReferenceIds.length) {
+    const omniMode = entry ? findMultiModeForRefs(entry, videoBase64List.length > 0, audioReferenceIds.length > 0) : null;
+    if (!omniMode) {
+      const reason = "所选视频模型未声明支持视频/音频参考输入（videoReference/audioReference），无法使用全能参考玩法";
+      await markChatMediaFailed(media.id, reason);
+      return {
+        ok: false,
+        videoMediaId: media.id,
+        reason: `视频生成失败：${reason}。请提醒用户更换支持多模态参考的模型（如 Seedance 2.0）后重试。`,
+      };
+    }
+    mode = omniMode.raw as string[];
+    const videoCap = declaredModeRefCap(omniMode, "videoReference");
+    if (videoBase64List.length > videoCap) videoBase64List.length = videoCap;
+  }
+
   const resolution = params.resolution ?? "720p";
   const quality = params.quality ?? (await getVideoModelDefaultQuality(videoModel)) ?? undefined;
 
@@ -221,11 +260,15 @@ export async function runChatVideoGeneration(opts: RunChatVideoGenerationOptions
         realPersonMode: params.realPersonMode,
       },
       referenceCount: imageBase64List.length,
+      videoRefCount: videoBase64List.length,
     });
     await videoAi.run(
       {
         prompt,
-        referenceList: imageBase64List.map((base64) => ({ type: "image" as const, base64 })),
+        referenceList: [
+          ...imageBase64List.map((base64) => ({ type: "image" as const, base64 })),
+          ...videoBase64List.map((base64) => ({ type: "video" as const, base64 })),
+        ],
         mode: mode as any,
         duration,
         aspectRatio,
@@ -256,6 +299,8 @@ export async function runChatVideoGeneration(opts: RunChatVideoGenerationOptions
     const notes: string[] = [];
     if (degradedNote) notes.push(degradedNote);
     if (durationNote) notes.push(durationNote);
+    if (videoBase64List.length) notes.push(`（已随生成参数提交 ${videoBase64List.length} 段参考视频）`);
+    if (audioReferenceIds.length) notes.push(`（音频引用 ${audioReferenceIds.length} 段暂未接入生成参数，已按声明记录）`);
     return { ok: true, videoMediaId: media.id, conceptImageMediaId, notes };
   } catch (err) {
     const reason = u.error(err as Error).message;

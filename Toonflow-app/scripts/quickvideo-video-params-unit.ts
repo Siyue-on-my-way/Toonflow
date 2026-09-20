@@ -20,6 +20,8 @@ import {
   matchesResetAskPreference,
   cardFieldsToParams,
   parseDeclaredModes,
+  findMultiModeForRefs,
+  declaredModeRefCap,
 } from "@/lib/quickVideo/videoParamsCard";
 import type { QuickVideoVideoParamsCard, VideoParamsPreference } from "@/lib/quickVideo/contract";
 import type { VendorModelEntry } from "@/lib/quickVideo/modelValidation";
@@ -302,6 +304,27 @@ console.log("== 6. 模式声明解析 ==");
   assert(modes.length === 4 && modes.filter((m) => m.kind === "multiReference").length === 3, "seedance：4 种声明模式（1 简单 + 3 组合）");
   const simple = parseDeclaredModes(klingO1);
   assert(simple.length === 1 && simple[0].kind === "singleImage", "Kling O1：仅单图模式");
+}
+
+// ---------------------------------------------------------------------------
+// 7. findMultiModeForRefs（SIY-165 P2：按声明的视频/音频引用挑选组合模式）
+// ---------------------------------------------------------------------------
+console.log("== 7. 组合模式挑选（findMultiModeForRefs）==");
+{
+  // 仅声明视频参考的模型：有视频引用时命中
+  const videoOnly = findMultiModeForRefs(seedance, true, false);
+  assert(!!videoOnly && videoOnly.kind === "multiReference", "需要视频参考：命中组合模式");
+  assert(!!videoOnly && declaredModeRefCap(videoOnly, "videoReference") > 0, "命中模式的视频上限 > 0");
+  // 同时需要视频+音频：只有同时声明两类参考的组合模式才命中
+  const both = findMultiModeForRefs(seedance, true, true);
+  assert(!!both && declaredModeRefCap(both!, "videoReference") > 0 && declaredModeRefCap(both!, "audioReference") > 0, "需要视频+音频：命中同时声明两类的组合模式");
+  // 不需要任何非图片引用：返回 null（走既有图片模式决策）
+  assert(findMultiModeForRefs(seedance, false, false) === null, "无视频/音频需求：不挑组合模式");
+  // 单图模型（Kling O1）：任何非图片需求都无组合模式可用
+  assert(findMultiModeForRefs(klingO1, true, false) === null, "Kling O1：无组合模式可覆盖视频参考");
+  // 上限语义：videoReference:N 是至多 N 的防御性截断依据
+  const cap = videoOnly ? declaredModeRefCap(videoOnly, "videoReference") : 0;
+  assert(cap > 0, "组合模式视频参考上限为正数");
 }
 
 console.log(`\n结果：${passed} 通过，${failed} 失败`);

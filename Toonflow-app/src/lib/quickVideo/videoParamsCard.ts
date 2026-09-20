@@ -82,6 +82,28 @@ export function declaredModeImageCount(mode: DeclaredMode): number {
   }
 }
 
+/** 玩法声明的某类引用上限（未声明该类型则 0） */
+export function declaredModeRefCap(mode: DeclaredMode, type: "imageReference" | "videoReference" | "audioReference"): number {
+  if (mode.kind !== "multiReference") return 0;
+  return mode.refs.find((r) => r.type === type)?.count ?? 0;
+}
+
+/**
+ * SIY-165 P2：按本轮声明的非图片引用挑选组合模式——取第一个同时覆盖所需类型
+ * （videoReference/audioReference 计数 > 0）的组合声明；无需求或未覆盖返回 null（由调用方决定失败或降级）。
+ */
+export function findMultiModeForRefs(entry: VendorModelEntry, needsVideo: boolean, needsAudio: boolean): DeclaredMode | null {
+  if (!needsVideo && !needsAudio) return null;
+  return (
+    parseDeclaredModes(entry).find(
+      (m) =>
+        m.kind === "multiReference" &&
+        (!needsVideo || declaredModeRefCap(m, "videoReference") > 0) &&
+        (!needsAudio || declaredModeRefCap(m, "audioReference") > 0),
+    ) ?? null
+  );
+}
+
 /** 目录声明里与聊天链路相关的分辨率档位（跨 duration 组去重，"default" 占位不出）；
  *  仅一个固定档位时返回单元素数组（调用方据此决定是否出控件） */
 export function collectResolutionOptions(entry: VendorModelEntry): string[] {
@@ -134,6 +156,9 @@ export interface BuildVideoParamsCardOptions {
   preference?: VideoParamsPreference | null;
   /** SIY-165：用户在输入区显式选择的能力玩法 raw 声明（mode 字段值同构）；命中可选选项时锁定输入模式默认值（来源 user） */
   playmodeHint?: string;
+  /** SIY-165 P2：玩法声明下冻结的非图片引用（全能参考的视频/音频），随卡冻结、确认时传入生成内核 */
+  declaredVideoIds?: number[];
+  declaredAudioIds?: number[];
   /** 项目画面比例（系统兜底值） */
   projectRatio: string;
 }
@@ -354,6 +379,8 @@ export function buildVideoParamsCard(entry: VendorModelEntry, opts: BuildVideoPa
     prompt: opts.prompt,
     promptSource: "llm",
     referenceMediaIds: opts.referenceMediaIds,
+    declaredVideoIds: opts.declaredVideoIds ?? [],
+    declaredAudioIds: opts.declaredAudioIds ?? [],
     fields,
   };
 }

@@ -1805,6 +1805,7 @@
         "firstFrameOptional": "可选首帧 + 尾帧",
         "firstFrameTailOptional": "首帧 + 可选尾帧",
         "omniReference": "全能参考",
+        "startEndNeedTwoImages": "首尾帧模式需要 2 张图片引用，请先复制或上传图片",
         "ref_imageReference": "图×{count}",
         "ref_videoReference": "视频×{count}",
         "ref_audioReference": "音频×{count}"

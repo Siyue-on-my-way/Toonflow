@@ -258,6 +258,8 @@ export default (nsp: Namespace) => {
             videoModel: card.modelKey,
             prompt: editedCard.prompt,
             referenceIds: editedCard.referenceMediaIds,
+            videoReferenceIds: editedCard.declaredVideoIds,
+            audioReferenceIds: editedCard.declaredAudioIds,
             durationTiers: collectEntryDurationTiers(entry),
             params: validated,
             source: "card",

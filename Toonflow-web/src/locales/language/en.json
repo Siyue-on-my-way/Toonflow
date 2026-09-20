@@ -1683,6 +1683,7 @@
         "firstFrameOptional": "Optional first frame + tail",
         "firstFrameTailOptional": "First frame + optional tail",
         "omniReference": "Omni reference",
+        "startEndNeedTwoImages": "Start & end frames mode needs 2 image references; copy or upload images first",
         "ref_imageReference": "Img×{count}",
         "ref_videoReference": "Video×{count}",
         "ref_audioReference": "Audio×{count}"

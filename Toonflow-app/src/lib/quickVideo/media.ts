@@ -679,6 +679,20 @@ export async function resolveMediaImageBase64(projectId: number, mediaId: number
   return u.oss.getImageBase64(filePath);
 }
 
+/**
+ * 校验一个 mediaId 是否可作为参考视频（SIY-165 P2 全能参考：Seedance videoUrls 参考视频）：
+ * 必须属于当前项目、类型为视频、状态为已完成，返回视频文件 base64 Data URL（供应商侧资产化上传）。
+ */
+export async function resolveMediaVideoBase64(projectId: number, mediaId: number): Promise<string> {
+  const row = (await u.db("o_quickVideoMedia").where({ id: mediaId, projectId }).first()) as QuickVideoMediaRow | undefined;
+  if (!row || row.deletedAt) throw new QuickVideoError("MEDIA_NOT_FOUND", "未找到该媒体，或不属于当前项目");
+  if (row.kind !== "video") throw new QuickVideoError("MEDIA_NOT_VIDEO", "只能使用视频作为参考视频");
+  if (row.state !== "done" || !row.videoId) throw new QuickVideoError("MEDIA_NOT_READY", "该视频尚未生成完成或已失败，无法作为参考视频");
+  const video = await u.db("o_video").where("id", row.videoId).select("filePath").first();
+  if (!video?.filePath) throw new QuickVideoError("MEDIA_FILE_MISSING", "该视频文件已失效，无法作为参考视频");
+  return u.oss.getImageBase64(video.filePath);
+}
+
 /** 按 id 批量查询媒体类型（SIY-165：引用按类型分流——图片进生成参考，视频/音频记录为声明意图） */
 export async function getMediaKindsByIds(projectId: number, mediaIds: number[]): Promise<Map<number, string>> {
   const map = new Map<number, string>();

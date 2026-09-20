@@ -64,12 +64,12 @@
                     <div v-else class="qvChatMediaPlaceholder failed"><i-close-circle size="18" /></div>
                   </div>
                   <div class="qvChatMediaOps" v-if="card.ext.state === 'done'">
-                    <!-- SIY-164：视频卡片只保留播放（平台暂无“视频生视频”，复制引用无消费方）；图片保留复制/设为首帧 -->
-                    <t-button v-if="card.ext.kind === 'image'" size="small" variant="text" @click="copyMediaRef(toMediaRefFromCard(card))">{{ $t("workbench.quickVideo.copy") }}</t-button>
+                    <!-- SIY-165 T8：复制按钮随玩法显隐——图片恒有；视频在全能参考玩法下恢复（P2 已接线 videoUrls）；视频卡片另有「播放」 -->
+                    <t-button v-if="card.ext.kind === 'image' || effectivePlaymodeId === 'omniReference'" size="small" variant="text" @click="copyMediaRef(toMediaRefFromCard(card))">{{ $t("workbench.quickVideo.copy") }}</t-button>
                     <t-button v-if="card.ext.kind === 'image'" size="small" variant="text" theme="primary" @click="openFirstFramePicker(toMediaRefFromCard(card))">
                       {{ $t("workbench.quickVideo.setFirstFrame") }}
                     </t-button>
-                    <t-button v-else-if="card.ext.kind === 'video'" size="small" variant="text" theme="primary" @click="openMediaPreview(toMediaRefFromCard(card))">
+                    <t-button v-if="card.ext.kind === 'video'" size="small" variant="text" theme="primary" @click="openMediaPreview(toMediaRefFromCard(card))">
                       {{ $t("workbench.quickVideo.playVideo") }}
                     </t-button>
                   </div>
@@ -353,6 +353,7 @@
             :collapse-text="$t('workbench.quickVideo.collapse')"
             :delete-text="$t('workbench.quickVideo.deleteAsset')"
             :delete-confirm-text="$t('workbench.quickVideo.deleteAssetConfirm')"
+            :allow-video-copy="effectivePlaymodeId === 'omniReference'"
             @refresh="loadAssetBoard"
             @page-change="handleAssetBoardPageChange"
             @filter-change="handleAssetBoardFilterChange"
@@ -890,7 +891,6 @@ import { QUICK_VIDEO_SPLIT_CONSTRAINTS, quickVideoLayoutStorageKey, useQuickVide
 import { buildImageFillPrompt, buildVideoFillPrompt, buildShotPromptCopyText, buildMultiShotPrompt } from "./shotPrompts";
 import { createBubbleMessageView } from "./chatMedia";
 import { readMediaRefsFromText } from "./chatPaste";
-import { isImageMediaRef } from "./mediaRefGuard";
 import {
   collectReferenceIdsByPlaymode,
   parsePlaymodeOptions,
@@ -1370,6 +1370,14 @@ function handleSend(text: string) {
     window.$message.warning($t("workbench.quickVideo.attach.failedBlock"));
     return;
   }
+  // SIY-165 T7：显式锁定「首尾帧」玩法时，发送前校验图片引用齐备（首尾帧需要 2 张），不足不发避免浪费一轮
+  if (effectivePlaymodeId.value === "startEndRequired") {
+    const imageRefCount = [...pendingAttachments.value.map((p) => p.mediaRef), clipboardMediaRef.value].filter((r) => r?.kind === "image").length;
+    if (imageRefCount < 2) {
+      window.$message.warning($t("workbench.quickVideo.playmode.startEndNeedTwoImages"));
+      return;
+    }
+  }
   // 应用内部剪贴板选中的引用媒体与粘贴上传的附件一并带上，供图生图/图生视频使用（SIY-134/SIY-144）；
   // SIY-165 发送前兜底：按玩法动态守门——图片恒放行；视频/音频仅在「全能参考」放行（分类型上限由托盘把守），
   // 其余玩法维持 SIY-164 仅图片口径，被拦截的引用在此过滤并提示。
@@ -1520,9 +1528,10 @@ function toMediaRefFromCard(card: ChatMediaCard): MediaRef {
 }
 
 async function copyMediaRef(ref: MediaRef) {
-  // SIY-164 守门：视频素材禁止复制为生成引用（暂无“视频生视频”能力，引用注定无效）；
-  // 未来若启用视频生视频，把该判定升级为按模型 videoReference 能力动态放行。
-  if (!isImageMediaRef(ref)) {
+  // SIY-165 T8 守门：素材类型随玩法动态判定——图片恒可复制；视频仅在「全能参考」玩法放行
+  // （SIY-164 备案的 videoReference 通道，P2 已接线生成参数）；其余玩法维持仅图片。
+  const kind = ref.kind === "image" || ref.kind === "video" ? ref.kind : null;
+  if (!kind || !playmodeAllowsKind(effectivePlaymodeId.value, kind)) {
     window.$message.warning($t("workbench.quickVideo.videoRefUnsupported"));
     return;
   }
@@ -1589,6 +1598,11 @@ async function confirmFirstFramePicker(shotId: string) {
 async function pasteFirstFrameFromClipboard(shotId: string) {
   const ref = clipboardMediaRef.value;
   if (!ref) return;
+  // 首帧只能是图片（服务端 MEDIA_NOT_IMAGE 的前置守卫；全能参考下视频可进剪贴板但不可绑首帧）
+  if (ref.kind !== "image") {
+    window.$message.warning($t("workbench.quickVideo.videoRefUnsupported"));
+    return;
+  }
   const result = await bindShotFirstFrame(shotId, ref.mediaId);
   if (!result.ok) {
     window.$message.warning(result.error.message);

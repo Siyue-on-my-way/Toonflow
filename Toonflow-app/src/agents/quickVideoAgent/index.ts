@@ -147,14 +147,16 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
         ].join("\n")
       : "";
 
-  // SIY-165：玩法声明下的视频/音频引用只记录不接入生成参数——如实告知 Agent，防止其编造「已使用视频」
+  // SIY-165 P2：玩法声明下的视频引用已接入生成参数（videoUrls 参考视频，Seedance 系多模态模型）——
+  // 如实告知 Agent 使用事实与约束；音频暂无媒体存储仍为声明语义
   const declaredMediaNote =
     ctx.declaredMediaReferences && (ctx.declaredMediaReferences.videoIds.length || ctx.declaredMediaReferences.audioIds.length)
       ? [
           "",
-          "## 本轮非图片引用声明（重要，如实转达）",
+          "## 本轮非图片引用事实（系统事实，非推测）",
           `用户随消息声明了视频引用 mediaId=[${ctx.declaredMediaReferences.videoIds.join(", ") || "无"}]、音频引用 mediaId=[${ctx.declaredMediaReferences.audioIds.join(", ") || "无"}]。`,
-          "当前版本这些素材仅作为创作意图记录，尚未接入生成参数（videoUrls/audioUrls 接线在后续版本）；本轮生成实际可用的参考仍以上述图片 mediaId 为准。如用户明确期望视频被直接使用，请如实说明现状，不得声称已使用视频生成。",
+          "视频引用已随本轮生成参数提交（参考视频，走多模态参考模式，受模型声明上限约束）；如需确保使用，请在 request_video_params 的 prompt/引用中保持这些 mediaId 语义，或直接告知用户视频将作为参考视频参与生成。",
+          "音频引用当前版本仅作声明记录，尚未接入生成参数（暂无音频媒体存储），不得声称已使用音频生成。",
         ].join("\n")
       : "";
 
@@ -219,6 +221,7 @@ export async function runQuickVideoAgent(ctx: AgentContext) {
         placeholderSlots,
         userText: text,
         playmode: ctx.playmode,
+        declaredMediaReferences: ctx.declaredMediaReferences,
       }),
     },
     onFinish: async (completion) => {

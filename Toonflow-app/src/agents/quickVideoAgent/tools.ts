@@ -89,6 +89,8 @@ interface ToolConfig {
   userText?: string;
   /** SIY-165：用户显式选择的能力玩法 raw 声明（确认卡 mode 字段值同构）；本轮出卡锁定输入模式默认值并跳过「沿用上次参数」 */
   playmode?: string;
+  /** SIY-165 P2：玩法声明下随消息发送的非图片引用（全能参考的视频/音频），generate_video 与出卡冻结使用 */
+  declaredMediaReferences?: { videoIds: number[]; audioIds: number[] };
 }
 
 /** 按占位符编号解析引用媒体；编号无效（没有对应媒体）时返回 null */
@@ -1256,6 +1258,8 @@ export default (toolConfig: ToolConfig) => {
             imageModel: toolConfig.imageModel,
             prompt: input.prompt,
             referenceIds,
+            videoReferenceIds: toolConfig.declaredMediaReferences?.videoIds,
+            audioReferenceIds: toolConfig.declaredMediaReferences?.audioIds,
             durationTiers,
             params: { duration: input.duration },
             source: "tool",
@@ -1382,6 +1386,8 @@ export default (toolConfig: ToolConfig) => {
             durationHint: input.durationHint,
             preference,
             playmodeHint: toolConfig.playmode,
+            declaredVideoIds: toolConfig.declaredMediaReferences?.videoIds,
+            declaredAudioIds: toolConfig.declaredMediaReferences?.audioIds,
             projectRatio: String((await u.db("o_project").where("id", projectId).select("videoRatio").first())?.videoRatio ?? "16:9"),
           });
           if (!card.fields.length || !card.fields.some((f) => f.key === "mode")) {

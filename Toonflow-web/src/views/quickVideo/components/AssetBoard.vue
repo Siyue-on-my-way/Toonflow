@@ -44,8 +44,8 @@
           </div>
           <div class="qvAssetActions">
             <template v-if="item.state === 'done'">
-              <!-- SIY-164：复制仅对图片开放（复制后作为生成引用），视频无消费方不提供复制入口；点缩略图仍可放大播放 -->
-              <t-button v-if="item.kind === 'image'" size="small" variant="text" data-testid="qv-asset-copy" @click="$emit('copy', item)">{{ copyText }}</t-button>
+              <!-- SIY-165 T8：复制按钮随玩法显隐——图片恒有；视频在全能参考玩法下恢复（allowVideoCopy），点缩略图仍可放大播放 -->
+              <t-button v-if="item.kind === 'image' || allowVideoCopy" size="small" variant="text" data-testid="qv-asset-copy" @click="$emit('copy', item)">{{ copyText }}</t-button>
               <t-button v-if="item.kind === 'image'" size="small" variant="text" theme="primary" data-testid="qv-asset-set-first-frame" @click="$emit('set-first-frame', item)">{{ setFirstFrameText }}</t-button>
             </template>
             <t-tooltip v-else-if="item.state === 'failed'" :content="item.errorReason || ''">
@@ -96,6 +96,8 @@ const props = defineProps<{
   deleteConfirmText: string;
   expandText: string;
   collapseText: string;
+  /** SIY-165 T8：当前玩法（全能参考）是否放行视频复制引用；缺省 false 维持仅图片 */
+  allowVideoCopy?: boolean;
 }>();
 
 const emit = defineEmits<{
