@@ -17,6 +17,7 @@ export type QuickVideoPlaymodeId =
   | "endFrameOptional"
   | "startFrameOptional"
   | "omniReference"
+  | `omniReference:${number}`
   | "imageEdit";
 
 /** 组合声明里的引用类型（与 vendor.ts 的 imageReference/videoReference/audioReference 对齐） */
@@ -40,10 +41,13 @@ const SIMPLE_PLAYMODE_LABELS: Record<string, string> = {
   startFrameOptional: "firstFrameOptional",
 };
 
-/** 从模型目录 mode 声明解析玩法选项（畸形声明静默跳过；声明顺序即展示顺序） */
+/** 从模型目录 mode 声明解析玩法选项（畸形声明静默跳过；声明顺序即展示顺序）。
+ *  组合模式 id 唯一化：首个为 omniReference，后续加序号后缀（omniReference:2…）——
+ *  同一模型可声明多个组合（如图9 / 视频3 / 图9+视频3+音频3），同名会让菜单项无法区分。 */
 export function parsePlaymodeOptions(modes: unknown): PlaymodeOption[] {
   const list = Array.isArray(modes) ? modes : [];
   const result: PlaymodeOption[] = [];
+  let omniIndex = 0;
   for (const m of list) {
     if (typeof m === "string") {
       const labelKey = SIMPLE_PLAYMODE_LABELS[m];
@@ -54,10 +58,19 @@ export function parsePlaymodeOptions(modes: unknown): PlaymodeOption[] {
         const match = String(ref).match(/^(videoReference|imageReference|audioReference):(\d+)$/);
         if (match) refs.push({ type: match[1] as PlaymodeRefType, count: Number(match[2]) });
       }
-      if (refs.length) result.push({ id: "omniReference", labelKey: "omniReference", rawMode: m.map(String), refs });
+      if (refs.length) {
+        omniIndex += 1;
+        const id = omniIndex === 1 ? "omniReference" : `omniReference:${omniIndex}`;
+        result.push({ id: id as QuickVideoPlaymodeId, labelKey: "omniReference", rawMode: m.map(String), refs });
+      }
     }
   }
   return result;
+}
+
+/** 是否为组合参考类玩法（含唯一化后缀的 omniReference:N） */
+export function isOmniReferenceId(id: QuickVideoPlaymodeId): boolean {
+  return id === "omniReference" || id.startsWith("omniReference:");
 }
 
 /** 玩法 raw 声明 → 确认卡 input mode 字段值（mode 字段 value = JSON.stringify(mode.raw)） */
@@ -74,12 +87,12 @@ export function playmodeRefCap(option: PlaymodeOption | null, kind: "image" | "v
 
 /**
  * 守门：当前玩法是否允许某类素材作为生成引用。
- * 图片恒放行（首帧/参考图/图生图的通用消费方）；视频/音频仅在「全能参考」放行；
+ * 图片恒放行（首帧/参考图/图生图的通用消费方）；视频/音频仅在「全能参考」类玩法放行；
  * 「智能 Agent 模式」维持 SIY-164 口径（仅图片），生成意图由 Agent 意图判定。
  */
 export function playmodeAllowsKind(playmodeId: QuickVideoPlaymodeId, kind: "image" | "video" | "audio"): boolean {
   if (kind === "image") return true;
-  return playmodeId === "omniReference";
+  return isOmniReferenceId(playmodeId);
 }
 
 export interface CollectReferencesResult {

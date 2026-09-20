@@ -1808,7 +1808,10 @@
         "startEndNeedTwoImages": "首尾帧模式需要 2 张图片引用，请先复制或上传图片",
         "ref_imageReference": "图×{count}",
         "ref_videoReference": "视频×{count}",
-        "ref_audioReference": "音频×{count}"
+        "ref_audioReference": "音频×{count}",
+        "refShort_imageReference": "图{count}",
+        "refShort_videoReference": "视频{count}",
+        "refShort_audioReference": "音{count}"
       },
       "finalParams": {
         "title": "最终生成参数确认",

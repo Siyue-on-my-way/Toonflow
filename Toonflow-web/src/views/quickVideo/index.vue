@@ -220,14 +220,16 @@
                   size="small"
                   :require-single-image="activeModelType === 'video' && pendingAttachments.length > 0"
                   :disabled="status === 'pending' || status === 'streaming'" />
-                <!-- 能力玩法（SIY-165 L3）：纯元数据驱动（vendor mode 声明），单能力模型不显示；选择随消息下发并锁定确认卡输入模式默认值 -->
+                <!-- 能力玩法（SIY-165 L3）：纯元数据驱动（vendor mode 声明），单能力模型不显示；选择随消息下发并锁定确认卡输入模式默认值；
+                     popup 放开宽度防菜单项截断（反馈：截断导致用户无法分辨所选能力） -->
                 <t-dropdown
                   v-if="playmodeMenuOptions.length > 1"
                   trigger="click"
                   :disabled="status === 'pending' || status === 'streaming'"
                   :options="playmodeMenuOptions"
+                  :popup-props="{ overlayInnerStyle: { width: 'max-content', maxWidth: '60vw' } }"
                   @click="(item: any) => handlePlaymodeSelect(String(item?.value ?? ''))">
-                  <t-button size="small" variant="text" class="playmodeTrigger" data-testid="qv-playmode-trigger" :disabled="status === 'pending' || status === 'streaming'">
+                  <t-button size="small" variant="text" class="playmodeTrigger" data-testid="qv-playmode-trigger" :title="activePlaymodeLabel" :disabled="status === 'pending' || status === 'streaming'">
                     {{ activePlaymodeLabel }}
                     <template #suffix><i-chevron-down size="12" /></template>
                   </t-button>
@@ -1025,22 +1027,30 @@ const activePlaymodeOption = computed<PlaymodeOption | null>(
 );
 const activePlaymodeLabel = computed(() => {
   if (effectivePlaymodeId.value === "auto") return $t("workbench.quickVideo.playmode.auto");
-  return $t(`workbench.quickVideo.playmode.${activePlaymodeOption.value?.labelKey ?? "auto"}`);
+  const option = activePlaymodeOption.value;
+  if (!option) return $t("workbench.quickVideo.playmode.auto");
+  const base = $t(`workbench.quickVideo.playmode.${option.labelKey}`);
+  // 组合玩法带紧凑摘要（图9·视频3·音频3）：同名组合模式（图9 / 视频3 / 全组合）在按钮上也可区分
+  const summary = option.refs?.length ? `(${option.refs.map((r) => $t(`workbench.quickVideo.playmode.refShort_${r.type}`, { count: r.count })).join("·")})` : "";
+  return `${base}${summary}`;
 });
 const playmodeMenuOptions = computed(() => {
-  const omni = playmodeOptions.value.find((o) => o.id === "omniReference");
-  const summary = omni?.refs?.length
-    ? `（${omni.refs.map((r) => $t(`workbench.quickVideo.playmode.ref_${r.type}`, { count: r.count })).join(" ")}）`
-    : "";
+  // 菜单项完整显示组合摘要（SIY-165 反馈：截断导致用户无法分辨所选能力），面板宽度由 popup-props 放开
   return [
     { value: "auto", content: $t("workbench.quickVideo.playmode.auto"), active: effectivePlaymodeId.value === "auto" },
     ...playmodeOptions.value.map((o) => ({
       value: o.id,
-      content: `${$t(`workbench.quickVideo.playmode.${o.labelKey}`)}${o.id === "omniReference" ? summary : ""}`,
+      content: playmodeOptionFullLabel(o),
       active: effectivePlaymodeId.value === o.id,
     })),
   ];
 });
+function playmodeOptionFullLabel(o: PlaymodeOption): string {
+  const base = $t(`workbench.quickVideo.playmode.${o.labelKey}`);
+  if (!o.refs?.length) return base;
+  const summary = o.refs.map((r) => $t(`workbench.quickVideo.playmode.ref_${r.type}`, { count: r.count })).join(" ");
+  return `${base}（${summary}）`;
+}
 function handlePlaymodeSelect(value: string) {
   if (!["auto", ...playmodeOptions.value.map((o) => o.id)].includes(value as QuickVideoPlaymodeId)) return;
   activePlaymodeId.value = value as QuickVideoPlaymodeId;
@@ -2904,6 +2914,22 @@ onBeforeUnmount(() => {
         .modelValueSelect {
           min-width: 0;
           flex: 1;
+        }
+        /* 创作类型/玩法触发按钮（SIY-165）：单行不换行，玩法按钮允许按内容收缩并ellipsis，悬浮 title 显示全名 */
+        .creationTypeTrigger {
+          flex-shrink: 0;
+          white-space: nowrap;
+        }
+        .playmodeTrigger {
+          min-width: 0;
+          max-width: 220px;
+          white-space: nowrap;
+          overflow: hidden;
+          :deep(.t-button__text) {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
         }
       }
       /* 常驻图片参数控件（SIY-163）：模型选择器下方一行紧凑 chips，窄屏自动换行 */

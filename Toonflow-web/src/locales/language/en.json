@@ -1686,7 +1686,10 @@
         "startEndNeedTwoImages": "Start & end frames mode needs 2 image references; copy or upload images first",
         "ref_imageReference": "Img×{count}",
         "ref_videoReference": "Video×{count}",
-        "ref_audioReference": "Audio×{count}"
+        "ref_audioReference": "Audio×{count}",
+        "refShort_imageReference": "Img{count}",
+        "refShort_videoReference": "Vid{count}",
+        "refShort_audioReference": "Aud{count}"
       },
       "finalParams": {
         "title": "Final Generation Params",

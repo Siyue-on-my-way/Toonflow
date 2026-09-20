@@ -1,6 +1,6 @@
 /** 玩法选择器纯函数测试（SIY-165）：mode 元数据解析、素材类型守门、发送前收集 */
 import { describe, expect, it } from "vitest";
-import { collectReferenceIdsByPlaymode, parsePlaymodeOptions, playmodeAllowsKind, playmodeRawModeValue, playmodeRefCap } from "../playmode";
+import { collectReferenceIdsByPlaymode, isOmniReferenceId, parsePlaymodeOptions, playmodeAllowsKind, playmodeRawModeValue, playmodeRefCap } from "../playmode";
 
 describe("parsePlaymodeOptions（按模型 mode 元数据生成玩法选项）", () => {
   it("字符串模式映射为具名玩法，组合数组映射为全能参考并携带各类型上限", () => {
@@ -18,6 +18,25 @@ describe("parsePlaymodeOptions（按模型 mode 元数据生成玩法选项）",
       { type: "videoReference", count: 3 },
       { type: "audioReference", count: 3 },
     ]);
+  });
+
+  it("多个组合模式 id 唯一化（omniReference / omniReference:2…），菜单项可区分（反馈：同名截断不可辨）", () => {
+    const options = parsePlaymodeOptions([
+      "text",
+      ["imageReference:9"],
+      ["videoReference:3"],
+      ["imageReference:9", "videoReference:3", "audioReference:3"],
+    ]);
+    const ids = options.map((o) => o.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toEqual(["text", "omniReference", "omniReference:2", "omniReference:3"]);
+    expect(isOmniReferenceId("omniReference")).toBe(true);
+    expect(isOmniReferenceId("omniReference:3")).toBe(true);
+    expect(isOmniReferenceId("text")).toBe(false);
+    // 全部组合类玩法放行视频引用，守门与唯一 id 兼容
+    for (const id of ids.filter((i) => String(i).startsWith("omniReference"))) {
+      expect(playmodeAllowsKind(id as never, "video")).toBe(true);
+    }
   });
 
   it("非数组输入返回空", () => {
