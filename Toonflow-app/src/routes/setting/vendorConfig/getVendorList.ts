@@ -3,7 +3,20 @@ import { success } from "@/lib/responseFormat";
 import u from "@/utils";
 const router = express.Router();
 
+/** 敏感输入项判定：与加密落库（updateVendorInputs）同一条 key 规则，另认协议目录声明的 password 型 */
+function isSensitiveKey(key: string, inputType?: string): boolean {
+  if (inputType === "password") return true;
+  const k = key.toLowerCase();
+  return k.includes("key") || k.includes("secret") || k.includes("token");
+}
+
 export default router.post("/", async (req, res) => {
+  // 安全修复（SIY-172 审查 P0-1）：渠道密钥（含 LibTV credentialsToken=整个账号凭据）
+  // 之前解密后原样返回给任意登录用户，开放注册下等于零门槛提权。现对非 admin 统一返回掩码。
+  // admin 保持原行为：设置页表单需要回显明文、失焦全量回存（掩码写回协议需另行改造）。
+  const caller = await u.db("o_user").where("id", (req as any).user?.id).first();
+  const isAdmin = caller?.role === "admin";
+
   const data = await u.db("o_vendorConfig").select("*");
 
   const list = (
@@ -11,17 +24,18 @@ export default router.post("/", async (req, res) => {
       data.map(async (item) => {
         const vendor = u.vendor.getVendor(item.id!);
         if (!vendor) {
-          await u.db("o_vendorConfig").where("id", item.id).delete();
-          return null
-        };
+          // 读接口不做破坏性清理（SIY-172 审查发现）：残留行只跳过，由管理员显式删除
+          return null;
+        }
 
         const catalogModels = await u.vendor.getModelList(item.id!);
 
         const rawInputValues = JSON.parse(item.inputValues ?? "{}");
         const decryptedInputValues = { ...rawInputValues };
         for (const key in decryptedInputValues) {
-          if (key.toLowerCase().includes("key") || key.toLowerCase().includes("secret") || key.toLowerCase().includes("token")) {
-            decryptedInputValues[key] = u.crypto.decrypt(decryptedInputValues[key]);
+          const inputType = vendor.inputs?.find((i: any) => i.key === key)?.type;
+          if (isSensitiveKey(key, inputType)) {
+            decryptedInputValues[key] = isAdmin ? u.crypto.decrypt(decryptedInputValues[key]) : "********";
           }
         }
 
