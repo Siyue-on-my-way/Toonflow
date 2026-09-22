@@ -12,7 +12,7 @@ LibTV（liblib.tv）是 LiblibAI 的 AI 图像/视频创作画布（对标可灵
 
 ```bash
 # 安装（装到 ~/.libtv/libtv，支持 LIBTV_CLI_INSTALL_DIR 自定义目录）
-curl -fL "https://liblibai-web-static.liblib.cloud/cli/latest/install-libtv-cli.sh" | sh
+curl -fL "https://liblibai-web-static.liblib.cloud/cli/latest/install-libtv-cli.sh" | bash
 
 # 登录（必须浏览器/手机验证码，不能离线拿 token）
 libtv login web          # 凭据落在 ~/.libtv/credentials.json

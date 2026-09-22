@@ -98,3 +98,6 @@ Toonflow-web/playwright-report/
 
 # LibTV 运行时目录（凭据/画布绑定）
 data/libtv/
+
+# LibTV 运行时数据（凭据/画布绑定），禁止进 git 与镜像
+Toonflow-app/data/libtv/

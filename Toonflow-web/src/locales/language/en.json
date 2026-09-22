@@ -64,7 +64,8 @@
       "requestConfig": "Request URL",
       "about": "Check for Updates",
       "logoutConfig": "Logout",
-      "skillsSkillsManagement": "SkillsSkills Management"
+      "skillsSkillsManagement": "SkillsSkills Management",
+      "libtvAccount": "Account Binding"
     },
     "language": {
       "desc": "Select the interface display language",
@@ -555,6 +556,40 @@
         "confirmClear": "Clear",
         "cancel": "Cancel"
       }
+    },
+    "libtv": {
+      "desc": "Bind your own LibTV (liblib.tv) account: AI generation will consume that account's credits, and the canvas and artifacts belong to you. Credentials are stored encrypted on this platform only.",
+      "modeSms": "SMS Code Login",
+      "modePaste": "Paste Credentials",
+      "phone": "Phone",
+      "phonePlaceholder": "Enter 11-digit phone number",
+      "phoneInvalid": "Please enter a valid 11-digit phone number",
+      "sendCode": "Send Code",
+      "code": "Code",
+      "codePlaceholder": "Enter the 6-digit SMS code",
+      "codeInvalid": "Please enter the 6-digit code",
+      "sendOk": "Code sent",
+      "sendFailed": "Failed to send code",
+      "captchaHint": "If sending fails, LibTV may require human verification — use \"Paste Credentials\" instead.",
+      "bind": "Bind",
+      "bindOk": "Bound successfully",
+      "bindFailed": "Binding failed",
+      "pasteGuide": "Install & log in to the LibTV CLI on any computer with a browser (commands below), then paste the full content of ~/.libtv/credentials.json here:",
+      "pastePlaceholder": "Paste the full JSON content of credentials.json",
+      "boundTip": "LibTV account bound. Generation uses your own credits; the canvas and artifacts belong to you.",
+      "boundPhone": "Phone",
+      "boundAt": "Bound at",
+      "health": "Credential status",
+      "healthy": "Valid",
+      "invalid": "Expired, please re-bind",
+      "checkHealth": "Check",
+      "checkOk": "Credential is valid",
+      "unbind": "Unbind",
+      "unbindConfirm": "You will need to bind again to keep using LibTV generation. Unbind anyway?",
+      "unbindOk": "Unbound",
+      "unbindFailed": "Unbind failed",
+      "statusLoadFailed": "Failed to load binding status",
+      "cancel": "Cancel"
     }
   },
   "workbench": {
@@ -2094,6 +2129,7 @@
       "actionTaskCenter": "Open task center",
       "switchModelHint": "LibTV model cleared. Please pick a platform model and retry.",
       "replaceRefHint": "References cleared. Please replace them and retry."
-    }
+    },
+    "refresh": "Refresh"
   }
 }

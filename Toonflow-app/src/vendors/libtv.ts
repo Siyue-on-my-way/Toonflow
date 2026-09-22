@@ -36,7 +36,7 @@ export const vendor: VendorConfig = {
   description:
     "LibTV（liblib.tv）AI 创作画布渠道，通过官方 CLI 调用其聚合的生图/生视频模型（StarVideo 2.0、Nebula、Seedream 等）。\n\n" +
     "使用前提：\n" +
-    "1. 服务器安装 CLI：`curl -fL \"https://liblibai-web-static.liblib.cloud/cli/latest/install-libtv-cli.sh\" | sh`（装到 ~/.libtv/libtv）。\n" +
+    "1. 服务器安装 CLI：`curl -fL \"https://liblibai-web-static.liblib.cloud/cli/latest/install-libtv-cli.sh\" | bash`（装到 ~/.libtv/libtv）。\n" +
     "2. 登录授权：CLI 只支持浏览器/手机验证码登录。在任意一台有浏览器的机器执行 `libtv login web`，登录成功后把 `~/.libtv/credentials.json` 的完整内容粘贴到「登录凭据」输入框；或服务器本机登录后把「CLI HOME 目录」指向对应 home；K8s 部署也可用环境变量 LIBTV_CREDENTIALS 注入（Secret 挂载），优先级：设置页 > 环境变量。\n" +
     "3. 「画布项目 ID」留空会自动创建名为 Toonflow 的画布项目；也可以在网页端画布 URL 的 projectId 参数里复制一个填进来。\n\n" +
     "注意：生成会消耗 LibTV 账号积分；含真人形象的参考图会被平台合规墙拦截。",
@@ -239,7 +239,7 @@ export function createVendorAPI(inputValues: Record<string, string>) {
           if (err && (err as any).code === "ENOENT") {
             return reject(
               new Error(
-                `找不到 LibTV CLI（${getCliPath()}）。请在服务器安装：curl -fL "https://liblibai-web-static.liblib.cloud/cli/latest/install-libtv-cli.sh" | sh，或在 LibTV 渠道设置的「CLI 可执行文件路径」里填写实际路径。`,
+                `找不到 LibTV CLI（${getCliPath()}）。请在服务器安装：curl -fL "https://liblibai-web-static.liblib.cloud/cli/latest/install-libtv-cli.sh" | bash，或在 LibTV 渠道设置的「CLI 可执行文件路径」里填写实际路径。`,
               ),
             );
           }

@@ -70,7 +70,7 @@ async function runLibtv(homeDir: string, args: string[], timeoutMs: number): Pro
       (err, stdout, stderr) => {
         if (err && (err as any).code === "ENOENT") {
           cliPathCache = ""; // 路径失效，下次重解析
-          return reject(new Error("服务器未安装 LibTV CLI，请联系管理员安装（curl -fL \"https://liblibai-web-static.liblib.cloud/cli/latest/install-libtv-cli.sh\" | sh）"));
+          return reject(new Error("服务器未安装 LibTV CLI，请联系管理员安装（curl -fL \"https://liblibai-web-static.liblib.cloud/cli/latest/install-libtv-cli.sh\" | bash）"));
         }
         resolve({ code: err ? Number((err as any).code) || 1 : 0, stdout: String(stdout ?? ""), stderr: String(stderr ?? "") });
       },

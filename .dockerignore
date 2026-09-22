@@ -21,6 +21,8 @@ volumes/
 
 # data/web 为旧内嵌前端遗留，前端现由阶段 1 重新构建，不再随镜像分发
 Toonflow-app/data/web
+# LibTV 运行时数据（含凭据），禁止烘进镜像
+Toonflow-app/data/libtv
 
 # 敏感配置
 **/.env

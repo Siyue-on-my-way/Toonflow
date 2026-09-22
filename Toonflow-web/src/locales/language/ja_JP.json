@@ -64,7 +64,8 @@
       "requestConfig": "リクエストURL",
       "about": "アップデートの確認",
       "logoutConfig": "ログアウト",
-      "skillsSkillsManagement": "スキルスキル管理"
+      "skillsSkillsManagement": "スキルスキル管理",
+      "libtvAccount": "アカウント連携"
     },
     "language": {
       "desc": "インターフェースの表示言語を選択します",
@@ -433,6 +434,40 @@
       "devtoolsDesc2": "このディレクトリで npx {'@'}ai-sdk/devtools を実行して、テレメトリのデバッグを有効にします",
       "openDevtoolFailed": "開発者ツールを開けませんでした。Toonflow デスクトップがインストールされていることを確認してください",
       "notInElectron": "WEB環境の場合はブラウザコンソールを手動で開いてください"
+    },
+    "libtv": {
+      "desc": "自分の LibTV（liblib.tv）アカウントを連携すると、生成はそのアカウントのクレジットを消費し、キャンバスと成果物はあなたのものになります。認証情報は当プラットフォーム内で暗号化して保存します。",
+      "modeSms": "SMS認証コード",
+      "modePaste": "認証情報を貼り付け",
+      "phone": "電話番号",
+      "phonePlaceholder": "11桁の電話番号を入力",
+      "phoneInvalid": "正しい11桁の電話番号を入力してください",
+      "sendCode": "コード送信",
+      "code": "認証コード",
+      "codePlaceholder": "6桁のSMSコードを入力",
+      "codeInvalid": "6桁の認証コードを入力してください",
+      "sendOk": "コードを送信しました",
+      "sendFailed": "コード送信に失敗しました",
+      "captchaHint": "送信に失敗した場合、LibTV が認証（キャプチャ）を求めている可能性があります。「認証情報を貼り付け」をご利用ください。",
+      "bind": "連携する",
+      "bindOk": "連携しました",
+      "bindFailed": "連携に失敗しました",
+      "pasteGuide": "ブラウザのある PC に LibTV CLI をインストールしてログインし（下記コマンド）、~/.libtv/credentials.json の内容をすべて貼り付けてください：",
+      "pastePlaceholder": "credentials.json の JSON 全文を貼り付け",
+      "boundTip": "LibTV アカウント連携済み。生成は自分のクレジットを使用し、キャンバスと成果物はあなたのものです。",
+      "boundPhone": "電話番号",
+      "boundAt": "連携日時",
+      "health": "認証情報の状態",
+      "healthy": "有効",
+      "invalid": "無効です。再連携してください",
+      "checkHealth": "確認",
+      "checkOk": "認証情報は有効です",
+      "unbind": "連携解除",
+      "unbindConfirm": "解除後は再度連携しないと LibTV 生成を利用できません。解除しますか？",
+      "unbindOk": "解除しました",
+      "unbindFailed": "解除に失敗しました",
+      "statusLoadFailed": "連携状態の取得に失敗しました",
+      "cancel": "キャンセル"
     }
   },
   "workbench": {
@@ -1508,7 +1543,8 @@
       "actionTaskCenter": "タスクセンターを開く",
       "switchModelHint": "LibTV モデルの選択を解除しました。プラットフォームモデルを選んで再試行してください。",
       "replaceRefHint": "参照画像をクリアしました。差し替えてから再試行してください。"
-    }
+    },
+    "refresh": "更新"
   },
   "components.storyboardImageCheck.camera": "カメラ",
   "components.storyboardImageCheck.dialogTitle": "絵コンテ画像を選択",

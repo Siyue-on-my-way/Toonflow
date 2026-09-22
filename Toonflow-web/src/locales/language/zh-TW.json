@@ -72,7 +72,8 @@
       "requestConfig": "請求網址",
       "about": "檢查更新",
       "logoutConfig": "登出",
-      "skillsSkillsManagement": "Skills技能管理"
+      "skillsSkillsManagement": "Skills技能管理",
+      "libtvAccount": "帳號綁定"
     },
     "language": {
       "desc": "選擇介面顯示語言",
@@ -437,6 +438,40 @@
       "devtoolsDesc": "開啟後會在Toonflow安裝目錄建立.devtools資料夾，請確保Toonflow有寫入權限（管理員身分執行）。",
       "openDevtoolFailed": "開啟開發者工具失敗，請確保已安裝Toonflow桌面端",
       "notInElectron": "WEB環境請手動開啟瀏覽器控制台"
+    },
+    "libtv": {
+      "desc": "綁定你自己的 LibTV（liblib.tv）帳號後，AI 生成將消耗該帳號的點數，畫布與產物歸你所有；憑證僅加密保存在本平台。",
+      "modeSms": "簡訊驗證碼登入",
+      "modePaste": "貼上憑證登入",
+      "phone": "手機號",
+      "phonePlaceholder": "請輸入 11 位手機號",
+      "phoneInvalid": "請輸入正確的 11 位手機號",
+      "sendCode": "發送驗證碼",
+      "code": "驗證碼",
+      "codePlaceholder": "請輸入 6 位簡訊驗證碼",
+      "codeInvalid": "請輸入 6 位數字驗證碼",
+      "sendOk": "驗證碼已發送",
+      "sendFailed": "驗證碼發送失敗",
+      "captchaHint": "若發送失敗，可能是 LibTV 要求人工驗證，請改用「貼上憑證登入」。",
+      "bind": "完成綁定",
+      "bindOk": "綁定成功",
+      "bindFailed": "綁定失敗",
+      "pasteGuide": "在任意一台有瀏覽器的電腦上安裝並登入 LibTV CLI（命令如下），然後把 ~/.libtv/credentials.json 檔案的完整內容貼到下方：",
+      "pastePlaceholder": "貼上 credentials.json 的完整 JSON 內容",
+      "boundTip": "已綁定 LibTV 帳號，生成將使用你自己的帳號點數，畫布與產物歸你所有。",
+      "boundPhone": "綁定手機號",
+      "boundAt": "綁定時間",
+      "health": "憑證狀態",
+      "healthy": "有效",
+      "invalid": "已失效，請重新綁定",
+      "checkHealth": "檢查可用性",
+      "checkOk": "憑證可用",
+      "unbind": "解除綁定",
+      "unbindConfirm": "解綁後需要重新綁定才能繼續使用 LibTV 生成，確定解綁嗎？",
+      "unbindOk": "已解綁",
+      "unbindFailed": "解綁失敗",
+      "statusLoadFailed": "綁定狀態查詢失敗",
+      "cancel": "取消"
     }
   },
   "workbench": {
@@ -1542,7 +1577,8 @@
       "actionTaskCenter": "查看任務中心",
       "switchModelHint": "已清除 LibTV 模型選擇，請改選平台模型後重試",
       "replaceRefHint": "已清空參考圖選擇，請替換後重試"
-    }
+    },
+    "refresh": "重新整理"
   },
   "storyboard": {
     "assets": {

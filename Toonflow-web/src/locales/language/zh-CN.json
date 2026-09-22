@@ -104,7 +104,8 @@
       "devConfig": "开发者选项",
       "about": "检查更新",
       "logoutConfig": "退出登录",
-      "skillsSkillsManagement": "Skills技能管理"
+      "skillsSkillsManagement": "Skills技能管理",
+      "libtvAccount": "账号绑定"
     },
     "language": {
       "desc": "选择界面显示语言",
@@ -668,6 +669,40 @@
     },
     "generate": {
       "modelChnageSure": "确认清空"
+    },
+    "libtv": {
+      "desc": "绑定你自己的 LibTV（liblib.tv）账号后，AI 生成将消耗该账号的积分，画布与产物归你所有；凭据仅加密保存在本平台。",
+      "modeSms": "短信验证码登录",
+      "modePaste": "粘贴凭据登录",
+      "phone": "手机号",
+      "phonePlaceholder": "请输入 11 位手机号",
+      "phoneInvalid": "请输入正确的 11 位手机号",
+      "sendCode": "发送验证码",
+      "code": "验证码",
+      "codePlaceholder": "请输入 6 位短信验证码",
+      "codeInvalid": "请输入 6 位数字验证码",
+      "sendOk": "验证码已发送",
+      "sendFailed": "验证码发送失败",
+      "captchaHint": "若发送失败，可能是 LibTV 要求人机验证，请改用「粘贴凭据登录」。",
+      "bind": "完成绑定",
+      "bindOk": "绑定成功",
+      "bindFailed": "绑定失败",
+      "pasteGuide": "在任意一台有浏览器的电脑上安装并登录 LibTV CLI（命令如下），然后把 ~/.libtv/credentials.json 文件的完整内容粘贴到下方：",
+      "pastePlaceholder": "粘贴 credentials.json 的完整 JSON 内容",
+      "boundTip": "已绑定 LibTV 账号，生成将使用你自己的账号积分，画布与产物归你所有。",
+      "boundPhone": "绑定手机号",
+      "boundAt": "绑定时间",
+      "health": "凭据状态",
+      "healthy": "有效",
+      "invalid": "已失效，请重新绑定",
+      "checkHealth": "检查可用性",
+      "checkOk": "凭据可用",
+      "unbind": "解除绑定",
+      "unbindConfirm": "解绑后需要重新绑定才能继续使用 LibTV 生成，确定解绑吗？",
+      "unbindOk": "已解绑",
+      "unbindFailed": "解绑失败",
+      "statusLoadFailed": "绑定状态查询失败",
+      "cancel": "取消"
     }
   },
   "workbench": {
@@ -2088,7 +2123,8 @@
       "actionTaskCenter": "查看任务中心",
       "switchModelHint": "已清除 LibTV 模型选择，请改选平台模型后重试",
       "replaceRefHint": "已清空参考图选择，请替换后重试"
-    }
+    },
+    "refresh": "刷新"
   },
   "workbench.project.msg.enterProjectQuality": "请选择图片质量",
   "promptManage": {

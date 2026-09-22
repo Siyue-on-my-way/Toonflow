@@ -63,7 +63,8 @@
       "requestConfig": "Địa chỉ yêu cầu (API)",
       "about": "Kiểm tra cập nhật",
       "logoutConfig": "Đăng xuất",
-      "skillsSkillsManagement": "Kỹ năngQuản lý kỹ năng"
+      "skillsSkillsManagement": "Kỹ năngQuản lý kỹ năng",
+      "libtvAccount": "Liên kết tài khoản"
     },
     "language": {
       "desc": "Chọn ngôn ngữ hiển thị giao diện",
@@ -424,6 +425,40 @@
       "devtoolsDesc2": "Chạy npx {'@'}ai-sdk/devtools trong thư mục này để bật gỡ lỗi đo từ xa",
       "openDevtoolFailed": "Không mở được công cụ dành cho nhà phát triển, vui lòng đảm bảo đã cài đặt Toonflow desktop",
       "notInElectron": "Đối với môi trường WEB, vui lòng mở bảng điều khiển trình duyệt theo cách thủ công"
+    },
+    "libtv": {
+      "desc": "Liên kết tài khoản LibTV (liblib.tv) của bạn: việc tạo sẽ dùng tín dụng của tài khoản đó, canvas và sản phẩm thuộc về bạn. Thông tin xác thực chỉ được mã hóa lưu trên nền tảng này.",
+      "modeSms": "Đăng nhập bằng mã SMS",
+      "modePaste": "Dán thông tin xác thực",
+      "phone": "Số điện thoại",
+      "phonePlaceholder": "Nhập số điện thoại 11 số",
+      "phoneInvalid": "Vui lòng nhập số điện thoại 11 số hợp lệ",
+      "sendCode": "Gửi mã",
+      "code": "Mã xác minh",
+      "codePlaceholder": "Nhập mã SMS 6 số",
+      "codeInvalid": "Vui lòng nhập mã 6 số",
+      "sendOk": "Đã gửi mã",
+      "sendFailed": "Gửi mã thất bại",
+      "captchaHint": "Nếu gửi thất bại, LibTV có thể yêu cầu xác minh người thật — hãy dùng \"Dán thông tin xác thực\".",
+      "bind": "Liên kết",
+      "bindOk": "Liên kết thành công",
+      "bindFailed": "Liên kết thất bại",
+      "pasteGuide": "Cài đặt & đăng nhập LibTV CLI trên máy có trình duyệt (lệnh bên dưới), rồi dán toàn bộ nội dung ~/.libtv/credentials.json vào đây:",
+      "pastePlaceholder": "Dán toàn bộ nội dung JSON của credentials.json",
+      "boundTip": "Đã liên kết tài khoản LibTV. Việc tạo sẽ dùng tín dụng của bạn; canvas và sản phẩm thuộc về bạn.",
+      "boundPhone": "Số điện thoại",
+      "boundAt": "Thời gian liên kết",
+      "health": "Trạng thái xác thực",
+      "healthy": "Còn hạn",
+      "invalid": "Hết hạn, vui lòng liên kết lại",
+      "checkHealth": "Kiểm tra",
+      "checkOk": "Thông tin xác thực hợp lệ",
+      "unbind": "Hủy liên kết",
+      "unbindConfirm": "Sau khi hủy bạn phải liên kết lại mới dùng được LibTV. Xác nhận hủy?",
+      "unbindOk": "Đã hủy",
+      "unbindFailed": "Hủy thất bại",
+      "statusLoadFailed": "Tải trạng thái liên kết thất bại",
+      "cancel": "Hủy"
     }
   },
   "workbench": {
@@ -1500,7 +1535,8 @@
       "actionTaskCenter": "Mở trung tâm tác vụ",
       "switchModelHint": "Đã bỏ chọn mô hình LibTV, vui lòng chọn mô hình nền tảng rồi thử lại",
       "replaceRefHint": "Đã xóa ảnh tham chiếu, vui lòng thay mới rồi thử lại"
-    }
+    },
+    "refresh": "Làm mới"
   },
   "components.storyboardImageCheck.camera": "Máy quay",
   "components.storyboardImageCheck.dialogTitle": "Chọn hình storyboard",
