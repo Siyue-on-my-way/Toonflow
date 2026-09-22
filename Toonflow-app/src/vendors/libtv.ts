@@ -160,6 +160,15 @@ const VIDEO_RESOLUTIONS = ["480p", "720p", "1080p", "4k"];
 const VIDEO_DURATION_MIN = 4;
 const VIDEO_DURATION_MAX = 15;
 
+// ===== 模块级跨实例共享状态（每任务都会新建 createVendorAPI 实例，闭包内缓存等于没有缓存）=====
+// 登录态：按 HOME 目录分键（用户级绑定 = 每用户独立 HOME）
+const loginOkUntilByKey = new Map<string, number>();
+// 画布绑定去重：按 workDir+目标项目分键。并发首次生成时各任务共享同一份 in-flight 绑定 Promise，
+// 否则 N 个并发 ensureProject 会各自 project create 出 N 个重复画布（且 bindFile last-writer-wins 会让先建节点的任务查不到节点）
+const projectBindingsByKey = new Map<string, Promise<string>>();
+// 模型显示名缓存：LibTV 目录是平台级的（非账号私有），可跨用户/实例共享
+const sharedModelNameCache = new Map<string, { value: string; until: number }>();
+
 export function createVendorAPI(inputValues: Record<string, string>) {
   // ============================================================
   // CLI 执行环境（登录凭据、项目绑定、子进程封装）
@@ -212,7 +221,7 @@ export function createVendorAPI(inputValues: Record<string, string>) {
     } catch (e) {}
     fs.mkdirSync(path.dirname(credPath), { recursive: true });
     fs.writeFileSync(credPath, token, { mode: 0o600 });
-    loginOkUntil = 0; // 凭据变更后强制重新校验登录
+    loginOkUntilByKey.set(getHomeDir(), 0); // 凭据变更后强制重新校验登录
   };
 
   /** 执行一条 CLI 命令。HOME 指向托管目录，凭据与项目绑定都隔离在 Toonflow 数据目录里。 */
@@ -256,10 +265,14 @@ export function createVendorAPI(inputValues: Record<string, string>) {
     return new Error(`LibTV CLI ${action} 失败:\n${detail}`);
   };
 
-  let loginOkUntil = 0;
+  // loginOkUntil 挂在实例闭包里会随"每任务新建实例"而失效（ai.ts/libtvImport.ts 每次调用都新建），
+  // 提升为模块级并按 HOME 目录分键，跨实例、跨任务共享登录态
+  const homeKey = getHomeDir();
+  if (!loginOkUntilByKey.has(homeKey)) loginOkUntilByKey.set(homeKey, 0);
+  const loginOkUntil = loginOkUntilByKey.get(homeKey)!;
   /** 登录检查（审计结论：account info 成功退出是唯一可靠的登录证明；结果缓存 10 分钟） */
   const ensureLogin = async (): Promise<void> => {
-    if (Date.now() < loginOkUntil) return;
+    if (Date.now() < loginOkUntilByKey.get(homeKey)!) return;
     const r = await runCli(["account", "info"], 30000);
     if (r.code !== 0) {
       throw new LibtvError(
@@ -268,11 +281,11 @@ export function createVendorAPI(inputValues: Record<string, string>) {
           `\nCLI 输出: ${(r.stderr || r.stdout || "").trim().slice(0, 300)}`,
       );
     }
-    loginOkUntil = Date.now() + 10 * 60 * 1000;
+    loginOkUntilByKey.set(homeKey, Date.now() + 10 * 60 * 1000);
   };
 
-  /** 绑定画布项目（写 <workDir>/.libtv/project.json），绑定后 node/upload 不用再带 -p。按 workDir+项目隔离缓存，并发调用共享同一次绑定。 */
-  const projectBindings = new Map<string, Promise<string>>();
+  /** 绑定画布项目（写 <workDir>/.libtv/project.json），绑定后 node/upload 不用再带 -p。按 workDir+项目隔离缓存（模块级，跨实例共享），并发调用共享同一次绑定。 */
+  const projectBindings = projectBindingsByKey;
   const ensureProject = async (): Promise<string> => {
     const workDir = getWorkDir();
     const wanted = (inputValues.projectId ?? "").trim();
@@ -321,7 +334,7 @@ export function createVendorAPI(inputValues: Record<string, string>) {
   // 模型显示名解析（-s model= 要的是显示名，schema 查询用的是 modelKey）
   // ============================================================
 
-  const modelNameCache = new Map<string, { value: string; until: number }>();
+  const modelNameCache = sharedModelNameCache;
   const resolveModelDisplayName = async (type: "image" | "video", schemaKey: string): Promise<string> => {
     const cacheKey = `${type}:${schemaKey}`;
     const cached = modelNameCache.get(cacheKey);
@@ -509,7 +522,15 @@ export function createVendorAPI(inputValues: Record<string, string>) {
 
   const pollNodeResult = async (nodeName: string, kind: "image" | "video", intervalMs: number, timeoutMs: number): Promise<string> => {
     const result = await pollTask(async (): Promise<PollResult> => {
-      const r = await runCli(["node", nodeName], 60000);
+      let r: { code: number; stdout: string; stderr: string };
+      try {
+        r = await runCli(["node", nodeName], 60000);
+      } catch (e: any) {
+        // 查询本身失败（含 CLI 超时、CLI 缺失外的瞬时错误）不算生成失败，下一轮重试。
+        // 不捕获的话 rejection 会直接终止整个轮询，把跑了十几分钟的生成废掉（runCli 超时走 reject 而非非零退出码）。
+        logger(`[LibTV] 查询节点 ${nodeName} 异常，下一轮重试: ${String(e?.message ?? e).slice(0, 200)}`);
+        return { completed: false };
+      }
       // 查询本身失败（含 CLI 超时）不算生成失败，下一轮重试
       if (r.code !== 0 && !r.stdout.trim()) {
         logger(`[LibTV] 查询节点 ${nodeName} 出错，继续轮询: ${(r.stderr || "").trim().slice(0, 200)}`);
