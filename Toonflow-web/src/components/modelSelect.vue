@@ -25,7 +25,15 @@
             <t-avatar v-else size="24px" shape="round" class="fallbackAvatar">{{ getFallbackText(item.label) }}</t-avatar>
             <div class="optionLabel">{{ item.label }}</div>
           </div>
-          <span class="optionType">{{ item.type }}</span>
+          <div class="optionRight">
+            <span class="libtvBound" v-if="item.id === 'libtv' && libtvBound === true">
+              <span class="boundDot"></span>{{ $t("components.modelSelect.libtv.bound") }}
+            </span>
+            <t-tag v-else-if="item.id === 'libtv' && libtvBound === false" size="small" theme="warning" variant="light">
+              {{ $t("components.modelSelect.libtv.consumeCredits") }}
+            </t-tag>
+            <span class="optionType">{{ item.type }}</span>
+          </div>
         </div>
       </t-option>
     </t-option-group>
@@ -42,6 +50,9 @@
 
 <script setup lang="ts">
 import { providersLogo, modelProviderRules } from "@/utils/providersLogo";
+import { isLibtvModel } from "@/utils/libtvError";
+import openLibtvBindDialog from "@/utils/libtvBindDialog";
+import { MessagePlugin } from "tdesign-vue-next";
 import settingStore from "@/stores/setting";
 
 import axios from "@/utils/axios";
@@ -104,6 +115,27 @@ const emit = defineEmits<{
 async function onChange(value: any, { option }: any) {
   selectValue.value = value;
   selectValueLabel.value = option.label;
+  // LibTV 渠道消耗的是用户自己绑定账号的积分：未绑定时选中不阻断，
+  // 就地弹出绑定小浮层（短信验证码/粘贴凭据），绑定成功自动恢复刚才的选择；
+  // 点「换用平台模型」则清掉选择，回到平台模型。
+  if (isLibtvModel(value) && libtvBound.value === false) {
+    const result = await openLibtvBindDialog({ showSwitchModel: true });
+    if (result === true) {
+      libtvBound.value = true;
+      emit("change", value);
+      return;
+    }
+    if (result === "switch") {
+      selectValue.value = "";
+      selectValueLabel.value = "";
+      MessagePlugin.info(window.$t("components.modelSelect.libtv.switchedToPlatform"));
+      emit("change", "");
+      return;
+    }
+    // 直接关闭浮层：保持已选中的 LibTV 模型（不阻断），生成时会再给出引导
+    emit("change", value);
+    return;
+  }
   if (props.changeConfig) {
     const { data } = await axios.post("/modelSelect/getModelDetail", {
       modelId: value,
@@ -134,13 +166,27 @@ const displayedGroups = computed<VendorOption[]>(() => {
   });
 });
 
+// LibTV 用户绑定状态：null=未加载（选项上不显示权益标识），true=已绑定（绿点），false=未绑定（积分提示 + 选中弹绑定浮层）
+const libtvBound = ref<boolean | null>(null);
+const hasLibtvGroup = computed(() => optionsData.value.some((g) => g.id === "libtv"));
+async function refreshLibtvBound() {
+  if (!hasLibtvGroup.value) return;
+  try {
+    const res: any = await axios.post("/setting/vendorConfig/libtv/bindingStatus");
+    if (res.code === 200) libtvBound.value = !!res.data?.bound;
+  } catch (e) {
+    // 状态拿不到就维持原值，不阻塞选择器
+  }
+}
 onMounted(() => {
   handleModelChange();
+  refreshLibtvBound();
 });
 
 function onPopupVisibleChange(visible: boolean) {
   if (visible) {
     handleModelChange();
+    refreshLibtvBound();
   }
 }
 const titleMap = {
@@ -228,6 +274,30 @@ function goVendorConfig() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.optionRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.libtvBound {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--td-success-color);
+  white-space: nowrap;
+
+  .boundDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--td-success-color);
+    display: inline-block;
+  }
 }
 
 .optionType {

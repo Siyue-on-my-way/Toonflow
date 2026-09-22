@@ -205,6 +205,16 @@ import route201 from "./routes/task/getTaskCategories";
 import route202 from "./routes/task/taskDetails";
 import route203 from "./routes/test/test";
 import route203b from "./routes/quickVideo/updateMediaParams";
+import routeLibtv1 from "./routes/setting/vendorConfig/libtv/bindingStatus";
+import routeLibtv2 from "./routes/setting/vendorConfig/libtv/bindCredentials";
+import routeLibtv3 from "./routes/setting/vendorConfig/libtv/sendSms";
+import routeLibtv4 from "./routes/setting/vendorConfig/libtv/unbind";
+import routeLibtv5 from "./routes/setting/vendorConfig/libtv/verifySms";
+import routeLibtv6 from "./routes/setting/vendorConfig/libtv/checkHealth";
+import routeLibtv7 from "./routes/setting/vendorConfig/libtv/projects";
+import routeLibtv8 from "./routes/setting/vendorConfig/libtv/projectNodes";
+import routeLibtv9 from "./routes/setting/vendorConfig/libtv/importAssets";
+import routeLibtv10 from "./routes/setting/vendorConfig/libtv/syncModels";
 
 export default async (app: Express) => {
   app.use("/api/agents/clearMemory", route1);
@@ -411,4 +421,14 @@ export default async (app: Express) => {
   app.use("/api/task/getTaskCategories", route201);
   app.use("/api/task/taskDetails", route202);
   app.use("/api/test/test", route203);
+  app.use("/api/setting/vendorConfig/libtv/bindingStatus", routeLibtv1);
+  app.use("/api/setting/vendorConfig/libtv/bindCredentials", routeLibtv2);
+  app.use("/api/setting/vendorConfig/libtv/sendSms", routeLibtv3);
+  app.use("/api/setting/vendorConfig/libtv/unbind", routeLibtv4);
+  app.use("/api/setting/vendorConfig/libtv/verifySms", routeLibtv5);
+  app.use("/api/setting/vendorConfig/libtv/checkHealth", routeLibtv6);
+  app.use("/api/setting/vendorConfig/libtv/projects", routeLibtv7);
+  app.use("/api/setting/vendorConfig/libtv/projectNodes", routeLibtv8);
+  app.use("/api/setting/vendorConfig/libtv/importAssets", routeLibtv9);
+  app.use("/api/setting/vendorConfig/libtv/syncModels", routeLibtv10);
 }

@@ -10,7 +10,8 @@
             </div>
           </template>
 
-          <div class="panelContent">
+          <libtvImport v-if="item.value === 'libtvImport'" @imported="onLibtvImported" />
+          <div class="panelContent" v-else>
             <div class="toolbar">
               <t-space>
                 <t-button theme="primary" @click="handleAdd(item.value)">
@@ -452,6 +453,7 @@ import type { TabValue, TableProps } from "tdesign-vue-next";
 import addAssets from "./components/addAssets.vue";
 import addAudioAssets from "./components/addAudioAssets.vue";
 import generateImage from "./components/generateImage.vue";
+import libtvImport from "./components/libtvImport.vue";
 import libraryPicker from "./components/libraryPicker.vue";
 import projectStore from "@/stores/project";
 import settingStore from "@/stores/setting";
@@ -494,6 +496,11 @@ const { project } = storeToRefs(projectStore());
 
 const allThemeData = [
   {
+    name: $t("workbench.assets.libtvImport.tab"),
+    value: "libtvImport",
+    icon: "i-cloud-download",
+  },
+  {
     name: $t("workbench.assets.role"),
     value: "role",
     icon: "i-permissions",
@@ -519,10 +526,12 @@ const allThemeData = [
     icon: "i-audio-file",
   },
 ];
-const themeData = ref(props.allowedTypes?.length ? allThemeData.filter((item) => props.allowedTypes!.includes(item.value as any)) : allThemeData);
+// libtvImport 是资源入口标签，不受 allowedTypes 限制（选择器弹窗里也要能看到「从 LibTV 导入」）
+const themeData = ref(allThemeData.filter((item) => item.value === "libtvImport" || !props.allowedTypes?.length || props.allowedTypes!.includes(item.value as any)));
 
-const initialTab = (themeData.value[0]?.value || "role") as "role" | "tool" | "scene" | "clip";
-const assetOptions = ref<"role" | "tool" | "scene" | "clip" | "audio">(initialTab);
+// 默认仍落在资产类型标签上；libtvImport 是资源入口标签，只置顶不抢占默认视图
+const initialTab = (themeData.value.find((item) => item.value !== "libtvImport")?.value || "role") as "role" | "tool" | "scene" | "clip";
+const assetOptions = ref<"role" | "tool" | "scene" | "clip" | "audio" | "libtvImport">(initialTab);
 const searchText = ref("");
 
 const tabNameMap: Record<string, string> = {
@@ -600,6 +609,8 @@ async function getFilteredData(type: string) {
 }
 // 加载当前标签的数据
 async function loadCurrentTabData() {
+  // libtvImport 标签自带数据加载，不需要走资产列表接口
+  if (assetOptions.value === "libtvImport") return;
   let type = "";
   if (assetOptions.value === "role") {
     type = "角色";
@@ -621,6 +632,14 @@ function selectAssetOptions(value: TabValue) {
   expandedRowKeys.value = [];
   pagination.value.page = 1;
   loadCurrentTabData();
+}
+
+/** 「从 LibTV 导入」完成：切到素材标签并刷新，导入的产物立即可选可用 */
+async function onLibtvImported() {
+  assetOptions.value = "clip";
+  pagination.value.page = 1;
+  searchText.value = "";
+  await getFilteredData("clip");
 }
 const formData = ref<{ id: number; name: string; describe: string; remark: string; src?: string; prompt: string }>({
   id: 0,

@@ -40,7 +40,12 @@
         "fetchModelFailed": "取得模型資料失敗:"
       },
       "goSetting": "去設定中加入模型",
-      "singleImageUnsupported": "該模型不支援以圖片為首幀的圖生視頻，請選擇支援首幀輸入的模型"
+      "singleImageUnsupported": "該模型不支援以圖片為首幀的圖生視頻，請選擇支援首幀輸入的模型",
+      "libtv": {
+        "consumeCredits": "消耗我的 LibTV 積分",
+        "bound": "已綁定",
+        "switchedToPlatform": "已取消選擇 LibTV 模型，請選擇平台模型"
+      }
     },
     "update": {
       "title": "發現新版本",
@@ -198,7 +203,10 @@
       "noAvailableModels": "暫無可啟用的模型，請聯繫管理員在協議目錄中添加",
       "enableModel": "啟用",
       "modelStatusEnabled": "已啟用",
-      "modelStatusDisabled": "已停用"
+      "modelStatusDisabled": "已停用",
+      "syncLibtvModels": "同步模型目錄",
+      "syncLibtvModelsOk": "已同步 {total} 個 LibTV 模型，新增 {added} 個（預設停用，請按需啟用）",
+      "syncLibtvModelsFail": "同步模型目錄失敗"
     },
     "agent": {
       "bannerDesc": "推薦使用官方DeepSeek V4",
@@ -981,7 +989,30 @@
       },
       "confirmCancellation": "確定取消",
       "confirmAgain": "確認取消嗎？\n取消之後後台AI會繼續調取扣費",
-      "sure": "確定"
+      "sure": "確定",
+      "libtvImport": {
+        "tab": "從 LibTV 匯入",
+        "needBindTitle": "還沒有綁定 LibTV 帳號",
+        "needBindDesc": "綁定後可把你在 LibTV 畫布上的圖/影片/音訊一鍵收編進素材庫（一次性匯入，唯讀不寫回）。",
+        "selectProjectPh": "選擇 LibTV 畫布專案",
+        "filterAll": "全部",
+        "filterImage": "圖片",
+        "filterVideo": "影片",
+        "filterAudio": "音訊",
+        "importSelected": "匯入所選",
+        "importedTag": "已匯入",
+        "noNodes": "該畫布沒有可匯入的產物節點",
+        "chooseProject": "先選擇一個畫布專案",
+        "loadProjectsFailed": "取得畫布專案清單失敗",
+        "loadNodesFailed": "讀取畫布節點失敗",
+        "needProject": "請先在頁面上方選擇一個專案",
+        "importOk": "匯入成功，已存入素材庫",
+        "importFailed": "匯入失敗",
+        "importedCount": "成功匯入 {count} 個",
+        "skippedCount": "跳過已匯入 {count} 個",
+        "failedCount": "失敗 {count} 個",
+        "summaryJoin": "，"
+      }
     },
     "production": {
       "selectPlaceholder": "請選擇劇集",
@@ -1494,7 +1525,24 @@
     "submitting": "提交中",
     "editSuccess": "修改成功",
     "editFailed": "修改失敗",
-    "submit": "提交"
+    "submit": "提交",
+    "bindLibtvAccount": "綁定 LibTV 帳號",
+    "switchPlatformModel": "改用平台模型",
+    "libtvError": {
+      "needBindTitle": "該模型需要綁定你的 LibTV 帳號",
+      "expiredTitle": "LibTV 授權已過期",
+      "creditsTitle": "你的 LibTV 積分不足",
+      "complianceTitle": "參考圖含真人形象被平台拒絕",
+      "timeoutTitle": "生成時間較長，已轉入後台",
+      "unknownTitle": "LibTV 生成失敗",
+      "actionRebind": "重新綁定",
+      "actionRecharge": "前往 LibTV 儲值",
+      "actionSwitchModel": "換平台模型",
+      "actionReplaceRef": "替換參考圖",
+      "actionTaskCenter": "查看任務中心",
+      "switchModelHint": "已清除 LibTV 模型選擇，請改選平台模型後重試",
+      "replaceRefHint": "已清空參考圖選擇，請替換後重試"
+    }
   },
   "storyboard": {
     "assets": {

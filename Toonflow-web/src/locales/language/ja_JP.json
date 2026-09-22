@@ -40,7 +40,12 @@
         "fetchModelFailed": "モデルデータの取得に失敗しました:"
       },
       "goSetting": "設定に移動してモデルを追加します",
-      "singleImageUnsupported": "このモデルは画像を先頭フレームとする画像からの動画生成に対応していません。対応モデルを選択してください"
+      "singleImageUnsupported": "このモデルは画像を先頭フレームとする画像からの動画生成に対応していません。対応モデルを選択してください",
+      "libtv": {
+        "consumeCredits": "私の LibTV クレジットを消費",
+        "bound": "連携済み",
+        "switchedToPlatform": "LibTV モデルの選択を解除しました。プラットフォームモデルを選択してください。"
+      }
     }
   },
   "settings": {
@@ -190,7 +195,10 @@
       "noAvailableModels": "有効にできるモデルがありません。管理者にプロトコルカタログへの追加を依頼してください。",
       "enableModel": "有効化",
       "modelStatusEnabled": "有効",
-      "modelStatusDisabled": "無効"
+      "modelStatusDisabled": "無効",
+      "syncLibtvModels": "モデルカタログを同期",
+      "syncLibtvModelsOk": "LibTV モデル {total} 件を同期し、{added} 件を追加しました（デフォルト無効、必要に応じて有効化）",
+      "syncLibtvModelsFail": "モデルカタログの同期に失敗しました"
     },
     "agent": {
       "bannerDesc": "公式の DeepSeek V4 を使用することをお勧めします。",
@@ -977,7 +985,30 @@
       },
       "confirmCancellation": "キャンセルの確認",
       "confirmAgain": "キャンセルを確認しますか?キャンセル後も、バックエンド AI は控除を要求し続けます。",
-      "sure": "もちろん"
+      "sure": "もちろん",
+      "libtvImport": {
+        "tab": "LibTV からインポート",
+        "needBindTitle": "LibTV アカウントが未連携です",
+        "needBindDesc": "連携後、LibTV キャンバス上の画像/動画/音声を一括でアセットライブラリに取り込めます（一回限りの取り込み、読み取り専用）。",
+        "selectProjectPh": "LibTV キャンバスプロジェクトを選択",
+        "filterAll": "すべて",
+        "filterImage": "画像",
+        "filterVideo": "動画",
+        "filterAudio": "音声",
+        "importSelected": "選択をインポート",
+        "importedTag": "取り込み済み",
+        "noNodes": "このキャンバスに取り込める成果ノードがありません",
+        "chooseProject": "まずキャンバスプロジェクトを選択してください",
+        "loadProjectsFailed": "キャンバスプロジェクトの取得に失敗しました",
+        "loadNodesFailed": "キャンバスノードの読み込みに失敗しました",
+        "needProject": "先にページ上部でプロジェクトを選択してください",
+        "importOk": "インポートし、アセットライブラリに保存しました",
+        "importFailed": "インポートに失敗しました",
+        "importedCount": "{count} 件インポートしました",
+        "skippedCount": "取り込み済み {count} 件をスキップ",
+        "failedCount": "{count} 件失敗",
+        "summaryJoin": "、"
+      }
     },
     "production": {
       "selectPlaceholder": "エピソードを選択してください",
@@ -1460,7 +1491,24 @@
     "submitting": "提出する",
     "editSuccess": "変更が成功しました",
     "editFailed": "変更に失敗しました",
-    "submit": "提出する"
+    "submit": "提出する",
+    "bindLibtvAccount": "LibTV アカウントを連携",
+    "switchPlatformModel": "プラットフォームモデルに変更",
+    "libtvError": {
+      "needBindTitle": "このモデルには LibTV アカウントの連携が必要です",
+      "expiredTitle": "LibTV の認証が期限切れです",
+      "creditsTitle": "LibTV のクレジットが不足しています",
+      "complianceTitle": "実在人物の参照画像がプラットフォームに拒否されました",
+      "timeoutTitle": "生成に時間がかかるためバックグラウンドに移行しました",
+      "unknownTitle": "LibTV の生成に失敗しました",
+      "actionRebind": "再連携",
+      "actionRecharge": "LibTV でチャージ",
+      "actionSwitchModel": "モデル変更",
+      "actionReplaceRef": "参照画像を差し替え",
+      "actionTaskCenter": "タスクセンターを開く",
+      "switchModelHint": "LibTV モデルの選択を解除しました。プラットフォームモデルを選んで再試行してください。",
+      "replaceRefHint": "参照画像をクリアしました。差し替えてから再試行してください。"
+    }
   },
   "components.storyboardImageCheck.camera": "カメラ",
   "components.storyboardImageCheck.dialogTitle": "絵コンテ画像を選択",

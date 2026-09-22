@@ -3,6 +3,7 @@ import * as atlascloud from "./atlascloud";
 import * as deepseek from "./deepseek";
 import * as grsai from "./grsai";
 import * as klingai from "./klingai";
+import * as libtv from "./libtv";
 import * as minimax from "./minimax";
 import * as nullVendor from "./null";
 import * as openai from "./openai";
@@ -18,6 +19,7 @@ export const vendors: Record<string, any> = {
   deepseek,
   grsai,
   klingai,
+  libtv,
   minimax,
   null: nullVendor,
   openai,

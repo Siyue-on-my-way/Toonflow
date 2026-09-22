@@ -89,10 +89,22 @@
               <h4 class="sectionTitle">{{ $t("settings.vendor.modelSettings") }}</h4>
               <div class="capabilityNotice">模型模式是渠道协议声明的能力，仅供查看；请在生成页选择本次生成模式。</div>
             </div>
-            <t-button v-if="canManageVendors" variant="outline" size="small" @click="handleAddModel">
-              <template #icon><i-plus theme="outline" /></template>
-              {{ $t("settings.vendor.addModel") }}
-            </t-button>
+            <div class="ac" style="gap: 8px">
+              <!-- 模型目录桥（仅 LibTV）：同步全量目录，默认禁用，管理员按差集启用 -->
+              <t-button
+                v-if="canManageVendors && currentVendor?.id === 'libtv'"
+                variant="outline"
+                size="small"
+                :loading="syncingModels"
+                @click="handleSyncLibtvModels">
+                <template #icon><i-cloud-download theme="outline" /></template>
+                {{ $t("settings.vendor.syncLibtvModels") }}
+              </t-button>
+              <t-button v-if="canManageVendors" variant="outline" size="small" @click="handleAddModel">
+                <template #icon><i-plus theme="outline" /></template>
+                {{ $t("settings.vendor.addModel") }}
+              </t-button>
+            </div>
           </div>
           <t-card v-for="(item, index) in vendorModels" :key="index" class="modelCard">
             <div class="topInfo jb ac">
@@ -739,6 +751,25 @@ const modelDetailDialogVisible = ref(false);
 const viewingModel = ref<VendorModel | null>(null);
 const modelEnabledSwitch = ref(true);
 const modelStatusLoading = ref(false);
+
+// 模型目录桥：`libtv model search` 全量同步进协议目录（默认禁用，之后按差集逐个启用）
+const syncingModels = ref(false);
+async function handleSyncLibtvModels() {
+  syncingModels.value = true;
+  try {
+    const res: any = await axios.post("/setting/vendorConfig/libtv/syncModels", {});
+    if (res.code === 200) {
+      window.$message.success($t("settings.vendor.syncLibtvModelsOk", { total: res.data?.total ?? 0, added: res.data?.added ?? 0 }));
+      await getVendorList();
+    } else {
+      window.$message.error(res.message || $t("settings.vendor.syncLibtvModelsFail"));
+    }
+  } catch (err: any) {
+    window.$message.error(err.message || $t("settings.vendor.syncLibtvModelsFail"));
+  } finally {
+    syncingModels.value = false;
+  }
+}
 
 function handleAddModel() {
   if (!currentVendor.value) {

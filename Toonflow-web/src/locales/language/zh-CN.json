@@ -40,7 +40,12 @@
         "fetchModelFailed": "获取模型数据失败:"
       },
       "goSetting": "去设置中添加模型",
-      "singleImageUnsupported": "该模型不支持以图片为首帧的图生视频，请选择支持首帧输入的模型"
+      "singleImageUnsupported": "该模型不支持以图片为首帧的图生视频，请选择支持首帧输入的模型",
+      "libtv": {
+        "consumeCredits": "消耗我的 LibTV 积分",
+        "bound": "已绑定",
+        "switchedToPlatform": "已取消选择 LibTV 模型，请选择平台模型"
+      }
     },
     "storyboardImageCheck": {
       "camera": "镜头",
@@ -288,7 +293,10 @@
       "noAvailableModels": "暂无可启用的模型，请联系管理员在协议目录中添加",
       "enableModel": "启用",
       "modelStatusEnabled": "已启用",
-      "modelStatusDisabled": "已停用"
+      "modelStatusDisabled": "已停用",
+      "syncLibtvModels": "同步模型目录",
+      "syncLibtvModelsOk": "已同步 {total} 个 LibTV 模型，新增 {added} 个（默认禁用，请按需启用）",
+      "syncLibtvModelsFail": "同步模型目录失败"
     },
     "agent": {
       "bannerDesc": "推荐使用官方DeepSeek V4",
@@ -1294,7 +1302,30 @@
       },
       "confirmCancellation": "确定取消",
       "confirmAgain": "确认取消吗？取消之后后台AI会继续调取扣费",
-      "sure": "确定"
+      "sure": "确定",
+      "libtvImport": {
+        "tab": "从 LibTV 导入",
+        "needBindTitle": "还没有绑定 LibTV 账号",
+        "needBindDesc": "绑定后可把你在 LibTV 画布上的图/视频/音频一键收编进素材库（一次性导入，只读不写回）。",
+        "selectProjectPh": "选择 LibTV 画布项目",
+        "filterAll": "全部",
+        "filterImage": "图片",
+        "filterVideo": "视频",
+        "filterAudio": "音频",
+        "importSelected": "导入所选",
+        "importedTag": "已导入",
+        "noNodes": "该画布没有可导入的产物节点",
+        "chooseProject": "先选择一个画布项目",
+        "loadProjectsFailed": "获取画布项目列表失败",
+        "loadNodesFailed": "读取画布节点失败",
+        "needProject": "请先在页面上方选择一个项目",
+        "importOk": "导入成功，已存入素材库",
+        "importFailed": "导入失败",
+        "importedCount": "成功导入 {count} 个",
+        "skippedCount": "跳过已导入 {count} 个",
+        "failedCount": "失败 {count} 个",
+        "summaryJoin": "，"
+      }
     },
     "production": {
       "selectPlaceholder": "请选择剧集",
@@ -2040,7 +2071,24 @@
     "submitting": "提交中",
     "editSuccess": "修改成功",
     "editFailed": "修改失败",
-    "submit": "提交"
+    "submit": "提交",
+    "bindLibtvAccount": "绑定 LibTV 账号",
+    "switchPlatformModel": "换用平台模型",
+    "libtvError": {
+      "needBindTitle": "该模型需要绑定你的 LibTV 账号",
+      "expiredTitle": "LibTV 授权已过期",
+      "creditsTitle": "你的 LibTV 积分不足",
+      "complianceTitle": "参考图含真人形象被平台拒绝",
+      "timeoutTitle": "生成时间较长，已转入后台",
+      "unknownTitle": "LibTV 生成失败",
+      "actionRebind": "重新绑定",
+      "actionRecharge": "去 LibTV 充值",
+      "actionSwitchModel": "换平台模型",
+      "actionReplaceRef": "替换参考图",
+      "actionTaskCenter": "查看任务中心",
+      "switchModelHint": "已清除 LibTV 模型选择，请改选平台模型后重试",
+      "replaceRefHint": "已清空参考图选择，请替换后重试"
+    }
   },
   "workbench.project.msg.enterProjectQuality": "请选择图片质量",
   "promptManage": {

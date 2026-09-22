@@ -738,6 +738,26 @@ export default async (knex: Knex, forceInit: boolean = false): Promise<void> => 
             models: "[]",
             enable: 0,
           },
+          {
+            // LibTV（liblib.tv）画布 CLI 渠道：models 目录与 src/vendors/libtv.ts 保持一致，
+            // 已有环境用 init-libtv-db.ts 一次性写入（initData 只在全新建表时执行）
+            id: "libtv",
+            inputValues: "{}",
+            models: JSON.stringify([
+              {
+                name: "StarVideo 2.0（LibTV）",
+                modelName: "star-video2",
+                type: "video",
+                mode: ["text", "singleImage", "startEndRequired", ["imageReference:9"]],
+                audio: "optional",
+                durationResolutionMap: [{ duration: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], resolution: ["480p", "720p", "1080p"] }],
+              },
+              { name: "Nebula Ultra（LibTV 生图）", modelName: "nebula-ultra", type: "image", mode: ["text", "singleImage", "multiReference"] },
+              { name: "Seedream 4（LibTV 生图）", modelName: "seedream-4", type: "image", mode: ["text", "singleImage", "multiReference"] },
+            ]),
+            enable: 0,
+            enabledModels: "[]",
+          },
         ]);
       },
     },

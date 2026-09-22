@@ -40,7 +40,12 @@
         "fetchModelFailed": "ดึงข้อมูลโมเดลล้มเหลว:"
       },
       "goSetting": "ไปที่การตั้งค่าและเพิ่มโมเดล",
-      "singleImageUnsupported": "โมเดลนี้ไม่รองรับการสร้างวิดีโอจากภาพ (เฟรมแรก) โปรดเลือกโมเดลที่รองรับอินพุตภาพ"
+      "singleImageUnsupported": "โมเดลนี้ไม่รองรับการสร้างวิดีโอจากภาพ (เฟรมแรก) โปรดเลือกโมเดลที่รองรับอินพุตภาพ",
+      "libtv": {
+        "consumeCredits": "ใช้เครดิต LibTV ของฉัน",
+        "bound": "ผูกแล้ว",
+        "switchedToPlatform": "ยกเลิกการเลือกโมเดล LibTV แล้ว โปรดเลือกโมเดลของแพลตฟอร์ม"
+      }
     }
   },
   "settings": {
@@ -190,7 +195,10 @@
       "noAvailableModels": "ไม่มีโมเดลที่สามารถเปิดใช้งานได้ กรุณาติดต่อผู้ดูแลระบบให้เพิ่มโมเดลในแคตตาล็อกโปรโตคอล",
       "enableModel": "เปิดใช้งาน",
       "modelStatusEnabled": "เปิดใช้งานแล้ว",
-      "modelStatusDisabled": "ปิดใช้งานแล้ว"
+      "modelStatusDisabled": "ปิดใช้งานแล้ว",
+      "syncLibtvModels": "ซิงก์แคตตาล็อกโมเดล",
+      "syncLibtvModelsOk": "ซิงก์โมเดล LibTV {total} รายการ เพิ่มใหม่ {added} รายการ (ปิดใช้งานตามค่าเริ่มต้น โปรดเปิดตามต้องการ)",
+      "syncLibtvModelsFail": "ซิงก์แคตตาล็อกโมเดลล้มเหลว"
     },
     "agent": {
       "bannerDesc": "ขอแนะนำให้ใช้ DeepSeek V4 อย่างเป็นทางการ",
@@ -978,7 +986,30 @@
       },
       "confirmCancellation": "ยืนยันการยกเลิก",
       "confirmAgain": "ยืนยันการยกเลิก? หลังจากการยกเลิก AI แบ็กเอนด์จะยังคงเรียกร้องให้มีการหักเงินต่อไป",
-      "sure": "แน่นอน"
+      "sure": "แน่นอน",
+      "libtvImport": {
+        "tab": "นำเข้าจาก LibTV",
+        "needBindTitle": "ยังไม่ได้ผูกบัญชี LibTV",
+        "needBindDesc": "หลังผูกบัญชี คุณสามารถนำรูป/วิดีโอ/เสียงจากผืนผ้าใบ LibTV เข้าสู่คลังทรัพย์กรรมได้ในครั้งเดียว (นำเข้าครั้งเดียว อ่านอย่างเดียวไม่เขียนกลับ)",
+        "selectProjectPh": "เลือกโปรเจกต์ผืนผ้าใบ LibTV",
+        "filterAll": "ทั้งหมด",
+        "filterImage": "รูปภาพ",
+        "filterVideo": "วิดีโอ",
+        "filterAudio": "เสียง",
+        "importSelected": "นำเข้าที่เลือก",
+        "importedTag": "นำเข้าแล้ว",
+        "noNodes": "ผืนผ้าใบนี้ไม่มีโหนดผลลัพธ์ที่นำเข้าได้",
+        "chooseProject": "โปรดเลือกโปรเจกต์ผืนผ้าใบก่อน",
+        "loadProjectsFailed": "โหลดโปรเจกต์ผืนผ้าใบล้มเหลว",
+        "loadNodesFailed": "โหลดโหนดผืนผ้าใบล้มเหลว",
+        "needProject": "โปรดเลือกโปรเจกต์ด้านบนก่อน",
+        "importOk": "นำเข้าสำเร็จ เก็บลงคลังทรัพย์กรรมแล้ว",
+        "importFailed": "นำเข้าล้มเหลว",
+        "importedCount": "นำเข้าสำเร็จ {count} รายการ",
+        "skippedCount": "ข้ามที่นำเข้าแล้ว {count} รายการ",
+        "failedCount": "ล้มเหลว {count} รายการ",
+        "summaryJoin": " "
+      }
     },
     "production": {
       "selectPlaceholder": "โปรดเลือกตอน",
@@ -1584,5 +1615,24 @@
   "settings.memory.modelMap.editRefeshWord": "ย้อนกลับ",
   "settings.memory.modelMap.delPrompt": "ลบ",
   "settings.vendor.testModel": "ทดสอบ",
-  "storyboard.assets.addStoryboardFailed": "ไม่สามารถเพิ่มสตอรี่บอร์ดได้"
+  "storyboard.assets.addStoryboardFailed": "ไม่สามารถเพิ่มสตอรี่บอร์ดได้",
+  "common": {
+    "bindLibtvAccount": "ผูกบัญชี LibTV",
+    "switchPlatformModel": "เปลี่ยนเป็นโมเดลของแพลตฟอร์ม",
+    "libtvError": {
+      "needBindTitle": "โมเดลนี้ต้องผูกบัญชี LibTV ของคุณก่อน",
+      "expiredTitle": "การอนุญาต LibTV หมดอายุแล้ว",
+      "creditsTitle": "เครดิต LibTV ของคุณไม่เพียงพอ",
+      "complianceTitle": "รูปอ้างอิงที่มีใบหน้าบุคคลจริงถูกแพลตฟอร์มปฏิเสธ",
+      "timeoutTitle": "การสร้างใช้เวลานาน และถูกย้ายไปทำเบื้องหลังแล้ว",
+      "unknownTitle": "การสร้างด้วย LibTV ล้มเหลว",
+      "actionRebind": "ผูกบัญชีใหม่",
+      "actionRecharge": "เติมเครดิตบน LibTV",
+      "actionSwitchModel": "เปลี่ยนโมเดล",
+      "actionReplaceRef": "เปลี่ยนรูปอ้างอิง",
+      "actionTaskCenter": "เปิดศูนย์งาน",
+      "switchModelHint": "ล้างการเลือกโมเดล LibTV แล้ว โปรดเลือกโมเดลของแพลตฟอร์มแล้วลองใหม่",
+      "replaceRefHint": "ล้างรูปอ้างอิงแล้ว โปรดเปลี่ยนแล้วลองใหม่"
+    }
+  }
 }

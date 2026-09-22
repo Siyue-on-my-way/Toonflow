@@ -39,7 +39,9 @@
           :active-track-index="activeTrackIndex"
           v-model:current-track="currentTrack"
           @refresh="getGenerateData"
-          @generate="generateVideo" />
+          @generate="generateVideo"
+          @switch-model="clearLibtvModel"
+          @replace-ref="clearLibtvRefs" />
       </div>
     </div>
     <div class="track">
@@ -64,6 +66,8 @@ import modeMenu from "./components/modeMenu.vue";
 import videoCard from "./components/video.vue";
 import "@/views/production/components/workbench/type/type";
 import axios from "@/utils/axios";
+import { isLibtvModel } from "@/utils/libtvError";
+import { MessagePlugin } from "tdesign-vue-next";
 import projectStore from "@/stores/project";
 import promptEditor from "@/components/promptEditor.vue";
 import imageListCacheStore from "@/stores/imageListCache";
@@ -175,6 +179,17 @@ const imageList = computed({
     }
   },
 });
+
+/** LibTV 失败卡片动作：换平台模型 = 清掉当前 LibTV 模型选择，引导改选平台模型 */
+function clearLibtvModel() {
+  if (isLibtvModel(modelParmas.value.model)) modelParmas.value.model = "";
+  MessagePlugin.info(window.$t("common.libtvError.switchModelHint"));
+}
+/** LibTV 失败卡片动作：替换参考图 = 清空当前轨道的参考图/首尾帧选择 */
+function clearLibtvRefs() {
+  imageList.value = [];
+  MessagePlugin.info(window.$t("common.libtvError.replaceRefHint"));
+}
 
 function modeChange(newVal: string) {
   if (newVal == modelParmas.value.mode) return;

@@ -95,3 +95,6 @@ Toonflow-web/oss
 Toonflow-web/backup
 Toonflow-web/test-results/
 Toonflow-web/playwright-report/
+
+# LibTV 运行时目录（凭据/画布绑定）
+data/libtv/

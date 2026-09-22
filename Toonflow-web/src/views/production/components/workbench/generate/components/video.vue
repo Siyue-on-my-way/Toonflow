@@ -41,11 +41,17 @@
             <t-loading size="24px" />
             <span class="loadingText">{{ $t("workbench.generate.generating") }}</span>
           </div>
-          <t-tooltip v-if="v.state == '生成失败'" placement="top" :content="v?.errorReason! ?? ''" theme="light">
+          <t-popup v-if="v.state == '生成失败'" placement="top" theme="light" show-arrow>
             <t-tag class="stateTag" theme="danger" size="small">
               {{ $t("workbench.generate.generateFailed") }}
             </t-tag>
-          </t-tooltip>
+            <template #content>
+              <div style="max-width: 320px">
+                <libtvErrorCard v-if="isLibtvError(v?.errorReason)" :reason="v?.errorReason" @switch-model="emit('switchModel')" @replace-ref="emit('replaceRef')" />
+                <span v-else>{{ v?.errorReason }}</span>
+              </div>
+            </template>
+          </t-popup>
           <div v-if="v.state !== '生成中'" class="selectBtn" @click.stop="selectVideo(v)">
             <i-check size="16" />
           </div>
@@ -80,6 +86,8 @@
 <script setup lang="ts">
 import type { Ref } from "vue";
 import axios from "@/utils/axios";
+import libtvErrorCard from "@/components/libtvErrorCard.vue";
+import { isLibtvError } from "@/utils/libtvError";
 import projectStore from "@/stores/project";
 
 const props = defineProps<{
@@ -92,6 +100,10 @@ const currentTrack = defineModel<TrackItem>("currentTrack", {
 const emit = defineEmits<{
   generate: [];
   refresh: [];
+  /** LibTV 失败卡片：换平台模型 */
+  switchModel: [];
+  /** LibTV 失败卡片：替换参考图 */
+  replaceRef: [];
 }>();
 
 const { project } = storeToRefs(projectStore());

@@ -40,7 +40,12 @@
         "fetchModelFailed": "Failed to fetch model data:"
       },
       "goSetting": "Go to settings and add a model",
-      "singleImageUnsupported": "This model does not support image-to-video with a first frame; choose a model that accepts a start image"
+      "singleImageUnsupported": "This model does not support image-to-video with a first frame; choose a model that accepts a start image",
+      "libtv": {
+        "consumeCredits": "Uses my LibTV credits",
+        "bound": "Bound",
+        "switchedToPlatform": "LibTV model deselected. Please choose a platform model."
+      }
     }
   },
   "settings": {
@@ -189,7 +194,10 @@
       "noAvailableModels": "No models available to enable. Ask an administrator to add one to the protocol catalog.",
       "enableModel": "Enable",
       "modelStatusEnabled": "Enabled",
-      "modelStatusDisabled": "Disabled"
+      "modelStatusDisabled": "Disabled",
+      "syncLibtvModels": "Sync model catalog",
+      "syncLibtvModelsOk": "Synced {total} LibTV models, {added} added (disabled by default, enable as needed)",
+      "syncLibtvModelsFail": "Failed to sync model catalog"
     },
     "agent": {
       "bannerDesc": "It is recommended to use the official DeepSeek V4",
@@ -1179,7 +1187,30 @@
       },
       "confirmCancellation": "Confirm cancellation",
       "confirmAgain": "Confirm cancellation? \nAfter cancellation, the backend AI will continue to call for deductions.",
-      "sure": "Sure"
+      "sure": "Sure",
+      "libtvImport": {
+        "tab": "Import from LibTV",
+        "needBindTitle": "No LibTV account bound yet",
+        "needBindDesc": "After binding, you can bring images/videos/audio from your LibTV canvases into the asset library in one go (one-time import, read-only, never written back).",
+        "selectProjectPh": "Select a LibTV canvas project",
+        "filterAll": "All",
+        "filterImage": "Image",
+        "filterVideo": "Video",
+        "filterAudio": "Audio",
+        "importSelected": "Import selected",
+        "importedTag": "Imported",
+        "noNodes": "No importable output nodes on this canvas",
+        "chooseProject": "Select a canvas project first",
+        "loadProjectsFailed": "Failed to load canvas projects",
+        "loadNodesFailed": "Failed to load canvas nodes",
+        "needProject": "Select a project at the top first",
+        "importOk": "Imported into the asset library",
+        "importFailed": "Import failed",
+        "importedCount": "Imported {count}",
+        "skippedCount": "Skipped {count} already imported",
+        "failedCount": "{count} failed",
+        "summaryJoin": ", "
+      }
     },
     "production": {
       "selectPlaceholder": "Please select an episode",
@@ -2045,5 +2076,24 @@
   "settings.memory.modelMap.editRefeshWord": "rebind",
   "settings.memory.modelMap.delPrompt": "delete",
   "settings.vendor.testModel": "test",
-  "storyboard.assets.addStoryboardFailed": "Failed to add storyboard"
+  "storyboard.assets.addStoryboardFailed": "Failed to add storyboard",
+  "common": {
+    "bindLibtvAccount": "Bind LibTV Account",
+    "switchPlatformModel": "Switch to platform model",
+    "libtvError": {
+      "needBindTitle": "This model requires your bound LibTV account",
+      "expiredTitle": "LibTV authorization expired",
+      "creditsTitle": "Your LibTV credits are insufficient",
+      "complianceTitle": "Reference image with real-person likeness was rejected by the platform",
+      "timeoutTitle": "Generation is taking longer and has moved to background",
+      "unknownTitle": "LibTV generation failed",
+      "actionRebind": "Re-bind",
+      "actionRecharge": "Top up on LibTV",
+      "actionSwitchModel": "Switch model",
+      "actionReplaceRef": "Replace reference",
+      "actionTaskCenter": "Open task center",
+      "switchModelHint": "LibTV model cleared. Please pick a platform model and retry.",
+      "replaceRefHint": "References cleared. Please replace them and retry."
+    }
+  }
 }

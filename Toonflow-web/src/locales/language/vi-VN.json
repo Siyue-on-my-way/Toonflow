@@ -39,7 +39,12 @@
       "msg": {
         "fetchModelFailed": "Lấy dữ liệu mô hình thất bại:"
       },
-      "singleImageUnsupported": "Mô hình này không hỗ trợ tạo video từ ảnh (khung hình đầu); hãy chọn mô hình hỗ trợ đầu vào ảnh"
+      "singleImageUnsupported": "Mô hình này không hỗ trợ tạo video từ ảnh (khung hình đầu); hãy chọn mô hình hỗ trợ đầu vào ảnh",
+      "libtv": {
+        "consumeCredits": "Dùng điểm LibTV của tôi",
+        "bound": "Đã liên kết",
+        "switchedToPlatform": "Đã bỏ chọn mô hình LibTV, vui lòng chọn mô hình nền tảng"
+      }
     }
   },
   "settings": {
@@ -189,7 +194,10 @@
       "noAvailableModels": "Không có mô hình nào để kích hoạt. Vui lòng liên hệ quản trị viên để thêm vào danh mục giao thức.",
       "enableModel": "Kích hoạt",
       "modelStatusEnabled": "Đã kích hoạt",
-      "modelStatusDisabled": "Đã tắt"
+      "modelStatusDisabled": "Đã tắt",
+      "syncLibtvModels": "Đồng bộ danh mục mô hình",
+      "syncLibtvModelsOk": "Đã đồng bộ {total} mô hình LibTV, thêm mới {added} (mặc định tắt, bật khi cần)",
+      "syncLibtvModelsFail": "Đồng bộ danh mục mô hình thất bại"
     },
     "agent": {
       "bannerDesc": "Nên sử dụng DeepSeek V4 chính thức",
@@ -968,7 +976,30 @@
       },
       "confirmCancellation": "Xác nhận hủy",
       "confirmAgain": "Xác nhận hủy? Sau khi hủy, AI phụ trợ sẽ tiếp tục yêu cầu khấu trừ.",
-      "sure": "Chắc chắn"
+      "sure": "Chắc chắn",
+      "libtvImport": {
+        "tab": "Nhập từ LibTV",
+        "needBindTitle": "Chưa liên kết tài khoản LibTV",
+        "needBindDesc": "Sau khi liên kết, bạn có thể đưa ảnh/video/âm thanh trên canvas LibTV vào thư viện tài sản trong một lần (nhập một lần, chỉ đọc không ghi ngược).",
+        "selectProjectPh": "Chọn dự án canvas LibTV",
+        "filterAll": "Tất cả",
+        "filterImage": "Ảnh",
+        "filterVideo": "Video",
+        "filterAudio": "Âm thanh",
+        "importSelected": "Nhập mục đã chọn",
+        "importedTag": "Đã nhập",
+        "noNodes": "Canvas này không có nút sản phẩm nào để nhập",
+        "chooseProject": "Hãy chọn một dự án canvas trước",
+        "loadProjectsFailed": "Tải danh sách dự án canvas thất bại",
+        "loadNodesFailed": "Tải nút canvas thất bại",
+        "needProject": "Vui lòng chọn một dự án ở phía trên trước",
+        "importOk": "Nhập thành công, đã lưu vào thư viện tài sản",
+        "importFailed": "Nhập thất bại",
+        "importedCount": "Đã nhập thành công {count}",
+        "skippedCount": "Bỏ qua {count} mục đã nhập",
+        "failedCount": "{count} mục thất bại",
+        "summaryJoin": ", "
+      }
     },
     "production": {
       "selectPlaceholder": "Vui lòng chọn tập",
@@ -1452,7 +1483,24 @@
     "submitting": "Đang gửi",
     "editSuccess": "Sửa đổi thành công",
     "editFailed": "Sửa đổi không thành công",
-    "submit": "nộp"
+    "submit": "nộp",
+    "bindLibtvAccount": "Liên kết tài khoản LibTV",
+    "switchPlatformModel": "Chuyển sang mô hình nền tảng",
+    "libtvError": {
+      "needBindTitle": "Mô hình này cần liên kết tài khoản LibTV của bạn",
+      "expiredTitle": "Ủy quyền LibTV đã hết hạn",
+      "creditsTitle": "Điểm LibTV của bạn không đủ",
+      "complianceTitle": "Ảnh tham chiếu có hình ảnh người thật bị nền tảng từ chối",
+      "timeoutTitle": "Việc tạo mất nhiều thời gian, đã chuyển sang nền sau",
+      "unknownTitle": "Tạo bằng LibTV thất bại",
+      "actionRebind": "Liên kết lại",
+      "actionRecharge": "Nạp điểm trên LibTV",
+      "actionSwitchModel": "Đổi mô hình",
+      "actionReplaceRef": "Thay ảnh tham chiếu",
+      "actionTaskCenter": "Mở trung tâm tác vụ",
+      "switchModelHint": "Đã bỏ chọn mô hình LibTV, vui lòng chọn mô hình nền tảng rồi thử lại",
+      "replaceRefHint": "Đã xóa ảnh tham chiếu, vui lòng thay mới rồi thử lại"
+    }
   },
   "components.storyboardImageCheck.camera": "Máy quay",
   "components.storyboardImageCheck.dialogTitle": "Chọn hình storyboard",

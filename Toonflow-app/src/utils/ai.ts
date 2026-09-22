@@ -146,9 +146,21 @@ async function getVendorTemplateFn(fnName: FnName, modelName: `${string}:${strin
   if (!vendorModule) throw new Error(`未找到供应商模块 id=${id}`);
 
   const vendorLabel = vendorModule.vendor?.name ?? id;
-  // 渠道 Key / 已启用模型是全局配置（仅 admin 可写，参见 SIY-65），跟发起调用的是哪个账号无关
-  if (!vendorConfigData.inputValues || vendorConfigData.inputValues === "{}") {
-    throw new Error(`请先在设置页配置 ${vendorLabel} 渠道的 Key`);
+  // 渠道 Key / 已启用模型是全局配置（仅 admin 可写，参见 SIY-65），跟发起调用的是哪个账号无关。
+  // 例外：用户自助绑定了自己凭据的渠道（如 LibTV），渠道全局 Key 可以不配。
+  const accountRow = await u.db("o_vendorAccount").where({ userId, vendorId: id }).first();
+  const hasUserValues =
+    id === "libtv" &&
+    (() => {
+      try {
+        const values = JSON.parse(accountRow?.inputValues ?? "{}");
+        return Object.values(values).some((v) => typeof v === "string" && v.length > 0);
+      } catch (e) {
+        return false;
+      }
+    })();
+  if ((!vendorConfigData.inputValues || vendorConfigData.inputValues === "{}") && !hasUserValues) {
+    throw new Error(`请先在设置页配置 ${vendorLabel} 渠道的 Key${vendorModule.vendor?.id === "libtv" ? "，或在「账号绑定」里绑定你自己的 LibTV 账号" : ""}`);
   }
   const enabledModels = await u.vendor.getEnabledModelNames(id);
   if (!enabledModels.includes(name)) {
@@ -161,6 +173,25 @@ async function getVendorTemplateFn(fnName: FnName, modelName: `${string}:${strin
     if (key.toLowerCase().includes("key") || key.toLowerCase().includes("secret") || key.toLowerCase().includes("token")) {
       inputValues[key] = u.crypto.decrypt(inputValues[key]);
     }
+  }
+  // 用户级凭据（如 LibTV 用户自助绑定）：o_vendorAccount 存有该用户记录时，其输入项覆盖渠道全局值；
+  // userId 同时注入给需要按用户隔离工作目录的渠道（如 libtv 的 per-user HOME）。
+  // 目前只有 libtv 落地了用户自助绑定；其它渠道 o_vendorAccount 里只可能有历史迁移残留（SIY-65），
+  // 一律不合并，避免旧值覆盖全局配置。第二个渠道做用户绑定时再抽通用开关。
+  inputValues.userId = String(userId);
+  try {
+    if (accountRow?.inputValues && id === "libtv") {
+      const userValues = JSON.parse(accountRow.inputValues);
+      for (const key in userValues) {
+        if (typeof userValues[key] !== "string") continue;
+        inputValues[key] =
+          key.toLowerCase().includes("key") || key.toLowerCase().includes("secret") || key.toLowerCase().includes("token")
+            ? u.crypto.decrypt(userValues[key])
+            : userValues[key];
+      }
+    }
+  } catch (e) {
+    // 用户级凭据读取/解密失败时回退渠道全局配置
   }
   const api = vendorModule.createVendorAPI(inputValues, {
     onProviderTaskId: taskHooks?.onProviderTaskId,

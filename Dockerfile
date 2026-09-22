@@ -30,7 +30,14 @@ WORKDIR /app
 RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources
 
 # 安装原生模块所需的构建依赖
-RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y python3 make g++ curl unzip ca-certificates && rm -rf /var/lib/apt/lists/*
+
+# LibTV CLI（LiblibAI 画布渠道）：绑定（短信/粘贴凭据）与生成全部经 CLI 子进程完成。
+# 装到固定路径并软链进 PATH；运行时 vendor 解析顺序：渠道设置 cliPath → ~/.libtv/libtv → PATH。
+ENV LIBTV_CLI_INSTALL_DIR=/opt/libtv
+RUN curl -fsSL "https://liblibai-web-static.liblib.cloud/cli/latest/install-libtv-cli.sh" | sh \
+    && ln -sf /opt/libtv/libtv /usr/local/bin/libtv \
+    && libtv --version
 
 ENV npm_config_registry=https://registry.npmmirror.com/
 ENV yarn_config_registry=https://registry.npmmirror.com/

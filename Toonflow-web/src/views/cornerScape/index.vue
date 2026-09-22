@@ -87,8 +87,14 @@
               {{ item.audioBindState === "生成中" ? $t("workbench.cornerScape.audioState") : $t("workbench.cornerScape.generating") }}
             </span>
           </div>
-          <t-popup :content="item.errorReason" v-else-if="item.state === '生成失败'">
+          <t-popup v-else-if="item.state === '生成失败'" trigger="hover">
             <t-empty type="fail" :title="$t('workbench.cornerScape.genFailed')" />
+            <template #content>
+              <div style="max-width: 300px">
+                <libtvErrorCard v-if="isLibtvError(item.errorReason)" :reason="item.errorReason" @switch-model="switchPlatformModel" @replace-ref="clearRefs" />
+                <span v-else>{{ item.errorReason }}</span>
+              </div>
+            </template>
           </t-popup>
           <t-image v-else class="image" :src="item.filePath ?? undefined" fit="contain" :preview="true" :lazy="true">
             <template #error>
@@ -172,7 +178,11 @@
             <t-loading />
             <span class="generatingText">{{ $t("workbench.cornerScape.generating") }}</span>
           </div>
-          <t-empty v-else-if="currentItem.state === '生成失败'" type="fail" :title="$t('workbench.cornerScape.genFailed')" />
+          <div v-else-if="currentItem.state === '生成失败'" class="failBox">
+            <libtvErrorCard v-if="isLibtvError(currentItem.errorReason)" :reason="currentItem.errorReason" @switch-model="switchPlatformModel" @replace-ref="clearRefs" />
+            <t-empty v-else type="fail" :title="$t('workbench.cornerScape.genFailed')" />
+            <div class="failReason" v-if="currentItem.errorReason">{{ currentItem.errorReason }}</div>
+          </div>
           <t-image v-else-if="currentItem.filePath" class="image" :src="currentItem.filePath" fit="contain">
             <template #error>
               <t-empty type="fail" :title="$t('workbench.cornerScape.imageError')" />
@@ -257,6 +267,9 @@
 import axios from "@/utils/axios";
 import projectStore from "@/stores/project";
 import modelSelect from "@/components/modelSelect.vue";
+import libtvErrorCard from "@/components/libtvErrorCard.vue";
+import { isLibtvError, isLibtvModel } from "@/utils/libtvError";
+import { MessagePlugin } from "tdesign-vue-next";
 import settingStore from "@/stores/setting";
 import openAssetsSelector from "@/utils/assetsCheck";
 import { useRouter } from "vue-router";
@@ -316,6 +329,17 @@ const translatedOptions = computed(() =>
   })),
 );
 const dataList = ref<DataItem[]>([]);
+
+/** LibTV 失败卡片动作：换平台模型 = 清掉 LibTV 模型选择，引导改选平台模型 */
+function switchPlatformModel() {
+  if (isLibtvModel(selectValue.value)) selectValue.value = "";
+  MessagePlugin.info(window.$t("common.libtvError.switchModelHint"));
+}
+/** LibTV 失败卡片动作：替换参考图 = 清空参考提示词，回到可重新触发的状态 */
+function clearRefs() {
+  otherTextPrompt.value = "";
+  MessagePlugin.info(window.$t("common.libtvError.replaceRefHint"));
+}
 const loading = ref(false);
 
 // 用于取消进行中的生成请求
@@ -1236,6 +1260,18 @@ async function selectAudio() {
     .generatingText {
       font-size: 13px;
       color: var(--td-brand-color);
+    }
+  }
+  .failBox {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    .failReason {
+      font-size: 12px;
+      color: var(--td-text-color-secondary);
+      word-break: break-all;
+      max-height: 72px;
+      overflow: auto;
     }
   }
   .imageToolsWrap {

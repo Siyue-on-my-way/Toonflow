@@ -40,7 +40,12 @@
         "fetchModelFailed": "Не удалось получить данные модели:"
       },
       "goSetting": "Зайди в настройки и добавь модель.",
-      "singleImageUnsupported": "Эта модель не поддерживает генерацию видео из изображения (первый кадр); выберите модель с поддержкой входного изображения"
+      "singleImageUnsupported": "Эта модель не поддерживает генерацию видео из изображения (первый кадр); выберите модель с поддержкой входного изображения",
+      "libtv": {
+        "consumeCredits": "Списывает мои кредиты LibTV",
+        "bound": "Привязано",
+        "switchedToPlatform": "Модель LibTV снята с выбора, выберите модель платформы"
+      }
     }
   },
   "settings": {
@@ -190,7 +195,10 @@
       "noAvailableModels": "Нет доступных моделей для включения. Обратитесь к администратору, чтобы добавить модель в каталог протоколов.",
       "enableModel": "Включить",
       "modelStatusEnabled": "Включено",
-      "modelStatusDisabled": "Отключено"
+      "modelStatusDisabled": "Отключено",
+      "syncLibtvModels": "Синхронизировать каталог моделей",
+      "syncLibtvModelsOk": "Синхронизировано моделей LibTV: {total}, добавлено: {added} (по умолчанию отключены, включайте по необходимости)",
+      "syncLibtvModelsFail": "Не удалось синхронизировать каталог моделей"
     },
     "agent": {
       "bannerDesc": "Рекомендуется использовать официальную версию DeepSeek V4.",
@@ -977,7 +985,30 @@
       },
       "confirmCancellation": "Подтвердить отмену",
       "confirmAgain": "Подтвердить отмену? После отмены серверный ИИ продолжит требовать вычетов.",
-      "sure": "Конечно"
+      "sure": "Конечно",
+      "libtvImport": {
+        "tab": "Импорт из LibTV",
+        "needBindTitle": "Аккаунт LibTV ещё не привязан",
+        "needBindDesc": "После привязки можно разово перенести изображения/видео/аудио с ваших холстов LibTV в библиотеку активов (разовый импорт, только чтение, без записи обратно).",
+        "selectProjectPh": "Выберите проект холста LibTV",
+        "filterAll": "Все",
+        "filterImage": "Изображение",
+        "filterVideo": "Видео",
+        "filterAudio": "Аудио",
+        "importSelected": "Импортировать выбранное",
+        "importedTag": "Импортировано",
+        "noNodes": "На этом холсте нет узлов с результатами для импорта",
+        "chooseProject": "Сначала выберите проект холста",
+        "loadProjectsFailed": "Не удалось загрузить проекты холстов",
+        "loadNodesFailed": "Не удалось загрузить узлы холста",
+        "needProject": "Сначала выберите проект вверху страницы",
+        "importOk": "Импортировано в библиотеку активов",
+        "importFailed": "Импорт не удался",
+        "importedCount": "Импортировано: {count}",
+        "skippedCount": "Пропущено уже импортированных: {count}",
+        "failedCount": "С ошибками: {count}",
+        "summaryJoin": ", "
+      }
     },
     "production": {
       "selectPlaceholder": "Выберите эпизод",
@@ -1460,7 +1491,24 @@
     "submitting": "Отправка",
     "editSuccess": "Модификация прошла успешно",
     "editFailed": "Модификация не удалась",
-    "submit": "представлять на рассмотрение"
+    "submit": "представлять на рассмотрение",
+    "bindLibtvAccount": "Привязать аккаунт LibTV",
+    "switchPlatformModel": "Переключиться на модель платформы",
+    "libtvError": {
+      "needBindTitle": "Для этой модели нужна привязка вашего аккаунта LibTV",
+      "expiredTitle": "Авторизация LibTV истекла",
+      "creditsTitle": "Недостаточно кредитов LibTV",
+      "complianceTitle": "Референс с изображением реального человека отклонён платформой",
+      "timeoutTitle": "Генерация длится дольше обычного и переведена в фоновый режим",
+      "unknownTitle": "Ошибка генерации LibTV",
+      "actionRebind": "Привязать заново",
+      "actionRecharge": "Пополнить на LibTV",
+      "actionSwitchModel": "Сменить модель",
+      "actionReplaceRef": "Заменить референс",
+      "actionTaskCenter": "Открыть центр задач",
+      "switchModelHint": "Выбор модели LibTV сброшен. Выберите модель платформы и повторите",
+      "replaceRefHint": "Референсы очищены. Замените их и повторите"
+    }
   },
   "components.storyboardImageCheck.camera": "Камера",
   "components.storyboardImageCheck.dialogTitle": "Выбрать изображение раскадровки",
