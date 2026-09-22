@@ -24,7 +24,17 @@ export default router.post(
           u.db("o_vendorConfig").where("id", i.id!).select("inputValues").first(),
         ]);
         const enabled = new Set(enabledModelNames);
-        const configured = !!vendorConfig?.inputValues && vendorConfig.inputValues !== "{}";
+        let configured = !!vendorConfig?.inputValues && vendorConfig.inputValues !== "{}";
+        // 用户自助绑定渠道（LibTV）：当前用户绑定了自己的凭据即视为已配置——
+        // 生成消耗用户自己的积分、画布按用户隔离，渠道全局 Key 可以不配（与 ai.ts 的例外一致）。
+        // 没有这条例外，未配置渠道 Key 时 LibTV 模型在选择器里永远置灰，用户就没有绑定入口了。
+        if (i.id === "libtv" && !configured) {
+          try {
+            const accountRow = await u.db("o_vendorAccount").where({ userId: (req as any).user.id, vendorId: "libtv" }).first();
+            const values = JSON.parse(accountRow?.inputValues ?? "{}");
+            configured = Object.values(values).some((v: unknown) => typeof v === "string" && (v as string).length > 0);
+          } catch (e) {}
+        }
         return models
           .filter((model: { modelName: string }) => enabled.has(model.modelName))
           .map((model: any) => ({

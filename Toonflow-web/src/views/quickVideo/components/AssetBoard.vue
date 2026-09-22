@@ -6,6 +6,11 @@
         <t-tag v-if="total" size="small" shape="round" style="margin-left: 6px">{{ total }}</t-tag>
       </span>
       <div class="qvAssetBoardHeaderActions" @click.stop>
+        <!-- 「从 LibTV 导入」：把用户 LibTV 画布上的存量产物收编进素材库（一次性收编，只读不写回） -->
+        <t-button size="small" variant="outline" data-testid="qv-asset-import-libtv" @click="$emit('import-libtv')">
+          <template #icon><i-cloud-download size="14" /></template>
+          {{ importFromLibtvText }}
+        </t-button>
         <t-select v-model="kindFilter" size="small" class="qvAssetBoardFilter" @change="onFilterChange">
           <t-option value="all" :label="allLabel" />
           <t-option value="image" :label="imageLabel" />
@@ -48,8 +53,14 @@
               <t-button v-if="item.kind === 'image' || allowVideoCopy" size="small" variant="text" data-testid="qv-asset-copy" @click="$emit('copy', item)">{{ copyText }}</t-button>
               <t-button v-if="item.kind === 'image'" size="small" variant="text" theme="primary" data-testid="qv-asset-set-first-frame" @click="$emit('set-first-frame', item)">{{ setFirstFrameText }}</t-button>
             </template>
-            <t-tooltip v-else-if="item.state === 'failed'" :content="item.errorReason || ''">
+            <t-tooltip v-else-if="item.state === 'failed'" theme="light">
               <t-button size="small" variant="text" theme="danger">{{ failedText }}</t-button>
+              <template #content>
+                <div style="max-width: 280px">
+                  <libtvErrorCard v-if="isLibtvError(item.errorReason)" :reason="item.errorReason" />
+                  <span v-else>{{ item.errorReason || "" }}</span>
+                </div>
+              </template>
             </t-tooltip>
             <span v-else class="qvAssetGenerating">{{ generatingText }}</span>
             <!-- 删除（SIY-137 审核反馈）：白板条目可移除；生成中禁用（服务端同样守门） -->
@@ -75,6 +86,8 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import libtvErrorCard from "@/components/libtvErrorCard.vue";
+import { isLibtvError } from "@/utils/libtvError";
 import type { MediaRef } from "@/types/quickVideo";
 
 const props = defineProps<{
@@ -98,10 +111,13 @@ const props = defineProps<{
   collapseText: string;
   /** SIY-165 T8：当前玩法（全能参考）是否放行视频复制引用；缺省 false 维持仅图片 */
   allowVideoCopy?: boolean;
+  /** 「从 LibTV 导入」按钮文案 */
+  importFromLibtvText: string;
 }>();
 
 const emit = defineEmits<{
   refresh: [];
+  "import-libtv": [];
   "page-change": [page: number];
   "filter-change": [kind: "all" | "image" | "video"];
   zoom: [item: MediaRef];

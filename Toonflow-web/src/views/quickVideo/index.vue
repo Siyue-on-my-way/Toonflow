@@ -363,6 +363,8 @@
             :delete-text="$t('workbench.quickVideo.deleteAsset')"
             :delete-confirm-text="$t('workbench.quickVideo.deleteAssetConfirm')"
             :allow-video-copy="effectivePlaymodeId === 'omniReference'"
+            :import-from-libtv-text="$t('workbench.assets.libtvImport.tab')"
+            @import-libtv="libtvImportShow = true"
             @refresh="loadAssetBoard"
             @page-change="handleAssetBoardPageChange"
             @filter-change="handleAssetBoardFilterChange"
@@ -681,6 +683,17 @@
       <span>{{ $t("workbench.quickVideo.openChat") }}</span>
     </button>
 
+    <!-- 「从 LibTV 导入」对话框（SIY-172）：画布列表 → 产物勾选 → 收编进素材库；绑定也能在这里就地完成 -->
+    <t-dialog
+      v-model:visible="libtvImportShow"
+      :header="$t('workbench.assets.libtvImport.tab')"
+      width="760px"
+      placement="center"
+      :footer="false"
+      destroy-on-close>
+      <libtvImport @imported="onLibtvImported" />
+    </t-dialog>
+
     <!-- 第三道确认门：成片导出确认 -->
     <t-dialog
       v-model:visible="exportConfirmVisible"
@@ -892,6 +905,7 @@ import type { QuickVideoDuration, QuickVideoRatio, QuickVideoStage, QuickVideoSh
 import modelSelect from "@/components/modelSelect.vue";
 import SessionList from "./components/SessionList.vue";
 import AssetBoard from "./components/AssetBoard.vue";
+import libtvImport from "@/views/assets/components/libtvImport.vue";
 import dayjs from "dayjs";
 import ExportProgress from "./ExportProgress.vue";
 import { useTimelinePlayer } from "./timelinePlayer";
@@ -1485,6 +1499,13 @@ function handleSend(text: string) {
 }
 function handleStop() {
   quickVideoStoreRef.stopGenerate();
+}
+
+// ===== 「从 LibTV 导入」（SIY-172）：把用户 LibTV 画布存量收编进素材库 =====
+const libtvImportShow = ref(false);
+/** 导入完成（组件已提示成功）：产物已存入当前项目的素材库，素材中心可见可用 */
+function onLibtvImported() {
+  libtvImportShow.value = false;
 }
 
 // ===== 资产白板（SIY-132） =====
