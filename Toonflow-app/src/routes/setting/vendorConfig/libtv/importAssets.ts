@@ -17,6 +17,7 @@ export default router.post(
   }),
   async (req, res) => {
     try {
+      await libtvImport.assertProjectOwnership((req as any).user.id, req.body.toonflowProjectId);
       const result = await libtvImport.importNodes((req as any).user.id, req.body.toonflowProjectId, req.body.projectId, req.body.nodeKeys);
       res.status(200).send(success(result));
     } catch (err: any) {

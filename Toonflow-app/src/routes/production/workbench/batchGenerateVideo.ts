@@ -4,6 +4,7 @@ import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { success } from "@/lib/responseFormat";
 import { validateFields } from "@/middleware/middleware";
+import pLimit from "p-limit";
 import { ReferenceList } from "@/utils/ai";
 const router = express.Router();
 
@@ -96,8 +97,10 @@ export default router.post(
     );
 
     res.status(200).send(success(tasks.map((t) => ({ videoId: t.videoId, trackId: t.trackId }))));
+    // 并发上限（SIY-172 审查 P1-7）：每个任务收尾时下载+base64 瞬时驻留 ≈3.7× 文件大小，
+    // 全量并发下批量收尾叠加会打爆单容器内存；限 3 路在途，任务本身仍是后台异步不阻塞响应
+    const limit = pLimit(3);
     for (const { videoId, videoPath, prompt, duration, images } of tasks) {
-      // 所有任务全部并发后台执行，完全不阻塞任何进程
       const base64 = await Promise.all(
         images.map(async (item) => {
           if (!item) return null;
@@ -106,36 +109,38 @@ export default router.post(
       );
       const relatedObjects = { projectId, videoId, scriptId, type: "视频" };
       const aiVideo = u.Ai.Video(model, (req as any).user.id);
-      aiVideo
-        .run(
-          {
-            prompt,
-            referenceList: base64.filter(Boolean) as ReferenceList[],
-            mode: modeData.length > 0 ? modeData : mode,
-            duration,
-            aspectRatio: aspectRatio || ratio?.videoRatio || "16:9",
-            resolution,
-            audio,
-            quality,
-          },
-          {
-            projectId,
-            taskClass: "视频生成",
-            describe: "根据提示词生成视频",
-            relatedObjects: JSON.stringify(relatedObjects),
-          },
-        )
-        .then(async () => await aiVideo.save(videoPath))
-        .then(async () => await u.db("o_video").where("id", videoId).update({ state: "生成成功" }))
-        .catch(async (error: any) => {
-          await u
-            .db("o_video")
-            .where("id", videoId)
-            .update({
-              state: "生成失败",
-              errorReason: u.error(error).message,
-            });
-        });
+      limit(() =>
+        aiVideo
+          .run(
+            {
+              prompt,
+              referenceList: base64.filter(Boolean) as ReferenceList[],
+              mode: modeData.length > 0 ? modeData : mode,
+              duration,
+              aspectRatio: aspectRatio || ratio?.videoRatio || "16:9",
+              resolution,
+              audio,
+              quality,
+            },
+            {
+              projectId,
+              taskClass: "视频生成",
+              describe: "根据提示词生成视频",
+              relatedObjects: JSON.stringify(relatedObjects),
+            },
+          )
+          .then(async () => await aiVideo.save(videoPath))
+          .then(async () => await u.db("o_video").where("id", videoId).update({ state: "生成成功" }))
+          .catch(async (error: any) => {
+            await u
+              .db("o_video")
+              .where("id", videoId)
+              .update({
+                state: "生成失败",
+                errorReason: u.error(error).message,
+              });
+          }),
+      );
     }
   },
 );

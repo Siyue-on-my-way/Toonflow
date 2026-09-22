@@ -231,7 +231,9 @@ async function withTaskRecord<T>(
 async function urlToBase64(url: string, retries = 3, delay = 1000): Promise<string> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const res = await axios.get(url, { responseType: "arraybuffer" });
+      // 单产物大小上限（SIY-172 审查 P1-7）：base64 链路瞬时驻留 ≈3.7× 文件大小，
+      // 无上限时异常大文件/批量并发收尾可打爆单容器内存
+      const res = await axios.get(url, { responseType: "arraybuffer", maxContentLength: 200 * 1024 * 1024, maxBodyLength: 200 * 1024 * 1024 });
       const base64 = Buffer.from(res.data).toString("base64");
       return `${base64}`;
     } catch (e) {

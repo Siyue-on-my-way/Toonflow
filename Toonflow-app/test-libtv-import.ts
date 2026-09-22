@@ -100,10 +100,18 @@ const main = async () => {
     await u.db("o_vendorConfig").insert({ id: "libtv", enable: 1, inputValues: JSON.stringify({ cliPath: fakeCli }), models: "[]", enabledModels: "[]" });
   }
 
-  // oss 打桩：捕获落盘调用，不真连 MinIO
+  // oss 打桩：捕获落盘调用，不真连 MinIO（导入已改流式直传，这里把流消费掉并统计字节数）
   const ossWrites: { path: string; size: number }[] = [];
-  (u.oss as any).writeFile = async (p: string, data: Buffer) => {
-    ossWrites.push({ path: p, size: Buffer.byteLength(data) });
+  (u.oss as any).writeFile = async (p: string, data: any) => {
+    let buf: Buffer;
+    if (data && typeof data.on === "function") {
+      const chunks: Buffer[] = [];
+      for await (const chunk of data) chunks.push(Buffer.from(chunk));
+      buf = Buffer.concat(chunks);
+    } else {
+      buf = Buffer.from(data);
+    }
+    ossWrites.push({ path: p, size: buf.length });
   };
 
   // 清理上次运行残留（sqlite 落盘持久化，测试要可重跑）：解绑测试用户、清掉测试项目里已导入的素材
@@ -168,6 +176,25 @@ const main = async () => {
 
   // —— 只读不写回：全程没有对 LibTV 侧的写入命令（假 CLI 对未知命令会 exit 1，上面没有任何触发）——
   assert(true, "导入全程未调用任何写画布命令（project use/create、node create、upload 均未触发）");
+
+  // —— 归属校验（P1-6 IDOR 修复）：目标项目不属于当前用户时拒绝 ——
+  await u.db("o_project").insert({ id: 999901, userId: 999, name: "别人的项目" });
+  await u.db("o_project").insert({ id: 999902, userId: 201, name: "自己的项目" });
+  let idorRejected = "";
+  try {
+    await libtvImport.assertProjectOwnership(201, 999901);
+  } catch (e: any) {
+    idorRejected = String(e.message ?? "");
+  }
+  assert(idorRejected.includes("不属于当前用户"), `他人的项目被归属校验拒绝（实际: ${idorRejected.slice(0, 40)}）`);
+  let owned = true;
+  try {
+    await libtvImport.assertProjectOwnership(201, 999902);
+  } catch (e) {
+    owned = false;
+  }
+  assert(owned, "自己的项目通过归属校验");
+  await u.db("o_project").whereIn("id", [999901, 999902]).del();
 
   if (failed > 0) {
     console.error(`\n${failed} 项断言失败`);

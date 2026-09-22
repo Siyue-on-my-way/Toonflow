@@ -17,6 +17,14 @@ import libtvBinding from "@/utils/libtvBinding";
 
 const VENDOR_ID = "libtv";
 const SOURCE_TAG = "来源: LibTV";
+
+/** 归属校验（SIY-172 审查 P1-6 IDOR）：toonflowProjectId 必须属于当前用户，否则拒绝（404 语义由调用方转成 error 消息） */
+export async function assertProjectOwnership(userId: number, toonflowProjectId: number): Promise<void> {
+  const row = await u.db("o_project").where({ id: toonflowProjectId }).first("userId");
+  if (!row || row.userId !== userId) {
+    throw new LibtvError("UNKNOWN", `目标项目不存在或不属于当前用户（projectId=${toonflowProjectId}）`);
+  }
+}
 const DOWNLOAD_TIMEOUT_MS = 5 * 60 * 1000;
 const MAX_FILE_BYTES = 500 * 1024 * 1024; // 单文件 500MB 上限，防异常 URL 拖爆内存
 
@@ -139,16 +147,22 @@ export async function importNodes(userId: number, toonflowProjectId: number, can
   return result;
 }
 
-/** 下载单个产物并存进素材库（MinIO + o_assets + o_image） */
+/** 下载单个产物并存进素材库（流式直传 MinIO，不在 Node 内存里驻留完整文件——SIY-172 审查 P1-7） */
 async function downloadAndStore(toonflowProjectId: number, node: LibtvCanvasNode): Promise<number> {
-  const res = await axios.get(node.url, { responseType: "arraybuffer", timeout: DOWNLOAD_TIMEOUT_MS, maxContentLength: MAX_FILE_BYTES });
-  const buffer = Buffer.from(res.data);
+  const res = await axios.get(node.url, {
+    responseType: "stream",
+    timeout: DOWNLOAD_TIMEOUT_MS,
+    maxContentLength: MAX_FILE_BYTES,
+    headers: { Accept: "*/*" },
+  });
   const contentType = String(res.headers["content-type"] ?? "");
   let type = node.type === "other" ? (inferTypeFromMime(contentType) ?? inferTypeFromUrl(node.url) ?? "image") : node.type;
   if (type === "other") type = "image";
   const ext = extFromUrl(node.url, type);
   const savePath = `/${toonflowProjectId}/assets/${uuid()}.${ext}`;
-  await u.oss.writeFile(savePath, buffer);
+  // Readable 直传 MinIO（oss.writeFile 原生支持流），不再 Buffer.from(arraybuffer) 全量驻留
+  const declaredSize = parseInt(String(res.headers["content-length"] ?? ""), 10);
+  await u.oss.writeFile(savePath, res.data, Number.isFinite(declaredSize) ? declaredSize : undefined);
 
   const name = `${SOURCE_TAG} · ${node.name || node.key}`.slice(0, 100);
   const remark = `${SOURCE_TAG} · 节点 ${node.key}`.slice(0, 200);
@@ -247,4 +261,4 @@ export async function syncModelCatalog(userId: number): Promise<SyncModelsResult
   return result;
 }
 
-export default { listUserProjects, getProjectNodes, importNodes, syncModelCatalog };
+export default { listUserProjects, getProjectNodes, importNodes, syncModelCatalog, assertProjectOwnership };
