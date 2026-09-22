@@ -35,7 +35,7 @@ RUN apt-get update && apt-get install -y python3 make g++ curl unzip ca-certific
 # LibTV CLI（LiblibAI 画布渠道）：绑定（短信/粘贴凭据）与生成全部经 CLI 子进程完成。
 # 装到固定路径并软链进 PATH；运行时 vendor 解析顺序：渠道设置 cliPath → ~/.libtv/libtv → PATH。
 ENV LIBTV_CLI_INSTALL_DIR=/opt/libtv
-RUN curl -fsSL "https://liblibai-web-static.liblib.cloud/cli/latest/install-libtv-cli.sh" | sh \
+RUN curl -fsSL "https://liblibai-web-static.liblib.cloud/cli/latest/install-libtv-cli.sh" | bash \
     && ln -sf /opt/libtv/libtv /usr/local/bin/libtv \
     && libtv --version
 
