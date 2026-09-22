@@ -25,15 +25,11 @@ export default router.post(
         ]);
         const enabled = new Set(enabledModelNames);
         let configured = !!vendorConfig?.inputValues && vendorConfig.inputValues !== "{}";
-        // 用户自助绑定渠道（LibTV）：当前用户绑定了自己的凭据即视为已配置——
-        // 生成消耗用户自己的积分、画布按用户隔离，渠道全局 Key 可以不配（与 ai.ts 的例外一致）。
-        // 没有这条例外，未配置渠道 Key 时 LibTV 模型在选择器里永远置灰，用户就没有绑定入口了。
-        if (i.id === "libtv" && !configured) {
-          try {
-            const accountRow = await u.db("o_vendorAccount").where({ userId: (req as any).user.id, vendorId: "libtv" }).first();
-            const values = JSON.parse(accountRow?.inputValues ?? "{}");
-            configured = Object.values(values).some((v: unknown) => typeof v === "string" && (v as string).length > 0);
-          } catch (e) {}
+        // 用户自助绑定渠道（LibTV）：无需渠道全局 Key，未绑定时也保持可选——
+        // 选中后前端就地弹绑定浮层（手机号验证码/粘贴凭据），生成链路再做绑定校验兜底。
+        // 若在这里置灰，用户永远点不了 LibTV 模型，绑定入口就断了（SIY-172 用户实测反馈）。
+        if (i.id === "libtv") {
+          configured = true;
         }
         return models
           .filter((model: { modelName: string }) => enabled.has(model.modelName))
