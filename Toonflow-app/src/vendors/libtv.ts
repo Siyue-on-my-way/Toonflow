@@ -38,14 +38,14 @@ export const vendor: VendorConfig = {
     "使用前提：\n" +
     "1. 服务器安装 CLI：`curl -fL \"https://liblibai-web-static.liblib.cloud/cli/latest/install-libtv-cli.sh\" | bash`（装到 ~/.libtv/libtv）。\n" +
     "2. 登录授权：CLI 只支持浏览器/手机验证码登录。在任意一台有浏览器的机器执行 `libtv login web`，登录成功后把 `~/.libtv/credentials.json` 的完整内容粘贴到「登录凭据」输入框；或服务器本机登录后把「CLI HOME 目录」指向对应 home；K8s 部署也可用环境变量 LIBTV_CREDENTIALS 注入（Secret 挂载），优先级：设置页 > 环境变量。\n" +
-    "3. 「画布项目 ID」留空会自动创建名为 Toonflow 的画布项目；也可以在网页端画布 URL 的 projectId 参数里复制一个填进来。\n\n" +
+    "3. 「画布项目 ID」留空时生成会自动绑定名下名为 Toonflow 的画布项目（找不到同名画布才自动创建），生成产物都落在这一个专用画布里；也可以在网页端画布 URL 的 projectId 参数里复制一个填进来。\n\n" +
     "注意：生成会消耗 LibTV 账号积分；含真人形象的参考图会被平台合规墙拦截。",
   inputs: [
     { key: "cliPath", label: "CLI 可执行文件路径", type: "text", required: false, placeholder: "默认：~/.libtv/libtv" },
     { key: "credentialsToken", label: "登录凭据（credentials.json 内容）", type: "password", required: false, placeholder: "本机 libtv login web 后，~/.libtv/credentials.json 的完整 JSON 内容；也可用环境变量 LIBTV_CREDENTIALS 注入" },
     { key: "homeDir", label: "CLI HOME 目录", type: "text", required: false, placeholder: "默认：<数据目录>/libtv/home，用于存放 credentials.json" },
     { key: "workDir", label: "画布绑定目录", type: "text", required: false, placeholder: "默认：<数据目录>/libtv/work，用于存放项目绑定 project.json" },
-    { key: "projectId", label: "LibTV 画布项目 ID", type: "text", required: false, placeholder: "留空则自动创建名为 Toonflow 的画布项目" },
+    { key: "projectId", label: "LibTV 画布项目 ID", type: "text", required: false, placeholder: "留空则自动绑定名下名为 Toonflow 的画布项目（无则自动创建）" },
     { key: "deleteNodeAfterGen", label: "生成后清理临时节点", type: "text", required: false, placeholder: "填 1 开启：生成成功后下次生成时自动删除临时节点，画布不膨胀（默认保留全部节点）" },
   ],
   inputValues: {
@@ -86,7 +86,10 @@ export const vendor: VendorConfig = {
 // schema 键 → 已核实的创建用显示名兜底（CLI 1.0.2 审计，2026-08-05）。
 // 显示名会变，运行时优先用 `libtv model search` 的实时结果，查不到才落到这里。
 const KNOWN_MODEL_NAMES: Record<string, string> = {
-  "star-video2": "StarVideo 2.0",
+  // 2026-09-23 真实目录校准（显示名会随平台改版漂移，运行时优先用 model search 实时解析）
+  "star-video2": "Seedance 2.0 VIP",
+  "nebula-ultra": "General image Pro",
+  "seedream-4": "Seedream 4.0",
 };
 
 // ============================================================
@@ -168,6 +171,14 @@ const loginOkUntilByKey = new Map<string, number>();
 const projectBindingsByKey = new Map<string, Promise<string>>();
 // 模型显示名缓存：LibTV 目录是平台级的（非账号私有），可跨用户/实例共享
 const sharedModelNameCache = new Map<string, { value: string; until: number }>();
+// 模型 schema 缓存（同样是平台级）：生成参数按 schema 白名单裁剪，防「未知字段」校验拒单
+const sharedModelSchemaCache = new Map<string, { value: LibtvModelSchema | null; until: number }>();
+
+/** `libtv model <key>` 里我们关心的部分：顶层允许的参数字段 + 字符串枚举字段的允许值 */
+interface LibtvModelSchema {
+  props: Set<string>;
+  enums: Record<string, string[]>;
+}
 
 export function createVendorAPI(inputValues: Record<string, string>) {
   // ============================================================
@@ -183,7 +194,11 @@ export function createVendorAPI(inputValues: Record<string, string>) {
 
   const getCliPath = (): string => {
     const configured = (inputValues.cliPath ?? "").trim();
-    if (configured) return configured;
+    // 配置的路径必须真实存在才采用：渠道配置里可能残留临时环境的路径（真实事故：
+    // 调试会话把 cliPath 写成 /tmp/multica-task-*/libtv，环境清理后每次生成都 ENOENT）。
+    // 不存在时降级到标准解析并告警，渠道保持可用而不是整条断掉。
+    if (configured && fs.existsSync(configured)) return configured;
+    if (configured) logger(`[LibTV] 渠道配置的 CLI 路径不存在: ${configured}，降级用默认解析（~/.libtv/libtv 或 PATH）`);
     const homeDefault = path.join(os.homedir(), ".libtv", "libtv");
     if (fs.existsSync(homeDefault)) return homeDefault;
     return "libtv"; // 兜底走 PATH
@@ -284,38 +299,76 @@ export function createVendorAPI(inputValues: Record<string, string>) {
     loginOkUntilByKey.set(homeKey, Date.now() + 10 * 60 * 1000);
   };
 
+  /** 自动绑定模式的专用画布项目名（匹配大小写不敏感；用户网页端同名画布会被直接复用） */
+  const AUTO_PROJECT_NAME = "Toonflow";
+  const byUpdatedDesc = (a: LibtvProjectInfo, b: LibtvProjectInfo) => (b.updateTime ?? "").localeCompare(a.updateTime ?? "");
+  const findAutoProject = (projects: LibtvProjectInfo[]): LibtvProjectInfo | undefined =>
+    projects.filter((p) => /^toonflow$/i.test(p.name.trim())).sort(byUpdatedDesc)[0];
+
   /** 绑定画布项目（写 <workDir>/.libtv/project.json），绑定后 node/upload 不用再带 -p。按 workDir+项目隔离缓存（模块级，跨实例共享），并发调用共享同一次绑定。 */
   const projectBindings = projectBindingsByKey;
   const ensureProject = async (): Promise<string> => {
+    const wantedId = (inputValues.projectId ?? "").trim();
     const workDir = getWorkDir();
-    const wanted = (inputValues.projectId ?? "").trim();
-    const cacheKey = `${workDir}:${wanted}`;
+    const cacheKey = `${workDir}:${wantedId}`;
     const cached = projectBindings.get(cacheKey);
     if (cached) return cached;
     const task = (async () => {
-      const workDir = getWorkDir();
-      const bindFile = path.join(workDir, ".libtv", "project.json");
-      if (fs.existsSync(bindFile)) {
-        try {
-          const parsed = JSON.parse(fs.readFileSync(bindFile, "utf-8"));
-          const bound = parsed?.projectId ?? parsed?.projectUuid ?? parsed?.id;
-          if (bound) return String(bound);
-        } catch (e) {
-          // 绑定文件损坏则重建
-        }
-      }
-      const wantedId = (inputValues.projectId ?? "").trim();
+      // 1. 显式配置的画布项目 ID 优先（管理员指定，直接信任）
       if (wantedId) {
         const r = await runCli(["project", "use", wantedId]);
         if (r.code !== 0) throw cliFail(`绑定画布项目 ${wantedId}`, r);
         return wantedId;
       }
-      // 自动创建 Toonflow 画布项目（幂等：已有绑定文件时不会走到这里）
-      const r = await runCli(["project", "create", "Toonflow"], 60000);
+      // 2. 自动模式：绑定文件里已绑定的画布要先确认它还在名下（用户可能在网页端删了画布），
+      //    顺带用同一份 project list 做「找名为 Toonflow 的画布」——一次调用两个用途。
+      //    真实 CLI（1.0.2 校准）：project use 写 {"projectUuid":"<32位无连字符hex>"}，list 条目是 {id, uuid, name, ...}。
+      const bindFile = path.join(workDir, ".libtv", "project.json");
+      let bound = "";
+      try {
+        const parsed = JSON.parse(fs.readFileSync(bindFile, "utf-8"));
+        bound = String(parsed?.projectId ?? parsed?.projectUuid ?? parsed?.id ?? "");
+      } catch (e) {
+        // 无绑定文件或已损坏，走下面的自动绑定
+      }
+      let projects: LibtvProjectInfo[] = [];
+      try {
+        projects = await listProjects(); // 内部含 ensureLogin（生成链路已登录，缓存命中零开销）
+      } catch (e) {
+        if (bound) return bound; // 列表拉取的瞬时故障不该废掉仍有效的既有绑定
+        throw e;
+      }
+      if (bound && projects.some((p) => p.id === bound)) return bound;
+      // 3. 复用名下已有的 Toonflow 画布（历史失败重试可能建了多个，取最近更新的那个）
+      const found = findAutoProject(projects);
+      if (found) {
+        const use = await runCli(["project", "use", found.id]);
+        if (use.code !== 0) throw cliFail(`绑定画布项目 ${found.name}(${found.id})`, use);
+        return found.id;
+      }
+      // 4. 名下没有 Toonflow 画布 → 自动创建。真实输出形如 {"projectMetaList":[{id,uuid,name,...}]}，
+      //    uuid 是 32 位无连字符 hex——旧解析只认 projectUuid 键和带连字符 uuid，导致「画布建成了但解析不到 ID」
+      const r = await runCli(["project", "create", AUTO_PROJECT_NAME], 60000);
       if (r.code !== 0) throw cliFail("创建画布项目", r);
-      const created = r.stdout.match(/"project(?:Uuid|Id|ID|Key|key)"\s*:\s*"([^"]+)"/)?.[1] ?? r.stdout.match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i)?.[1] ?? "";
+      let created = "";
+      for (const [keyPath, value] of walkEntries(parseCliJson(r.stdout))) {
+        const leaf = keyPath.split(".").pop() ?? "";
+        if (
+          typeof value === "string" &&
+          /^(uuid|projectUuid|projectId|projectID|projectKey)$/i.test(leaf) &&
+          /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i.test(value)
+        ) {
+          created = value;
+          break;
+        }
+      }
       if (!created) {
-        throw new Error("无法从 libtv project create 输出中解析项目 ID，请在 LibTV 渠道设置里手动填写「画布项目 ID」（网页端画布 URL 的 projectId 参数）。\nCLI 输出: " + r.stdout.trim().slice(0, 300));
+        // 创建输出解析不出来（格式可能再变）——画布大概率已建成，回列表按名字找（真实事故：画布已建但解析失败）
+        const refreshed = findAutoProject(await listProjects());
+        if (!refreshed) {
+          throw new Error("无法从 libtv project create 输出中解析项目 ID，请在 LibTV 渠道设置里手动填写「画布项目 ID」（网页端画布 URL 的 projectId 参数）。\nCLI 输出: " + r.stdout.trim().slice(0, 300));
+        }
+        created = refreshed.id;
       }
       const use = await runCli(["project", "use", created]);
       if (use.code !== 0) throw cliFail(`绑定画布项目 ${created}`, use);
@@ -389,6 +442,51 @@ export function createVendorAPI(inputValues: Record<string, string>) {
       if (m && m[1] === schemaKey) return m[2].trim();
     }
     return "";
+  };
+
+  /**
+   * 拉取模型 schema（`libtv model <key>`，真实输出 {schema:{properties:{...}}}, 1.0.2 校准）。
+   * 生成参数按 schema 白名单裁剪：真实事故——image 模型的比例字段是 ratio 而非 aspectRatio，
+   * 盲传未知字段会被「params 顶层不允许设置未知字段」整单拒绝。
+   */
+  const resolveModelSchema = async (schemaKey: string): Promise<LibtvModelSchema | null> => {
+    const cached = sharedModelSchemaCache.get(schemaKey);
+    if (cached && cached.until > Date.now()) return cached.value;
+    let parsed: LibtvModelSchema | null = null;
+    try {
+      const r = await runCli(["model", schemaKey], 60000);
+      if (r.code === 0) {
+        const root = parseCliJson(r.stdout);
+        const propsObj = root?.schema?.properties;
+        if (propsObj && typeof propsObj === "object") {
+          const props = new Set(Object.keys(propsObj));
+          const enums: Record<string, string[]> = {};
+          for (const [field, def] of Object.entries(propsObj as Record<string, any>)) {
+            if (!def || typeof def !== "object") continue;
+            // 允许值两种形态（真实 1.0.2 schema）：enum 数组（元素为字符串或 {value}），或 items 对象（键 = 允许的 modeType 值）
+            const raw: any[] = Array.isArray(def.enum) ? def.enum : def.items && typeof def.items === "object" && !Array.isArray(def.items) ? Object.keys(def.items) : [];
+            const values = raw
+              .map((e: any) => (typeof e === "string" ? e : e && typeof e === "object" && typeof e.value === "string" ? e.value : null))
+              .filter((v: any): v is string => typeof v === "string");
+            if (values.length > 0) enums[field] = values;
+          }
+          parsed = { props, enums };
+        }
+      }
+    } catch (e) {
+      logger(`[LibTV] 拉取模型 schema 失败，参数将按旧规则直传: ${String((e as any)?.message ?? e).slice(0, 120)}`);
+    }
+    sharedModelSchemaCache.set(schemaKey, { value: parsed, until: Date.now() + 10 * 60 * 1000 });
+    return parsed;
+  };
+
+  /** schema 白名单裁剪：字段不在 schema 里 → 丢弃；值不在枚举里 → 丢弃（吃平台默认值）；schema 拿不到 → 维持直传 */
+  const pickParam = (schema: LibtvModelSchema | null, field: string, value: string): string | null => {
+    if (!schema) return value;
+    if (!schema.props.has(field)) return null;
+    const allowed = schema.enums[field];
+    if (allowed && !allowed.includes(value)) return null;
+    return value;
   };
 
   // ============================================================
@@ -468,7 +566,8 @@ export function createVendorAPI(inputValues: Record<string, string>) {
     }
     const absentByText = /"count"\s*:\s*0|"matches"\s*:\s*\[\s*\]/.test(trimmed);
     if (!root) {
-      if (absentByText) return { exists: false };
+      // 真实 CLI（1.0.2 校准）：节点不存在时输出纯文本「未找到展示名或节点 id 与该字符串完全一致的节点」，退出码 0
+      if (absentByText || /未找到|not\s+found/i.test(trimmed)) return { exists: false };
       throw new Error("无法解析 libtv node 输出（非 JSON），请把以下输出来反馈以校准解析器:\n" + trimmed.slice(0, 600));
     }
     if (root.count === 0 || (Array.isArray(root.matches) && root.matches.length === 0)) return { exists: false };
@@ -479,6 +578,7 @@ export function createVendorAPI(inputValues: Record<string, string>) {
     // 1) 状态：匹配 key 形如 status/state/taskStatus... 的字符串或布尔
     let done = false;
     let failed = false;
+    let running = false;
     let failReason = "";
     for (const [keyPath, value] of entries) {
       const leaf = keyPath.split(".").pop() ?? "";
@@ -491,7 +591,10 @@ export function createVendorAPI(inputValues: Record<string, string>) {
       const leaf = keyPath.split(".").pop() ?? "";
       if (/^(success|succeed|completed|done|finished)$/i.test(leaf) && value === true) done = true;
       if (/^(failed|error|failure)$/i.test(leaf) && value === true) failed = true;
-      if (/^is(Running|Generating|Processing)$/i.test(leaf) && value === true) done = false;
+      if (/^is(Running|Generating|Processing)$/i.test(leaf) && value === true) {
+        done = false;
+        running = true;
+      }
     }
     for (const [keyPath, value] of entries) {
       if (!failReason && typeof value === "string" && /^(error|message|errorMessage|errorReason|failReason|failure_reason|reason)$/i.test(keyPath.split(".").pop() ?? "")) {
@@ -499,12 +602,22 @@ export function createVendorAPI(inputValues: Record<string, string>) {
       }
     }
 
+    // 1.5) 结果 URL 已就绪即视为完成（真实校准：产出在 data.url 数组里，完成态可能没有可识别的 status 字段；
+    //      未运行的节点 url 为空数组不会命中；平台明确标记 running 时以 running 为准）
+    const hasResultUrl = entries.some(([keyPath, value]) => {
+      if (typeof value !== "string" || !/^https?:\/\//.test(value)) return false;
+      const leaf = (keyPath.split(".").pop() ?? "").replace(/\[\d+\]$/, "");
+      if (/^(left|input|ref|source|prev|origin)/i.test(keyPath)) return false;
+      return /(result|output|download|videoUrl|imageUrl|fileUrl|url)$/i.test(leaf) || /\.(mp4|mov|webm|png|jpe?g|webp|gif)(\?|$)/i.test(value);
+    });
+    if (!done && !failed && !running && hasResultUrl) done = true;
+
     // 2) 结果 URL：优先扩展名匹配，参考图输入字段降权
     const extRe = kind === "video" ? /\.(mp4|mov|webm)(\?|$)/i : /\.(png|jpe?g|webp|gif)(\?|$)/i;
     let best: { url: string; score: number } | null = null;
     for (const [keyPath, value] of entries) {
       if (typeof value !== "string" || !/^https?:\/\//.test(value)) continue;
-      const leaf = keyPath.split(".").pop() ?? "";
+      const leaf = (keyPath.split(".").pop() ?? "").replace(/\[\d+\]$/, "");
       let score = 0;
       if (extRe.test(value)) score += 3;
       if (/(result|output|download|videoUrl|imageUrl|fileUrl|url)$/i.test(leaf)) score += 2;
@@ -603,7 +716,7 @@ export function createVendorAPI(inputValues: Record<string, string>) {
     let bestScore = 0;
     for (const [keyPath, value] of walkEntries(nodeObj)) {
       if (typeof value !== "string" || !/^https?:\/\//.test(value)) continue;
-      const leaf = keyPath.split(".").pop() ?? "";
+      const leaf = (keyPath.split(".").pop() ?? "").replace(/\[\d+\]$/, "");
       let score = 0;
       if (extRe.test(value)) score += 3;
       if (/(url|src|href|file|resource|download)$/i.test(leaf)) score += 1;
@@ -827,10 +940,18 @@ export function createVendorAPI(inputValues: Record<string, string>) {
       lefts.push(await uploadReference(i, refs[i]));
     }
 
+    // 参数按模型 schema 白名单裁剪（nebula 的比例字段叫 ratio 不叫 aspectRatio；quality 枚举各模型不同）
+    const modelSchema = await resolveModelSchema(model.modelName);
+    const ratio = pickParam(modelSchema, "ratio", config.aspectRatio);
+    const quality = pickParam(modelSchema, "quality", config.size);
+
     const nodeName = `tf-img-${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 6)}`;
     const args = ["node", "create", nodeName, "-t", "image", "--prompt", config.prompt];
     for (const left of lefts) args.push("--left", left);
-    args.push("-s", `model=${displayName}`, "-s", `aspectRatio=${config.aspectRatio}`, "--run");
+    args.push("-s", `model=${displayName}`);
+    if (ratio) args.push("-s", `ratio=${ratio}`);
+    if (quality) args.push("-s", `quality=${quality}`);
+    args.push("--run");
 
     logger(`[LibTV] 创建图片节点 ${nodeName}, model=${displayName}, refs=${lefts.length}`);
     let created = false;
@@ -883,18 +1004,26 @@ export function createVendorAPI(inputValues: Record<string, string>) {
     const enableSound = config.audio === false ? "off" : "on";
     const fullPrompt = [buildReferenceNote(modeType, lefts.length), config.prompt].filter(Boolean).join("\n");
 
+    // 参数按模型 schema 白名单裁剪：modeType=text2video 不在 StarVideo 枚举里时自动省略（平台按无该字段处理）
+    const modelSchema = await resolveModelSchema(model.modelName);
+    const schemaParams: [string, string][] = (
+      [
+        ["modeType", modeType],
+        ["ratio", ratio],
+        ["resolution", resolution],
+        ["duration", String(duration)],
+        ["enableSound", enableSound],
+      ] as [string, string][]
+    )
+      .map(([field, value]) => [field, pickParam(modelSchema, field, value)] as [string, string | null])
+      .filter((p): p is [string, string] => p[1] !== null);
+
     const nodeName = `tf-vid-${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 6)}`;
     const args = ["node", "create", nodeName, "-t", "video", "--prompt", fullPrompt];
     for (const left of lefts) args.push("--left", left);
-    args.push(
-      "-s", `model=${displayName}`,
-      "-s", `modeType=${modeType}`,
-      "-s", `ratio=${ratio}`,
-      "-s", `resolution=${resolution}`,
-      "-s", `duration=${duration}`,
-      "-s", `enableSound=${enableSound}`,
-      "--run",
-    );
+    args.push("-s", `model=${displayName}`);
+    for (const [field, value] of schemaParams) args.push("-s", `${field}=${value}`);
+    args.push("--run");
 
     logger(`[LibTV] 创建视频节点 ${nodeName}, model=${displayName}, modeType=${modeType}, ${duration}s/${resolution}/${ratio}, sound=${enableSound}, refs=${lefts.length}`);
     let created = false;
@@ -939,5 +1068,5 @@ export function createVendorAPI(inputValues: Record<string, string>) {
   // 导出
   // ============================================================
 
-  return { textRequest, imageRequest, videoRequest, ttsRequest, checkForUpdates, updateVendor, listProjects, readProjectCanvas, deleteNode };
+  return { textRequest, imageRequest, videoRequest, ttsRequest, checkForUpdates, updateVendor, listProjects, readProjectCanvas, deleteNode, ensureProject };
 }
