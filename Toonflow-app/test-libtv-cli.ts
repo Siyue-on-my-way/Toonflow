@@ -50,12 +50,12 @@ case "$cmd" in
       exit 0
     fi
     if [ "$sub" = "list" ]; then
-      echo '[{"projectId":"proj-a","name":"画布A","updateTime":"2026-09-01 10:00:00"},{"projectId":"proj-b","name":"画布B"}]'
+      echo '{"projectMetaList":[{"id":1,"uuid":"proj-a","name":"画布A","updatedAtMs":1750000000000,"createdAtMs":1750000000000},{"id":2,"uuid":"proj-b","name":"画布B"}]}'
       exit 0
     fi
-    # project <id>：回读画布 nodes（含图/视频/音频产物与纯文本节点）
+    # project <uuid>：回读画布节点列表（真实格式：只有 key/name/type/位置，无 URL）
     if [ -n "$sub" ]; then
-      echo '{"nodes":[{"nodeKey":"n-img-1","name":"角色定版","nodeType":"image","prompt":"黑衣剑客","result":{"imageUrl":"https://cdn.example.com/out1.png"},"createTime":"2026-09-20 10:00:00"},{"nodeKey":"n-vid-1","name":"开场镜头","nodeType":"video","prompt":"推镜头","taskInfo":{"result":{"videoUrl":"https://cdn.example.com/out2.mp4"}},"createTime":"2026-09-21 09:00:00"},{"nodeKey":"n-aud-1","name":"BGM","nodeType":"audio","audioUrl":"https://cdn.example.com/out3.mp3","createTime":"2026-09-19 08:00:00"},{"nodeKey":"n-txt-1","name":"剧本","nodeType":"text","content":"第一幕...","createTime":"2026-09-18 08:00:00"}]}'
+      echo '{"projectUuid":"'"$sub"'","nodes":[{"id":"n-img-1","name":"角色定版","type":"image","position":{"x":0,"y":0}},{"id":"n-vid-1","name":"开场镜头","type":"video","position":{"x":1,"y":0}},{"id":"n-aud-1","name":"BGM","type":"audio","position":{"x":2,"y":0}},{"id":"n-txt-1","name":"剧本","type":"text","position":{"x":3,"y":0}}],"edges":[]}'
       exit 0
     fi
     exit 1 ;;
@@ -82,6 +82,16 @@ case "$cmd" in
     fi
     if [ "$2" = "delete" ] || [ "$2" = "remove" ]; then
       echo "$3" >> "$STATE/deleted.log"
+      exit 0
+    fi
+    if [ "\${3:-}" = "-p" ]; then
+      # 画布回读的单节点详情（真实格式：data.url 是字符串数组）
+      case "$2" in
+        n-img-1) echo '{"nodeKey":"n-img-1","data":{"type":"image","url":["https://cdn.example.com/out1.png"]},"nodeType":"image","name":"角色定版","data_prompt":null,"prompt":"黑衣剑客","createTime":1750000000000}' ;;
+        n-vid-1) echo '{"nodeKey":"n-vid-1","data":{"type":"video","url":["https://cdn.example.com/out2.mp4"]},"nodeType":"video","name":"开场镜头","prompt":"推镜头","createTime":1750100000000}' ;;
+        n-aud-1) echo '{"nodeKey":"n-aud-1","data":{"type":"audio","url":["https://cdn.example.com/out3.mp3"]},"nodeType":"audio","name":"BGM","createTime":1749900000000}' ;;
+        *) echo '{"count":0}' ;;
+      esac
       exit 0
     fi
     name="$2"
@@ -203,7 +213,7 @@ const main = async () => {
   assert(!!vidNode && vidNode.prompt === "推镜头", "产物节点保留 prompt 元数据");
   const audNode = canvasNodes.find((n) => n.key === "n-aud-1");
   assert(!!audNode && audNode.type === "audio" && audNode.url.includes("out3.mp3"), "音频产物节点从字段名/扩展名解析出 URL");
-  assert(canvasNodes.every((n) => !!n.createTime && !!n.name), "产物节点保留 createTime/name 元数据");
+  assert(canvasNodes.every((n) => !!n.createTime && !!n.name), "产物节点保留 createTime/name 元数据（毫秒时间戳已转 ISO）");
 
   // —— 节点删除（清理开关的底层能力）——
   assert((await api.deleteNode("n-old-1")) === true, "node delete 成功返回 true");

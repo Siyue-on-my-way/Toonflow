@@ -624,8 +624,8 @@ export function createVendorAPI(inputValues: Record<string, string>) {
     return "other";
   };
 
-  /** 解析 `libtv project <id>` 输出里的产物节点（图/视频/音频，带结果 URL）。格式未公开，防御式解析。 */
-  const parseCanvasNodes = (stdout: string): LibtvCanvasNode[] => {
+  /** 解析 `libtv project <uuid>` 列表输出：节点只有 key/name/type/位置信息，产物 URL 要逐节点 `libtv node <key> -p <uuid>` 查询（1.0.2 校准）。 */
+  const parseCanvasNodeList = (stdout: string): { key: string; name: string; type: LibtvCanvasNode["type"] }[] => {
     const root = parseCliJson(stdout);
     if (!root) {
       const trimmed = String(stdout ?? "").trim();
@@ -633,44 +633,64 @@ export function createVendorAPI(inputValues: Record<string, string>) {
       throw new Error("无法解析 libtv project 输出（非 JSON），请把以下输出来反馈以校准导入器解析器:\n" + trimmed.slice(0, 600));
     }
     const nodeArr = Array.isArray(root) ? root : Array.isArray(root?.nodes) ? root.nodes : Array.isArray(root?.matches) ? root.matches : Array.isArray(root?.elements) ? root.elements : [];
-    const out: LibtvCanvasNode[] = [];
+    const out: { key: string; name: string; type: LibtvCanvasNode["type"] }[] = [];
     for (const item of nodeArr) {
       if (!item || typeof item !== "object") continue;
       const key = String(item.nodeKey ?? item.key ?? item.nodeId ?? item.id ?? "").slice(0, 120);
       if (!key) continue;
       const rawType = String(item.nodeType ?? item.type ?? item.category ?? "").toLowerCase();
-      // 先按声明类型定大方向，再从候选 URL 的真实扩展名修正
       let type: LibtvCanvasNode["type"] = "other";
       if (/video|film|movie/.test(rawType)) type = "video";
       else if (/audio|music|sound|voice|tts/.test(rawType)) type = "audio";
       else if (/image|picture|photo|draw|paint/.test(rawType)) type = "image";
-      let url = type === "other" ? "" : extractCanvasNodeUrl(item, type);
-      if (!url && type !== "other") url = extractCanvasNodeUrl(item, "image"); // 声明类型没挑到 URL，按图片扩展再试一次
-      if (url) {
-        const inferred = inferKindFromUrl(url);
-        if (inferred !== "other") type = inferred;
-      }
-      // 只收编有产物 URL 的节点；纯文本/脚本/分镜表节点暂不入库
-      if (!url || type === "other") continue;
-      let prompt = "";
-      for (const [keyPath, value] of walkEntries(item)) {
-        if (typeof value !== "string" || !value.trim()) continue;
-        const leaf = keyPath.split(".").pop() ?? "";
-        if (/^(prompt|promptText|description|desc|content|text)$/i.test(leaf) && !/^https?:\/\//.test(value)) {
-          prompt = value.trim().slice(0, 2000);
-          break;
-        }
-      }
+      // 只收编媒体类型节点；纯文本/脚本/分组节点没有产物
+      if (type === "other") continue;
       out.push({
         key,
         name: String(item.name ?? item.title ?? "").slice(0, 100) || key,
         type,
-        prompt,
-        url,
-        createTime: item.createTime ?? item.createdAt ?? item.updateTime ?? item.generatedAt ?? undefined,
       });
     }
     return out;
+  };
+
+  /** 单节点详情 → 产物节点：URL 在 data.url（字符串数组），prompt/时间等元数据尽力提取（真实格式 1.0.2 校准）。 */
+  const parseNodeDetail = (stdout: string, fallbackType: LibtvCanvasNode["type"], fallbackName: string): Partial<LibtvCanvasNode> | null => {
+    const detail = parseCliJson(stdout);
+    if (!detail || typeof detail !== "object") return null;
+    const rawType = String(detail.nodeType ?? detail.data?.type ?? detail.type ?? "").toLowerCase();
+    let type: LibtvCanvasNode["type"] = "other";
+    if (/video|film|movie/.test(rawType)) type = "video";
+    else if (/audio|music|sound|voice|tts/.test(rawType)) type = "audio";
+    else if (/image|picture|photo|draw|paint/.test(rawType)) type = "image";
+    if (type === "other") type = fallbackType;
+    // data.url 是字符串数组（真实格式）；walkEntries 兜底扫任意字段
+    const urls: string[] = Array.isArray(detail.data?.url)
+      ? detail.data.url.filter((u: unknown) => typeof u === "string" && /^https?:\/\//.test(u as string))
+      : [];
+    let url = urls[0] ?? extractCanvasNodeUrl(detail, type === "other" ? "image" : type);
+    if (!url && type !== "video" && type !== "audio") url = extractCanvasNodeUrl(detail, "image");
+    if (!url) return null;
+    const inferred = inferKindFromUrl(url);
+    if (inferred !== "other") type = inferred;
+    let prompt = "";
+    for (const [keyPath, value] of walkEntries(detail)) {
+      if (typeof value !== "string" || !value.trim() || /^https?:\/\//.test(value)) continue;
+      const leaf = keyPath.split(".").pop() ?? "";
+      if (/^(prompt|promptText|description|desc)$/i.test(leaf)) {
+        prompt = value.trim().slice(0, 2000);
+        break;
+      }
+    }
+    const rawTime = detail.data?.createTime ?? detail.createTime ?? detail.createdAt ?? detail.data?.updatedAtMs;
+    const timeNum = Number(rawTime);
+    return {
+      type,
+      prompt,
+      url,
+      createTime: Number.isFinite(timeNum) && timeNum > 0 ? new Date(timeNum).toISOString() : undefined,
+      name: String(detail.name ?? "").slice(0, 100) || fallbackName,
+    };
   };
 
   /** 列出账号名下的画布项目（导入器第一步）。审计：未登录时返回空列表且退出码 0，调用方须先 ensureLogin。 */
@@ -684,27 +704,66 @@ export function createVendorAPI(inputValues: Record<string, string>) {
       if (!trimmed) return [];
       throw new Error("无法解析 libtv project list 输出（非 JSON），请把以下输出来反馈以校准解析器:\n" + trimmed.slice(0, 600));
     }
-    const arr = Array.isArray(root) ? root : Array.isArray(root?.projects) ? root.projects : Array.isArray(root?.matches) ? root.matches : [];
+    const arr = Array.isArray(root)
+      ? root
+      : Array.isArray(root?.projectMetaList)
+        ? root.projectMetaList
+        : Array.isArray(root?.projects)
+          ? root.projects
+          : Array.isArray(root?.matches)
+            ? root.matches
+            : [];
     const out: LibtvProjectInfo[] = [];
     for (const item of arr) {
       if (!item || typeof item !== "object") continue;
-      const id = item.projectId ?? item.projectUuid ?? item.uuid ?? item.id;
-      if (!id) continue;
+      // 真实 CLI 输出（1.0.2 校准）：{ id, uuid, name, updatedAtMs, createdAtMs }；
+      // `libtv project <id>` 回读只认 uuid，这里优先取 uuid
+      const pid = item.uuid ?? item.projectUuid ?? item.projectId ?? item.id;
+      if (!pid) continue;
+      const rawTime = item.updatedAtMs ?? item.updateTime ?? item.createdAtMs ?? item.createTime;
+      const timeNum = Number(rawTime);
       out.push({
-        id: String(id),
-        name: String(item.name ?? item.title ?? item.projectName ?? "").slice(0, 100) || String(id),
-        updateTime: item.updateTime ?? item.updatedAt ?? item.createTime ?? undefined,
+        id: String(pid),
+        name: String(item.name ?? item.title ?? item.projectName ?? "").slice(0, 100) || String(pid),
+        updateTime: Number.isFinite(timeNum) && timeNum > 0 ? new Date(timeNum).toISOString() : undefined,
       });
     }
     return out;
   };
 
-  /** 回读画布的产物节点（导入器第二步）。 */
+  /** 单画布逐节点查询上限：每个节点一次 CLI 调用，防超大画布拖垮导入（超出部分可在 LibTV 网页端处理） */
+  const CANVAS_NODE_QUERY_LIMIT = 200;
+
+  /** 回读画布的产物节点（导入器第二步）：列表拿 key/type → 逐节点 `libtv node <key> -p <uuid>` 拿产物 URL。 */
   const readProjectCanvas = async (projectId: string): Promise<LibtvCanvasNode[]> => {
     await ensureLogin();
     const r = await runCli(["project", String(projectId)], 120000);
     if (r.code !== 0) throw new LibtvError(classifyLibtvFailure(r.stderr || r.stdout), `读取画布 ${projectId} 失败:\n${(r.stderr || r.stdout || "").trim().slice(0, 300)}`);
-    return parseCanvasNodes(r.stdout);
+    const listed = parseCanvasNodeList(r.stdout);
+    const out: LibtvCanvasNode[] = [];
+    for (const node of listed) {
+      if (out.length >= CANVAS_NODE_QUERY_LIMIT) {
+        logger(`[LibTV] 画布 ${projectId} 产物节点超过 ${CANVAS_NODE_QUERY_LIMIT}，截断导入列表`);
+        break;
+      }
+      try {
+        // 真实 CLI 契约：node 查询需要 -p <项目uuid>（或 cwd 有 project use 写入的绑定文件；导入链路 cwd 是 HOME，必须显式传）
+        const nr = await runCli(["node", node.key, "-p", String(projectId)], 60000);
+        const detail = parseNodeDetail(nr.stdout, node.type, node.name);
+        if (!detail) continue;
+        out.push({
+          key: node.key,
+          name: detail.name ?? node.name,
+          type: detail.type ?? node.type,
+          prompt: detail.prompt ?? "",
+          url: detail.url ?? "",
+          createTime: detail.createTime,
+        });
+      } catch (e) {
+        logger(`[LibTV] 查询画布节点 ${node.key} 失败，跳过: ${String((e as any)?.message ?? e).slice(0, 120)}`);
+      }
+    }
+    return out;
   };
 
   /** 删除画布节点（`node delete`/`node remove` 双命令兜底，输出格式未公开，删除失败不抛错只返回 false）。 */

@@ -45,14 +45,25 @@ fs.writeFileSync(
 set -u
 cmd="$1"; sub="\${2:-}"
 if [ "$cmd" = "account" ] && [ "$sub" = "info" ]; then exit 0; fi
+if [ "$cmd" = "node" ]; then
+  # 单节点详情（真实格式：data.url 是字符串数组；createTime 毫秒）
+  case "$2" in
+    img-1) echo '{"nodeKey":"img-1","data":{"type":"image","url":["http://127.0.0.1:'"$FAKE_PORT"'/a.png"]},"nodeType":"image","name":"角色定版图","prompt":"black clothed swordsman, full body","createTime":1750000000000}' ;;
+    vid-1) echo '{"nodeKey":"vid-1","data":{"type":"video","url":["http://127.0.0.1:'"$FAKE_PORT"'/b.mp4"]},"nodeType":"video","name":"开场镜头","createTime":1750100000000}' ;;
+    aud-1) echo '{"nodeKey":"aud-1","data":{"type":"audio","url":["http://127.0.0.1:'"$FAKE_PORT"'/c.mp3"]},"nodeType":"audio","name":"BGM","createTime":1749900000000}' ;;
+    img-already) echo '{"nodeKey":"img-already","data":{"type":"image","url":["http://127.0.0.1:'"$FAKE_PORT"'/d.png"]},"nodeType":"image","name":"已导入的图","createTime":1749800000000}' ;;
+    *) echo '{"count":0}' ;;
+  esac
+  exit 0
+fi
 if [ "$cmd" = "project" ]; then
   if [ "$sub" = "list" ]; then
-    echo '{"projects":[{"projectId":"cv-001","name":"我的短剧画布","updateTime":"2026-09-20 10:00:00"},{"projectId":"cv-002","name":"练习画布"}]}'
+    echo '{"projectMetaList":[{"id":1,"uuid":"cv-001","name":"我的短剧画布","updatedAtMs":1750000000000},{"id":2,"uuid":"cv-002","name":"练习画布"}]}'
     exit 0
   fi
-  # project <id>：回读画布，含图/视频/音频产物、无 URL 的草稿节点、已导入过的节点
+  # project <uuid>：回读画布节点列表（真实格式：只有 key/name/type/位置，无 URL 无时间）
   if [ -n "$sub" ] && [ "$sub" != "list" ] && [ "$sub" != "create" ] && [ "$sub" != "use" ]; then
-    echo '{"nodes":[{"nodeKey":"img-1","name":"角色定版图","nodeType":"image","prompt":"black clothed swordsman, full body","result":{"imageUrl":"http://127.0.0.1:'"$FAKE_PORT"'/a.png"},"createTime":"2026-09-20 10:00:00"},{"nodeKey":"vid-1","name":"开场镜头","nodeType":"video","taskInfo":{"result":{"videoUrl":"http://127.0.0.1:'"$FAKE_PORT"'/b.mp4"}},"createTime":"2026-09-21 09:00:00"},{"nodeKey":"aud-1","name":"BGM","nodeType":"audio","audioUrl":"http://127.0.0.1:'"$FAKE_PORT"'/c.mp3","createTime":"2026-09-19 08:00:00"},{"nodeKey":"txt-1","name":"草稿剧本","nodeType":"text","content":"第一幕...","createTime":"2026-09-18 08:00:00"},{"nodeKey":"img-already","name":"已导入的图","nodeType":"image","result":{"imageUrl":"http://127.0.0.1:'"$FAKE_PORT"'/d.png"},"createTime":"2026-09-17 08:00:00"}]}'
+    echo '{"projectUuid":"'"$sub"'","nodes":[{"id":"img-1","name":"角色定版图","type":"image","position":{"x":0,"y":0}},{"id":"vid-1","name":"开场镜头","type":"video","position":{"x":1,"y":0}},{"id":"aud-1","name":"BGM","type":"audio","position":{"x":2,"y":0}},{"id":"txt-1","name":"草稿剧本","type":"text","position":{"x":3,"y":0}},{"id":"img-already","name":"已导入的图","type":"image","position":{"x":4,"y":0}}],"edges":[]}'
     exit 0
   fi
   exit 1
@@ -144,7 +155,7 @@ const main = async () => {
   const toonflowProjectId = 9001;
   const nodes = await libtvImport.getProjectNodes(201, "cv-001", toonflowProjectId);
   assert(nodes.length === 4, `画布 5 个节点收 4 个产物（纯文本草稿被过滤，实际 ${nodes.length}）`);
-  assert(nodes[0].key === "vid-1", "产物按生成时间倒序（新的在前）");
+  assert(nodes[0].key === "vid-1", "产物按生成时间倒序（新的在前，时间来自单节点详情）");
   assert(nodes.every((n) => n.imported === false), "首次读取全部未导入");
   assert(String(nodes.find((n) => n.key === "img-1")?.prompt).includes("swordsman"), "节点 prompt 元数据带回");
 
