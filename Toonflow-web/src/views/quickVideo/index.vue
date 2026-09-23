@@ -691,7 +691,7 @@
       placement="center"
       :footer="false"
       destroy-on-close>
-      <libtvImport @imported="onLibtvImported" />
+      <libtvImport :session-id="currentSessionId" @imported="onLibtvImported" />
     </t-dialog>
 
     <!-- 第三道确认门：成片导出确认 -->
@@ -1506,6 +1506,8 @@ const libtvImportShow = ref(false);
 /** 导入完成（组件已提示成功）：产物已存入当前项目的素材库，素材中心可见可用 */
 function onLibtvImported() {
   libtvImportShow.value = false;
+  // 刷新资产白板：导入的图/视频已登记进 o_quickVideoMedia，白板立即可见可用
+  void loadAssetBoard();
 }
 
 // ===== 资产白板（SIY-132） =====

@@ -3,6 +3,7 @@ import { v4 as uuid } from "uuid";
 import u from "@/utils";
 import { LibtvCanvasNode, LibtvProjectInfo, LibtvError, parseCliJson } from "@/vendors/libtv";
 import libtvBinding from "@/utils/libtvBinding";
+import { createChatMedia, markChatMediaDone } from "@/lib/quickVideo/media";
 
 /**
  * 「从 LibTV 导入」资源导入器（一次性收编，只读不写回）。
@@ -107,7 +108,12 @@ export interface ImportResult {
 }
 
 /** 第三步：勾选导入——下载产物 → 存 MinIO → o_assets/o_image 落库（type=clip 素材，remark 打来源标） */
-export async function importNodes(userId: number, toonflowProjectId: number, canvasProjectId: string, nodeKeys: string[]): Promise<ImportResult> {
+export interface ImportOptions {
+  /** 快创会话 id：提供时把图/视频产物同步写进快创资产白板（o_quickVideoMedia，source=upload，幂等键含画布+节点） */
+  sessionId?: number;
+}
+
+export async function importNodes(userId: number, toonflowProjectId: number, canvasProjectId: string, nodeKeys: string[], options: ImportOptions = {}): Promise<ImportResult> {
   const api = await createUserLibtvAPI(userId);
   const allNodes: LibtvCanvasNode[] = await api.readProjectCanvas(String(canvasProjectId).trim());
   const byKey = new Map(allNodes.map((n) => [n.key, n]));
@@ -137,6 +143,34 @@ export async function importNodes(userId: number, toonflowProjectId: number, can
     }
     try {
       const assetId = await downloadAndStore(toonflowProjectId, node);
+      // 快创白板桥（SIY-172 用户反馈）：把图/视频产物同步登记进 o_quickVideoMedia，
+      // 资产白板立即可见、可作为参考/首帧使用；幂等键含画布+节点，重复导入自动跳过
+      if (options.sessionId && (node.type === "image" || node.type === "video")) {
+        try {
+          const savePath = await u
+            .db("o_image")
+            .where("id", (await u.db("o_assets").where("id", assetId).first("imageId"))?.imageId ?? 0)
+            .first("filePath")
+            .then((r: any) => r?.filePath);
+          if (savePath) {
+            const kind = node.type === "video" ? "video" : "image";
+            const { media } = await createChatMedia({
+              projectId: toonflowProjectId,
+              sessionId: options.sessionId,
+              messageId: null,
+              kind,
+              model: "LibTV 导入",
+              prompt: node.prompt || node.name,
+              source: "upload",
+              idempotencyKey: `libtv:${canvasProjectId}:${node.key}`,
+            });
+            if (media.state !== "done") await markChatMediaDone(media.id, savePath);
+          }
+        } catch (e: any) {
+          // 白板登记失败不影响素材导入本身（素材库已落库）
+          result.failed.push({ key: node.key, reason: `素材已导入，白板登记失败: ${String(e?.message ?? e).slice(0, 150)}` });
+        }
+      }
       result.assetIds.push(assetId);
       result.importedCount += 1;
       importedKeys.add(node.key);

@@ -14,11 +14,14 @@ export default router.post(
     projectId: z.string().min(1),
     toonflowProjectId: z.number(),
     nodeKeys: z.array(z.string().min(1)).min(1).max(200),
+    sessionId: z.number().optional(),
   }),
   async (req, res) => {
     try {
       await libtvImport.assertProjectOwnership((req as any).user.id, req.body.toonflowProjectId);
-      const result = await libtvImport.importNodes((req as any).user.id, req.body.toonflowProjectId, req.body.projectId, req.body.nodeKeys);
+      const result = await libtvImport.importNodes((req as any).user.id, req.body.toonflowProjectId, req.body.projectId, req.body.nodeKeys, {
+        sessionId: req.body.sessionId,
+      });
       res.status(200).send(success(result));
     } catch (err: any) {
       res.status(500).send(error(err?.message || "导入失败"));

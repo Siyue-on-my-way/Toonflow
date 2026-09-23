@@ -83,6 +83,11 @@ import projectStore from "@/stores/project";
 
 const { project } = storeToRefs(projectStore());
 
+const props = defineProps<{
+  /** 快创会话 id：提供时把图/视频产物同步登记进快创资产白板（素材中心场景不传） */
+  sessionId?: number;
+}>();
+
 const emit = defineEmits<{
   /** 有节点成功导入，父级切回素材标签并刷新列表 */
   imported: [];
@@ -224,6 +229,7 @@ async function onImport() {
       projectId: selectedProjectId.value,
       toonflowProjectId: project.value?.id,
       nodeKeys: Array.from(selectedKeys.value),
+      ...(props.sessionId ? { sessionId: props.sessionId } : {}),
     });
     if (res.code === 200) {
       importSummary.value = res.data;
