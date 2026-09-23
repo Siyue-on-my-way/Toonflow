@@ -30,7 +30,8 @@ WORKDIR /app
 RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources
 
 # 安装原生模块所需的构建依赖
-RUN apt-get update && apt-get install -y python3 make g++ curl unzip ca-certificates && rm -rf /var/lib/apt/lists/*
+# 安装原生模块所需的构建依赖 + ffmpeg（视频封面帧抽取：白板用一张 JPEG 当视频封面，避免 <video> 全量拉 MP4）
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ curl unzip ca-certificates ffmpeg && rm -rf /var/lib/apt/lists/*
 
 # LibTV CLI（LiblibAI 画布渠道）：绑定（短信/粘贴凭据）与生成全部经 CLI 子进程完成。
 # 装到固定路径并软链进 PATH；运行时 vendor 解析顺序：渠道设置 cliPath → ~/.libtv/libtv → PATH。

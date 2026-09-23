@@ -1,6 +1,7 @@
 /** 资产白板组件测试（SIY-132）：网格展示、状态区分、复制/设为首帧/放大事件、分页与筛选 */
 import { describe, expect, it } from "vitest";
 import { mount } from "@vue/test-utils";
+import { nextTick } from "vue";
 import AssetBoard from "../components/AssetBoard.vue";
 import type { MediaRef } from "@/types/quickVideo";
 
@@ -109,10 +110,30 @@ describe("AssetBoard.vue", () => {
   it("刷新按钮触发 refresh 事件", async () => {
     const wrapper = mount(AssetBoard, { props: baseProps });
     const header = wrapper.find(".qvAssetBoardHeaderActions");
-    const buttons = header.findAll("button, t-button");
-    // 第一个是刷新按钮（筛选 select 之后、收起按钮之前）
-    await buttons[0]?.trigger("click");
+    // 按 testid 找刷新按钮（此前按下标取第一个，LibTV 导入按钮加入后失效）
+    const refreshButton = wrapper.find('[data-testid="qv-asset-refresh"]');
+    expect(refreshButton.exists()).toBe(true);
+    await refreshButton.trigger("click");
     expect(wrapper.emitted("refresh")).toBeTruthy();
+  });
+
+  it("封面顺序加载：并发 2 逐个出现，图片走 480x480 小图、视频走抽帧海报，未轮到的显示骨架", async () => {
+    const items = Array.from({ length: 5 }, (_, i) =>
+      media({ mediaId: 100 + i, kind: i % 2 ? "video" : "image", url: `http://localhost/oss/48/x-${i}.${i % 2 ? "mp4" : "png"}` }),
+    );
+    const wrapper = mount(AssetBoard, { props: { ...baseProps, items, total: 5 } });
+    await nextTick();
+    // 队列并发 2：只有前两张有 src（浏览器开始加载），其余显示骨架占位
+    let imgs = wrapper.findAll("img.qvAssetCoverImg");
+    expect(imgs.length).toBe(2);
+    expect(imgs[0].attributes("src")).toContain("/oss/48/x-0.png?size=480x480");
+    expect(imgs[1].attributes("src")).toContain("/oss/48/x-1.mp4?size=poster");
+    expect(wrapper.findAll(".qvAssetCoverSkeleton").length).toBe(3);
+    // 第一张加载完成 → 队列放行下一张
+    await imgs[0].trigger("load");
+    await nextTick();
+    imgs = wrapper.findAll("img.qvAssetCoverImg");
+    expect(imgs.length).toBe(3);
   });
 
   it("删除按钮：done/failed 素材提供删除入口，生成中的素材不提供（确认交互由 popconfirm 承载，E2E 覆盖）", () => {

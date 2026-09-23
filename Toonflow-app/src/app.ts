@@ -16,7 +16,8 @@ import { startGenerationWorker } from "@/utils/generationWorker";
 import jwt from "jsonwebtoken";
 import socketInit from "@/socket/index";
 import { isEletron } from "@/utils/getPath";
-import { ensureThumbnail, ThumbnailSize } from "@/utils/image";
+import { ensureThumbnail, ensureVideoPoster, ThumbnailSize } from "@/utils/image";
+import { etagMatches, parseRangeHeader } from "@/utils/httpRange";
 
 const app = express();
 const server = http.createServer(app);
@@ -97,10 +98,30 @@ export default async function startServe(randomPort: Boolean = false) {
 
   // 静态资源统一改为流式传输：直接把 MinIO 可读流 pipe 给响应，不再把整个文件缓冲进内存；
   // 也不走 res.send(Buffer)，Express 便不会为这些响应自动生成 ETag，避免强校验头干扰 nginx 侧的 gzip 压缩
-  const streamOssFile = async (res: Response, objectKey: string, contentType: string) => {
-    const { stream, size } = await u.oss.getFileStream(objectKey);
+  const streamOssFile = async (res: Response, objectKey: string, contentType: string, req?: Request) => {
+    const { stream, size, etag, lastModified } = await u.oss.getFileStream(objectKey);
     res.set("Content-Type", contentType);
     res.set("Content-Length", String(size));
+    // 缓存与分段：对象 key 内容不变可协商缓存；<video>/预览用 Range 取段，避免整文件下载
+    res.set("Accept-Ranges", "bytes");
+    res.set("ETag", etag);
+    res.set("Cache-Control", "public, max-age=3600");
+    if (lastModified) res.set("Last-Modified", lastModified.toUTCString());
+    if (req && etagMatches(req.headers["if-none-match"] as string | undefined, etag)) {
+      res.status(304).end();
+      stream.destroy();
+      return;
+    }
+    const range = parseRangeHeader(req?.headers.range as string | undefined, size);
+    if (range) {
+      res.status(206);
+      res.set("Content-Range", `bytes ${range.start}-${range.end}/${size}`);
+      res.set("Content-Length", String(range.end - range.start + 1));
+      const { stream: part } = await u.oss.getFileStream(objectKey, { offset: range.start, length: range.end - range.start + 1 });
+      part.on("error", () => res.destroy());
+      part.pipe(res);
+      return;
+    }
     stream.on("error", () => res.destroy());
     stream.pipe(res);
   };
@@ -138,6 +159,29 @@ export default async function startServe(randomPort: Boolean = false) {
       const objectKey = req.path;
       const ext = path.extname(objectKey).toLowerCase();
       const contentType = OSS_MIME_TYPES[ext] ?? "application/octet-stream";
+
+      // 传缓存头给缩略图响应（key 内容稳定，可长缓存；配合 ETag 协商）
+      const thumbEtag = `"thumb-${objectKey}-${req.query.size}"`;
+      res.set("ETag", thumbEtag);
+      res.set("Cache-Control", "public, max-age=86400");
+      if (etagMatches(req.headers["if-none-match"] as string | undefined, thumbEtag)) {
+        res.status(304).end();
+        return;
+      }
+
+      // 视频封面帧（size=poster）：白板用一张 JPEG 当视频封面，替代「<video> 全量拉 MP4」
+      if ((req.query.size as string) === "poster" && [".mp4", ".mov", ".webm", ".m4v"].includes(ext)) {
+        const base = path.basename(objectKey, ext);
+        const dir = path.dirname(objectKey);
+        const poster = await ensureVideoPoster(objectKey, `smallImage${dir}/${base}_poster.jpg`);
+        if (poster) {
+          res.set("Content-Type", "image/jpeg");
+          res.set("Cache-Control", "public, max-age=86400");
+          res.send(poster);
+          return;
+        }
+        // 海报不可得（ffmpeg 缺失/抽帧失败）：降级回原视频流，保持白板可用
+      }
 
       // 如果传参 size，则现场生成/读取缓存缩略图
       if (req.query.size) {
@@ -177,7 +221,7 @@ export default async function startServe(randomPort: Boolean = false) {
       }
 
       try {
-        await streamOssFile(res, objectKey, contentType);
+        await streamOssFile(res, objectKey, contentType, req);
       } catch {
         res.status(404).end();
         return;

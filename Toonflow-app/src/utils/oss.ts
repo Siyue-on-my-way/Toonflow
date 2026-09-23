@@ -104,13 +104,17 @@ class OSS {
    * @returns MinIO 可读流与文件大小（来自 statObject，可用于设置 Content-Length）
    * @throws 路径不合法、文件不存在等错误
    */
-  async getFileStream(userRelPath: string): Promise<{ stream: Readable; size: number }> {
+  async getFileStream(userRelPath: string, opts?: { offset?: number; length?: number }): Promise<{ stream: Readable; size: number; etag: string; lastModified?: Date }> {
     await this.ensureInit();
     const key = normalizeObjectKey(userRelPath);
-    // 先 stat 再取流：文件不存在时直接抛错（由调用方返回 404），同时拿到准确的文件大小
+    // 先 stat 再取流：文件不存在时直接抛错（由调用方返回 404），同时拿到准确的文件大小/ETag
     const stat = await this.client.statObject(this.bucket, key);
-    const stream = await this.client.getObject(this.bucket, key);
-    return { stream, size: stat.size };
+    // Range 场景走 getPartialObject（offset/length），全量走 getObject
+    const stream =
+      opts?.offset !== undefined || opts?.length !== undefined
+        ? await this.client.getPartialObject(this.bucket, key, opts?.offset ?? 0, opts?.length ?? 0)
+        : await this.client.getObject(this.bucket, key);
+    return { stream, size: stat.size, etag: stat.etag, lastModified: stat.lastModified };
   }
 
   /**

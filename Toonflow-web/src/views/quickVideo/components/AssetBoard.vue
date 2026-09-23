@@ -16,7 +16,7 @@
           <t-option value="image" :label="imageLabel" />
           <t-option value="video" :label="videoLabel" />
         </t-select>
-        <t-button size="small" variant="outline" :loading="loading" @click="$emit('refresh')">
+        <t-button size="small" variant="outline" :loading="loading" data-testid="qv-asset-refresh" @click="$emit('refresh')">
           <template #icon><i-refresh size="14" /></template>
         </t-button>
         <t-button size="small" variant="text" @click="collapsed = !collapsed">
@@ -28,14 +28,33 @@
     <div v-show="!collapsed" class="qvAssetBoardBody">
       <t-empty v-if="!items.length && !loading" :title="emptyText" data-testid="qv-asset-empty" />
       <div v-else class="qvAssetBoardGrid">
-        <div v-for="item in items" :key="item.mediaId" class="qvAssetBoardCell" :data-testid="'qv-asset-cell-' + item.mediaId">
+        <div v-for="item in items" :key="item.mediaId" :ref="setCellRef(item.mediaId)" class="qvAssetBoardCell" :data-testid="'qv-asset-cell-' + item.mediaId">
           <div class="qvAssetThumb" data-testid="qv-asset-zoom" @click="item.state === 'done' && $emit('zoom', item)">
-            <t-image
-              v-if="item.state === 'done' && item.kind === 'image' && item.url"
-              :src="item.url"
-              fit="cover"
-              :style="{ width: '100%', height: '100%', cursor: 'pointer' }" />
-            <video v-else-if="item.state === 'done' && item.kind === 'video' && item.url" :src="item.url" muted class="qvAssetVideoThumb" />
+            <template v-if="item.state === 'done' && item.kind === 'image' && item.url">
+              <!-- 封面加载队列：src 只在轮到它时才赋值（顺序逐个出现），未轮到显示骨架 -->
+              <t-skeleton v-if="coverState(item.mediaId) !== 'ready' && coverState(item.mediaId) !== 'loading'" class="qvAssetCoverSkeleton" :loading="true" :row-col="[{ width: '100%', height: '100%' }]" animation="gradient" />
+              <img
+                v-else-if="coverSrc(item)"
+                class="qvAssetCoverImg"
+                :src="coverSrc(item)!"
+                :alt="item.promptSummary || ''"
+                loading="eager"
+                @load="onCoverLoad(item)"
+                @error="onCoverError(item)" />
+            </template>
+            <template v-else-if="item.state === 'done' && item.kind === 'video' && item.url">
+              <!-- 视频封面 = 服务端抽帧海报（?size=poster），不再用 <video> 全量拉 MP4；点卡片走 zoom 播原片 -->
+              <t-skeleton v-if="coverState(item.mediaId) !== 'ready' && coverState(item.mediaId) !== 'loading'" class="qvAssetCoverSkeleton" :loading="true" :row-col="[{ width: '100%', height: '100%' }]" animation="gradient" />
+              <img
+                v-else-if="coverSrc(item)"
+                class="qvAssetCoverImg"
+                :src="coverSrc(item)!"
+                :alt="item.promptSummary || ''"
+                loading="eager"
+                @load="onCoverLoad(item)"
+                @error="onCoverError(item)" />
+              <div class="qvAssetVideoBadge"><i-play-circle size="16" /></div>
+            </template>
             <div v-else-if="item.state === 'generating'" class="qvAssetPlaceholder generating" data-testid="qv-asset-generating">
               <t-loading size="small" :loading="true" />
             </div>
@@ -85,7 +104,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch, onBeforeUnmount, nextTick } from "vue";
 import libtvErrorCard from "@/components/libtvErrorCard.vue";
 import { isLibtvError } from "@/utils/libtvError";
 import type { MediaRef } from "@/types/quickVideo";
@@ -128,6 +147,123 @@ const emit = defineEmits<{
 
 const collapsed = ref(false);
 const kindFilter = ref<"all" | "image" | "video">("all");
+
+// ============================================================
+// 封面加载队列：并发 2 顺序加载（一个一个出现），可视区插队，失败重试 1 次后落占位。
+// 背景：封面请求从「整份原始文件」改为小封面（图片 ?size=480x480 / 视频 ?size=poster 抽帧海报），
+// 再配顺序队列，保证低带宽下逐个可见且全部最终加载。
+// ============================================================
+type CoverState = "queued" | "loading" | "ready" | "failed";
+const COVER_CONCURRENCY = 2;
+const coverStates = ref<Record<number, CoverState>>({});
+const coverRetries = new Map<number, number>();
+const queue: number[] = [];
+let active = 0;
+const cellEls = new Map<number, HTMLElement>();
+let observer: IntersectionObserver | null = null;
+
+const coverState = (id: number): CoverState => coverStates.value[id] ?? "queued";
+/** 封面地址：小图/海报由服务端 /oss 现场生成并缓存（图片 480px，视频抽帧 JPEG） */
+const coverSrc = (item: MediaRef): string | null => {
+  if (!item.url) return null;
+  return `${item.url}?size=${item.kind === "image" ? "480x480" : "poster"}`;
+};
+
+function pump() {
+  while (active < COVER_CONCURRENCY && queue.length > 0) {
+    const id = queue.shift()!;
+    if (coverStates.value[id] === "ready" || coverStates.value[id] === "failed") continue;
+    if (!props.items.some((i) => i.mediaId === id)) continue; // 已被翻页/筛选移除
+    active += 1;
+    coverStates.value = { ...coverStates.value, [id]: "loading" };
+  }
+}
+
+function onCoverLoad(item: MediaRef) {
+  active = Math.max(0, active - 1);
+  coverStates.value = { ...coverStates.value, [item.mediaId]: "ready" };
+  pump();
+}
+
+function onCoverError(item: MediaRef) {
+  active = Math.max(0, active - 1);
+  const retried = coverRetries.get(item.mediaId) ?? 0;
+  if (retried < 1) {
+    // 瞬时失败重试一次（仍走队列，保持节奏）
+    coverRetries.set(item.mediaId, retried + 1);
+    coverStates.value = { ...coverStates.value, [item.mediaId]: "queued" };
+    queue.unshift(item.mediaId);
+  } else {
+    // 最终失败落占位，不阻塞队列；点刷新可整体重来
+    coverStates.value = { ...coverStates.value, [item.mediaId]: "failed" };
+  }
+  pump();
+}
+
+/** 翻页/筛选/刷新后重建队列：已 ready 的保留（浏览器缓存命中秒出），其余按顺序重新排队 */
+function rebuildQueue() {
+  const valid = new Set(props.items.filter((i) => i.state === "done" && i.url).map((i) => i.mediaId));
+  for (const id of Object.keys(coverStates.value)) {
+    if (!valid.has(Number(id))) {
+      delete coverStates.value[Number(id)];
+      coverRetries.delete(Number(id));
+    }
+  }
+  queue.length = 0;
+  for (const it of props.items) {
+    if (it.state !== "done" || !it.url) continue;
+    const cur = coverStates.value[it.mediaId];
+    if (cur === "ready" || cur === "failed" || cur === "loading") continue;
+    coverStates.value = { ...coverStates.value, [it.mediaId]: "queued" };
+    queue.push(it.mediaId);
+  }
+  pump();
+  observeCells();
+}
+
+/** 可视区插队：滚动到哪先加载哪（卡片大多在首屏时等价于从上到下逐个出现） */
+function observeCells() {
+  if (typeof IntersectionObserver === "undefined") return;
+  observer?.disconnect();
+  observer = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        const id = Number((e.target as HTMLElement).dataset.mediaId);
+        const idx = queue.indexOf(id);
+        if (idx > 0) {
+          queue.splice(idx, 1);
+          queue.unshift(id);
+          pump();
+        }
+      }
+    },
+    { rootMargin: "120px" },
+  );
+  nextTick(() => {
+    for (const [id, el] of cellEls) {
+      el.dataset.mediaId = String(id);
+      observer!.observe(el);
+    }
+  });
+}
+
+const setCellRef = (id: number) => (el: any) => {
+  if (el) cellEls.set(id, el as HTMLElement);
+  else cellEls.delete(id);
+};
+
+watch(
+  () => props.items,
+  () => rebuildQueue(),
+  { immediate: true },
+);
+
+onBeforeUnmount(() => {
+  observer?.disconnect();
+  observer = null;
+  queue.length = 0;
+});
 
 const totalPages = computed(() => Math.max(1, Math.ceil(props.total / Math.max(1, props.pageSize))));
 
@@ -180,10 +316,35 @@ function onFilterChange() {
       border-radius: 6px;
       overflow: hidden;
       background: var(--td-bg-color-secondarycontainer);
-      .qvAssetVideoThumb {
+      position: relative;
+      .qvAssetCoverImg {
         width: 100%;
         height: 100%;
         object-fit: cover;
+        cursor: pointer;
+        display: block;
+      }
+      .qvAssetCoverSkeleton {
+        width: 100%;
+        height: 100%;
+        display: block;
+        :deep(.t-skeleton__row) {
+          height: 100%;
+        }
+        :deep(.t-skeleton__col) {
+          height: 100%;
+        }
+      }
+      .qvAssetVideoBadge {
+        position: absolute;
+        right: 4px;
+        bottom: 4px;
+        color: #fff;
+        background: rgba(0, 0, 0, 0.45);
+        border-radius: 50%;
+        padding: 2px;
+        display: flex;
+        pointer-events: none;
       }
     }
     .qvAssetPlaceholder {
